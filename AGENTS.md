@@ -43,7 +43,7 @@ frameworks from the SDK.
   nothing or returns `null`/`error.Unsupported`, so apps compile everywhere.
 - **Never show windows on the developer's screen** while working: no
   running examples or benchmark apps windowed, nothing that activates an
-  app or takes focus (nanoterm may be shown when asked). Live apps are
+  app or takes focus. Live apps are
   checked headlessly with `--myzig-snapshot` and `--myzig-wait`. Measure with the headless hill-climb app
   (`hillclimb/`), verify with `ui.Tester` and the `--myzig-*` flags.
 - **Never drive the real screen.** No synthetic mouse or keyboard events
@@ -153,8 +153,6 @@ plugins/              official plugins, each its own package with tests and an e
 examples/             hello, todo, pages, native (pages); counter, gallery and the rest (native UI)
 docs/                 the user documentation (docs/README.md) and the architecture guide; a VitePress site (docs/.vitepress)
 hillclimb/            headless benchmarks against mygo (its own package); notes/ keeps results
-apps/nanoterm/        the first app: a Warp-like terminal with ACP agents
-apps/nanomon/         a small activity monitor (libproc, Mach, /proc)
 tools/*.Dockerfile    Linux (GTK, WebKitGTK, Xvfb) and Windows (Wine) test images
 tools/lines.zig       the 600-line check
 tools/inputlatency/   input-to-screen latency of native UI (its own package; shows a window: people run it)
@@ -182,7 +180,6 @@ cd examples/farm && zig build run     # the game plugin's example
 cd hillclimb && zig build run -- --label "change"   # climb: compare with mygo and history
 cd docs && npm install && npm run dev   # the documentation site, live (npm run build checks every link)
 cd tools/inputlatency && zig build test   # its statistics and plans; `zig build run` measures (shows a window, synthesizes input into it: a person runs it, never an agent)
-cd apps/nanomon && zig build test --fork=../..     # an app (a submodule) against this myzig, not its pinned one
 
 # Headless checks of the real apps (no window is shown):
 zig-out/bin/gallery --myzig-snapshot=/tmp/g.png --myzig-script="click:Tasks;type:Hi;key:enter"

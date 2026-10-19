@@ -1,5 +1,5 @@
 //! Watching file descriptors is a POSIX idea: Windows apps wait on handles
-//! instead. Not supported yet (nanoterm needs ConPTY first).
+//! instead. Not supported yet (a terminal needs ConPTY first).
 const std = @import("std");
 
 pub const Handler = *const fn (ctx: ?*anyopaque) callconv(.c) void;

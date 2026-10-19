@@ -31,14 +31,6 @@ Zed, Copyright 2022–2025 Zed Industries, Inc.:
 GPUI is licensed under the Apache License 2.0, whose text is kept verbatim in
 [`third_party/licenses/GPUI-Apache-2.0.txt`](third_party/licenses/GPUI-Apache-2.0.txt).
 
-## Apps
-
-[nanoterm](https://github.com/justrach/nanoterm) and
-[nanomon](https://github.com/justrach/nanomon), under `apps/`, are separate
-repositories with their own licenses and notices. Both use CodeGraff's
-colors and run graff as a separate program; CodeGraff is distributed under
-its modified AGPLv3 terms, as their notices say.
-
 ## go-mp3
 
 The MP3 decoder's Huffman code tables and synthesis window

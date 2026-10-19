@@ -2,7 +2,7 @@
 const std = @import("std");
 
 const limit = 600;
-const roots = [_][]const u8{ "src", "examples", "tools", "hillclimb/src", "hillclimb/mygo", "hillclimb/build.zig", "apps/nanoterm/src", "apps/nanoterm/build.zig", "apps/nanomon/src", "apps/nanomon/build.zig", "apps/nanomon/README.md", "apps/nanoterm/README.md", "build.zig", "AGENTS.md", "README.md", "docs" };
+const roots = [_][]const u8{ "src", "examples", "tools", "hillclimb/src", "hillclimb/mygo", "hillclimb/build.zig", "build.zig", "AGENTS.md", "README.md", "docs" };
 /// What tools write: caches, builds, the docs site's lock file and output.
 const skip = [_][]const u8{ ".zig-cache", "zig-out", "node_modules", ".git", "package-lock.json", ".vitepress" ++ sep ++ "cache", ".vitepress" ++ sep ++ "dist" };
 const sep = std.fs.path.sep_str;

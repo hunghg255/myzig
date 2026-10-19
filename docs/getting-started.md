@@ -26,7 +26,7 @@ What the app needs to run:
 Get myzig, and build the command line tool:
 
 ```sh
-git clone --recursive https://github.com/hunghg255/myzig
+git clone https://github.com/hunghg255/myzig
 cd myzig/cli
 zig build -Doptimize=ReleaseSmall    # zig-out/bin/myzig
 ```
@@ -249,9 +249,7 @@ The repository's examples build with `zig build` from its root, into
 | `mayoi` | a small game drawn as one shader |
 | `farm` | a farming game on the game plugin: `cd examples/farm && zig build run` |
 
-The plugins have examples of their own (`plugins/<name>/example`), and the
-apps in `apps/` (submodules: nanoterm, a terminal with a coding agent, and
-nanomon, an activity monitor) are larger programs built on myzig.
+The plugins have examples of their own (`plugins/<name>/example`).
 
 Other steps of the root build:
 

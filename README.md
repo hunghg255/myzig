@@ -8,8 +8,6 @@
 
 <p align="center"><sub>Meet Nano. <a href="docs/images/nano-transparent.png">Transparent PNG</a> · <a href="docs/images/nano-paper.png">Original paper illustration</a></sub></p>
 
-<p align="center">Want to see it in use? <a href="https://github.com/justrach/nanoterm"><strong>nanoterm</strong></a> is a terminal with a coding agent, and <a href="https://github.com/justrach/nanomon"><strong>nanomon</strong></a> an activity monitor, both built on myzig (then called nanoui).</p>
-
 <p align="center">
   <img alt="macOS · Linux · Windows · browsers" src="https://img.shields.io/badge/macOS%20·%20Linux%20·%20Windows%20·%20browsers-555">
   <img alt="Apps of about 0.7 MB" src="https://img.shields.io/badge/apps-~0.7%20MB-44cc11">
@@ -24,14 +22,9 @@
   <a href="#web-pages">Web pages</a> ·
   <a href="#testing-without-a-window">Testing</a> ·
   <a href="#platforms">Platforms</a> ·
-  <a href="#apps">Apps</a> ·
   <a href="#performance">Performance</a> ·
   <a href="docs/README.md">Docs</a> ·
   <a href="#credits">Credits</a>
-</p>
-
-<p align="center">
-  <img src="docs/images/nanomon-window.png" alt="nanomon, built on myzig: the overview in Codegraff Light, with cell graphs of CPU, memory, GPU, disk and network" width="760">
 </p>
 
 Each window shows one of two kinds of interface:
@@ -60,7 +53,7 @@ myzig was called nanoui. Its module, flags (`--myzig-*`), page runtime
 still exports the module as `nanoui` too, for apps that import the old name.
 
 ```sh
-git clone --recursive https://github.com/hunghg255/myzig
+git clone https://github.com/hunghg255/myzig
 cd myzig
 zig build run-gallery    # the native UI tour
 zig build run-hello      # the webview example
@@ -82,10 +75,6 @@ myzig build                       # the release and its packages
 
 See [Getting started](docs/getting-started.md), which also tours every
 example.
-
-`--recursive` also fetches the apps, which live in their own repositories as
-submodules under `apps/`. To fetch them after a plain clone, run
-`git submodule update --init`.
 
 ## Native UI
 
@@ -241,29 +230,6 @@ same frames both ways and compare them. `zig build test -Dportable=true`
 runs the Linux and Windows text and renderer on a Mac. Linux is also tested
 in a container (`tools/linux.Dockerfile`: GTK, WebKitGTK, fonts, Mesa and a
 virtual display), Windows natively or under Wine (`tools/wine*.Dockerfile`).
-
-## Apps
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="https://github.com/justrach/nanoterm"><img src="docs/images/nanoterm-light.png" alt="nanoterm: an agent's answer with a native visual"></a>
-      <p><a href="https://github.com/justrach/nanoterm"><strong>nanoterm</strong></a>: a terminal of blocks, in the manner of Warp, with a coding agent (graff or Claude Code) over ACP. It has native visuals, a ⌘P launcher, and SSH sessions where the agent works on the remote host.</p>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://github.com/justrach/nanomon"><img src="docs/images/nanomon-dark.png" alt="nanomon: the overview with graff's suggestions"></a>
-      <p><a href="https://github.com/justrach/nanomon"><strong>nanomon</strong></a>: an activity monitor in Codegraff colors, with cell graphs of CPU, memory, GPU, disk and network. You can quit several processes at once, and a graff bubble suggests what to quit.</p>
-    </td>
-  </tr>
-</table>
-
-Download them for macOS:
-[nanoterm](https://github.com/justrach/nanoterm/releases/latest/download/nanoterm-macos-arm64.dmg) ·
-[nanomon](https://github.com/justrach/nanomon/releases/latest/download/nanomon-macos-arm64.dmg).
-
-Both live in `apps/` as submodules, and each also builds on its own, fetching
-myzig pinned by commit. To build one against the myzig next to it, with
-your changes, use `--fork`: `cd apps/nanomon && zig build run --fork=../..`.
 
 ## Performance
 

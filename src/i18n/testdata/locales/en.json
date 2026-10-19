@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "title": "Notes",
+  "@title": { "description": "The window's title." },
+  "greeting": "Hello, {name}!",
+  "@greeting": { "placeholders": { "name": { "type": "String", "example": "Ada" } } },
+  "filesSelected": "{count, plural, =0 {No files selected} one {# file selected} other {# files selected}}",
+  "@filesSelected": {
+    "description": "The status bar, while files are selected.",
+    "placeholders": { "count": { "type": "int", "example": "3" } }
+  },
+  "place": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place",
+  "replied": "{gender, select, female {She} male {He} other {They}} replied.",
+  "price": "Total: {amount, number, ::.00}",
+  "@price": { "placeholders": { "amount": { "type": "double" } } },
+  "due": "Due {day, date, medium}",
+  "onlyEnglish": "Only in English",
+  "quoted": "Type '{name}' to don''t confirm"
+}

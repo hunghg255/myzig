@@ -1,0 +1,17 @@
+.{
+    .name = .myzig_websocket,
+    .version = "0.1.0",
+    .fingerprint = 0x8dbdfe5fcba3d52c,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .myzig = .{ .path = "../.." },
+        .mainthread = .{ .path = "../mainthread" },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "example",
+        "README.md",
+    },
+}

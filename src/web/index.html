@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>myzig</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #f5f5f7; }
+      @media (prefers-color-scheme: dark) { html, body { background: #1c1c1e; } }
+    </style>
+    <script type="module">
+      import { start } from "./host.js";
+      start({ wasm: "app.wasm", fonts: "fonts/" }).catch((e) => {
+        document.body.textContent = "This app could not start: " + e;
+        throw e;
+      });
+    </script>
+  </head>
+  <body></body>
+</html>

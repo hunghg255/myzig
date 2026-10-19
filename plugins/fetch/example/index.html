@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fetch</title>
+    <style>
+      :root { color-scheme: light dark; font: 14px system-ui, sans-serif; }
+      body { margin: 24px; }
+      pre { padding: 12px; border-radius: 8px; background: #8881; min-height: 4em; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h2>Fetch from Zig</h2>
+    <p>
+      <button id="hello">GET /hello</button>
+      <button id="stream">Stream /stream</button>
+      <button id="gate">Send the rest</button>
+    </p>
+    <pre id="out"></pre>
+    <script type="module">
+      import { fetch } from "/plugins/fetch.js";
+      const base = await myzig.call("Demo.base");
+      const out = document.getElementById("out");
+
+      document.getElementById("hello").onclick = async () => {
+        const res = await fetch(base + "/hello", { headers: { origin: "https://example.com" } });
+        out.textContent = `${res.status} ${res.statusText}\n${[...res.headers].map((h) => h.join(": ")).join("\n")}\n\n${await res.text()}`;
+      };
+      document.getElementById("stream").onclick = async () => {
+        out.textContent = "";
+        const res = await fetch(base + "/stream");
+        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          out.textContent += value + "\n";
+        }
+        out.textContent += "(end)";
+      };
+      document.getElementById("gate").onclick = () => myzig.call("Demo.openGate");
+    </script>
+  </body>
+</html>

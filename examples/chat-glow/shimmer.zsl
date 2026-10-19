@@ -1,0 +1,19 @@
+// Thinking text: a band of brightness sweeping across the text, again and
+// again. The box lies over the text and reads it from the backdrop: how
+// much of a pixel is text is how far it went from the background toward
+// the text's color, and that much of it takes the band's color.
+
+uniform time: f32;
+uniform base: vec3;
+uniform shine: vec3;
+uniform background: vec3;
+
+pub fn fragment(pos: vec2) vec4 {
+    const b = backdrop(pos).rgb;
+    const d = background - base;
+    const k = clamp(dot(background - b, d) / max(dot(d, d), 0.0001), 0, 1);
+    const x = pos.x / size().x;
+    const s = fract(time * 0.6) * 2.2 - 0.6;
+    const band = exp(-(x - s) * (x - s) * 14);
+    return vec4(mix(b, mix(base, shine, band), k), 1);
+}

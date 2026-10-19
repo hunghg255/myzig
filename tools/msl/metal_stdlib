@@ -1,0 +1,217 @@
+// A stand-in for Metal's <metal_stdlib>, so clang (`zig clang`) can check
+// myzig's Metal Shading Language as C++14 where no Mac is (check.zig):
+// the vector types and the functions the sources use, with Metal's
+// overloads (scalars and vectors of float and half; integers where Metal
+// has them), declared but not defined. A call Metal has no overload for
+// fails here too. What it cannot check: see check.zig.
+//
+// check.zig rewrites `float2(a, b)` (Metal's vector constructors, which
+// C++ has no syntax for) into `__mtl_ctor<float2>(a, b)`, and passes
+// `-cl-single-precision-constant`: in Metal a literal like `0.5` is a float.
+#pragma once
+
+// Address spaces and entry points: nothing to C++ (see check.zig).
+#define device
+#define constant
+#define thread
+#define threadgroup
+#define threadgroup_imageblock
+#define ray_data
+#define object_data
+#define vertex
+#define fragment
+#define kernel
+// Metal has no double.
+#define double __metal_has_no_double
+
+template <class E, int N> using __mtl_vec = E __attribute__((ext_vector_type(N)));
+typedef _Float16 half;
+typedef unsigned int uint;
+typedef unsigned short ushort;
+typedef unsigned char uchar;
+
+#define __MTL_VECS(T, NAME) \
+    typedef __mtl_vec<T, 2> NAME##2; \
+    typedef __mtl_vec<T, 3> NAME##3; \
+    typedef __mtl_vec<T, 4> NAME##4;
+__MTL_VECS(float, float)
+__MTL_VECS(half, half)
+__MTL_VECS(int, int)
+__MTL_VECS(uint, uint)
+__MTL_VECS(short, short)
+__MTL_VECS(ushort, ushort)
+__MTL_VECS(char, char)
+__MTL_VECS(uchar, uchar)
+__MTL_VECS(bool, bool)
+// Metal's packed types (no padding): checked as the plain ones.
+__MTL_VECS(float, packed_float)
+__MTL_VECS(half, packed_half)
+__MTL_VECS(int, packed_int)
+__MTL_VECS(uint, packed_uint)
+#undef __MTL_VECS
+
+// Vector constructors: scalars and vectors whose components add up to
+// the vector's, one scalar (spread), or one vector of the same size
+// (converted).
+template <class T> struct __mtl_info { enum { n = 1, vector = 0, ok = __is_arithmetic(T) }; };
+template <class E, int N> struct __mtl_info<__mtl_vec<E, N>> { enum { n = N, vector = 1, ok = 1 }; };
+
+template <class... A> struct __mtl_count;
+template <> struct __mtl_count<> { enum { n = 0, ok = 1 }; };
+template <class A, class... R> struct __mtl_count<A, R...> {
+    enum { n = __mtl_info<A>::n + __mtl_count<R...>::n, ok = __mtl_info<A>::ok && __mtl_count<R...>::ok };
+};
+
+template <class V, class... A> inline V __mtl_ctor(A...) {
+    static_assert(__mtl_info<V>::vector, "not a vector type");
+    static_assert(__mtl_count<A...>::ok, "a vector made from something not a number or vector");
+    static_assert(sizeof...(A) == 0 || __mtl_count<A...>::n == __mtl_info<V>::n ||
+                      (sizeof...(A) == 1 && __mtl_count<A...>::n == 1),
+                  "a vector made from the wrong number of components");
+    return V();
+}
+
+namespace metal {
+
+constexpr float M_PI_F = 3.14159265358979323846f;
+constexpr float M_PI_2_F = 1.57079632679489661923f;
+constexpr float M_PI_4_F = 0.78539816339744830962f;
+constexpr float M_1_PI_F = 0.31830988618379067154f;
+constexpr float M_2_PI_F = 0.63661977236758134308f;
+constexpr float M_E_F = 2.71828182845904523536f;
+constexpr float M_SQRT2_F = 1.41421356237309504880f;
+constexpr float M_SQRT1_2_F = 0.70710678118654752440f;
+constexpr float M_LN2_F = 0.69314718055994530942f;
+constexpr float MAXFLOAT = 3.402823466e+38f;
+constexpr float INFINITY = __builtin_huge_valf();
+constexpr float NAN = __builtin_nanf("");
+
+// Each declaration once for every float type, or every integer type.
+#define __MTL_FLOATS(X) X(float, float) X(float2, float) X(float3, float) X(float4, float) \
+    X(half, half) X(half2, half) X(half3, half) X(half4, half)
+#define __MTL_FVECS(X) X(float2, float) X(float3, float) X(float4, float) \
+    X(half2, half) X(half3, half) X(half4, half)
+#define __MTL_INTS(X) X(int, int) X(int2, int) X(int3, int) X(int4, int) \
+    X(uint, uint) X(uint2, uint) X(uint3, uint) X(uint4, uint) \
+    X(short, short) X(short2, short) X(short3, short) X(short4, short) \
+    X(ushort, ushort) X(ushort2, ushort) X(ushort3, ushort) X(ushort4, ushort) \
+    X(char, char) X(char2, char) X(char3, char) X(char4, char) \
+    X(uchar, uchar) X(uchar2, uchar) X(uchar3, uchar) X(uchar4, uchar)
+
+// Math and common functions (Metal's T: a float or half, scalar or vector).
+#define __MTL_UNARY(T, S) \
+    T acos(T); T acosh(T); T asin(T); T asinh(T); T atan(T); T atanh(T); \
+    T ceil(T); T cos(T); T cosh(T); T cospi(T); T exp(T); T exp2(T); T exp10(T); \
+    T fabs(T); T abs(T); T floor(T); T fract(T); T log(T); T log2(T); T log10(T); \
+    T rint(T); T round(T); T rsqrt(T); T sin(T); T sinh(T); T sinpi(T); T sqrt(T); \
+    T tan(T); T tanh(T); T tanpi(T); T trunc(T); T saturate(T); T sign(T); \
+    T degrees(T); T radians(T); \
+    T dfdx(T); T dfdy(T); T fwidth(T);
+#define __MTL_BINARY(T, S) \
+    T atan2(T, T); T copysign(T, T); T fdim(T, T); T fmax(T, T); T fmin(T, T); \
+    T fmod(T, T); T pow(T, T); T powr(T, T); T max(T, T); T min(T, T); T step(T, T); \
+    T nextafter(T, T);
+#define __MTL_TERNARY(T, S) \
+    T clamp(T, T, T); T mix(T, T, T); T smoothstep(T, T, T); T fma(T, T, T); \
+    T fmax3(T, T, T); T fmin3(T, T, T); T max3(T, T, T); T min3(T, T, T); T median3(T, T, T);
+__MTL_FLOATS(__MTL_UNARY)
+__MTL_FLOATS(__MTL_BINARY)
+__MTL_FLOATS(__MTL_TERNARY)
+
+// Integer functions.
+#define __MTL_INT_FNS(T, S) \
+    T abs(T); T absdiff(T, T); T clamp(T, T, T); T max(T, T); T min(T, T); \
+    T max3(T, T, T); T min3(T, T, T); T median3(T, T, T); T popcount(T); \
+    T clz(T); T ctz(T); T reverse_bits(T); T rotate(T, T); T mulhi(T, T); \
+    T addsat(T, T); T subsat(T, T); T hadd(T, T); T rhadd(T, T);
+__MTL_INTS(__MTL_INT_FNS)
+
+// Geometric functions: of vectors only.
+#define __MTL_GEOMETRIC(T, S) \
+    S dot(T, T); S length(T); S length_squared(T); S distance(T, T); S distance_squared(T, T); \
+    T normalize(T); T reflect(T, T); T refract(T, T, S); T faceforward(T, T, T);
+__MTL_FVECS(__MTL_GEOMETRIC)
+float3 cross(float3, float3);
+half3 cross(half3, half3);
+
+// Relational functions.
+#define __MTL_SELECT_S(T, S) T select(T, T, bool); bool isnan(T); bool isinf(T); bool isfinite(T); bool signbit(T);
+float select(float, float, bool);
+half select(half, half, bool);
+bool isnan(float); bool isinf(float); bool isfinite(float); bool signbit(float);
+bool isnan(half); bool isinf(half); bool isfinite(half); bool signbit(half);
+#define __MTL_SELECT_V(T, B) T select(T, T, B);
+#define __MTL_SELECT_ALL(N) \
+    __MTL_SELECT_V(float##N, bool##N) __MTL_SELECT_V(half##N, bool##N) \
+    __MTL_SELECT_V(int##N, bool##N) __MTL_SELECT_V(uint##N, bool##N) \
+    bool##N isnan(float##N); bool##N isinf(float##N); bool##N isfinite(float##N); \
+    bool##N isnan(half##N); bool##N isinf(half##N); bool##N isfinite(half##N); \
+    bool all(bool##N); bool any(bool##N);
+__MTL_SELECT_ALL(2)
+__MTL_SELECT_ALL(3)
+__MTL_SELECT_ALL(4)
+int select(int, int, bool);
+uint select(uint, uint, bool);
+bool all(bool);
+bool any(bool);
+
+// Reinterpreting bits: types of the same size.
+template <class T, class U> inline T as_type(U u) {
+    static_assert(sizeof(T) == sizeof(U), "as_type between types of different sizes");
+    return __builtin_bit_cast(T, u);
+}
+
+// Fragment functions.
+void discard_fragment();
+
+// Samplers: made from Metal's enums, constexpr.
+enum class coord { normalized, pixel };
+enum class filter { nearest, linear };
+enum class min_filter { nearest, linear };
+enum class mag_filter { nearest, linear };
+enum class mip_filter { none, nearest, linear };
+enum class address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+enum class s_address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+enum class t_address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+enum class border_color { transparent_black, opaque_black, opaque_white };
+enum class compare_func { none, less, less_equal, greater, greater_equal, equal, not_equal, always, never };
+
+template <class T> struct __mtl_sampler_arg { enum { ok = 0 }; };
+#define __MTL_SAMPLER_ARG(E) template <> struct __mtl_sampler_arg<E> { enum { ok = 1 }; };
+__MTL_SAMPLER_ARG(coord) __MTL_SAMPLER_ARG(filter) __MTL_SAMPLER_ARG(min_filter)
+__MTL_SAMPLER_ARG(mag_filter) __MTL_SAMPLER_ARG(mip_filter) __MTL_SAMPLER_ARG(address)
+__MTL_SAMPLER_ARG(s_address) __MTL_SAMPLER_ARG(t_address) __MTL_SAMPLER_ARG(border_color)
+__MTL_SAMPLER_ARG(compare_func)
+template <class... A> struct __mtl_sampler_args;
+template <> struct __mtl_sampler_args<> { enum { ok = 1 }; };
+template <class A, class... R> struct __mtl_sampler_args<A, R...> {
+    enum { ok = __mtl_sampler_arg<A>::ok && __mtl_sampler_args<R...>::ok };
+};
+
+struct sampler {
+    constexpr sampler() {}
+    template <class... A> constexpr sampler(A...) {
+        static_assert(__mtl_sampler_args<A...>::ok, "a sampler is made from Metal's sampler enums");
+    }
+};
+
+// Textures: 2D, as the sources use them.
+enum class access { sample, read, write, read_write };
+
+template <class T, access A = access::sample> struct texture2d {
+    static_assert(__is_same(T, float) || __is_same(T, half) || __is_same(T, int) ||
+                      __is_same(T, uint) || __is_same(T, short) || __is_same(T, ushort),
+                  "texture2d of float, half, int, uint, short or ushort");
+    typedef __mtl_vec<T, 4> texel;
+    texel sample(sampler, float2) const;
+    texel sample(sampler, float2, int2) const;
+    texel read(uint2, uint = 0) const;
+    texel read(ushort2, ushort = 0) const;
+    void write(texel, uint2, uint = 0) const;
+    void write(texel, ushort2, ushort = 0) const;
+    uint get_width(uint = 0) const;
+    uint get_height(uint = 0) const;
+    uint get_num_mip_levels() const;
+};
+
+} // namespace metal

@@ -1,0 +1,212 @@
+//! The Unicode bidirectional class of a character (UAX #9's Bidi_Class),
+//! from a table of ranges of the characters that are not left to right:
+//! the scripts written right to left (Hebrew, Arabic, Syriac, Thaana, N'Ko
+//! and the historic ones), digits and the separators and terminators
+//! around numbers, punctuation and symbols (neutral), spaces, combining
+//! marks of right-to-left scripts and of every script's common blocks, and
+//! the explicit formatting characters. Unlisted characters read left to
+//! right, as most of Unicode does; marks of the Indic and Southeast Asian
+//! scripts are among them, which changes nothing in text of those scripts.
+const std = @import("std");
+
+pub const Class = enum(u8) {
+    L,
+    R,
+    AL,
+    EN,
+    ES,
+    ET,
+    AN,
+    CS,
+    NSM,
+    BN,
+    B,
+    S,
+    WS,
+    ON,
+    LRE,
+    LRO,
+    RLE,
+    RLO,
+    PDF,
+    LRI,
+    RLI,
+    FSI,
+    PDI,
+
+    pub fn strongRtl(c: Class) bool {
+        return c == .R or c == .AL;
+    }
+
+    pub fn isolateInitiator(c: Class) bool {
+        return c == .LRI or c == .RLI or c == .FSI;
+    }
+
+    /// Removed by rule X9: embeddings, overrides and boundary neutrals.
+    pub fn removed(c: Class) bool {
+        return switch (c) {
+            .LRE, .LRO, .RLE, .RLO, .PDF, .BN => true,
+            else => false,
+        };
+    }
+};
+
+const Range = struct { lo: u21, hi: u21, class: Class };
+
+fn r(lo: u21, hi: u21, class: Class) Range {
+    return .{ .lo = lo, .hi = hi, .class = class };
+}
+
+/// Sorted, without overlaps (checked by the test below).
+const ranges = [_]Range{
+    r(0x00, 0x08, .BN),          r(0x09, 0x09, .S),           r(0x0A, 0x0A, .B),           r(0x0B, 0x0B, .S),
+    r(0x0C, 0x0C, .WS),          r(0x0D, 0x0D, .B),           r(0x0E, 0x1B, .BN),          r(0x1C, 0x1E, .B),
+    r(0x1F, 0x1F, .S),           r(0x20, 0x20, .WS),          r(0x21, 0x22, .ON),          r(0x23, 0x25, .ET),
+    r(0x26, 0x2A, .ON),          r(0x2B, 0x2B, .ES),          r(0x2C, 0x2C, .CS),          r(0x2D, 0x2D, .ES),
+    r(0x2E, 0x2F, .CS),          r(0x30, 0x39, .EN),          r(0x3A, 0x3A, .CS),          r(0x3B, 0x40, .ON),
+    r(0x5B, 0x60, .ON),          r(0x7B, 0x7E, .ON),          r(0x7F, 0x84, .BN),          r(0x85, 0x85, .B),
+    r(0x86, 0x9F, .BN),          r(0xA0, 0xA0, .CS),          r(0xA1, 0xA1, .ON),          r(0xA2, 0xA5, .ET),
+    r(0xA6, 0xA9, .ON),          r(0xAB, 0xAC, .ON),          r(0xAD, 0xAD, .BN),          r(0xAE, 0xAF, .ON),
+    r(0xB0, 0xB1, .ET),          r(0xB2, 0xB3, .EN),          r(0xB4, 0xB4, .ON),          r(0xB6, 0xB8, .ON),
+    r(0xB9, 0xB9, .EN),          r(0xBB, 0xBF, .ON),          r(0xD7, 0xD7, .ON),          r(0xF7, 0xF7, .ON),
+    r(0x2B9, 0x2BA, .ON),        r(0x2C2, 0x2CF, .ON),        r(0x2D2, 0x2DF, .ON),        r(0x2E5, 0x2ED, .ON),
+    r(0x2EF, 0x2FF, .ON),        r(0x300, 0x36F, .NSM),       r(0x374, 0x375, .ON),        r(0x37E, 0x37E, .ON),
+    r(0x384, 0x385, .ON),        r(0x387, 0x387, .ON),        r(0x3F6, 0x3F6, .ON),        r(0x483, 0x489, .NSM),
+    r(0x58A, 0x58A, .ON),        r(0x58D, 0x58E, .ON),        r(0x58F, 0x58F, .ET),        r(0x590, 0x590, .R),
+    r(0x591, 0x5BD, .NSM),       r(0x5BE, 0x5BE, .R),         r(0x5BF, 0x5BF, .NSM),       r(0x5C0, 0x5C0, .R),
+    r(0x5C1, 0x5C2, .NSM),       r(0x5C3, 0x5C3, .R),         r(0x5C4, 0x5C5, .NSM),       r(0x5C6, 0x5C6, .R),
+    r(0x5C7, 0x5C7, .NSM),       r(0x5C8, 0x5FF, .R),         r(0x600, 0x605, .AN),        r(0x606, 0x607, .ON),
+    r(0x608, 0x608, .AL),        r(0x609, 0x60A, .ET),        r(0x60B, 0x60B, .AL),        r(0x60C, 0x60C, .CS),
+    r(0x60D, 0x60D, .AL),        r(0x60E, 0x60F, .ON),        r(0x610, 0x61A, .NSM),       r(0x61B, 0x64A, .AL),
+    r(0x64B, 0x65F, .NSM),       r(0x660, 0x669, .AN),        r(0x66A, 0x66A, .ET),        r(0x66B, 0x66C, .AN),
+    r(0x66D, 0x66F, .AL),        r(0x670, 0x670, .NSM),       r(0x671, 0x6D5, .AL),        r(0x6D6, 0x6DC, .NSM),
+    r(0x6DD, 0x6DD, .AN),        r(0x6DE, 0x6DE, .ON),        r(0x6DF, 0x6E4, .NSM),       r(0x6E5, 0x6E6, .AL),
+    r(0x6E7, 0x6E8, .NSM),       r(0x6E9, 0x6E9, .ON),        r(0x6EA, 0x6ED, .NSM),       r(0x6EE, 0x6EF, .AL),
+    r(0x6F0, 0x6F9, .EN),        r(0x6FA, 0x710, .AL),        r(0x711, 0x711, .NSM),       r(0x712, 0x72F, .AL),
+    r(0x730, 0x74A, .NSM),       r(0x74B, 0x7A5, .AL),        r(0x7A6, 0x7B0, .NSM),       r(0x7B1, 0x7BF, .AL),
+    r(0x7C0, 0x7EA, .R),         r(0x7EB, 0x7F3, .NSM),       r(0x7F4, 0x7F5, .R),         r(0x7F6, 0x7F9, .ON),
+    r(0x7FA, 0x7FC, .R),         r(0x7FD, 0x7FD, .NSM),       r(0x7FE, 0x815, .R),         r(0x816, 0x819, .NSM),
+    r(0x81A, 0x81A, .R),         r(0x81B, 0x823, .NSM),       r(0x824, 0x824, .R),         r(0x825, 0x827, .NSM),
+    r(0x828, 0x828, .R),         r(0x829, 0x82D, .NSM),       r(0x82E, 0x858, .R),         r(0x859, 0x85B, .NSM),
+    r(0x85C, 0x85F, .R),         r(0x860, 0x88F, .AL),        r(0x890, 0x891, .AN),        r(0x892, 0x897, .AL),
+    r(0x898, 0x89F, .NSM),       r(0x8A0, 0x8C9, .AL),        r(0x8CA, 0x8E1, .NSM),       r(0x8E2, 0x8E2, .AN),
+    r(0x8E3, 0x902, .NSM),       r(0x1680, 0x1680, .WS),      r(0x1AB0, 0x1AFF, .NSM),     r(0x1DC0, 0x1DFF, .NSM),
+    r(0x1FBD, 0x1FBD, .ON),      r(0x1FBF, 0x1FC1, .ON),      r(0x1FCD, 0x1FCF, .ON),      r(0x1FDD, 0x1FDF, .ON),
+    r(0x1FED, 0x1FEF, .ON),      r(0x1FFD, 0x1FFE, .ON),      r(0x2000, 0x200A, .WS),      r(0x200B, 0x200D, .BN),
+    r(0x200F, 0x200F, .R),       r(0x2010, 0x2027, .ON),      r(0x2028, 0x2028, .WS),      r(0x2029, 0x2029, .B),
+    r(0x202A, 0x202A, .LRE),     r(0x202B, 0x202B, .RLE),     r(0x202C, 0x202C, .PDF),     r(0x202D, 0x202D, .LRO),
+    r(0x202E, 0x202E, .RLO),     r(0x202F, 0x202F, .CS),      r(0x2030, 0x2034, .ET),      r(0x2035, 0x2043, .ON),
+    r(0x2044, 0x2044, .CS),      r(0x2045, 0x205E, .ON),      r(0x205F, 0x205F, .WS),      r(0x2060, 0x2064, .BN),
+    r(0x2066, 0x2066, .LRI),     r(0x2067, 0x2067, .RLI),     r(0x2068, 0x2068, .FSI),     r(0x2069, 0x2069, .PDI),
+    r(0x206A, 0x206F, .BN),      r(0x2070, 0x2070, .EN),      r(0x2074, 0x2079, .EN),      r(0x207A, 0x207B, .ES),
+    r(0x207C, 0x207E, .ON),      r(0x2080, 0x2089, .EN),      r(0x208A, 0x208B, .ES),      r(0x208C, 0x208E, .ON),
+    r(0x20A0, 0x20CF, .ET),      r(0x20D0, 0x20F0, .NSM),     r(0x2100, 0x2101, .ON),      r(0x2103, 0x2106, .ON),
+    r(0x2108, 0x2109, .ON),      r(0x2114, 0x2114, .ON),      r(0x2116, 0x2118, .ON),      r(0x211E, 0x2123, .ON),
+    r(0x2125, 0x2125, .ON),      r(0x2127, 0x2127, .ON),      r(0x2129, 0x2129, .ON),      r(0x212E, 0x212E, .ET),
+    r(0x213A, 0x213B, .ON),      r(0x2140, 0x2144, .ON),      r(0x214A, 0x214D, .ON),      r(0x2150, 0x215F, .ON),
+    r(0x2189, 0x218B, .ON),      r(0x2190, 0x2211, .ON),      r(0x2212, 0x2212, .ES),      r(0x2213, 0x2213, .ET),
+    r(0x2214, 0x2335, .ON),      r(0x237B, 0x2394, .ON),      r(0x2396, 0x2426, .ON),      r(0x2440, 0x244A, .ON),
+    r(0x2460, 0x2487, .ON),      r(0x2488, 0x249B, .EN),      r(0x24EA, 0x26AB, .ON),      r(0x26AD, 0x27FF, .ON),
+    r(0x2900, 0x2B73, .ON),      r(0x2B76, 0x2BFF, .ON),      r(0x2CE5, 0x2CEA, .ON),      r(0x2CEF, 0x2CF1, .NSM),
+    r(0x2CF9, 0x2CFF, .ON),      r(0x2DE0, 0x2DFF, .NSM),     r(0x2E00, 0x2E5D, .ON),      r(0x2E80, 0x2FFF, .ON),
+    r(0x3000, 0x3000, .WS),      r(0x3001, 0x3004, .ON),      r(0x3008, 0x3020, .ON),      r(0x302A, 0x302D, .NSM),
+    r(0x3030, 0x3030, .ON),      r(0x3036, 0x3037, .ON),      r(0x303D, 0x303F, .ON),      r(0x3099, 0x309A, .NSM),
+    r(0x309B, 0x309C, .ON),      r(0x30A0, 0x30A0, .ON),      r(0x30FB, 0x30FB, .ON),      r(0x31C0, 0x31E5, .ON),
+    r(0x321D, 0x321E, .ON),      r(0x3250, 0x325F, .ON),      r(0x327C, 0x327E, .ON),      r(0x32B1, 0x32BF, .ON),
+    r(0x32CC, 0x32CF, .ON),      r(0x3377, 0x337A, .ON),      r(0x33DE, 0x33DF, .ON),      r(0x33FF, 0x33FF, .ON),
+    r(0x4DC0, 0x4DFF, .ON),      r(0xA490, 0xA4C6, .ON),      r(0xA60D, 0xA60F, .ON),      r(0xA66F, 0xA67D, .NSM),
+    r(0xA67E, 0xA67F, .ON),      r(0xA69E, 0xA69F, .NSM),     r(0xA6F0, 0xA6F1, .NSM),     r(0xA700, 0xA721, .ON),
+    r(0xA788, 0xA788, .ON),      r(0xFB1D, 0xFB1D, .R),       r(0xFB1E, 0xFB1E, .NSM),     r(0xFB1F, 0xFB28, .R),
+    r(0xFB29, 0xFB29, .ES),      r(0xFB2A, 0xFB4F, .R),       r(0xFB50, 0xFD3D, .AL),      r(0xFD3E, 0xFD4F, .ON),
+    r(0xFD50, 0xFDCE, .AL),      r(0xFDCF, 0xFDCF, .ON),      r(0xFDF0, 0xFDFC, .AL),      r(0xFDFD, 0xFDFF, .ON),
+    r(0xFE00, 0xFE0F, .NSM),     r(0xFE10, 0xFE19, .ON),      r(0xFE20, 0xFE2F, .NSM),     r(0xFE30, 0xFE4F, .ON),
+    r(0xFE50, 0xFE50, .CS),      r(0xFE51, 0xFE51, .ON),      r(0xFE52, 0xFE52, .CS),      r(0xFE54, 0xFE54, .ON),
+    r(0xFE55, 0xFE55, .CS),      r(0xFE56, 0xFE5E, .ON),      r(0xFE5F, 0xFE5F, .ET),      r(0xFE60, 0xFE61, .ON),
+    r(0xFE62, 0xFE63, .ES),      r(0xFE64, 0xFE66, .ON),      r(0xFE68, 0xFE68, .ON),      r(0xFE69, 0xFE6A, .ET),
+    r(0xFE6B, 0xFE6B, .ON),      r(0xFE70, 0xFEFE, .AL),      r(0xFEFF, 0xFEFF, .BN),      r(0xFF01, 0xFF02, .ON),
+    r(0xFF03, 0xFF05, .ET),      r(0xFF06, 0xFF0A, .ON),      r(0xFF0B, 0xFF0B, .ES),      r(0xFF0C, 0xFF0C, .CS),
+    r(0xFF0D, 0xFF0D, .ES),      r(0xFF0E, 0xFF0F, .CS),      r(0xFF10, 0xFF19, .EN),      r(0xFF1A, 0xFF1A, .CS),
+    r(0xFF1B, 0xFF20, .ON),      r(0xFF3B, 0xFF40, .ON),      r(0xFF5B, 0xFF65, .ON),      r(0xFFE0, 0xFFE1, .ET),
+    r(0xFFE2, 0xFFE4, .ON),      r(0xFFE5, 0xFFE6, .ET),      r(0xFFE8, 0xFFEE, .ON),      r(0xFFF9, 0xFFFD, .ON),
+    r(0x10800, 0x10A00, .R),     r(0x10A01, 0x10A0F, .NSM),   r(0x10A10, 0x10A37, .R),     r(0x10A38, 0x10A3F, .NSM),
+    r(0x10A40, 0x10AE4, .R),     r(0x10AE5, 0x10AE6, .NSM),   r(0x10AE7, 0x10CFF, .R),     r(0x10D00, 0x10D23, .AL),
+    r(0x10D24, 0x10D27, .NSM),   r(0x10D28, 0x10D2F, .R),     r(0x10D30, 0x10D39, .AN),    r(0x10D3A, 0x10E5F, .R),
+    r(0x10E60, 0x10E7E, .AN),    r(0x10E7F, 0x10EFF, .R),     r(0x10F00, 0x10F2F, .R),     r(0x10F30, 0x10F45, .AL),
+    r(0x10F46, 0x10F50, .NSM),   r(0x10F51, 0x10F6F, .AL),    r(0x10F70, 0x10FFF, .R),     r(0x1D167, 0x1D169, .NSM),
+    r(0x1D173, 0x1D17A, .BN),    r(0x1D17B, 0x1D182, .NSM),   r(0x1D185, 0x1D18B, .NSM),   r(0x1D1AA, 0x1D1AD, .NSM),
+    r(0x1D200, 0x1D241, .ON),    r(0x1D242, 0x1D244, .NSM),   r(0x1D245, 0x1D245, .ON),    r(0x1D300, 0x1D356, .ON),
+    r(0x1D7CE, 0x1D7FF, .EN),    r(0x1E800, 0x1E8CF, .R),     r(0x1E8D0, 0x1E8D6, .NSM),   r(0x1E8D7, 0x1E943, .R),
+    r(0x1E944, 0x1E94A, .NSM),   r(0x1E94B, 0x1EC6F, .R),     r(0x1EC70, 0x1ECBF, .AL),    r(0x1ECC0, 0x1ECFF, .R),
+    r(0x1ED00, 0x1ED4F, .AL),    r(0x1ED50, 0x1EDFF, .R),     r(0x1EE00, 0x1EEEF, .AL),    r(0x1EEF0, 0x1EEF1, .ON),
+    r(0x1EEF2, 0x1EFFF, .AL),    r(0x1F000, 0x1F0FF, .ON),    r(0x1F100, 0x1F10A, .EN),    r(0x1F10B, 0x1F10F, .ON),
+    r(0x1F12F, 0x1F12F, .ON),    r(0x1F16A, 0x1F16F, .ON),    r(0x1F1AD, 0x1F1AD, .ON),    r(0x1F260, 0x1F265, .ON),
+    r(0x1F300, 0x1FAFF, .ON),    r(0x1FB00, 0x1FBEF, .ON),    r(0x1FBF0, 0x1FBF9, .EN),    r(0xE0001, 0xE0001, .BN),
+    r(0xE0020, 0xE007F, .BN),    r(0xE0100, 0xE01EF, .NSM),
+};
+
+pub fn of(cp: u21) Class {
+    if (cp < 0x41) return ranges[ascii_index[cp]].class; // the hot path
+    if (cp >= 0x41 and cp <= 0x5A or cp >= 0x61 and cp <= 0x7A) return .L;
+    var lo: usize = 0;
+    var hi: usize = ranges.len;
+    while (lo < hi) {
+        const mid = (lo + hi) / 2;
+        const rg = ranges[mid];
+        if (cp < rg.lo) {
+            hi = mid;
+        } else if (cp > rg.hi) {
+            lo = mid + 1;
+        } else return rg.class;
+    }
+    return .L;
+}
+
+/// The range of each character below 'A', all of which are listed.
+const ascii_index: [0x41]u8 = blk: {
+    var out: [0x41]u8 = undefined;
+    for (0..0x41) |cp| {
+        for (ranges, 0..) |rg, i| if (cp >= rg.lo and cp <= rg.hi) {
+            out[cp] = i;
+            break;
+        };
+    }
+    break :blk out;
+};
+
+/// Whether `s` has a character that reads right to left (or an explicit
+/// control that may make text do so), which only then needs reordering.
+pub fn mayHaveRtl(s: []const u8) bool {
+    // Right-to-left scripts start at U+0590 (lead byte 0xD6), the controls
+    // at U+200F, U+202B, U+202E and U+2067, and the rest are above them.
+    for (s, 0..) |b, i| {
+        if (b < 0xD6) continue;
+        if (b <= 0xDF) return true; // U+0590..U+07FF: Hebrew, Arabic, Syriac, Thaana, N'Ko
+        const view = s[i..];
+        const n = @import("utf8.zig").seqLen(b);
+        if (view.len < n) continue;
+        const cp = std.unicode.utf8Decode(view[0..n]) catch continue;
+        switch (of(cp)) {
+            .R, .AL, .AN, .RLE, .RLO, .RLI, .FSI => return true,
+            else => {},
+        }
+    }
+    return false;
+}
+
+test "the table is sorted and classes are as Unicode says" {
+    for (ranges[1..], 0..) |rg, i| {
+        try std.testing.expect(rg.lo <= rg.hi);
+        try std.testing.expect(ranges[i].hi < rg.lo);
+    }
+    try std.testing.expectEqual(Class.L, of('a'));
+    try std.testing.expectEqual(Class.EN, of('7'));
+    try std.testing.expectEqual(Class.WS, of(' '));
+    try std.testing.expectEqual(Class.R, of(0x05D0)); // alef
+    try std.testing.expectEqual(Class.AL, of(0x0627)); // alef
+    try std.testing.expectEqual(Class.AN, of(0x0663)); // Arabic-Indic three
+    try std.testing.expectEqual(Class.NSM, of(0x064E)); // fatha
+    try std.testing.expectEqual(Class.L, of(0x65E5)); // 日
+    try std.testing.expectEqual(Class.ON, of(0x1F600)); // 😀
+    try std.testing.expect(mayHaveRtl("abc \xd7\x90"));
+    try std.testing.expect(!mayHaveRtl("abc \xe6\x97\xa5 \xf0\x9f\x98\x80"));
+}

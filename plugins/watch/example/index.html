@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Watch</title>
+    <style>
+      :root { color-scheme: light dark; font: 14px system-ui, sans-serif; }
+      body { margin: 24px; }
+      pre { padding: 12px; border-radius: 8px; background: #8881; min-height: 10em; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h2>Watching the sandbox</h2>
+    <p>
+      <button id="write">Write note.txt</button>
+      <button id="dir">Make docs/</button>
+      <button id="remove">Remove note.txt</button>
+    </p>
+    <pre id="log"></pre>
+    <script type="module">
+      import { watch } from "/plugins/watch.js";
+      const log = document.getElementById("log");
+      let n = 0;
+      document.getElementById("write").onclick = () => myzig.call("Sandbox.write", "note.txt", "version " + ++n);
+      document.getElementById("dir").onclick = () => myzig.call("Sandbox.mkdir", "docs");
+      document.getElementById("remove").onclick = () => myzig.call("Sandbox.remove", "note.txt");
+      const watcher = await watch("sandbox", { recursive: true });
+      for await (const events of watcher) {
+        for (const e of events) log.textContent += `${e.op} ${e.path}${e.oldPath ? " (from " + e.oldPath + ")" : ""}${e.isDir ? "/" : ""}\n`;
+      }
+    </script>
+  </body>
+</html>

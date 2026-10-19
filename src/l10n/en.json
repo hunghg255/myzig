@@ -1,0 +1,303 @@
+{
+  "@@locale": "en",
+  "previousMonth": "Previous month",
+  "@previousMonth": {
+    "description": "Labels the button of a calendar that shows the previous month."
+  },
+  "nextMonth": "Next month",
+  "@nextMonth": {
+    "description": "Labels the button of a calendar that shows the next month."
+  },
+  "undo": "Undo",
+  "@undo": {
+    "description": "An item of the menu of a text field."
+  },
+  "cut": "Cut",
+  "@cut": {
+    "description": "An item of the menu of a text field."
+  },
+  "copy": "Copy",
+  "@copy": {
+    "description": "An item of the menu of a text field."
+  },
+  "paste": "Paste",
+  "@paste": {
+    "description": "An item of the menu of a text field."
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "An item of the menu of a text field."
+  },
+  "selectAll": "Select All",
+  "@selectAll": {
+    "description": "An item of the menu of a text field."
+  },
+  "find": "Find",
+  "@find": {
+    "description": "Labels the bar that searches text, and is what its empty field shows."
+  },
+  "search": "Search",
+  "@search": {
+    "description": "What an empty search field shows."
+  },
+  "clear": "Clear",
+  "@clear": {
+    "description": "Labels the button that clears a search field."
+  },
+  "removeToken": "Remove {token}",
+  "@removeToken": {
+    "description": "Labels the button that removes a token of a token field, as in \"Remove Ada\".",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "saturation": "Saturation and brightness",
+  "@saturation": {
+    "description": "Labels the area of a color picker that sets the saturation and the brightness."
+  },
+  "hex": "Hex",
+  "@hex": {
+    "description": "Labels the field of a color picker that holds the color as hexadecimal."
+  },
+  "divider": "Divider",
+  "@divider": {
+    "description": "Labels the line between the panes of a split view."
+  },
+  "more": "More",
+  "@more": {
+    "description": "Labels the button of a toolbar that opens what the toolbar hides."
+  },
+  "noResults": "No results",
+  "@noResults": {
+    "description": "What a find bar says of a query that matches nothing."
+  },
+  "noMatches": "No matches",
+  "@noMatches": {
+    "description": "What a find bar says of a query that matches nothing."
+  },
+  "previous": "Previous",
+  "@previous": {
+    "description": "Labels the button of a find bar that goes to the previous match."
+  },
+  "next": "Next",
+  "@next": {
+    "description": "Labels the button of a find bar that goes to the next match."
+  },
+  "done": "Done",
+  "@done": {
+    "description": "The button that closes a find bar."
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Labels the button that closes a find bar."
+  },
+  "colorValue": "{saturation, number, percent} saturation, {brightness, number, percent} brightness",
+  "@colorValue": {
+    "description": "What assistive technology reads of the area of a color picker that sets the saturation and the brightness, as \"40% saturation, 75% brightness\".",
+    "placeholders": {
+      "saturation": {
+        "type": "double"
+      },
+      "brightness": {
+        "type": "double"
+      }
+    }
+  },
+  "hours": "hours",
+  "@hours": {
+    "description": "Names the hours of a time field to assistive technology, after the field's label."
+  },
+  "minutes": "minutes",
+  "@minutes": {
+    "description": "Names the minutes of a time field to assistive technology, after the field's label."
+  },
+  "dayPeriod": "AM/PM",
+  "@dayPeriod": {
+    "description": "Names the part of a time field that says AM or PM to assistive technology, after the field's label."
+  },
+  "untitled": "Untitled",
+  "@untitled": {
+    "description": "The name of a new document before it is saved."
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "A button of a dialog that cancels what it asks about."
+  },
+  "save": "Save",
+  "@save": {
+    "description": "A button of a dialog that saves a document."
+  },
+  "rename": "Rename",
+  "@rename": {
+    "description": "The title and the button of the dialog that renames a document."
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "The button of a dialog that only tells something, and of a page's alert, confirm and prompt."
+  },
+  "open": "Open",
+  "@open": {
+    "description": "The title and the button of the dialog that opens files."
+  },
+  "selectFolder": "Select Folder",
+  "@selectFolder": {
+    "description": "The title of the dialog that chooses a folder."
+  },
+  "menuUndo": "Undo",
+  "@menuUndo": {
+    "description": "The label of the menu items of the role undo (MenuItem.Role)."
+  },
+  "menuRedo": "Redo",
+  "@menuRedo": {
+    "description": "The label of the menu items of the role redo (MenuItem.Role)."
+  },
+  "menuCut": "Cut",
+  "@menuCut": {
+    "description": "The label of the menu items of the role cut (MenuItem.Role)."
+  },
+  "menuCopy": "Copy",
+  "@menuCopy": {
+    "description": "The label of the menu items of the role copy (MenuItem.Role)."
+  },
+  "menuPaste": "Paste",
+  "@menuPaste": {
+    "description": "The label of the menu items of the role paste (MenuItem.Role)."
+  },
+  "menuPasteAndMatchStyle": "Paste and Match Style",
+  "@menuPasteAndMatchStyle": {
+    "description": "The label of the menu items of the role pasteAndMatchStyle (MenuItem.Role)."
+  },
+  "menuDelete": "Delete",
+  "@menuDelete": {
+    "description": "The label of the menu items of the role delete (MenuItem.Role)."
+  },
+  "menuSelectAll": "Select All",
+  "@menuSelectAll": {
+    "description": "The label of the menu items of the role selectAll (MenuItem.Role)."
+  },
+  "menuReload": "Reload",
+  "@menuReload": {
+    "description": "The label of the menu items of the role reload (MenuItem.Role)."
+  },
+  "menuToggleDevTools": "Toggle Developer Tools",
+  "@menuToggleDevTools": {
+    "description": "The label of the menu items of the role toggleDevTools (MenuItem.Role)."
+  },
+  "menuActualSize": "Actual Size",
+  "@menuActualSize": {
+    "description": "The label of the menu items of the role resetZoom (MenuItem.Role)."
+  },
+  "menuZoomIn": "Zoom In",
+  "@menuZoomIn": {
+    "description": "The label of the menu items of the role zoomIn (MenuItem.Role)."
+  },
+  "menuZoomOut": "Zoom Out",
+  "@menuZoomOut": {
+    "description": "The label of the menu items of the role zoomOut (MenuItem.Role)."
+  },
+  "menuToggleFullScreen": "Toggle Full Screen",
+  "@menuToggleFullScreen": {
+    "description": "The label of the menu items of the role togglefullscreen (MenuItem.Role)."
+  },
+  "menuMinimize": "Minimize",
+  "@menuMinimize": {
+    "description": "The label of the menu items of the role minimize (MenuItem.Role)."
+  },
+  "menuZoom": "Zoom",
+  "@menuZoom": {
+    "description": "The label of the menu items of the role zoom (MenuItem.Role)."
+  },
+  "menuBringAllToFront": "Bring All to Front",
+  "@menuBringAllToFront": {
+    "description": "The label of the menu items of the role front (MenuItem.Role)."
+  },
+  "menuClose": "Close",
+  "@menuClose": {
+    "description": "The item that closes a document's window."
+  },
+  "menuCloseWindow": "Close Window",
+  "@menuCloseWindow": {
+    "description": "The item that closes a window."
+  },
+  "menuNew": "New",
+  "@menuNew": {
+    "description": "The label of the menu items of the role new (MenuItem.Role)."
+  },
+  "menuOpen": "Open…",
+  "@menuOpen": {
+    "description": "The label of the menu items of the role open (MenuItem.Role)."
+  },
+  "menuSave": "Save",
+  "@menuSave": {
+    "description": "The label of the menu items of the role save (MenuItem.Role)."
+  },
+  "menuQuitApp": "Quit {app}",
+  "@menuQuitApp": {
+    "description": "The item of macOS's app menu that quits the app, with the app's name.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuAbout": "About {app}",
+  "@menuAbout": {
+    "description": "The item of macOS's app menu that shows the app's about panel, with the app's name.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuHide": "Hide {app}",
+  "@menuHide": {
+    "description": "The item of macOS's app menu that hides the app, with the app's name.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuQuit": "Quit",
+  "@menuQuit": {
+    "description": "The item that quits the app on Linux."
+  },
+  "menuExit": "Exit",
+  "@menuExit": {
+    "description": "The item that quits the app on Windows."
+  },
+  "menuHideOthers": "Hide Others",
+  "@menuHideOthers": {
+    "description": "The label of the menu items of the role hideOthers (MenuItem.Role)."
+  },
+  "menuShowAll": "Show All",
+  "@menuShowAll": {
+    "description": "The label of the menu items of the role unhide (MenuItem.Role)."
+  },
+  "menuServices": "Services",
+  "@menuServices": {
+    "description": "The label of the menu items of the role services (MenuItem.Role)."
+  },
+  "menuFile": "File",
+  "@menuFile": {
+    "description": "A menu of the menu bar."
+  },
+  "menuEdit": "Edit",
+  "@menuEdit": {
+    "description": "A menu of the menu bar."
+  },
+  "menuView": "View",
+  "@menuView": {
+    "description": "A menu of the menu bar."
+  },
+  "menuWindow": "Window",
+  "@menuWindow": {
+    "description": "A menu of the menu bar."
+  },
+  "menuHelp": "Help",
+  "@menuHelp": {
+    "description": "A menu of the menu bar."
+  }
+}

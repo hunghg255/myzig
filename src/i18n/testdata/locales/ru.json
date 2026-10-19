@@ -1,0 +1,4 @@
+{
+  "title": "Заметки",
+  "filesSelected": "{count, plural, one {Выбран # файл} few {Выбрано # файла} many {Выбрано # файлов} other {Выбрано # файла}}"
+}

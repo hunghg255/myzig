@@ -1,0 +1,16 @@
+.{
+    .name = .myzig_game,
+    .version = "0.1.0",
+    .fingerprint = 0x15f09f3e57ca2736,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .myzig = .{ .path = "../.." },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "example",
+        "README.md",
+    },
+}

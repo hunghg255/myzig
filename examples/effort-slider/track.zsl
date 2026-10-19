@@ -1,0 +1,68 @@
+// The track in Galaxy: deep violet filling it up to the brain, and
+// twinkling pixels, 3 points square on a pitch of 4, more and brighter
+// toward the brain, in eight colors.
+
+uniform time: f32;
+// How far Galaxy has come in, from 0 to 1.
+uniform galaxy: f32;
+// The brain's middle, from the track's left, in points.
+uniform thumb: f32;
+
+const pitch = 4.0;
+const inset = 10.0;
+const radius = 5.0;
+
+fn pixel_color(i: i32) vec3 {
+    if (i == 0) {
+        return vec3(0.957, 0.447, 0.714);
+    } else if (i == 1) {
+        return vec3(0.753, 0.518, 0.988);
+    } else if (i == 2) {
+        return vec3(0.655, 0.545, 0.98);
+    } else if (i == 3) {
+        return vec3(0.506, 0.549, 0.973);
+    } else if (i == 4) {
+        return vec3(0.404, 0.91, 0.976);
+    } else if (i == 5) {
+        return vec3(0.49, 0.827, 0.988);
+    } else if (i == 6) {
+        return vec3(0.961, 0.953, 1);
+    }
+    return vec3(0.914, 0.835, 1);
+}
+
+fn shimmer(a: i32, b: i32, t: f32) f32 {
+    const period = 0.5 + hash(a, b, 1);
+    return 0.5 + 0.5 * sin(6.2831853 * (t / period + hash(a, b, 2)));
+}
+
+pub fn fragment(pos: vec2) vec4 {
+    const box = size();
+    const end = thumb - inset;
+    if (galaxy <= 0 or end <= 0) {
+        return vec4(0);
+    }
+    // The fill: a rounded rectangle up to the brain, violet to indigo.
+    const half = vec2(end, box.y) * 0.5;
+    const q = abs(pos - half) - half + radius;
+    const d = length(max(q, 0)) + min(max(q.x, q.y), 0) - radius;
+    const inside = clamp(0.5 - d * pixel_scale(), 0, 1);
+    const tone = mix(vec3(0.059, 0.039, 0.129), vec3(0.231, 0.165, 0.471), clamp(pos.x / end, 0, 1));
+    var c = vec4(tone, 1) * inside * galaxy;
+    // The pixels, up to the brain.
+    const cell = floor((pos - 0.5) / pitch);
+    const col = i32(cell.x);
+    const row = i32(cell.y);
+    const x = 0.5 + cell.x * pitch;
+    if (row >= 0 and row < 5 and x + 3 <= thumb - 2) {
+        const u = x / thumb;
+        const local = pos - 0.5 - cell * pitch;
+        if (hash(col, row, 0) <= 0.45 + u and local.x < 3 and local.y < 3) {
+            const bright = 0.12 + 0.88 * smoothstep(0.3, 0.95, u);
+            const a = bright * (0.5 + 0.5 * shimmer(col, row, time)) * galaxy;
+            const color = pixel_color(i32(hash(col, row, 4) * 8));
+            c = over(vec4(color * a, a), c);
+        }
+    }
+    return c;
+}

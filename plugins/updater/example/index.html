@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Updater</title>
+    <style>
+      :root { color-scheme: light dark; font: 14px system-ui, sans-serif; }
+      body { margin: 24px; }
+      .banner { padding: 12px 16px; border-radius: 10px; background: #8881; }
+      progress { width: 100%; }
+      [hidden] { display: none; }
+    </style>
+  </head>
+  <body>
+    <h2>My App 1.0.0</h2>
+    <button id="check">Check for Updates…</button>
+    <div id="banner" class="banner" hidden>
+      <p id="message"></p>
+      <p id="notes"></p>
+      <progress id="progress" hidden></progress>
+      <p>
+        <button id="install" hidden>Install Update</button>
+        <button id="skip" hidden>Skip This Version</button>
+      </p>
+    </div>
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const show = (id, on = true) => ($(id).hidden = !on);
+      myzig.on("myzig-updater", (s) => {
+        show("banner");
+        show("install", s.kind === "available");
+        show("skip", s.kind === "available");
+        show("progress", s.kind === "downloading");
+        if (s.kind === "checking") $("message").textContent = "Checking for updates…";
+        if (s.kind === "upToDate") $("message").textContent = "My App is up to date.";
+        if (s.kind === "available") {
+          $("message").textContent = `My App ${s.version} is available. You have 1.0.0.`;
+          $("notes").textContent = s.notes;
+        }
+        if (s.kind === "downloading") {
+          $("message").textContent = "Downloading…";
+          if (s.total) ($("progress").max = s.total), ($("progress").value = s.done);
+        }
+        if (s.kind === "ready") $("message").textContent = `My App ${s.version} is installed: it runs at the next launch.`;
+        if (s.kind === "failed") $("message").textContent = "The update failed: " + s.message;
+      });
+      $("check").onclick = () => myzig.call("Updater.check");
+      $("install").onclick = () => myzig.call("Updater.install");
+      $("skip").onclick = () => myzig.call("Updater.skip").then(() => show("banner", false));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  :root { color-scheme: light dark; font: 15px/1.5 system-ui, sans-serif; }
+  body { margin: 0; padding: 32px 40px; }
+  header { --app-region: drag; padding: 8px 12px; border-radius: 8px; background: #8882; cursor: move; }
+</style></head><body>
+  <header>Drag the window by this bar: <code>--app-region: drag</code></header>
+  <h1>About</h1>
+  <p>Each tab is a web view of its own. The tab not shown keeps its page:
+  switch back, and the notes are where they were.</p>
+  <p>The pages call the services the app binds and hear its events,
+  as a window's page does: <span id="likes">0</span> likes so far.</p>
+  <script>
+    myzig.on("liked", (n) => { document.getElementById("likes").textContent = n; });
+  </script>
+</body></html>

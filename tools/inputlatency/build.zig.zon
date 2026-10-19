@@ -1,0 +1,14 @@
+.{
+    .name = .inputlatency,
+    .version = "0.1.0",
+    .fingerprint = 0x2bf1d26f0751f4a,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .myzig = .{ .path = "../.." },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

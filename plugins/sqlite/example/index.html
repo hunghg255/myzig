@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SQLite Notes</title>
+    <style>
+      :root { color-scheme: light dark; font: 14px system-ui, sans-serif; }
+      body { margin: 24px; }
+      form { display: flex; gap: 8px; }
+      input { flex: 1; padding: 6px 8px; }
+      li { padding: 4px 0; }
+      .muted { opacity: 0.6; }
+    </style>
+  </head>
+  <body>
+    <h2>Notes <span id="count" class="muted"></span></h2>
+    <form id="add">
+      <input id="title" placeholder="A note" autocomplete="off" />
+      <button>Add</button>
+    </form>
+    <ul id="notes"></ul>
+    <script type="module">
+      import { open } from "/plugins/sqlite.js";
+
+      const db = await open("notes.db");
+      await db.execute("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, title TEXT NOT NULL, created INTEGER NOT NULL)");
+      window.notesDb = db;
+
+      async function render() {
+        const { rows } = await db.query("SELECT id, title FROM notes ORDER BY id DESC LIMIT 100");
+        document.getElementById("count").textContent = `(${rows.length})`;
+        const list = document.getElementById("notes");
+        list.replaceChildren(...rows.map(([id, title]) => {
+          const li = document.createElement("li");
+          li.textContent = `${id}. ${title}`;
+          return li;
+        }));
+      }
+
+      document.getElementById("add").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("title");
+        if (!input.value.trim()) return;
+        await db.execute("INSERT INTO notes(title, created) VALUES (?, ?)", [input.value.trim(), Date.now()]);
+        input.value = "";
+        await render();
+      });
+      await render();
+    </script>
+  </body>
+</html>

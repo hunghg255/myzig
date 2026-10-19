@@ -1,0 +1,18 @@
+// The window's edge glows while the assistant works, as Apple
+// Intelligence's: layers of light along the window's rounded outline, its
+// colors flowing around, over everything the window draws.
+
+uniform time: f32;
+uniform strength: f32;
+uniform corner: f32;
+
+pub fn fragment(pos: vec2) vec4 {
+    const box = size();
+    const p = pos - 0.5 * box;
+    const d = max(-round_rect(p, 0.5 * box, corner), 0);
+    const a = around(p, box) + time * 0.08;
+    const glow = (exp(-d / 2.5) * 0.9 + exp(-d / 7) * 0.4 + exp(-d / 16) * 0.12) * strength;
+    const col = mix(palette(a), palette(a + 0.33), 0.5 + 0.5 * sin(d / 10 - time * 2));
+    const g = clamp(glow, 0, 1);
+    return vec4(col * g, g);
+}

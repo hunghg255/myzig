@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebSocket</title>
+    <style>
+      :root { color-scheme: light dark; font: 14px system-ui, sans-serif; }
+      body { margin: 24px; }
+      form { display: flex; gap: 8px; }
+      input { flex: 1; padding: 6px 8px; }
+      pre { padding: 12px; border-radius: 8px; background: #8881; min-height: 8em; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h2>WebSocket from Zig <small id="state"></small></h2>
+    <form id="say">
+      <input id="text" placeholder="A message for the echo" autocomplete="off" />
+      <button>Send</button>
+    </form>
+    <pre id="log"></pre>
+    <script type="module">
+      import { WebSocket } from "/plugins/websocket.js";
+      const base = await myzig.call("Demo.base");
+      const log = (s) => (document.getElementById("log").textContent += s + "\n");
+      const state = document.getElementById("state");
+
+      const hello = new WebSocket(base + "/hello", ["v1"], { headers: { "x-token": "from the page" } });
+      hello.onmessage = (e) => log("hello: " + e.data);
+      hello.onclose = (e) => log(`hello closed: ${e.code} ${e.reason}`);
+
+      const echo = new WebSocket(base + "/echo");
+      echo.onopen = () => (state.textContent = "open");
+      echo.onmessage = (e) => log("echo: " + e.data);
+      echo.onclose = (e) => (state.textContent = `closed ${e.code}`);
+      document.getElementById("say").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("text");
+        if (input.value) echo.send(input.value);
+        input.value = "";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+{
+  "libraries": [
+    {
+      "files": {
+        "darwin-amd64": {
+          "name": "libghostty-vt.dylib",
+          "sha256": "421e98d2683b39555209c59395655b4a217da0382e7669c92f6dff3949832664",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-darwin-amd64.dylib"
+        },
+        "darwin-arm64": {
+          "name": "libghostty-vt.dylib",
+          "sha256": "6f385d3221f8c776ba40530db9baf8c71478907897959849896eeb0ddbf16b41",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-darwin-arm64.dylib"
+        },
+        "linux-amd64": {
+          "name": "libghostty-vt.so",
+          "sha256": "9dcd8af0de67778a561f436cb673a9fb1738be8fa00849dad49606baed1e57d7",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-linux-amd64.so"
+        },
+        "linux-arm64": {
+          "name": "libghostty-vt.so",
+          "sha256": "fb163f8f123206956751f1c4f0303b40899513b7dc171a8ab8d85ba7cd541bc0",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-linux-arm64.so"
+        },
+        "windows-amd64": {
+          "name": "ghostty-vt.dll",
+          "sha256": "53e8e2dd979702e8f2c48107af19be5a76efc2e88eb7cf1097218e899665da41",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-windows-amd64.dll"
+        },
+        "windows-arm64": {
+          "name": "ghostty-vt.dll",
+          "sha256": "de56a362f12cce8be38e883ffc8aec90a890e0574eb73aac6e833a60fda26064",
+          "url": "https://github.com/egoist/mygo/releases/download/libghostty-vt-befcdfd2c3a1/libghostty-vt-windows-arm64.dll"
+        }
+      },
+      "name": "libghostty-vt",
+      "source": "https://github.com/ghostty-org/ghostty/tree/befcdfd2c3a1cb24d9ec886e93c95b2b5daa7028"
+    },
+    {
+      "files": {
+        "windows-386": {
+          "name": "conpty.dll",
+          "sha256": "d145f621bf64a9da3b7395587ddef9831ca404805d8987ec8c9903d0c4603d93",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/conpty-windows-386.dll"
+        },
+        "windows-amd64": {
+          "name": "conpty.dll",
+          "sha256": "feeef341d891643c62d30b6b07800bc70f0bc148f44cb8c3bee84aa557ae805a",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/conpty-windows-amd64.dll"
+        },
+        "windows-arm64": {
+          "name": "conpty.dll",
+          "sha256": "151a02355227710c20c9f8f1eaf68ac4668aa09cdc921adc7ec661804d8eb1bf",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/conpty-windows-arm64.dll"
+        }
+      },
+      "name": "conpty",
+      "source": "https://www.nuget.org/packages/Microsoft.Windows.Console.ConPTY/1.25.260930003"
+    },
+    {
+      "files": {
+        "windows-386": {
+          "name": "OpenConsole.exe",
+          "sha256": "e3e475547d57da0689dc9fc5e0101d10390e2a4719a6eb5dcad569f6cb33c1a3",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/OpenConsole-windows-386.exe"
+        },
+        "windows-amd64": {
+          "name": "OpenConsole.exe",
+          "sha256": "3d66b23d0a71bb8eed2b77edc8b9df9bf54ce6c8fb74c863a30e760997f80586",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/OpenConsole-windows-amd64.exe"
+        },
+        "windows-arm64": {
+          "name": "OpenConsole.exe",
+          "sha256": "4313825a3ba634d113cc6ed3bc8ce735e3c19d360cecd985794787479469f91f",
+          "url": "https://github.com/hunghg255/mygo/releases/download/conpty-1.25.260930003/OpenConsole-windows-arm64.exe"
+        }
+      },
+      "name": "openconsole",
+      "source": "https://www.nuget.org/packages/Microsoft.Windows.Console.ConPTY/1.25.260930003"
+    }
+  ]
+}

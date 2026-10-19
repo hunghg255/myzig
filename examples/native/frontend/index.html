@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Native</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    :root.light { color-scheme: light; }
+    :root.dark { color-scheme: dark; }
+    body { margin: 24px; }
+    button { font: inherit; margin: 0 6px 8px 0; padding: 6px 12px; }
+    pre { background: rgba(128,128,128,.12); padding: 12px; border-radius: 8px; min-height: 120px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Native integration</h2>
+  <p>Try the tray icon, the Demo menu and its shortcut (Ctrl+Shift+H, ⌘⇧H on the Mac).</p>
+  <button id="open">Open files…</button>
+  <button id="confirm">Ask a question</button>
+  <button id="copy">Copy text</button>
+  <button id="paste">Paste text</button>
+  <button id="notify">Notify</button>
+  <button id="dark">Toggle dark mode</button>
+  <pre id="log"></pre>
+  <script>
+    const log = (s) => (document.getElementById("log").textContent += s + "\n");
+    const call = (m, ...a) => myzig.call("Native." + m, ...a).catch((e) => log("error: " + (e.message || e)));
+    myzig.on("log", log);
+    let dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    document.getElementById("open").onclick = async () => log("picked: " + JSON.stringify(await call("openFiles")));
+    document.getElementById("confirm").onclick = async () => log("answer: " + await call("confirm", "Do you like myzig?"));
+    document.getElementById("copy").onclick = () => call("copy", "Copied from myzig at " + new Date().toLocaleTimeString()).then(() => log("copied"));
+    document.getElementById("paste").onclick = async () => log("clipboard: " + await call("paste"));
+    document.getElementById("notify").onclick = () => call("notify", "Hello", "From myzig");
+    // The page's appearance: myzig has no app-wide light or dark setting yet.
+    document.getElementById("dark").onclick = () => {
+      dark = !dark;
+      document.documentElement.className = dark ? "dark" : "light";
+      log("appearance is now " + (dark ? "dark" : "light"));
+    };
+    call("about").then((s) => s && log(s));
+  </script>
+</body>
+</html>

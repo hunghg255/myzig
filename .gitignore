@@ -1,0 +1,16 @@
+.zig-cache/
+zig-out/
+hillclimb/.mygo/
+hillclimb/out/
+hillclimb/.zig-cache/
+hillclimb/zig-out/
+# Agents' and tools' local state
+.graff/
+.harness/
+.claude/
+codedb.snapshot
+.DS_Store
+# The documentation site (docs/, VitePress)
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/

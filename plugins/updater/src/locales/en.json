@@ -1,0 +1,72 @@
+{
+  "@@locale": "en",
+  "title": "Software Update",
+  "@title": {
+    "description": "The title of the update window."
+  },
+  "menuItem": "Check for Updates…",
+  "@menuItem": {
+    "description": "The menu item that checks for updates."
+  },
+  "checking": "Checking for updates…",
+  "@checking": {
+    "description": "The window while it checks."
+  },
+  "cancel": "Cancel",
+  "ok": "OK",
+  "upToDate": "You’re up to date!",
+  "upToDateMessage": "{app} {version} is currently the newest version available.",
+  "@upToDateMessage": {
+    "description": "{app} is the app's name, {version} its version."
+  },
+  "unavailable": "Updates Unavailable",
+  "unavailableMessage": "{app} cannot update itself where it is installed. If a package manager installed it, update it there.",
+  "@unavailableMessage": {
+    "description": "The app cannot write where it is installed; {app} is its name."
+  },
+  "developmentBuild": "Development builds do not update themselves.",
+  "@developmentBuild": {
+    "description": "Why a development build does not update."
+  },
+  "error": "Update Error!",
+  "checkError": "An error occurred while checking for updates. Please try again later.",
+  "installError": "An error occurred while installing the update. Please try again later.",
+  "available": "A new version of {app} is available!",
+  "@available": {
+    "description": "{app} is the app's name."
+  },
+  "availableMessage": "{app} {version} is now available—you have {current}. Would you like to install it now?",
+  "@availableMessage": {
+    "description": "{app} is the app's name, {version} the new version, {current} the running one."
+  },
+  "releaseNotes": "Release Notes:",
+  "automaticDownloads": "Automatically download and install updates in the future",
+  "@automaticDownloads": {
+    "description": "A checkbox."
+  },
+  "skip": "Skip This Version",
+  "remindLater": "Remind Me Later",
+  "install": "Install Update",
+  "downloading": "Downloading update…",
+  "progress": "{done} of {total}",
+  "@progress": {
+    "description": "The size downloaded and the whole size, each a megabytes message."
+  },
+  "megabytes": "{size, number, ::.0} MB",
+  "@megabytes": {
+    "description": "A size in decimal megabytes, with one fraction digit in the locale.",
+    "placeholders": {
+      "size": {
+        "type": "double"
+      }
+    }
+  },
+  "installing": "Installing update…",
+  "ready": "Ready to Relaunch",
+  "readyMessage": "{app} {version} is installed and starts the next time you open {app}. Relaunch now to start using it.",
+  "@readyMessage": {
+    "description": "{app} is the app's name, {version} the new version."
+  },
+  "later": "Later",
+  "relaunch": "Relaunch Now"
+}

@@ -1,0 +1,4 @@
+{
+  "title": "ملاحظات",
+  "filesSelected": "{count, plural, zero {لا ملفات} one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفًا} other {# ملف}}"
+}

@@ -1,0 +1,10 @@
+{
+  "@@locale": "de",
+  "title": "Notizen",
+  "greeting": "Hallo, {name}!",
+  "filesSelected": "{count, plural, =0 {Keine Dateien ausgewählt} one {# Datei ausgewählt} other {# Dateien ausgewählt}}",
+  "place": "{n, selectordinal, other {#.}} Platz",
+  "replied": "{gender, select, female {Sie} male {Er} other {Sie}} antwortete.",
+  "price": "Summe: {amount, number, ::.00}",
+  "due": "Fällig am {day, date, medium}"
+}

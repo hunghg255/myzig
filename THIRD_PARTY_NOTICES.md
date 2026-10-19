@@ -1,0 +1,64 @@
+# Third-party notices
+
+myzig's own source code is licensed under the MIT License in
+[`LICENSE`](LICENSE). The material below keeps its own copyright and license.
+
+## mygo
+
+myzig began as a port of the core of [mygo](https://github.com/egoist/mygo)
+to Zig, Copyright (c) 2026 MyGo contributors, and then of the rest of it
+(as of mygo `9c05b11`): its platforms' backends, pages and IPC, native UI's
+widgets, renderers, text, accessibility, the CLI, the plugins, the examples
+and the documentation, written again in Zig. It keeps mygo's architecture:
+the Objective-C runtime called directly, runtime classes for delegates, a
+batched outbox with one evaluation per main-loop turn, events held until the
+page is ready, a generated typed client, and native UI drawn by the framework.
+mygo's MIT license, with its permission and warranty notice, is kept verbatim
+in [`third_party/licenses/mygo-MIT.txt`](third_party/licenses/mygo-MIT.txt)
+(as of mygo
+[`269e2f9`](https://github.com/egoist/mygo/tree/269e2f9aca82b742f67497e467a95f6adb54bf5d)).
+
+## GPUI
+
+myzig's native UI follows designs from
+[GPUI](https://github.com/zed-industries/zed/tree/main/crates/gpui), part of
+Zed, Copyright 2022–2025 Zed Industries, Inc.:
+- elements styled by method chains (`src/ui/div.zig`);
+- the virtualized `uniform_list` (`src/ui/list.zig`);
+- layouts cached across frames, with glyphs rasterized once into an atlas;
+- Gaussian shadows (`src/ui/shader.metal`, `src/ui/raster.zig`).
+
+GPUI is licensed under the Apache License 2.0, whose text is kept verbatim in
+[`third_party/licenses/GPUI-Apache-2.0.txt`](third_party/licenses/GPUI-Apache-2.0.txt).
+
+## Apps
+
+[nanoterm](https://github.com/justrach/nanoterm) and
+[nanomon](https://github.com/justrach/nanomon), under `apps/`, are separate
+repositories with their own licenses and notices. Both use CodeGraff's
+colors and run graff as a separate program; CodeGraff is distributed under
+its modified AGPLv3 terms, as their notices say.
+
+## go-mp3
+
+The MP3 decoder's Huffman code tables and synthesis window
+(`src/audio/mp3_tables.zig`) come from
+[go-mp3](https://github.com/hajimehoshi/go-mp3) (v0.3.4), Copyright 2017
+Hajime Hoshi, which has them from the ISO reference decoder. go-mp3 is
+licensed under the Apache License 2.0, kept verbatim in
+[`third_party/licenses/go-mp3-Apache-2.0.txt`](third_party/licenses/go-mp3-Apache-2.0.txt).
+The rest of the MP3 and Ogg Vorbis decoders is written from the
+specifications (the Vorbis I specification gives the inverse dB table in
+`src/audio/vorbis_floor.zig`).
+
+## The terminal plugin
+
+`plugins/terminal` loads, at run time, builds of
+[libghostty-vt](https://github.com/ghostty-org/ghostty) (Ghostty, MIT
+License, Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors) and
+of [OpenConsole's ConPTY](https://github.com/microsoft/terminal) (Windows
+Terminal, MIT License, Copyright (c) Microsoft Corporation), which apps
+ship beside them with those notices. Its themes
+(`plugins/terminal/src/themes_*.zig`) are Ghostty's, from
+[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)
+(MIT License), whose notice the theme files keep.

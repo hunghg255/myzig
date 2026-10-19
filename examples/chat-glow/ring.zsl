@@ -1,0 +1,23 @@
+// The composer's ring: a thin line around the field, inset `pad` points in
+// the box with corners of `radius`, glowing outward, its colors flowing
+// around it; faint at rest, bright as the assistant works.
+
+uniform time: f32;
+uniform strength: f32;
+uniform pad: f32;
+uniform radius: f32;
+
+pub fn fragment(pos: vec2) vec4 {
+    const box = size();
+    const p = pos - 0.5 * box;
+    const d = round_rect(p, 0.5 * box - pad, radius) - 0.6;
+    const flow = around(p, box) + time * 0.12;
+    const line = exp(-abs(d) / 0.9);
+    var glow = 0.0;
+    if (d > 0) {
+        glow = (exp(-d / 6) * 0.55 + exp(-d / 16) * 0.25) * smoothstep(pad, pad * 0.3, d);
+    }
+    const alpha = clamp(line * (0.5 + 0.5 * strength) + glow * strength, 0, 1);
+    const col = mix(palette(flow), palette(flow + 0.2), glow / (line + glow + 0.0001));
+    return vec4(col * alpha, alpha);
+}

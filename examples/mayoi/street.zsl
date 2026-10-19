@@ -1,0 +1,161 @@
+// The street at night, after mygo's Mayoi (whose art is pixel art drawn
+// by its code): paving stones of 8×8 pixels in tiles of 16, here and
+// there sakura petals, a crack or a drain; a lamp's pool of light around
+// Tomori, who walks it; the beat of her song in rings; and stage fright,
+// static creeping in from the edges, more as it grows. All of it in the
+// world's pixels, `zoom` points each, around the camera.
+
+uniform time: f32;
+// Where the camera looks (Tomori), in the world's pixels.
+uniform cam: vec2;
+uniform zoom: f32;
+// How afraid she is, from 0 to 1: how far the static has come in.
+uniform fright: f32;
+// The beat: how long ago she sang, in seconds (large: long ago).
+uniform beat: f32;
+// Which way she faces (1 right, -1 left) and how far into a step.
+uniform facing: f32;
+uniform step: f32;
+
+const tile = 16.0;
+
+fn rgb(h: u32) vec3 {
+    return vec3(f32((h >> 16) & 255), f32((h >> 8) & 255), f32(h & 255)) / 255.0;
+}
+
+fn mix32(a: i32, b: i32, salt: u32) u32 {
+    var n = u32(a) * 0x9e3779b9 ^ u32(b) * 0x85ebca6b ^ salt;
+    n = (n ^ (n >> 16)) * 0x7feb352d;
+    n = (n ^ (n >> 15)) * 0x846ca68b;
+    return n ^ (n >> 16);
+}
+
+// A tile's kind: 0 paving, 1 more worn paving, 2 petals, 3 a crack, 4 a drain.
+fn tile_at(t: vec2) i32 {
+    const v = mix32(i32(t.x), i32(t.y), 7) % 100;
+    if (v < 5) {
+        return 2;
+    } else if (v < 7) {
+        return 3;
+    } else if (v < 8) {
+        return 4;
+    } else if (v < 50) {
+        return 1;
+    }
+    return 0;
+}
+
+// The street's color at world pixel p (whole pixels).
+fn street(p: vec2) vec3 {
+    const t = floor(p / tile);
+    const kind = tile_at(t);
+    const x = i32(p.x - t.x * tile);
+    const y = i32(p.y - t.y * tile);
+    var off = 0;
+    if (y >= 8) {
+        off = 4;
+    }
+    var col = rgb(0x353b52);
+    if (y % 8 == 0 or (x + off) % 8 == 0) {
+        col = rgb(0x272c3f);
+    } else if (y % 8 == 1 or (x + off) % 8 == 1) {
+        col = rgb(0x3f465f);
+    }
+    // Worn spots.
+    var worn: u32 = 2;
+    if (kind == 1) {
+        worn = 6;
+    }
+    if (mix32(i32(p.x), i32(p.y), 3) % 256 < worn) {
+        col = rgb(0x272c3f);
+    }
+    if (kind == 2) {
+        // Petals: pairs of pink pixels, scattered.
+        const h = mix32(x / 4 + i32(t.x) * 5, y / 3 + i32(t.y) * 7, 11);
+        if (h % 7 == 0 and x % 4 < 2 and y % 3 < 2) {
+            col = rgb(0xf6b8cf);
+            if ((x + y) % 2 == 1) {
+                col = rgb(0xe48aae);
+            }
+        }
+    } else if (kind == 3) {
+        // A crack, wandering down.
+        const cx = 5 + y / 2 + i32(mix32(y, i32(t.x), 5) % 2);
+        if (y >= 2 and y < 10 and x == cx) {
+            col = rgb(0x272c3f);
+        }
+    } else if (kind == 4) {
+        // A drain's grate.
+        if (x >= 3 and x < 13 and y >= 3 and y < 10) {
+            col = rgb(0x4a5170);
+            if (y > 3 and y < 9 and x > 3 and x < 12 and x % 2 == 0) {
+                col = rgb(0x1b1f2d);
+            }
+        }
+    }
+    return col;
+}
+
+// Tomori, standing at the camera: hair, a face, her uniform, stepping.
+fn tomori(q0: vec2) vec4 {
+    const q = vec2(q0.x * facing, q0.y);
+    const x = i32(floor(q.x));
+    const y = i32(floor(q.y));
+    const swing = i32(step * 2);
+    // Her shadow.
+    if (y == 0 and x >= -4 and x < 4) {
+        return vec4(0, 0, 0, 0.35);
+    }
+    if (y >= -4 and y < 0 and (x == -2 - swing or x == 1 + swing)) {
+        return vec4(rgb(0x1e1c2b), 1);
+    }
+    if (y >= -10 and y < -4 and x >= -3 and x < 3) {
+        if (y == -10 and (x == -3 or x == 2)) {
+            return vec4(0);
+        }
+        return vec4(rgb(0x2a3150), 1);
+    }
+    if (y >= -16 and y < -10 and x >= -3 and x < 4) {
+        if (y >= -13 and x >= 0 and x < 3) {
+            if (y == -12 and x == 1) {
+                return vec4(rgb(0x5d6fb5), 1);
+            }
+            return vec4(rgb(0xf4d3c4), 1);
+        }
+        return vec4(rgb(0x8aa0d6), 1);
+    }
+    return vec4(0);
+}
+
+pub fn fragment(pos: vec2) vec4 {
+    const box = size();
+    const w = cam + (pos - 0.5 * box) / zoom;
+    const px = floor(w);
+    var col = street(px);
+    // The night, and the lamp's pool around her.
+    const d = length(px + 0.5 - cam) / 90;
+    col *= 0.45 + 0.75 * exp(-d * d * 1.6);
+    col += rgb(0x3a2f1c) * exp(-d * d * 3) * 0.5;
+    // The beat: a ring running out from her.
+    const r = length(px + 0.5 - (cam - vec2(0, 5)));
+    const ring = 20 + 60 * beat;
+    const k = exp(-(r - ring) * (r - ring) / 18) * max(0, 1 - beat * 1.5);
+    col += rgb(0xf6b8cf) * k * 0.6;
+    // Her, over the street.
+    const body = tomori(px + 0.5 - cam);
+    col = col * (1 - body.a) + body.rgb * body.a;
+    // Stage fright: static from the edges, jagged, flickering.
+    const e = (pos - 0.5 * box) / (0.5 * box);
+    const edge = max(abs(e.x), abs(e.y));
+    const jag = 0.06 * sin(atan2(e.y, e.x) * 9 + time * 3);
+    const reach = 1.05 - fright * 0.65 + jag;
+    if (edge > reach) {
+        const n = mix32(i32(px.x), i32(px.y), u32(i32(time * 12)));
+        const gray = mix(rgb(0x4d4a66), rgb(0xb2aed0), f32(n % 4) / 3);
+        const a = clamp((edge - reach) * 6, 0, 1) * 0.85;
+        col = mix(col, gray, a);
+    }
+    // A vignette.
+    col *= 1 - 0.35 * dot(e, e) * 0.5;
+    return vec4(col, 1);
+}

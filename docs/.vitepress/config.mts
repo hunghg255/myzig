@@ -158,13 +158,13 @@ export default defineConfig({
   description: 'Desktop apps in Zig, with native UI drawn on the GPU or a web frontend.',
   cleanUrls: true,
   lastUpdated: false,
-  head: [['link', { rel: 'icon', type: 'image/png', href: '/nano.png' }]],
+  head: [['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]],
   markdown: {
     config: outOfDocs,
     theme: { light: 'github-light', dark: 'github-dark' },
   },
   themeConfig: {
-    logo: '/nano.png',
+    logo: '/logo.png',
     nav: [
       { text: 'Guide', link: '/getting-started', activeMatch: '^/(?!ui/|plugins|architecture)' },
       { text: 'Native UI', link: '/ui/README', activeMatch: '^/ui/' },

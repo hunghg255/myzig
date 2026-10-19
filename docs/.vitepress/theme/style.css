@@ -1,0 +1,25 @@
+/* The logo's orange as the brand color; darker where text sits on white. */
+:root {
+  --vp-c-brand-1: #c97a06;
+  --vp-c-brand-2: #e08c10;
+  --vp-c-brand-3: #f5a11f;
+  --vp-c-brand-soft: rgba(245, 161, 31, 0.16);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f5a11f 30%, #ffc76b);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, rgba(245, 161, 31, 0.45) 50%, rgba(255, 199, 107, 0.45) 50%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-brand-1: #ffb648;
+  --vp-c-brand-2: #f5a11f;
+  --vp-c-brand-3: #d98a0e;
+  --vp-c-brand-soft: rgba(245, 161, 31, 0.2);
+}
+
+/* The button's text stays legible on orange. */
+:root {
+  --vp-button-brand-text: #1b1b1f;
+  --vp-button-brand-hover-text: #1b1b1f;
+  --vp-button-brand-active-text: #1b1b1f;
+}

@@ -6,8 +6,8 @@ hero:
   text: Desktop apps in Zig
   tagline: Native UI drawn on the GPU, or a web frontend in the system webview. Single binaries of under a megabyte, on macOS, Linux, Windows and browsers.
   image:
-    src: /nano.png
-    alt: Nano, myzig's field mouse craftsperson
+    src: /logo.png
+    alt: The myzig logo
   actions:
     - theme: brand
       text: Get started

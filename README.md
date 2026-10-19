@@ -1,12 +1,10 @@
 <p align="center">
-  <img src="docs/images/nano-transparent.png" alt="Nano, myzig's field mouse craftsperson, wearing a blue workshop jacket and holding a miniature app window" width="280">
+  <img src="docs/images/myzig-logo.png" alt="The myzig logo: rounded orange panes of a window, with a dot" width="160">
 </p>
 
 <h1 align="center">myzig</h1>
 
 <p align="center">Desktop apps in Zig, with native UI drawn on the GPU or a web frontend.</p>
-
-<p align="center"><sub>Meet Nano. <a href="docs/images/nano-transparent.png">Transparent PNG</a> · <a href="docs/images/nano-paper.png">Original paper illustration</a></sub></p>
 
 <p align="center">
   <img alt="macOS · Linux · Windows · browsers" src="https://img.shields.io/badge/macOS%20·%20Linux%20·%20Windows%20·%20browsers-555">

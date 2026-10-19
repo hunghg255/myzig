@@ -1,6 +1,6 @@
 .{
     .name = .myzig_sqlite,
-    .version = "0.1.0",
+    .version = "0.1.1",
     .fingerprint = 0x5f26f28c17028891,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

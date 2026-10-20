@@ -1,8 +1,9 @@
 //! The Windows installer's NSIS script (after mygo's nsis.go): a per-user
 //! install in %LOCALAPPDATA%\Programs, a Start menu shortcut, a desktop
 //! shortcut the finish page offers, file associations and URL schemes, and
-//! an uninstaller that Settings > Apps lists. `myzig build` compiles it
-//! with makensis when it is installed.
+//! an uninstaller that Settings > Apps lists. Both close the app first
+//! when it runs, as files a running program holds can't be replaced.
+//! `myzig build` compiles it with makensis when it is installed.
 const std = @import("std");
 const Config = @import("config.zig").Config;
 
@@ -76,6 +77,7 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
         \\
         \\Section
         \\  SetOutPath "$INSTDIR"
+        \\  Call CloseRunning
         \\
     );
     for (f.paths, dirs) |p, is_dir| {
@@ -128,7 +130,10 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     try escape(w, dir_name);
     try w.writeAll(".lnk\" \"$INSTDIR\\");
     try escape(w, f.exe);
-    try w.writeAll("\"\nFunctionEnd\n\nSection \"Uninstall\"\n");
+    try w.writeAll("\"\nFunctionEnd\n\n");
+    try closeRunning(gpa, w, "", c.name, f, dirs);
+    try closeRunning(gpa, w, "un.", c.name, f, dirs);
+    try w.writeAll("Section \"Uninstall\"\n  Call un.CloseRunning\n");
     // The app undoes what it set up itself, before its files go.
     if (c.windows.uninstall_run.len > 0) {
         try w.writeAll("  ExecWait '\"$INSTDIR\\");
@@ -162,6 +167,68 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     }
     try w.writeAll("SectionEnd\n");
     return out.toOwnedSlice();
+}
+
+/// The file name of `path`, a path of the machine building.
+fn baseName(path: []const u8) []const u8 {
+    const i = std.mem.lastIndexOfAny(u8, path, "/\\") orelse return path;
+    return path[i + 1 ..];
+}
+
+/// An executable or a library: a running program holds it.
+fn held(name: []const u8) bool {
+    return std.ascii.endsWithIgnoreCase(name, ".exe") or std.ascii.endsWithIgnoreCase(name, ".dll");
+}
+
+/// A function (`prefix` "un." for the uninstaller's) that goes on only
+/// once no program or library installed beside the app is held: the app
+/// running, or its console host (`OpenConsole.exe`, `conpty.dll`). Windows
+/// replaces no file a running program holds, so installing over them
+/// would leave old files beside new ones. It asks: Yes asks the app's
+/// windows to close, then, five seconds on, ends the app and what it
+/// started; No waits for the user to close it; Cancel stops. A silent
+/// install closes it.
+fn closeRunning(gpa: std.mem.Allocator, w: *std.Io.Writer, prefix: []const u8, name: []const u8, f: Files, dirs: []const bool) !void {
+    // $R1: 0 before asking, then the half seconds waited since.
+    try w.print("Function {s}CloseRunning\n  StrCpy $R1 0\n  check:\n", .{prefix});
+    for (f.paths, dirs) |p, is_dir| {
+        const file = baseName(p);
+        if (is_dir or !held(file)) continue;
+        try w.writeAll("  IfFileExists \"$INSTDIR\\");
+        try escape(w, file);
+        // Opened for writing, as a running program's files can't be.
+        try w.writeAll("\" 0 +5\n  ClearErrors\n  FileOpen $R0 \"$INSTDIR\\");
+        try escape(w, file);
+        try w.writeAll("\" a\n  IfErrors running\n  FileClose $R0\n");
+    }
+    try w.writeAll(
+        \\  Return
+        \\  running:
+        \\  IntCmp $R1 0 ask
+        \\  IntOp $R1 $R1 + 1
+        \\  IntCmp $R1 11 force wait force
+        \\  wait:
+        \\  Sleep 500
+        \\  Goto check
+        \\  force:
+        \\
+    );
+    try taskkill(w, "/F /T", f.exe);
+    try w.writeAll("  Sleep 1000\n  StrCpy $R1 0\n  Goto check\n  ask:\n  MessageBox MB_YESNOCANCEL|MB_ICONEXCLAMATION ");
+    const ask = try std.fmt.allocPrint(gpa, "{s} is running, and its files can't be replaced while it runs.\n\nYes: close it now (what it hasn't saved may be lost)\nNo: I'll close it myself, then try again\nCancel: stop", .{name});
+    defer gpa.free(ask);
+    try quoted(w, ask);
+    try w.writeAll(" /SD IDYES IDYES close IDNO check\n  Abort\n  close:\n");
+    try taskkill(w, "/T", f.exe);
+    try w.writeAll("  StrCpy $R1 1\n  Goto check\nFunctionEnd\n\n");
+}
+
+/// Ends the processes of executable `exe` with taskkill's `flags`
+/// (without /F, their windows are asked to close).
+fn taskkill(w: *std.Io.Writer, flags: []const u8, exe: []const u8) !void {
+    try w.print("  nsExec::Exec '\"$SYSDIR\\taskkill.exe\" {s} /IM \"", .{flags});
+    try escape(w, exe);
+    try w.writeAll("\"'\n  Pop $R0\n");
 }
 
 /// The commands that register (to `reg`) and unregister (to `unreg`) the
@@ -237,6 +304,33 @@ test script {
         std.debug.print("missing:\n{s}\nin:\n{s}\n", .{ want, s });
         return error.TestUnexpectedResult;
     };
+}
+
+test "the installer and the uninstaller close the app and its console host first" {
+    const gpa = std.testing.allocator;
+    const c: Config = .{ .root = "/x", .name = "My App", .identifier = "com.example.my-app", .version = "1.0.0" };
+    const paths = [_][]const u8{ "C:\\b\\My App.exe", "/b/OpenConsole.exe", "C:\\b\\conpty.DLL", "C:\\b\\app.json", "C:\\b\\natives.exe" };
+    const s = try script(gpa, c, "My App", .{ .paths = &paths, .exe = "My App.exe", .out = "setup.exe" }, &.{ false, false, false, false, true });
+    defer gpa.free(s);
+    for ([_][]const u8{
+        "  SetOutPath \"$INSTDIR\"\n  Call CloseRunning\n  File ",
+        "Section \"Uninstall\"\n  Call un.CloseRunning\n",
+        "Function CloseRunning\n",
+        "Function un.CloseRunning\n",
+        "  IfFileExists \"$INSTDIR\\My App.exe\" 0 +5\n  ClearErrors\n  FileOpen $R0 \"$INSTDIR\\My App.exe\" a\n  IfErrors running\n  FileClose $R0\n",
+        "FileOpen $R0 \"$INSTDIR\\OpenConsole.exe\" a\n",
+        "FileOpen $R0 \"$INSTDIR\\conpty.DLL\" a\n",
+        "nsExec::Exec '\"$SYSDIR\\taskkill.exe\" /T /IM \"My App.exe\"'\n",
+        "nsExec::Exec '\"$SYSDIR\\taskkill.exe\" /F /T /IM \"My App.exe\"'\n",
+        "MessageBox MB_YESNOCANCEL|MB_ICONEXCLAMATION \"My App is running, and its files can't be replaced while it runs.$\\n$\\nYes: ",
+        " /SD IDYES IDYES close IDNO check\n  Abort\n",
+    }) |want| if (std.mem.indexOf(u8, s, want) == null) {
+        std.debug.print("missing:\n{s}\nin:\n{s}\n", .{ want, s });
+        return error.TestUnexpectedResult;
+    };
+    // Neither data nor a directory is checked.
+    try std.testing.expect(std.mem.indexOf(u8, s, "app.json\" a") == null);
+    try std.testing.expect(std.mem.indexOf(u8, s, "natives.exe\" a") == null);
 }
 
 test "the uninstaller runs the app, and offers to delete its data" {

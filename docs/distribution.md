@@ -190,7 +190,17 @@ without administrator rights:
 - an uninstaller that Settings > Apps lists, under the app's `identifier`;
   it runs the app with `windows.uninstall_run` first, for the app to undo
   what it set up itself, and offers to delete the folders of
-  `windows.uninstall_data`.
+  `windows.uninstall_data`;
+- before copying files (and before uninstalling), a check that the app
+  isn't running. Windows replaces no file a running program holds, so an
+  install over a running app (or its terminal's `OpenConsole.exe` and
+  `conpty.dll`) would leave old files beside new ones. The installer tries
+  to open each `.exe` and `.dll` it installs beside `<Name>.exe` (the
+  `name` of `myzig.zon`) for writing; while one is held it asks: **Yes**
+  asks the app's windows to close, and after five seconds ends
+  `<Name>.exe` and the processes it started (`taskkill /F /T`); **No**
+  waits for the user to close it, then checks again; **Cancel** stops. A
+  silent install (`/S`) closes it, as Yes does.
 
 Without NSIS, the `.zip` is the package.
 

@@ -127,7 +127,7 @@ fn runMyzig(gpa: std.mem.Allocator, scene: scenes.Scene, frames: usize, hash: bo
             break :blk .{ .encode_ms = tm.encode_ms, .gpu_ms = tm.gpu_ms };
         } else if (has_d3d11 and timer != null) blk: {
             const r = &d3d.?;
-            r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation);
+            r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, t.text.atlas.takeDirty());
             r.syncImages(&t.text.images);
             const f: ui.damage.Frame = .{ .instances = t.instances.items, .width = @intCast(px[0]), .height = @intCast(px[1]), .scale = t.scale, .clear = t.theme.background, .atlas = ui.damage.atlasKey(&t.text.atlas), .images = t.text.images.generation };
             const tm = try timer.?.draw(r, f, whole);

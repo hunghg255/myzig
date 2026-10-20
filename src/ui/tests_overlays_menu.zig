@@ -272,3 +272,60 @@ test "a right click opens the context menu at the pointer, and one outside close
         try testing.expect(!s.ctx.isOpen());
     }
 }
+
+const Rows = struct {
+    menu: menu.Menu = .{},
+    /// The rows that built the menu in the last frame, and the row an item
+    /// ran for.
+    built: u32 = 0,
+    chosen: ?usize = null,
+    count: usize = 3,
+
+    const names = [_][]const u8{ "first row", "second row", "third row" };
+
+    fn view(s: *Rows, c: *ui.Context) void {
+        ui.column(c, .{ .width = .fill, .height = .fill, .padding = .all(20), .gap = 4 });
+        defer ui.end(c);
+        s.built = 0;
+        for (names[0..s.count], 0..) |n, i| {
+            const row = ui.pressable(c, .{ .width = .fill, .padding = .all(6) }, null);
+            ui.text(c, n, .{});
+            ui.end(c);
+            if (menu.contextMenu(c, &s.menu, row)) |m| {
+                defer m.end();
+                s.built += 1;
+                if (m.item("Open Row", .{})) s.chosen = i;
+            }
+        }
+    }
+};
+
+test "rows sharing a context menu show it for the row right-clicked alone" {
+    var s: Rows = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Rows.view), .{});
+    defer t.deinit();
+    const second = t.findText("second row").?;
+    t.rightClick(second.x + 4, second.y + 4);
+    t.frame();
+    try testing.expect(s.menu.isOpen());
+    try testing.expectEqual(@as(u32, 1), s.built);
+    try t.clickText("Open Row");
+    try testing.expectEqual(@as(?usize, 1), s.chosen);
+    // The row gone, the menu closes, and another row opens it.
+    const third = t.findText("third row").?;
+    t.rightClick(second.x + 4, second.y + 4);
+    t.frame();
+    try testing.expect(s.menu.isOpen());
+    s.count = 1;
+    t.frame();
+    t.frame();
+    try testing.expect(!s.menu.isOpen());
+    s.count = 3;
+    t.frame();
+    t.rightClick(third.x + 4, third.y + 4);
+    t.frame();
+    try testing.expectEqual(@as(u32, 1), s.built);
+    try t.clickText("Open Row");
+    try testing.expectEqual(@as(?usize, 2), s.chosen);
+}

@@ -122,7 +122,7 @@ const CursorCell = struct { text: []const u8 = "", look: ?Look = null, wide: boo
 
 /// Draws the frame of `r` (updated from the terminal) in grid `g`.
 /// `focused` draws a hollow cursor when false.
-pub fn draw(c: *ui.Context, r: *vt.Render, g: Grid, theme: Theme, focused: bool, scrollbar: vt.Scrollbar) void {
+pub fn draw(c: *ui.Context, r: *vt.Render, g: Grid, theme: Theme, focused: bool, scrollbar: vt.Scrollbar, link: ?[3]u16) void {
     const arena = c.alloc();
     const colors = r.colors();
     const cur = r.cursor();
@@ -204,6 +204,7 @@ pub fn draw(c: *ui.Context, r: *vt.Render, g: Grid, theme: Theme, focused: bool,
         }
         if (run_look) |rl| flush(c, g, run_start, y, &buf, rl, arena);
     }
+    if (link) |l| linkUnderline(c, g, l, color(colors.foreground));
     drawCursor(c, g, cur, colors, theme, focused, cursor_cell);
     if (scrollbar.total > scrollbar.len and scrollbar.len > 0) {
         const h = @as(f32, @floatFromInt(g.rows)) * g.cell_h;
@@ -240,6 +241,16 @@ fn decorations(c: *ui.Context, g: Grid, x: usize, y: usize, l: Look, wide: bool)
     }
     if (l.strike) rect(c, cx, cy + g.cell_h / 2, w, thick, fg);
     if (l.overline) rect(c, cx, cy, w, thick, fg);
+}
+
+/// The link under the pointer while the link key is held: underlined in
+/// the text's color, as editors do.
+fn linkUnderline(c: *ui.Context, g: Grid, link: [3]u16, fg: ui.Color) void {
+    if (link[0] >= g.rows) return;
+    const thick = @max(1, @round(g.font_size / 14));
+    const cx = g.pad + @as(f32, @floatFromInt(link[1])) * g.cell_w;
+    const cy = g.pad + @as(f32, @floatFromInt(link[0])) * g.cell_h;
+    rect(c, cx, cy + g.cell_h - thick * 2, @as(f32, @floatFromInt(link[2] - link[1] + 1)) * g.cell_w, thick, fg);
 }
 
 fn drawCursor(c: *ui.Context, g: Grid, cur: vt.Cursor, colors: vt.Colors, theme: Theme, focused: bool, cell: CursorCell) void {

@@ -140,3 +140,33 @@ test "a drag selects text, which copies" {
     try testing.expectEqualStrings("words", f.tester.clipboard.items);
 }
 
+
+test "with the link key held, the link under the pointer is underlined" {
+    var f: Fixture = .{};
+    try f.init();
+    defer f.deinit();
+    f.t.feed("see src/app.zig:12 now\r\ngo https://ghostty.org ok");
+    f.tester.frame();
+    const g = f.t.view_state.grid;
+    const at = struct {
+        fn point(gr: anytype, x: f32, y: f32) [2]f32 {
+            return .{ gr.pad + (x + 0.5) * gr.cell_w, gr.pad + (y + 0.5) * gr.cell_h };
+        }
+    }.point;
+    const key_field = if (@import("builtin").os.tag == .macos) "cmd" else "ctrl";
+    // Without the key: nothing.
+    var p = at(g, 6, 0);
+    f.tester.moveTo(p[0], p[1]);
+    try testing.expect(f.t.view_state.link == null);
+    // With it: the path's columns, then the URL's.
+    @field(f.tester.ctx.input, key_field) = true;
+    f.tester.moveTo(p[0], p[1]);
+    try testing.expectEqual([3]u16{ 0, 4, 17 }, f.t.view_state.link.?);
+    p = at(g, 10, 1);
+    f.tester.moveTo(p[0], p[1]);
+    try testing.expectEqual([3]u16{ 1, 3, 21 }, f.t.view_state.link.?);
+    // Over plain words: none.
+    p = at(g, 0, 0);
+    f.tester.moveTo(p[0], p[1]);
+    try testing.expect(f.t.view_state.link == null);
+}

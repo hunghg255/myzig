@@ -190,9 +190,11 @@ pub const Terminal = struct {
             .width = s[0] *| s[2],
             .height = s[1] *| s[3],
         });
-        t.reader = try std.Thread.spawn(.{}, readLoop, .{t});
-        t.waiter = try std.Thread.spawn(.{}, waitLoop, .{t});
-        t.writer = try std.Thread.spawn(.{}, writeLoop, .{t});
+        // Stacks of their own size: Windows commits a thread's whole stack,
+        // and the default (16 MB) made each terminal cost 48 MB.
+        t.reader = try std.Thread.spawn(.{ .stack_size = 1 << 20 }, readLoop, .{t});
+        t.waiter = try std.Thread.spawn(.{ .stack_size = 256 << 10 }, waitLoop, .{t});
+        t.writer = try std.Thread.spawn(.{ .stack_size = 256 << 10 }, writeLoop, .{t});
     }
 
     fn readLoop(t: *Terminal) void {

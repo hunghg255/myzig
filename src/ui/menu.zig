@@ -46,6 +46,10 @@ pub const Menu = struct {
     depth: u8 = 0,
     /// The pointer as last seen: it highlights only when it moves.
     mouse: types.Point = .{ .x = -1e6, .y = -1e6 },
+    /// The element a context menu opened for (0: none), and the frame it
+    /// last built in: rows sharing one menu show it for that row alone.
+    owner: u64 = 0,
+    owner_frame: u64 = 0,
 
     pub fn isOpen(m: *const Menu) bool {
         return m.state.open;
@@ -59,6 +63,7 @@ pub const Menu = struct {
     /// Opens the menu below `r` (or above it, where there is no room).
     pub fn openBelow(m: *Menu, r: types.Rect) void {
         m.state.open = true;
+        m.owner = 0;
         m.at = r;
         m.highlight = @splat(-1);
         m.depth = 0;
@@ -314,16 +319,28 @@ pub fn menu(c: *Context, m: *Menu) ?*MenuPanel {
 /// for Shift+F10 while it has the focus. Call it after the elements inside
 /// `target`, so that the innermost element with a menu takes the click.
 pub fn contextMenu(c: *Context, m: *Menu, target: Interaction) ?*MenuPanel {
+    // The element it opened for is gone (scrolled away, removed): it
+    // closes, so that another may open it.
+    if (m.state.open and m.owner != 0 and m.owner_frame + 1 < c.frame) {
+        m.state.open = false;
+        _ = m.state.sync(c);
+    }
     if (base.rightPressed(c) and target.hovered and !m.state.open) {
         if (comptime @hasField(ctx_mod.Input, "right_pressed")) c.input.right_pressed = false;
         m.openAt(c.input.mouse);
+        m.owner = target.id;
         c.changed = true;
     } else if (target.focused and c.input.key == .f10 and c.input.shift and !m.state.open) {
         c.input.key = null;
         m.openBelow(target.rect orelse .{});
+        m.owner = target.id;
         m.highlight[0] = -2;
         c.changed = true;
     }
+    // Rows sharing one menu: the others build nothing (each would show
+    // it, and run its items for its own row).
+    if (m.owner != 0 and m.owner != target.id) return null;
+    if (m.state.open) m.owner_frame = c.frame;
     return menu(c, m);
 }
 

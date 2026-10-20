@@ -41,6 +41,9 @@ pub const State = struct {
     /// The button a program was told went down.
     reported: encode.Button = .none,
     last_cell: [2]u16 = .{ 0xFFFF, 0xFFFF },
+    /// The link under the pointer while Ctrl (Command on macOS) is held:
+    /// its row and first and last columns, underlined.
+    link: ?[3]u16 = null,
     /// The window's darkness the theme was applied for.
     dark: ?bool = null,
     theme: Theme = Theme.light,
@@ -85,7 +88,7 @@ pub fn view(c: *ui.Context, t: *Terminal, opts: ViewOptions) void {
     defer t.lock.unlock(t.io);
     const r = if (s.render) |*e| e else return;
     r.update(t.vt);
-    paint.draw(c, r, s.grid, s.theme, focused, t.vt.scrollbar());
+    paint.draw(c, r, s.grid, s.theme, focused, t.vt.scrollbar(), s.link);
 }
 
 /// The theme of the window's appearance, while the app gives none for it.
@@ -337,6 +340,17 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
     }
 
     const link_key = if (mac) in.cmd else in.ctrl;
+    // The link a click would open: underlined, with a hand.
+    s.link = null;
+    if (it.hovered and link_key and !in.down and s.drag == null) {
+        t.lock.lockUncancelable(t.io);
+        const span = select.linkSpanAt(t.vt, cell[0], cell[1], g.cols, @import("links.zig").native);
+        t.lock.unlock(t.io);
+        if (span) |sp| {
+            s.link = .{ cell[1], sp[0], sp[1] };
+            c.cursor = .hand;
+        }
+    }
     if (it.hovered and in.pressed and c.active == it.id) {
         if (link_key) {
             openLink(t, cell);

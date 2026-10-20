@@ -112,6 +112,32 @@ pub fn linkAt(t: vt.Vt, x: u16, row: u16, cols: u16, windows: bool, buf: []u8) ?
     return null;
 }
 
+/// The columns [first, last] of the link at cell `x` of `row`, as
+/// `linkAt` finds it: a hyperlink's run of cells, or the URL or path
+/// written there. Null when there is none.
+pub fn linkSpanAt(t: vt.Vt, x: u16, row: u16, cols: u16, windows: bool) ?[2]u16 {
+    const ref = t.cellAt(x, row) orelse return null;
+    if (vt.decodeCell(t.rawCell(ref)).hyperlink) {
+        var lo = x;
+        while (lo > 0) : (lo -= 1) {
+            const r = t.cellAt(lo - 1, row) orelse break;
+            if (!vt.decodeCell(t.rawCell(r)).hyperlink) break;
+        }
+        var hi = x;
+        while (hi + 1 < cols) : (hi += 1) {
+            const r = t.cellAt(hi + 1, row) orelse break;
+            if (!vt.decodeCell(t.rawCell(r)).hyperlink) break;
+        }
+        return .{ lo, hi };
+    }
+    var text: [512]u21 = undefined;
+    var at: [512]u16 = undefined;
+    const n = rowText(t, row, cols, &text, &at);
+    const r = links.urlAt(text[0..n], at[0..n], x) orelse links.pathAt(text[0..n], at[0..n], x, windows) orelse return null;
+    if (r[1] <= r[0]) return null;
+    return .{ at[r[0]], at[r[1] - 1] };
+}
+
 fn encode(cps: []const u21, buf: []u8) []const u8 {
     var n: usize = 0;
     for (cps) |cp| {

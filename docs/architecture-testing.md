@@ -42,7 +42,7 @@ It offers pointer input (`moveTo`, `click`, `doubleClick`, `rightClick`, `middle
 seconds a frame), `resize`, queries (`findText`, `hasText`,
 `containsText`), and pixels (`render`, `rasterize`, `screenshot`,
 `pixelSize`). Its `clipboard` is a buffer of its own. `runScript` runs
-the steps the `--myzig-script` flag takes: `click:TEXT`, `move:TEXT`,
+the steps the `--myzig-script` flag takes: `click:TEXT`, `rclick:TEXT`, `move:TEXT`,
 `type:TEXT`, `key:enter|backspace|tab|escape|left|right`,
 `shortcut:ctrl+shift+p` (a key combination, to the menu bar's
 accelerators and the view as a window gives it), `scroll:DY`,

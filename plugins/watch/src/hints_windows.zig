@@ -58,7 +58,8 @@ pub const Hints = struct {
         // The first read is issued before returning: changes from now on count.
         h.ov = .{ .event = io_event };
         if (ReadDirectoryChangesW(dir, &h.buf, h.buf.len, @intFromBool(recursive), filter, null, &h.ov, null) == 0) return error.Unexpected;
-        h.thread = std.Thread.spawn(.{}, run, .{h}) catch |err| {
+        // A small stack: Windows commits a thread's whole stack.
+        h.thread = std.Thread.spawn(.{ .stack_size = 256 << 10 }, run, .{h}) catch |err| {
             _ = CancelIoEx(dir, null);
             var bytes: u32 = 0;
             _ = GetOverlappedResult(dir, &h.ov, &bytes, 1);

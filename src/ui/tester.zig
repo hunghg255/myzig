@@ -317,7 +317,8 @@ pub const Tester = struct {
         raster.draw(out, t.instances.items, t.text.atlas.mask(), t.text.images.pictures(), t.scale, t.theme.background);
     }
 
-    /// Runs a script of steps separated by `;`: `click:TEXT`, `move:TEXT`,
+    /// Runs a script of steps separated by `;`: `click:TEXT`, `rclick:TEXT`
+    /// (the right button, as for a context menu; `X,Y` too), `move:TEXT`,
     /// `type:TEXT` (a character an event), `key:enter|backspace|tab|escape|left|right`,
     /// `shortcut:ctrl+shift+p` (cmd, ctrl, alt, shift, then a character or
     /// up, down, left, right, enter, tab, escape, f1 to f12),
@@ -336,6 +337,9 @@ pub const Tester = struct {
             const arg = if (colon < step.len) step[colon + 1 ..] else "";
             if (std.mem.eql(u8, op, "click")) {
                 try t.clickText(arg);
+            } else if (std.mem.eql(u8, op, "rclick")) {
+                const p = try t.place(arg);
+                t.rightClick(p.x, p.y);
             } else if (std.mem.eql(u8, op, "move")) {
                 const r = t.findText(arg) orelse return error.TextNotFound;
                 t.moveTo(r.x + r.w / 2, r.y + r.h / 2);

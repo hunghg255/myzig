@@ -54,7 +54,8 @@ when it exits.
 - **Pastes** are bracketed when the program asks (mode 2004), and focus
   reports (mode 1004) are sent.
 - **Titles** (OSC 0, 2) come as `.title` events; `title()` reads them.
-- **Links**: Ctrl+click (Command+click on macOS) opens a hyperlink (OSC 8),
+- **Links**: while Ctrl (Command on macOS) is held, the link under the
+  pointer is underlined, with a hand; a click opens a hyperlink (OSC 8),
   a URL printed as text, or a file path through `open_link` (absolute ones
   with the system without it): `/abs/path`, `~/notes.md`, `./a.go`,
   `src/app.go:12:3`, `main.go:250`, and on Windows `C:\dir\file`,

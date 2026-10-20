@@ -120,6 +120,7 @@ until animations settle:
 | Step | What it does |
 |---|---|
 | `click:TEXT`, `move:TEXT` | clicks or hovers the middle of a text |
+| `rclick:TEXT` | right-clicks the middle of a text (or `X,Y` in points), as for its context menu |
 | `type:TEXT` | types text |
 | `key:NAME` | presses a key: `enter`, `backspace`, `tab`, `escape`, `left`, `right`, `up`, `down`, ... |
 | `scroll:DY` | scrolls at the pointer |

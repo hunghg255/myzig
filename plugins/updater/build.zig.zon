@@ -1,6 +1,6 @@
 .{
     .name = .myzig_updater,
-    .version = "0.1.1",
+    .version = "0.1.2",
     .fingerprint = 0xd51093d514584210,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

@@ -1,6 +1,6 @@
 .{
     .name = .myzig_websocket,
-    .version = "0.1.1",
+    .version = "0.1.2",
     .fingerprint = 0x8dbdfe5fcba3d52c,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

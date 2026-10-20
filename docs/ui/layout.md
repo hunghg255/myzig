@@ -124,6 +124,11 @@ A row with `scroll = true` scrolls sideways instead, as a strip of tabs:
 it takes the width it is given rather than its content's, the wheel moves
 it along, and a thin bar shows along its bottom while its content
 overflows. Set `c.scroll` for its id to bring a child into view.
+`c.scroll_limit.get(id)` is how far each scrolling box laid out in the
+last frame can scroll (0 where its content fits or it is empty), whether
+layout measured its texts anew or kept them; `c.scroll_max` is kept only
+for boxes that follow their end (below), so read `scroll_limit` for the
+others.
 `c.glideBy(id, dy)` glides box `id` by `dy` points (up positive), as a
 notch over it would, for what scrolls a box from elsewhere: a minimap, an
 overview.

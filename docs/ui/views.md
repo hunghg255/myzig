@@ -128,7 +128,8 @@ The same goes for a single box shown only sometimes (a mark on hover)
 before a button: it moves the button's id, and a press in between is
 lost. Key the button, or always build the box and hide it with its look
 ([custom widgets](custom-widgets.md#a-box-that-comes-or-goes-moves-the-ids-after-it)).
-Debug builds log a warning when a press is lost so.
+Debug builds log a warning when a press is lost so, and when a scrolled
+box's id changes so that its offset starts over or jumps.
 
 `c.peekId(null)` returns the id the next box will get, for widgets that
 need it before they open their box.

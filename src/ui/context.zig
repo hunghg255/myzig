@@ -46,6 +46,7 @@ const Hit = @import("hit.zig").Hit;
 const events = @import("context_events.zig");
 const access = @import("access.zig");
 const press_check = @import("press_check.zig");
+const scroll_check = @import("scroll_check.zig");
 
 pub const Cursor = enum { arrow, hand, text, resize_left_right, resize_up_down };
 
@@ -147,6 +148,8 @@ pub const Context = struct {
     /// Debug builds: tells of a press lost to an id that changed
     /// (`press_check.zig`).
     press_check: press_check.State = .{},
+    /// And of a scrolled box's (`scroll_check.zig`).
+    scroll_check: scroll_check.State = .{},
     focus: u64 = 0,
     /// The boxes that take the focus, in the order built: where Tab goes.
     focus_order: std.ArrayList(u64) = .empty,
@@ -217,6 +220,7 @@ pub const Context = struct {
         c.layout_cache.deinit(c.gpa);
         c.selection.deinit(c.gpa);
         c.access.deinit(c.gpa);
+        scroll_check.deinit(c);
         if (c.web) |l| l.destroy(c.gpa);
     }
 
@@ -252,6 +256,7 @@ pub const Context = struct {
         c.scroll_cap.clearRetainingCapacity();
         c.access.begin();
         press_check.begin(c);
+        scroll_check.begin(c);
         if (c.web) |l| l.built.clearRetainingCapacity();
         c.nodes.append(c.gpa, .{
             .id = 0x9e3779b97f4a7c15,
@@ -272,6 +277,7 @@ pub const Context = struct {
         c.input.clearEdges();
         c.changed = false;
         press_check.check(c);
+        scroll_check.check(c);
         if (!c.input.down) c.active = 0;
         // What assistive technology asked for was done, or is gone.
         c.access.press = 0;

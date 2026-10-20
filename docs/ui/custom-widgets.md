@@ -71,6 +71,17 @@ was not there the frame before, the log says once
 `myzig: the box pressed changed its id between frames (a box before it
 came or went?)`. Release builds don't check.
 
+A scrolling box loses more: its offset is kept by its id, so a box that
+comes or goes before it (a sticky line, a banner) starts it over at the
+top, and one shown every other frame makes it jump between the top and
+where the reader left it. Debug builds tell of that too
+(`scroll_check.zig`): when a box scrolled from the top is gone from the
+layout and a scrolling box of another id, as wide, takes its place, the
+log says once `myzig: a scrolled box changed its id between frames`, or
+`myzig: a scrolling box changes its id back and forth between frames`
+when the old id comes back. A change on a frame with a click or a key (a
+tab switched) is taken as meant, unless it goes back and forth.
+
 A text box's string and spans are copied into the frame's memory by
 `c.leaf`, as are the strings `c.describe` takes. Other slices a box keeps
 (a picture's bytes, an icon's name, a gradient) are read after the view

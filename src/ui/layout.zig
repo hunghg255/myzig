@@ -155,7 +155,12 @@ pub fn arrangeBox(c: *Context, index: u32, rect_in: types.Rect) void {
     rect.x += st.offset.x;
     rect.y += st.offset.y;
     n.rect = rect;
-    if (n.first_child == none) return;
+    if (n.first_child == none) {
+        // An empty scrolling box scrolls nowhere: its offset goes to 0,
+        // and the wheel passes it by.
+        if (st.scroll) _ = scrollOffset(c, n.id, st.*, 0, 0);
+        return;
+    }
     if (n.content == .none) if (grid.lookup(c, index)) |spec|
         return grid_layout.arrange(c, index, spec, rect.inset(st.padding), st.height != .auto);
 

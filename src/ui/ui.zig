@@ -53,6 +53,7 @@ pub const scroll = widgets.scroll;
 pub const spacer = widgets.spacer;
 pub const divider = widgets.divider;
 pub const image = widgets.image;
+pub const imageSize = widgets.imageSize;
 pub const ImageOptions = widgets.ImageOptions;
 pub const text = widgets.text;
 pub const textf = widgets.textf;
@@ -74,6 +75,7 @@ pub const badge = widgets.badge;
 pub const kbd = widgets.kbd;
 pub const textField = textfield.textField;
 pub const TextFieldOptions = textfield.Options;
+pub const TextFieldResult = textfield.Result;
 pub const TextBuffer = textfield.TextBuffer;
 pub const div = @import("div.zig").div;
 pub const Div = @import("div.zig").Div;
@@ -260,6 +262,8 @@ pub const chart = @import("chart/chart.zig");
 pub const markdown = @import("markdown/view.zig").markdown;
 pub const Markdown = @import("markdown/view.zig").Markdown;
 pub const MarkdownOptions = @import("markdown/view.zig").Options;
+pub const MarkdownImage = @import("markdown/view.zig").Image;
+pub const MarkdownImageReader = @import("markdown/view.zig").ImageReader;
 pub const MarkdownResult = @import("markdown/view.zig").Result;
 pub const MarkdownHighlighter = @import("markdown/view.zig").Highlighter;
 pub const MarkdownDocument = @import("markdown/document.zig").Document;
@@ -274,12 +278,32 @@ pub const TextDoc = @import("textdoc.zig").TextDoc;
 pub const TextSel = @import("textdoc.zig").Sel;
 pub const Rope = @import("rope.zig").Rope;
 pub const CodeEditor = @import("editor/editor.zig").CodeEditor;
+/// Whether a field of a find bar of the app's own took Escape (`CodeEditor.own_find_bar`).
+pub const findBarEscaped = @import("editor/findbar.zig").escaped;
 pub const codeEditor = @import("editor/editor.zig").codeEditor;
 pub const CodeEditorOptions = @import("editor/editor.zig").Options;
 pub const languageFor = @import("editor/syntax.zig").languageFor;
+/// A background of a run of a line, as the code editor's `extra.marks` return them.
+pub const TextMark = @import("textarea_view.zig").Mark;
+/// Text after a line's end, as the code editor's `extra.after` returns it.
+pub const TextAfter = @import("textarea_view.zig").After;
+/// A line a text area built and its top in the view (`Result.lines`).
+pub const TextLineTop = @import("textarea_decor.zig").LineTop;
+/// The code editor's regular expressions (find, and the app's searches).
+pub const Regex = @import("editor/regex.zig").Regex;
+/// The colors of the highlighter's tokens (`CodeEditor.syntax.colors`).
+pub const SyntaxColors = @import("markdown/highlight.zig").Colors;
 pub const DiffView = @import("diffview_model.zig").DiffView;
 pub const DiffMode = @import("diffview_model.zig").Mode;
 pub const diffView = @import("diffview.zig").diffView;
+/// One row of a diff, and the rows' height, for lists of several diffs.
+pub const diffRow = @import("diffview.zig").diffRow;
+pub const diffRowHeight = @import("diffview.zig").rowHeight;
+/// A diff's row wrapped: one of its pieces, how many it takes, and how many
+/// characters a side has room for.
+pub const diffRowPart = @import("diffview.zig").diffRowPart;
+pub const diffRowParts = @import("diffview.zig").rowParts;
+pub const diffWrapColumns = @import("diffview.zig").wrapColumns;
 pub const DiffViewOptions = @import("diffview.zig").Options;
 pub const diff = @import("diff.zig");
 
@@ -521,6 +545,10 @@ test {
     _ = @import("markdown/autolink.zig");
     _ = @import("markdown/heal.zig");
     _ = @import("markdown/highlight.zig");
+    _ = @import("markdown/highlight_langs.zig");
+    _ = @import("markdown/highlight_markup.zig");
+    _ = @import("textarea_decor.zig");
+    _ = @import("textarea_rows.zig");
     _ = @import("markdown/tests_spec_a.zig");
     _ = @import("markdown/tests_spec_b.zig");
     _ = @import("markdown/tests_spec_gfm.zig");
@@ -531,6 +559,7 @@ test {
     if (!@import("text.zig").portable) _ = @import("shaper.zig");
     _ = @import("raster.zig");
     _ = @import("raster_lanes.zig");
+    _ = @import("raster_fill.zig");
     _ = @import("tests_raster.zig");
     _ = @import("tt/raster.zig");
     _ = @import("tt/tests.zig");

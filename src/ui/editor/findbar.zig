@@ -14,7 +14,7 @@ const textfield = @import("../textfield.zig");
 const CodeEditor = @import("editor.zig").CodeEditor;
 
 /// Escape, as a key, an operation or a key combination, for a bar's field.
-fn escaped(c: *Context, id: u64) bool {
+pub fn escaped(c: *Context, id: u64) bool {
     if (id == 0 or c.focus != id) return false;
     if (c.input.key == .escape) return true;
     for (c.input.ops) |op| if (op == .command and op.command == .cancel) return true;

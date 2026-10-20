@@ -45,7 +45,8 @@ pub fn share(helpers: usize, run: *const fn (*anyopaque) void, ctx: *anyopaque) 
     defer busy.store(false, .release);
     const n = @min(helpers, max - 1);
     while (started < n) : (started += 1) {
-        const t = std.Thread.spawn(.{}, worker, .{started}) catch break;
+        // A default stack would commit 16 MB a worker.
+        const t = std.Thread.spawn(.{ .stack_size = 1024 * 1024 }, worker, .{started}) catch break;
         t.detach();
     }
     const helping = @min(n, started);

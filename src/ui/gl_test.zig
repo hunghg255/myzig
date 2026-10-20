@@ -107,7 +107,7 @@ fn widgets(es: bool) !void {
     try t.init(gpa, .init(&scene, Scene.view), .{ .width = 360, .height = 300 });
     defer t.deinit();
     t.settle(1);
-    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation);
+    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, null);
     r.syncImages(&t.text.images);
     const frame = try r.drawOffscreen(gpa, t.instances.items, t.size, t.scale, t.theme.background);
     defer frame.deinit(gpa);
@@ -141,7 +141,7 @@ fn random(es: bool) !void {
         mask[y * 64 + x] = @intFromFloat(std.math.clamp(28 - @sqrt(dx * dx + dy * dy), 0, 1) * 255);
     };
     const m: raster.Mask = .{ .pixels = &mask, .size = 64 };
-    r.syncAtlas(m, 1);
+    r.syncAtlas(m, 1, null);
     var prng: std.Random.DefaultPrng = .init(0x91);
     const rnd = prng.random();
     const f = struct {

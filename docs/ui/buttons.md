@@ -141,10 +141,13 @@ _ = ui.image(c, .{ .key = "logo", .bytes = logo, .max_width = 120, .label = "myz
 A picture keeps its proportions and is shown at half its pixel size (its
 pixels are taken as 2× ones), never larger, within the maximum room. It is
 decoded once per key (by ImageIO on macOS, which reads PNG, JPEG, HEIC and
-more; by myzig's PNG decoder elsewhere), scaled to at most 1024 pixels on
+more; by myzig's PNG decoder elsewhere, and on Windows by the Windows
+Imaging Component for the rest: JPEG, GIF, BMP, TIFF, ICO, WebP), scaled to at most 1024 pixels on
 its longest side, and packed into one image atlas the renderers sample. A
 new picture under a key already used shows the old one: give a changed
-picture a new key.
+picture a new key. `ui.imageSize(c, key, bytes)` is its size in pixels
+as decoded (null when it doesn't decode), to size it with `size` yourself:
+a viewer that zooms and pans.
 
 ## Avatars
 

@@ -62,6 +62,7 @@ pub const Renderer = struct {
     atlas_size: u32 = 0,
     atlas_generation: u64 = std.math.maxInt(u64),
     images: Texture = .{},
+    images_side: u32 = 0,
     images_generation: u64 = std.math.maxInt(u64),
     /// The window's swap chain and its back buffer's view, once attached.
     swap_chain: ?Object = null,
@@ -247,25 +248,54 @@ pub const Renderer = struct {
         try self.targetView();
     }
 
-    /// Brings the GPU's glyph atlas up to date (all of it, when it changed).
-    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64) void {
+    /// Brings the GPU's glyph atlas up to date: the rows that changed since
+    /// the last sync (`Atlas.takeDirty`), or all of it when they are not
+    /// known (null).
+    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64, dirty: ?[2]u32) void {
         if (mask.size == 0) return;
         if (mask.size != self.atlas_size) {
             self.atlas.deinit();
             self.atlas = self.texture(mask.size, mask.size, d3d.format_r8_unorm, mask.pixels.ptr, mask.size) catch return;
             self.atlas_size = mask.size;
         } else if (generation != self.atlas_generation) {
-            callAs(void, self.context, d3d.ctx.update_subresource, .{ self.atlas.tex.?, @as(u32, 0), @as(?*const d3d.Box, null), mask.pixels.ptr, mask.size, @as(u32, 0) });
+            const rows: [2]u32 = dirty orelse .{ 0, mask.size };
+            if (rows[1] > rows[0]) {
+                const box: d3d.Box = .{ .left = 0, .top = rows[0], .right = mask.size, .bottom = rows[1] };
+                callAs(void, self.context, d3d.ctx.update_subresource, .{ self.atlas.tex.?, @as(u32, 0), &box, mask.pixels.ptr + @as(usize, rows[0]) * mask.size, mask.size, @as(u32, 0) });
+            }
         }
         self.atlas_generation = generation;
+    }
+
+    /// Writes pictures straight to the image atlas (`images.Sink`), which
+    /// then keeps no copy in memory.
+    pub fn uploadImage(ctx: *anyopaque, side: u32, x: u32, y: u32, w: u32, h: u32, bgra: []const u8) void {
+        const self: *Renderer = @ptrCast(@alignCast(ctx));
+        if (side != self.images_side) {
+            // Cleared, as the atlas in memory starts.
+            const zero = std.heap.page_allocator.alloc(u8, side * side * 4) catch return;
+            defer std.heap.page_allocator.free(zero);
+            @memset(zero, 0);
+            self.imagesTexture(side, zero) catch return;
+        }
+        if (w == 0 or h == 0) return;
+        const box: d3d.Box = .{ .left = x, .top = y, .right = x + w, .bottom = y + h };
+        callAs(void, self.context, d3d.ctx.update_subresource, .{ self.images.tex.?, @as(u32, 0), &box, bgra.ptr, w * 4, @as(u32, 0) });
+    }
+
+    fn imagesTexture(self: *Renderer, side: u32, pixels: []const u8) !void {
+        self.images.deinit();
+        self.images_side = 0;
+        self.images = try self.texture(side, side, d3d.format_b8g8r8a8_unorm, pixels.ptr, side * 4);
+        self.images_side = side;
     }
 
     /// Brings the GPU's image atlas up to date: the rows that changed.
     pub fn syncImages(self: *Renderer, im: *images_mod.Images) void {
         if (im.pixels.len == 0 or im.generation == self.images_generation) return;
-        const side = images_mod.size;
-        if (self.images.tex == null) {
-            self.images = self.texture(side, side, d3d.format_b8g8r8a8_unorm, im.pixels.ptr, side * 4) catch return;
+        const side = im.side;
+        if (self.images.tex == null or self.images_side != side) {
+            self.imagesTexture(side, im.pixels) catch return;
         } else if (im.dirty) |rows| if (rows[1] > rows[0]) {
             const box: d3d.Box = .{ .left = 0, .top = rows[0], .right = side, .bottom = rows[1] };
             callAs(void, self.context, d3d.ctx.update_subresource, .{ self.images.tex.?, @as(u32, 0), &box, im.pixels.ptr + @as(usize, rows[0]) * side * 4, side * 4, @as(u32, 0) });

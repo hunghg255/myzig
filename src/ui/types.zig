@@ -197,7 +197,8 @@ pub const Style = struct {
     /// shadow, picture, gradient and what it clips, by every renderer.
     corners: Corners = .circular,
     shadow: ?Shadow = null,
-    /// Children are clipped to the box and scroll vertically.
+    /// Children are clipped to the box and scroll along it: a column
+    /// vertically, a row sideways (the wheel scrolls it too).
     scroll: bool = false,
     /// Overall opacity of the box and its content.
     opacity: f32 = 1,
@@ -274,6 +275,13 @@ pub const TextStyle = struct {
     italic: bool = false,
     /// Line height as a multiple of the font's (1.5 for airy prose).
     leading: f32 = 1,
+    /// A family of its own instead of the theme's (`font` or `mono_font`).
+    family: ?[]const u8 = null,
+    /// OpenType features, by commas: "calt=0,ss01", "-liga", "+zero".
+    /// DirectWrite and HarfBuzz apply them.
+    features: []const u8 = "",
+    /// A weight from 100 to 900 in place of `weight`'s, 0 for `weight`.
+    weight_value: u16 = 0,
 };
 
 test "rect" {

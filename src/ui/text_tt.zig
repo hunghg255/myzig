@@ -52,10 +52,21 @@ pub const Font = struct {
     }
 };
 
-const FontKey = struct { size_bits: u32, weight: types.Weight, mono: bool, italic: bool };
+const FontKey = struct { size_bits: u32, weight: u16, mono: bool, italic: bool, family: u64 };
 
 fn fontKey(style: types.TextStyle) FontKey {
-    return .{ .size_bits = @bitCast(style.size), .weight = style.weight, .mono = style.mono, .italic = style.italic };
+    return .{
+        .size_bits = @bitCast(style.size),
+        .weight = styleWeight(style),
+        .mono = style.mono,
+        .italic = style.italic,
+        .family = if (style.family) |f| std.hash.Wyhash.hash(1, f) else 0,
+    };
+}
+
+/// A style's weight, 100 to 900.
+pub fn styleWeight(style: types.TextStyle) u16 {
+    return if (style.weight_value != 0) std.math.clamp(style.weight_value, 100, 900) else weightOf(style.weight);
 }
 
 pub fn weightOf(w: types.Weight) u16 {
@@ -77,6 +88,10 @@ const Native = struct { face: usize, size: f32, color: bool };
 
 const ColorKey = struct { font: u16, glyph: u16, bin: u8 };
 
+/// Run fonts kept at most: past it, a frame starts them over, as sizes
+/// that change all the time (a zoom slider) would add one a frame.
+pub const max_run_fonts = 256;
+
 pub const Options = struct {
     /// Use the system's text engine where there is one.
     native: bool = true,
@@ -91,6 +106,9 @@ pub const TextSystem = struct {
     scale: f32 = 2,
     fonts: std.AutoHashMapUnmanaged(FontKey, Font) = .empty,
     run_fonts: std.ArrayList(RunFont) = .empty,
+    /// Bumped when the run fonts start over: glyphs laid out before name
+    /// fonts by ids that are others' now (`textlayout_long.zig` checks).
+    epoch: u32 = 0,
     layouts: std.AutoHashMapUnmanaged(u64, Layout) = .empty,
     previous: std.AutoHashMapUnmanaged(u64, Layout) = .empty,
     wraps: std.AutoHashMapUnmanaged(u64, []Line) = .empty,
@@ -135,11 +153,7 @@ pub const TextSystem = struct {
         self.previous.deinit(self.gpa);
         self.clearWraps();
         self.wraps.deinit(self.gpa);
-        var it = self.tables.valueIterator();
-        while (it.next()) |t| {
-            t.*.deinit(self.gpa);
-            self.gpa.destroy(t.*);
-        }
+        self.freeTables();
         self.tables.deinit(self.gpa);
         self.colors.deinit(self.gpa);
         self.shaped.deinit(self.gpa);
@@ -194,8 +208,32 @@ pub const TextSystem = struct {
 
     pub fn beginFrame(self: *TextSystem) void {
         self.atlas.reset_during_frame = false;
+        if (self.run_fonts.items.len > max_run_fonts) self.dropFonts();
         freeLayouts(self.gpa, &self.previous);
         std.mem.swap(std.AutoHashMapUnmanaged(u64, Layout), &self.layouts, &self.previous);
+    }
+
+    /// Lets go of every run font and what is kept by their ids: fonts,
+    /// shapes, the fast path's tables, color glyphs and the glyph atlas.
+    fn dropFonts(self: *TextSystem) void {
+        self.dropCaches();
+        self.freeTables();
+        var it = self.colors.keyIterator();
+        while (it.next()) |k| self.images.remove(pictureKey(.{ .font = k.font, .glyph = k.glyph, .x = 0, .y = 0 }, k.bin));
+        self.colors.clearRetainingCapacity();
+        self.run_fonts.clearRetainingCapacity();
+        self.atlas.reset();
+        if (has_engine) if (self.engine) |e| if (@hasDecl(Engine, "dropFormats")) e.dropFormats();
+        self.epoch +%= 1;
+    }
+
+    fn freeTables(self: *TextSystem) void {
+        var it = self.tables.valueIterator();
+        while (it.next()) |t| {
+            t.*.deinit(self.gpa);
+            self.gpa.destroy(t.*);
+        }
+        self.tables.clearRetainingCapacity();
     }
 
     fn freeLayouts(gpa: std.mem.Allocator, map: *std.AutoHashMapUnmanaged(u64, Layout)) void {
@@ -253,13 +291,14 @@ pub const TextSystem = struct {
     }
 
     fn familyOf(self: *const TextSystem, style: types.TextStyle) ?[]const u8 {
+        if (style.family) |f| return f;
         return if (style.mono) self.mono_family else self.family;
     }
 
     pub fn font(self: *TextSystem, style: types.TextStyle) Font {
         const fk = fontKey(style);
         if (self.fonts.get(fk)) |f| return f;
-        const weight = weightOf(style.weight);
+        const weight = styleWeight(style);
         const size = style.size * self.zoom;
         var f: Font = .{ .ascent = size * 0.8, .descent = size * 0.2, .leading = 0, .id = 0xffff, .weight = weight };
         if (has_engine) if (self.engine) |e| {
@@ -284,6 +323,9 @@ pub const TextSystem = struct {
         h.update(s);
         h.update(std.mem.asBytes(&style.size));
         h.update(&.{ @intFromEnum(style.weight), @intFromBool(style.mono), @intFromBool(style.italic) });
+        h.update(std.mem.asBytes(&style.weight_value));
+        h.update(style.family orelse "\x00");
+        h.update(style.features);
         return h.final();
     }
 
@@ -317,7 +359,7 @@ pub const TextSystem = struct {
     pub fn shapeLine(self: *TextSystem, s: []const u8, pieces: []const Styled) !Layout {
         const rtl = bidi.mayHaveRtl(s);
         if (has_engine) if (self.engine) |e| {
-            if (pieces.len == 1 and !rtl) if (self.table(pieces[0].style)) |t| {
+            if (pieces.len == 1 and !rtl and pieces[0].style.features.len == 0) if (self.table(pieces[0].style)) |t| {
                 if (t.layout(self.gpa, Short{ .ts = self, .style = pieces[0].style }, s)) |l| return l;
             };
             if (try self.engineLine(e, &self.sink, s, pieces, rtl)) |l| return l;
@@ -340,7 +382,7 @@ pub const TextSystem = struct {
         var heap: std.ArrayList(engine.Piece) = .empty;
         defer heap.deinit(self.gpa);
         for (pieces) |p| {
-            const ep: engine.Piece = .{ .start = p.start, .end = p.end, .family = self.familyOf(p.style), .mono = p.style.mono, .weight = weightOf(p.style.weight), .italic = p.style.italic, .size = p.style.size * self.zoom };
+            const ep: engine.Piece = .{ .start = p.start, .end = p.end, .family = self.familyOf(p.style), .mono = p.style.mono, .weight = styleWeight(p.style), .italic = p.style.italic, .size = p.style.size * self.zoom, .features = p.style.features };
             if (list.items.len < buf.len) list.appendAssumeCapacity(ep) else try heap.append(self.gpa, ep);
         }
         if (heap.items.len > 0) try heap.insertSlice(self.gpa, 0, list.items);

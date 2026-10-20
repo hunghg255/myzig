@@ -103,13 +103,13 @@ fn followTheme(c: *ui.Context, t: *Terminal) void {
 /// The grid from the box's size and the font's cells; resizes the terminal.
 fn measure(c: *ui.Context, t: *Terminal, rect: ui.Rect, pad: f32) void {
     const s = &t.view_state;
-    const style: ui.TextStyle = .{ .size = t.opts.font_size, .mono = true };
+    const style: ui.TextStyle = .{ .size = t.opts.font_size, .mono = true, .family = t.opts.font_family, .features = t.opts.font_features, .weight_value = t.opts.font_weight };
     const cw = c.text.width("MMMMMMMMMM", style) / 10;
     const ch = @ceil(c.text.lineHeight(style));
     if (cw <= 0 or ch <= 0) return;
     const cols: u16 = @intFromFloat(std.math.clamp(@floor((rect.w - 2 * pad) / cw), 1, 0xFFFF));
     const rows: u16 = @intFromFloat(std.math.clamp(@floor((rect.h - 2 * pad) / ch), 1, 0xFFFF));
-    s.grid = .{ .pad = pad, .cell_w = cw, .cell_h = ch, .font_size = t.opts.font_size, .cols = cols, .rows = rows };
+    s.grid = .{ .pad = pad, .cell_w = cw, .cell_h = ch, .font_size = t.opts.font_size, .family = t.opts.font_family, .features = t.opts.font_features, .weight = t.opts.font_weight, .cols = cols, .rows = rows };
     t.resize(cols, rows, @intFromFloat(@round(cw * c.scale)), @intFromFloat(@round(ch * c.scale)));
 }
 
@@ -255,6 +255,16 @@ fn copy(c: *ui.Context, t: *Terminal) bool {
     return true;
 }
 
+/// Copies the selection to the clipboard, keeping it.
+fn copySelection(c: *ui.Context, t: *Terminal) void {
+    t.lock.lockUncancelable(t.io);
+    const text = t.vt.selectionText(t.gpa);
+    t.lock.unlock(t.io);
+    const s = text orelse return;
+    defer t.gpa.free(s);
+    if (s.len > 0) c.clipboard.write(c.clipboard.ctx, s);
+}
+
 fn selectAll(t: *Terminal) void {
     t.lock.lockUncancelable(t.io);
     defer t.lock.unlock(t.io);
@@ -354,6 +364,9 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
     }
     if (in.released) {
         if (s.reported != .none) mouseReport(c, t, rect, .release, s.reported, mods);
+        // What a drag, a double or a triple click chose goes to the
+        // clipboard as the pointer lets go, as Ghostty and iTerm2 do.
+        if (s.drag != null and t.opts.copy_on_select) copySelection(c, t);
         s.reported = .none;
         s.drag = null;
     }

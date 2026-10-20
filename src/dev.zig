@@ -63,6 +63,13 @@ pub fn snapshot(app: anytype, path: []const u8) !void {
         var t: ui.Tester = undefined;
         try t.init(app.gpa, s.view, .{ .width = s.width, .height = s.height, .scale = s.scale, .dark = app.flags.dark, .theme = s.theme });
         defer t.deinit();
+        const App = @TypeOf(app.*);
+        if (@hasDecl(App, "accelerator")) t.accelerator = .{ .ctx = app, .run = struct {
+            fn f(ctx: *anyopaque, sc: ui.Shortcut) bool {
+                const a: *App = @ptrCast(@alignCast(ctx));
+                return a.accelerator(sc);
+            }
+        }.f };
         t.settle(2);
         try t.runScript(app.flags.script);
         try t.screenshot(path);

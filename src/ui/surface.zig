@@ -314,6 +314,7 @@ const view_methods = [_]objc.Method{
                 .{ .name = "acceptsFirstMouse:", .imp = &yes1, .types = "c@:@" },
                 .{ .name = "mouseDown:", .imp = &mouseDown, .types = "v@:@" },
                 .{ .name = "rightMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
+                .{ .name = "otherMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
                 .{ .name = "mouseUp:", .imp = &mouseUp, .types = "v@:@" },
                 .{ .name = "mouseDragged:", .imp = &mouseDragged, .types = "v@:@" },
                 .{ .name = "mouseMoved:", .imp = &mouseMoved, .types = "v@:@" },
@@ -343,11 +344,14 @@ fn yes1(_: objc.Object, _: objc.SEL, _: ?objc.Object) callconv(.c) objc.BOOL {
     return objc.YES;
 }
 
+/// The secondary button, and the middle one (others past it are left).
 fn rightMouseDown(obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.c) void {
     const s = surfaceOf(obj) orelse return;
+    const middle = objc.msg(objc.NSInteger, event, "buttonNumber", .{}) == 2;
+    if (!middle and objc.msg(objc.NSInteger, event, "buttonNumber", .{}) > 2) return;
     s.setMouse(event);
     s.ctx.updateHot();
-    s.ctx.input.right_pressed = true;
+    if (middle) s.ctx.input.middle_pressed = true else s.ctx.input.right_pressed = true;
     s.frame();
 }
 

@@ -38,6 +38,8 @@ pub const TextArea = struct {
     reveal: bool = false,
     /// A press selecting by `drag_unit` from `drag_from`.
     dragging: bool = false,
+    /// The line a press in the gutter was on, for the app to read (and clear).
+    gutter_press: ?usize = null,
     drag_unit: Unit = .char,
     drag_from: [2]usize = .{ 0, 0 },
     /// Where the horizontal scroll bar was grabbed.

@@ -37,6 +37,7 @@ pub const ViewState = view_mod.ViewState;
 test {
     _ = library;
     _ = @import("layouts.zig");
+    _ = @import("notify.zig");
     _ = vt;
     _ = encode;
     _ = pty;

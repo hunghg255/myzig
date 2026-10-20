@@ -78,26 +78,43 @@ pub fn alphaAt(px: f32, py: f32, hw: f32, hh: f32, r: f32, sigma: f32) f32 {
     return a[0];
 }
 
-pub fn shadow(out: gpu.Pixels, i: *const gpu.Instance, scale: f32, b: [4]usize) void {
+/// Draws the shadow `i` in `b`, but where `cover` (the opaque box drawn
+/// next, which casts it) sets the pixels whatever is under them.
+pub fn shadow(out: gpu.Pixels, i: *const gpu.Instance, scale: f32, b: [4]usize, cover: ?Cover) void {
     const hw = i.rect[2] * 0.5;
     const hh = i.rect[3] * 0.5;
-    const cx = i.rect[0] + hw;
-    const cy = i.rect[1] + hh;
     const r = std.math.sign(i.radius) * @min(@abs(i.radius), @min(hw, hh));
     const sigma = @max(i.border_width, 0.25);
-    const k = @sqrt(@as(f32, 0.5)) / sigma;
-    const c = i.color;
-    const inv = 1 / scale;
-    const plain = i.clip_round <= 0;
+    const sh: Row = .{ .i = i, .cx = i.rect[0] + hw, .k = @sqrt(@as(f32, 0.5)) / sigma, .inv = 1 / scale };
+    const cy = i.rect[1] + hh;
     for (b[1]..b[3]) |y| {
-        const wy = raster.centerOf(y, inv);
+        const wy = raster.centerOf(y, sh.inv);
         const s = samples(wy - cy, hw, hh, r, sigma);
+        const hole = if (cover) |cv| cv.span(b[0], b[2], y) else .{ b[2], b[2] };
+        sh.draw(out, s, wy, y, b[0], hole[0]);
+        sh.draw(out, s, wy, y, hole[1], b[2]);
+    }
+}
+
+const Cover = @import("raster_fill.zig").Cover;
+
+/// What a shadow's rows share.
+const Row = struct {
+    i: *const gpu.Instance,
+    cx: f32,
+    k: f32,
+    inv: f32,
+
+    /// Pixels [x0, x1) of row `y` (`wy` its center), `s` its samples.
+    fn draw(sh: Row, out: gpu.Pixels, s: Samples, wy: f32, y: usize, x0: usize, x1: usize) void {
+        const c = sh.i.color;
+        const plain = sh.i.clip_round <= 0;
         const row = y * out.width * 4;
-        var x = b[0];
-        while (x < b[2]) : (x += lanes) {
-            const wx = run.centers(x, inv);
-            const av = alphaOf(wx - @as(V, @splat(cx)), s, k);
-            if (plain and x + lanes <= b[2]) {
+        var x = x0;
+        while (x < x1) : (x += lanes) {
+            const wx = run.centers(x, sh.inv);
+            const av = alphaOf(wx - @as(V, @splat(sh.cx)), s, sh.k);
+            if (plain and x + lanes <= x1) {
                 // No clip to cut it: alpha * c[3] * 1, as below.
                 const raw = av * @as(V, @splat(c[3]));
                 const zero: V = @splat(0);
@@ -107,10 +124,10 @@ pub fn shadow(out: gpu.Pixels, i: *const gpu.Instance, scale: f32, b: [4]usize) 
             }
             const alpha: [lanes]f32 = av;
             const wxs: [lanes]f32 = wx;
-            for (0..@min(lanes, b[2] - x)) |l| {
-                const a = raster.ditherAlpha(alpha[l] * c[3] * raster.clipCover(i, wxs[l], wy, inv), raster.ditherAt(x + l, y));
+            for (0..@min(lanes, x1 - x)) |l| {
+                const a = raster.ditherAlpha(alpha[l] * c[3] * raster.clipCover(sh.i, wxs[l], wy, sh.inv), raster.ditherAt(x + l, y));
                 raster.blend(out.bytes, row + (x + l) * 4, c[0] * a, c[1] * a, c[2] * a, a);
             }
         }
     }
-}
+};

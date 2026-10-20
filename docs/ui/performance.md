@@ -14,7 +14,13 @@ the view), and because what is expensive is kept across frames:
 - **Text layouts** are cached by their string and style, and glyphs are
   rasterized once into the glyph atlas; printable ASCII has an exact fast
   path on macOS (`shaper.zig`, tested to match CoreText's shaping).
-- **Pictures** are decoded once and packed into the image atlas.
+  A font is kept for each size text is shown at; past 256 of them (sizes
+  that change every frame, as a zoom slider gives), a frame lets them all
+  go and starts over, rasterizing its glyphs again.
+- **Pictures** are decoded once and packed into the image atlas, which
+  starts at 512 pixels a side and doubles as pictures need, up to 2048.
+  Where the GPU draws (Metal, Direct3D 11), pictures go straight to its
+  texture and no copy of the atlas stays in memory.
 - **The frame's memory** is an arena reset each frame: strings made with
   `c.print` and `c.alloc()` cost a bump of a pointer.
 - **Drawing** is one instanced draw call a frame on the GPU (see

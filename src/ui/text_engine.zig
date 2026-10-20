@@ -15,7 +15,47 @@ pub const Piece = struct {
     weight: u16,
     italic: bool,
     size: f32,
+    /// OpenType features, as `TextStyle.features` has them.
+    features: []const u8 = "",
 };
+
+/// The features of a list ("calt=0,ss01,-liga,+zero"), each a tag and a
+/// value, in `out`; returns how many.
+pub fn parseFeatures(s: []const u8, out: []Feature) usize {
+    var n: usize = 0;
+    var it = std.mem.splitScalar(u8, s, ',');
+    while (it.next()) |raw| {
+        if (n == out.len) break;
+        var f = std.mem.trim(u8, raw, " \"'");
+        var value: u32 = 1;
+        if (f.len > 0 and (f[0] == '-' or f[0] == '+')) {
+            value = @intFromBool(f[0] == '+');
+            f = f[1..];
+        }
+        if (std.mem.indexOfScalar(u8, f, '=')) |eq| {
+            value = std.fmt.parseInt(u32, std.mem.trim(u8, f[eq + 1 ..], " "), 10) catch continue;
+            f = std.mem.trim(u8, f[0..eq], " ");
+        }
+        if (f.len == 0 or f.len > 4) continue;
+        var tag: [4]u8 = .{ ' ', ' ', ' ', ' ' };
+        @memcpy(tag[0..f.len], f);
+        out[n] = .{ .tag = tag, .value = value };
+        n += 1;
+    }
+    return n;
+}
+
+pub const Feature = struct { tag: [4]u8, value: u32 };
+
+test parseFeatures {
+    var out: [4]Feature = undefined;
+    const n = parseFeatures("calt=0, ss01,-liga,bogus5", &out);
+    try std.testing.expectEqual(@as(usize, 3), n);
+    try std.testing.expectEqualStrings("calt", &out[0].tag);
+    try std.testing.expectEqual(@as(u32, 0), out[0].value);
+    try std.testing.expectEqual(@as(u32, 1), out[1].value);
+    try std.testing.expectEqual(@as(u32, 0), out[2].value);
+}
 
 pub const Metrics = struct { ascent: f32, descent: f32, leading: f32 };
 

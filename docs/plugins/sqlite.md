@@ -108,9 +108,10 @@ await db.close();
 - **Guarded SQL:** one statement per call, and no `BEGIN`, `COMMIT` or
   `SAVEPOINT` (use `transaction`, which is `BEGIN IMMEDIATE` and rolls back
   on any error), `ATTACH`, `DETACH` or `VACUUM INTO`.
-- **Per window:** a connection belongs to the window that opened it: other
-  windows can't use its id, and it closes when the window has closed (on
-  the service's next call) or the service deinits.
+- **Per page:** a connection belongs to the page that opened it: other
+  windows can't use its id, and it closes when the page navigates, reloads
+  or closes, or the service deinits. A reloaded page opens its databases
+  again.
 - **The main thread:** calls run there, as all bound methods do; keep
   queries short (`LIMIT`).
 

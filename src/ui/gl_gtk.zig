@@ -133,7 +133,7 @@ pub const Gpu = struct {
             };
         }
         const r = &self.renderer.?;
-        r.syncAtlas(text.atlas.mask(), text.atlas.generation);
+        r.syncAtlas(text.atlas.mask(), text.atlas.generation, text.atlas.takeDirty());
         r.syncImages(&text.images);
         if (self.differ == null) self.differ = .init(gpa);
         const d = &self.differ.?;

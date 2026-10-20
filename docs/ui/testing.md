@@ -54,6 +54,7 @@ own as a window's `theme` option gives.
 | `click(x, y)`, `clickText(s)` | presses and releases at a point, or at the middle of the text `s` (`error.TextNotFound` when no text is `s`) |
 | `doubleClick(x, y)` | two clicks, the second counted as a double click |
 | `rightClick(x, y)` | a press of the secondary button, which opens a context menu |
+| `middleClick(x, y)` | a press of the middle button (`c.input.middle_pressed`), which closes a browser's tab |
 | `moveTo(x, y)` | moves the pointer: hover |
 | `drag(x1, y1, x2, y2)` | presses, moves in eight steps, releases |
 | `scroll(x, y, dy)` | scrolls the box under the point at once, as a touchpad does, or hands the wheel to a view that takes it (`c.wants_wheel`) |

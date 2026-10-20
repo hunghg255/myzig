@@ -103,10 +103,16 @@ export class GL {
   }
 
   /// The glyph atlas, one byte a texel.
-  setAtlas(pixels, size) {
+  setAtlas(pixels, size, row0, row1) {
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.atlas);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, size, size, 0, gl.RED, gl.UNSIGNED_BYTE, pixels);
+    if (this.atlasSize !== size) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, size, size, 0, gl.RED, gl.UNSIGNED_BYTE, pixels);
+      this.atlasSize = size;
+      return;
+    }
+    // Only the rows whose glyphs changed.
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, row0, size, row1 - row0, gl.RED, gl.UNSIGNED_BYTE, pixels.subarray(row0 * size, row1 * size));
   }
 
   /// Rows of the image atlas, BGRA: uploaded as RGBA, swizzled by the shader.

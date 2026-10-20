@@ -14,6 +14,10 @@ pub const Grid = struct {
     cell_w: f32,
     cell_h: f32,
     font_size: f32,
+    /// The font's family, features and weight (`Options`).
+    family: ?[]const u8 = null,
+    features: []const u8 = "",
+    weight: u16 = 0,
     cols: u16,
     rows: u16,
 };
@@ -99,7 +103,16 @@ fn textAt(c: *ui.Context, g: Grid, col: usize, row: usize, s: []const u8, l: Loo
         .offset = .{ .x = g.pad + @as(f32, @floatFromInt(col)) * g.cell_w, .y = g.pad + @as(f32, @floatFromInt(row)) * g.cell_h },
     }, .{ .text = .{
         .str = s,
-        .style = .{ .size = g.font_size, .mono = true, .weight = if (l.bold) .bold else .regular, .italic = l.italic },
+        .style = .{
+            .size = g.font_size,
+            .mono = true,
+            .weight = if (l.bold) .bold else .regular,
+            // Bold is three hundred heavier than a weight of its own.
+            .weight_value = if (g.weight == 0) 0 else if (l.bold) @min(900, g.weight + 300) else g.weight,
+            .italic = l.italic,
+            .family = g.family,
+            .features = g.features,
+        },
         .color = fg,
     } }, null);
 }

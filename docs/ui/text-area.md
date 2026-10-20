@@ -44,7 +44,10 @@ the gallery's Text page and `examples/code-editor` show text areas too.
 | `bare` | false | no box of its own (border, fill, focus ring): for an editor filling a window |
 
 It returns a `ui.TextAreaResult`: `changed` (the text changed this frame),
-`focused`, and `first_line` and `last_line`, the lines it built.
+`focused`, and `first_line` and `last_line`, the lines it built, with
+`lines` (each line built and its top from the top of the view, as it is
+scrolled, in frame memory) and `row_h`, for what the app puts over the
+lines.
 
 ## Editing
 

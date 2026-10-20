@@ -18,7 +18,19 @@ const access_text = @import("access_text.zig");
 const Color = types.Color;
 
 /// A background behind bytes [start, end) of a line (a match, a bracket).
-pub const Mark = struct { start: u32, end: u32, color: Color };
+pub const Mark = struct {
+    start: u32,
+    end: u32,
+    color: Color,
+    /// An `end` that fills the line's rows across the whole view, under the selection.
+    pub const whole = std.math.maxInt(u32);
+};
+const decor = @import("textarea_decor.zig");
+const rows_mod = @import("textarea_rows.zig");
+const shownBytes = rows_mod.shownBytes;
+const rowSpans = rows_mod.rowSpans;
+pub const After = decor.After;
+pub const Guides = decor.Guides;
 
 /// What a view adds to the lines it shows, as each is built.
 pub const Decor = struct {
@@ -27,7 +39,12 @@ pub const Decor = struct {
     spans: ?*const fn (ctx: *anyopaque, c: *Context, line: usize, str: []const u8) []const types.Span = null,
     /// Backgrounds of a line's runs; `start` is its byte in the text.
     marks: ?*const fn (ctx: *anyopaque, c: *Context, line: usize, start: usize, str: []const u8) []const Mark = null,
+    /// A bar along the gutter's left edge by a line (changes since a commit).
+    gutter: ?*const fn (ctx: *anyopaque, c: *Context, line: usize) ?Color = null,
+    /// Text drawn after a line's end, faint (the caret line's blame, a note).
+    after: ?*const fn (ctx: *anyopaque, c: *Context, line: usize) ?After = null,
 };
+
 
 /// Sees each command first; true when it handled it.
 pub const Hook = struct {
@@ -51,6 +68,9 @@ pub const Config = struct {
     gutter: ?Gutter = null,
     /// Fills the caret's row.
     current_line: ?Color = null,
+    guides: ?Guides = null,
+    /// The spaces and tabs selected show in this color (`textarea_decor`).
+    whitespace: ?Color = null,
     decor: ?Decor = null,
     hook: ?Hook = null,
     /// Tab is the text's (else it moves the focus).
@@ -67,6 +87,11 @@ pub const Result = struct {
     /// The lines built, first and last.
     first_line: usize = 0,
     last_line: usize = 0,
+    /// Each line built and its top, from the top of the view as it is
+    /// scrolled (in frame memory), and a row's height: for what an app
+    /// puts over the lines (a conflict's buttons).
+    lines: []const decor.LineTop = &.{},
+    row_h: f32 = 0,
 };
 
 const overscan = 3;
@@ -107,6 +132,7 @@ fn pointer(c: *Context, ta: *TextArea, g: Geo, f: Frame, it: ctx_mod.Interaction
         const in_gutter = f.gutter_w > 0 and m.x < f.view.x + f.gutter_w;
         const at = offsetAt(ta, g, f, if (in_gutter) f.view.x + f.gutter_w else m.x, m.y);
         ta.drag_unit = if (in_gutter or c.input.click_count >= 3) .line else if (c.input.click_count == 2) .word else .char;
+        if (in_gutter) ta.gutter_press = ta.doc.lineOf(at);
         ta.drag_from = unitAt(ta, ta.drag_unit, at);
         if (c.input.shift and ta.drag_unit == .char) {
             // Extends the selection from its anchor, dragging on from there.
@@ -265,11 +291,12 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
     const x0 = pad.left - ta.scroll_x;
     const sel_color = th.accent.alpha(if (focused) 0.28 else 0.14);
     const space_w = c.text.width(" ", cfg.style);
-    const Number = struct { line: usize, y: f32 };
-    var numbers: std.ArrayList(Number) = .empty;
+    var numbers: std.ArrayList(decor.LineTop) = .empty;
     const start = ta.wrap.lineAt(&ta.doc, first_row);
     var line = start.line;
     var row = ta.wrap.rowOf(&ta.doc, line);
+    // The indentation blank lines take: the last line above with text.
+    var guide_cols: usize = if (cfg.guides) |gd| decor.colsAbove(c.alloc(), &ta.doc, line, gd.tab) else 0;
     result.first_line = line;
     var caret_rect: ?types.Rect = null;
     var widest: f32 = 0;
@@ -288,12 +315,25 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         numbers.append(c.alloc(), .{ .line = line, .y = y_line }) catch {};
         const spans: []const types.Span = if (cfg.decor) |d| if (d.spans) |fs| fs(d.ctx, c, line, lr.str) else &.{} else &.{};
         const marks: []const Mark = if (cfg.decor) |d| if (d.marks) |fm| fm(d.ctx, c, line, lr.start, lr.str) else &.{} else &.{};
+        // Indent guides: a line at each level of the indentation; a blank
+        // line takes the indentation of the line above it.
+        if (cfg.guides) |gd| if (gd.unit > 0) {
+            const cols = decor.indentCols(lr.str, gd.tab);
+            if (cols) |n| guide_cols = n;
+            var col: usize = gd.unit;
+            while (col <= guide_cols) : (col += gd.unit) {
+                _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1 }, .height = .{ .px = row_h * @as(f32, @floatFromInt(lr.rows.len)) }, .background = gd.color, .offset = .{ .x = x0 + @as(f32, @floatFromInt(col - gd.unit)) * char_w + 1, .y = y_line } }, .none, null);
+            }
+        };
         for (0..lr.rows.len) |sub| {
             const y = y_line + @as(f32, @floatFromInt(sub)) * row_h;
             const r = lr.row(sub);
             const a_abs = lr.start + r[0];
             const b_abs = lr.start + r[1];
             if (y + row_h < f.scroll - row_h * overscan or y > end_y) continue;
+            for (marks) |mk| if (mk.end == Mark.whole) {
+                _ = c.leaf(.{ .absolute = true, .width = .{ .px = text_w }, .height = .{ .px = row_h }, .background = mk.color, .offset = .{ .x = 0, .y = y } }, .none, null);
+            };
             // The selection, and what the view marks, under the text.
             const lo = ta.sel.lo();
             const hi = ta.sel.hi();
@@ -304,8 +344,10 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
                 var xb = lr.xIn(sub, b);
                 if (hi > b_abs and sub + 1 == lr.rows.len) xb += space_w;
                 if (xb > xa) _ = c.leaf(.{ .absolute = true, .width = .{ .px = xb - xa }, .height = .{ .px = row_h }, .background = sel_color, .offset = .{ .x = x0 + xa, .y = y } }, .none, null);
+                if (cfg.whitespace) |wc| decor.selectedWhitespace(c, lr, sub, a, b, x0, y, row_h, wc);
             }
             for (marks) |mk| {
+                if (mk.end == Mark.whole) continue;
                 const a = @max(mk.start, r[0]);
                 const b = @min(mk.end, r[1]);
                 if (b <= a and !(mk.start == mk.end and mk.start == r[0])) continue;
@@ -344,6 +386,16 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
                     _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1.5 }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
             }
         }
+        // What the view adds after the line's end.
+        if (cfg.decor) |d| if (d.after) |fa| if (fa(d.ctx, c, line)) |af| {
+            const last = lr.rows.len - 1;
+            const end_x = lr.xIn(last, lr.row(last)[1]);
+            _ = c.leaf(.{ .absolute = true, .offset = .{ .x = x0 + end_x + char_w * 3, .y = y_line + @as(f32, @floatFromInt(last)) * row_h } }, .{ .text = .{
+                .str = af.text,
+                .style = cfg.style,
+                .color = af.color,
+            } }, null);
+        };
         row += lr.rows.len;
     }
     // A long line in view is not laid out to its end: the next frame goes on.
@@ -358,6 +410,9 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         const ns: types.TextStyle = .{ .size = cfg.style.size * 0.92, .mono = true, .leading = cfg.style.leading };
         const nh = c.text.lineHeight(ns);
         for (numbers.items) |n| {
+            if (cfg.decor) |d| if (d.gutter) |bar| if (bar(d.ctx, c, n.line)) |col| {
+                _ = c.leaf(.{ .absolute = true, .offset = .{ .x = 2, .y = n.y }, .width = .{ .px = 3 }, .height = .{ .px = row_h }, .background = col }, .none, null);
+            };
             const label = c.print("{d}", .{n.line + 1});
             const w = c.text.width(label, ns);
             _ = c.leaf(.{ .absolute = true, .offset = .{ .x = gt.width - w - 10, .y = n.y + (row_h - nh) / 2 } }, .{ .text = .{
@@ -407,79 +462,10 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         .rows = rows.items,
     });
     result.focused = it.focused;
+    result.lines = numbers.items;
+    for (numbers.items) |*n| n.y -= f.scroll;
+    result.row_h = row_h;
     return result;
-}
-
-/// The bytes of row `sub` (bytes `r`) of `lr` whose glyphs lie between
-/// `lo` and `hi` (in the row's coordinates), at the glyphs' boundaries.
-fn shownBytes(lr: layout.LineRows, sub: usize, r: [2]usize, lo: f32, hi: f32) [2]usize {
-    const gs = lr.lay.glyphs;
-    const x0 = layout.xAt(lr.lay, r[0]);
-    const first = struct {
-        fn f(g: []const @import("text.zig").Glyph, x: f32) usize {
-            var a: usize = 0;
-            var b: usize = g.len;
-            while (a < b) {
-                const m = (a + b) / 2;
-                if (g[m].x < x) a = m + 1 else b = m;
-            }
-            return a;
-        }
-    }.f;
-    _ = sub;
-    const i = first(gs, x0 + lo) -| 1;
-    const j = first(gs, x0 + hi);
-    const a = if (i < gs.len) std.math.clamp(gs[i].index, r[0], r[1]) else r[1];
-    const b = if (j < gs.len) std.math.clamp(gs[j].index, a, r[1]) else r[1];
-    return .{ a, b };
-}
-
-/// The spans of a line clipped to its row [a, b), from the row's start.
-/// The spans are sorted: those of the row are a run of them, given as
-/// they are where the row starts the line and holds them whole (a line
-/// that does not wrap), else clipped in one allocation of frame memory.
-fn rowSpans(c: *Context, spans: []const types.Span, a: usize, b: usize) []const types.Span {
-    return clipSpans(c.alloc(), spans, a, b);
-}
-
-fn clipSpans(arena: std.mem.Allocator, spans: []const types.Span, a: usize, b: usize) []const types.Span {
-    var i: usize = 0;
-    while (i < spans.len and spans[i].end <= a) i += 1;
-    var j = i;
-    while (j < spans.len and spans[j].start < b) j += 1;
-    const run = spans[i..j];
-    if (run.len == 0) return &.{};
-    var whole = a == 0;
-    for (run) |sp| whole = whole and sp.end <= b and sp.end > sp.start;
-    if (whole) return run;
-    const out = arena.alloc(types.Span, run.len) catch return &.{};
-    var n: usize = 0;
-    for (run) |sp| {
-        if (sp.end <= a or sp.start >= b) continue;
-        var s = sp;
-        s.start = @intCast(@max(sp.start, a) - a);
-        s.end = @intCast(@min(sp.end, b) - a);
-        out[n] = s;
-        n += 1;
-    }
-    return out[0..n];
-}
-
-test "a row's spans: the line's own where it does not wrap, clipped where it does" {
-    const spans = [_]types.Span{ .{ .start = 0, .end = 3 }, .{ .start = 4, .end = 9 }, .{ .start = 12, .end = 14 } };
-    // A row of the whole line allocates nothing.
-    var none: std.heap.FixedBufferAllocator = .init(&.{});
-    const all = clipSpans(none.allocator(), &spans, 0, 14);
-    try std.testing.expectEqual(@as([*]const types.Span, &spans), all.ptr);
-    try std.testing.expectEqual(@as(usize, 3), all.len);
-    // A row from byte 5: the second clipped, the third moved.
-    var buf: [256]u8 = undefined;
-    var fb: std.heap.FixedBufferAllocator = .init(&buf);
-    const rest = clipSpans(fb.allocator(), &spans, 5, 14);
-    try std.testing.expectEqual(@as(usize, 2), rest.len);
-    try std.testing.expectEqual(@as(u32, 0), rest[0].start);
-    try std.testing.expectEqual(@as(u32, 4), rest[0].end);
-    try std.testing.expectEqual(@as(u32, 7), rest[1].start);
 }
 
 /// The bar of a text wider than its view, dragged to scroll it sideways.

@@ -48,6 +48,9 @@ pub const Tester = struct {
     instances: std.ArrayList(gpu.Instance) = .empty,
     /// Seconds each frame advances animations by.
     dt: f32 = 1.0 / 60.0,
+    /// The app's menu bar, for a script's `shortcut:` steps: its
+    /// accelerators run as a window's do (snapshots set it).
+    accelerator: ?struct { ctx: *anyopaque, run: *const fn (ctx: *anyopaque, s: ctx_mod.Shortcut) bool } = null,
     /// What copy and cut wrote: tests never touch the system's clipboard.
     clipboard: std.ArrayList(u8) = .empty,
     /// The simulated clock, advanced by `dt` each frame.
@@ -264,6 +267,13 @@ pub const Tester = struct {
         t.frame();
     }
 
+    /// A press of the middle button.
+    pub fn middleClick(t: *Tester, x: f32, y: f32) void {
+        t.moveTo(x, y);
+        t.ctx.input.middle_pressed = true;
+        t.frame();
+    }
+
     pub fn clickText(t: *Tester, s: []const u8) !void {
         const r = t.findText(s) orelse return error.TextNotFound;
         t.click(r.x + r.w / 2, r.y + r.h / 2);
@@ -309,6 +319,8 @@ pub const Tester = struct {
 
     /// Runs a script of steps separated by `;`: `click:TEXT`, `move:TEXT`,
     /// `type:TEXT` (a character an event), `key:enter|backspace|tab|escape|left|right`,
+    /// `shortcut:ctrl+shift+p` (cmd, ctrl, alt, shift, then a character or
+    /// up, down, left, right, enter, tab, escape, f1 to f12),
     /// `scroll:DY` (at the pointer), `drag:FROM>TO` (each a text or `X,Y`
     /// in points), `wait:SECONDS` (simulated time), `frames:N` (N frames,
     /// then no settling: a snapshot mid-animation), `live:SECONDS` (the
@@ -340,6 +352,17 @@ pub const Tester = struct {
                 continue;
             } else if (std.mem.eql(u8, op, "key")) {
                 t.key(std.meta.stringToEnum(ctx_mod.Key, arg) orelse return error.UnknownKey);
+            } else if (std.mem.eql(u8, op, "shortcut")) {
+                const sc = try parseShortcut(arg);
+                // As a window: the menu's accelerators first, unless the
+                // view asks for keys first.
+                const accel = t.accelerator;
+                const first = t.ctx.keys_first;
+                if (!first and accel != null and accel.?.run(accel.?.ctx, sc)) {
+                    t.frame();
+                } else if (!t.shortcut(sc) and first and accel != null) {
+                    if (accel.?.run(accel.?.ctx, sc)) t.frame();
+                }
             } else if (std.mem.eql(u8, op, "scroll")) {
                 t.scroll(t.ctx.input.mouse.x, t.ctx.input.mouse.y, try std.fmt.parseFloat(f32, arg));
             } else if (std.mem.eql(u8, op, "wait")) {
@@ -370,3 +393,34 @@ pub const Tester = struct {
         return .{ .x = r.x + r.w / 2, .y = r.y + r.h / 2 };
     }
 };
+
+/// A script's `shortcut:` step: "ctrl+shift+p", "alt+up", "cmd+f3".
+fn parseShortcut(s: []const u8) !ctx_mod.Shortcut {
+    const S = ctx_mod.Shortcut;
+    var sc: S = .{ .key = 0 };
+    var it = std.mem.splitScalar(u8, s, '+');
+    while (it.next()) |part| {
+        if (std.mem.eql(u8, part, "cmd")) sc.cmd = true else if (std.mem.eql(u8, part, "ctrl")) sc.ctrl = true else if (std.mem.eql(u8, part, "alt")) sc.alt = true else if (std.mem.eql(u8, part, "shift")) sc.shift = true else if (part.len == 1) {
+            sc.key = part[0];
+        } else {
+            const names = [_]struct { []const u8, u21 }{
+                .{ "up", S.up },       .{ "down", S.down }, .{ "left", S.left },     .{ "right", S.right },
+                .{ "enter", S.enter }, .{ "tab", S.tab },   .{ "escape", S.escape },
+            };
+            for (names) |n| if (std.mem.eql(u8, part, n[0])) {
+                sc.key = n[1];
+            };
+            if (part.len >= 2 and part[0] == 'f') if (std.fmt.parseInt(u21, part[1..], 10)) |n| {
+                if (n >= 1 and n <= 12) sc.key = S.f1 + n - 1;
+            } else |_| {};
+        }
+    }
+    if (sc.key == 0) return error.UnknownKey;
+    return sc;
+}
+
+test parseShortcut {
+    const sc = try parseShortcut("ctrl+shift+p");
+    try std.testing.expect(sc.ctrl and sc.shift and sc.key == 'p');
+    try std.testing.expectEqual(ctx_mod.Shortcut.f1 + 2, (try parseShortcut("f3")).key);
+}

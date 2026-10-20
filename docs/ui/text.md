@@ -25,6 +25,9 @@ stack.
 | `mono` | false | the monospaced font |
 | `italic` | false | the italic face, or the regular one slanted where the family has none |
 | `leading` | 1 | the line height as a multiple of the font's (1.4 or 1.5 for airy prose) |
+| `family` | null | a family of its own, in place of the theme's (`font` or `mono_font`) |
+| `features` | `""` | OpenType features by commas: `"calt=0,ss01"`, `"-liga"`, `"+zero"` (DirectWrite and HarfBuzz) |
+| `weight_value` | 0 | a weight from 100 to 900 in place of `weight`'s; 0 for `weight` |
 
 Text that does not wrap is as wide as it is. Text that wraps takes the
 width its parent gives (`.fill`) and breaks at spaces onto as many lines as

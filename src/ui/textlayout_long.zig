@@ -143,10 +143,18 @@ pub const LongLines = struct {
     shaped: usize = 0,
     /// A line shown is not laid out to its end: another frame should follow.
     pending: bool = false,
+    /// The text system's `epoch` its glyphs were laid out in: when the
+    /// run fonts start over, their ids are others' (`text_tt.zig`).
+    epoch: u32 = 0,
 
     pub fn deinit(l: *LongLines) void {
-        for (l.entries.items) |*e| e.deinit(l.gpa);
+        l.clear();
         l.entries.deinit(l.gpa);
+    }
+
+    fn clear(l: *LongLines) void {
+        for (l.entries.items) |*e| e.deinit(l.gpa);
+        l.entries.clearRetainingCapacity();
     }
 
     /// A new frame's budget; the lines not shown in the last frames go.
@@ -172,10 +180,17 @@ pub const LongLines = struct {
     /// up to where it is laid out.
     pub fn rows(l: *LongLines, g: layout.Geo, doc: *const TextDoc, line: usize) layout.LineRows {
         const gpa = l.gpa;
+        if (@hasField(text.TextSystem, "epoch") and g.ts.epoch != l.epoch) {
+            l.clear();
+            l.epoch = g.ts.epoch;
+        }
         const start = doc.lineStart(line);
         var h = std.hash.Wyhash.init(0x10a9);
         h.update(std.mem.asBytes(&[_]f32{ g.style.size, g.style.leading }));
         h.update(&.{ @intFromEnum(g.style.weight), @intFromBool(g.style.mono), @intFromBool(g.style.italic) });
+        h.update(std.mem.asBytes(&g.style.weight_value));
+        h.update(g.style.family orelse "\x00");
+        h.update(g.style.features);
         const style = h.final();
         const e = l.entryOf(gpa, line, style) orelse return layout.wholeRows(g, doc, line);
         if (e.frame != l.frame or e.version != doc.version) l.advance(gpa, e, g, doc, line, start, style);

@@ -59,8 +59,9 @@ The page's `WebSocket` has the browser's API, plus a third argument with
   `error`, then `close` with 1006, and the console says why.
 - Zig reads no further while the page has more than `window_bytes` of
   messages to handle.
-- A connection whose window closed is dropped (going away, 1001) when its
-  next event arrives; `service.deinit` drops the rest.
+- A page's connections are dropped (going away, 1001) when the page
+  navigates, reloads or closes, even those waiting for it to read;
+  `service.deinit` drops the rest.
 - No extensions (permessage-deflate) are negotiated.
 
 ### Options

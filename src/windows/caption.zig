@@ -142,6 +142,8 @@ pub const Caption = struct {
     pressed: ?usize = null,
     tracking: bool = false,
     active: bool = true,
+    /// Whether the glyphs were last drawn for a dark title bar.
+    drawn_dark: ?bool = null,
     /// An owned popup rather than a child (no manifest).
     popup: bool = false,
     /// Buttons clicked, for tests: what was sent to the window.
@@ -227,6 +229,13 @@ pub const Caption = struct {
         // HWND_TOP: above a page's view, made after it.
         _ = w.SetWindowPos(self.hwnd, null, at.x, at.y, bw, bh, gdi.SWP_NOACTIVATE | show);
         self.paint();
+    }
+
+    /// Draws the buttons again if the title bar went light or dark (the
+    /// view's theme changed), after each frame.
+    pub fn followTheme(self: *Caption) void {
+        const dark = self.host.dark(self.host.ctx);
+        if (self.drawn_dark != dark) self.paint();
     }
 
     pub fn activate(self: *Caption, on: bool) void {
@@ -339,6 +348,7 @@ pub const Caption = struct {
         _ = gdi.SelectObject(mask.dc, old);
         _ = gdi.GdiFlush();
         const dark = self.host.dark(self.host.ctx);
+        self.drawn_dark = dark;
         const tw: usize = @intCast(total);
         for (shown, 0..) |b, i| {
             const c = colors(b, self.hot == i, self.pressed == i, self.enabled(b), self.active, dark, face.fluent);

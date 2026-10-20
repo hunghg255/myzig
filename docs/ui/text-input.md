@@ -28,6 +28,10 @@ platform's text input: typing, accents and input methods, the system's key
 bindings, selection with the keyboard and the mouse (a drag selects, a
 double click a word), and the clipboard.
 
+`TextBuffer.set(text)` replaces the text and puts the caret at its end;
+`TextBuffer.select(anchor, caret)` selects bytes in the next frame, as a
+box renaming a file chooses its name without its extension.
+
 `ui.TextFieldOptions`:
 
 | field | default | what it does |

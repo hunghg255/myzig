@@ -2,8 +2,8 @@
 //! `WebSocket`): each connection is two tasks on the app's `Io`, one that
 //! connects and reads, one that writes what the page sends, in order. What
 //! happens comes back to the page as `myzig-websocket` events, through the
-//! main thread; a window that closed drops its connections when their next
-//! event arrives.
+//! main thread. A page that navigates, reloads or closes drops its
+//! connections (`myzig_pageGone`).
 //!
 //!     var ws_service: websocket.Service = try .init(gpa, app.io, .{});
 //!     defer ws_service.deinit();
@@ -59,6 +59,8 @@ const Task = struct {
     svc: *Service,
     serial: u64,
     window: *myzig.Window,
+    /// The page that opened it (`myzig.Call.page`).
+    page: ?*anyopaque,
     page_id: []u8,
     url: []u8,
     protocols: []const []const u8,
@@ -122,7 +124,7 @@ pub const Service = struct {
     pub fn connect(s: *Service, call: *myzig.Call, request: ConnectRequest) !void {
         for (s.tasks.items) |t| if (t.window == call.window and std.mem.eql(u8, t.page_id, request.id)) return error.DuplicateId;
         const t = try s.gpa.create(Task);
-        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .page_id = &.{}, .url = &.{}, .protocols = &.{}, .headers = &.{}, .arena = .init(s.gpa) };
+        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .page = call.page, .page_id = &.{}, .url = &.{}, .protocols = &.{}, .headers = &.{}, .arena = .init(s.gpa) };
         errdefer {
             t.arena.deinit();
             s.gpa.destroy(t);
@@ -173,6 +175,17 @@ pub const Service = struct {
         defer t.lock.unlock(s.io);
         t.unread -|= @intCast(bytes);
         t.cond.broadcast(s.io);
+    }
+
+    /// The page that opened connections is gone (it navigated, reloaded
+    /// or closed): they close, even those waiting for it to read what came.
+    pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void {
+        var i = s.tasks.items.len;
+        while (i > 0) {
+            i -= 1;
+            const t = s.tasks.items[i];
+            if (t.window == window and t.page == page) s.drop(i);
+        }
     }
 
     fn find(s: *Service, window: *myzig.Window, id: []const u8) ?*Task {

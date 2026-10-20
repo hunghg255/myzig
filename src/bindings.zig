@@ -13,6 +13,11 @@ pub const Bindings = struct {
     /// The generator, set by the first `bind` or `registerEvent`: apps
     /// that bind nothing link none of it, only the runtime's part.
     gen: ?*const Gen = null,
+    /// Services told when a page's document is gone (`pageGone`).
+    gone: std.ArrayList(Gone) = .empty,
+
+    /// A service's `myzig_pageGone(window, page)`.
+    const Gone = struct { ctx: *anyopaque, func: *const fn (ctx: *anyopaque, window: *anyopaque, page: *anyopaque) void };
 
     const Gen = struct {
         js: *const fn (b: *Bindings, gpa: std.mem.Allocator) anyerror![]const u8,
@@ -23,12 +28,18 @@ pub const Bindings = struct {
     pub fn deinit(b: *Bindings, gpa: std.mem.Allocator) void {
         b.services.deinit(gpa);
         b.events.deinit(gpa);
+        b.gone.deinit(gpa);
         if (b.client_js) |js| gpa.free(js);
     }
 
     pub fn bind(b: *Bindings, gpa: std.mem.Allocator, service: anytype) !void {
         const T = @typeInfo(@TypeOf(service)).pointer.child;
         const svc = ipc.service(T, service);
+        if (@hasDecl(T, "myzig_pageGone")) try b.gone.append(gpa, .{ .ctx = service, .func = struct {
+            fn f(ctx: *anyopaque, window: *anyopaque, page: *anyopaque) void {
+                T.myzig_pageGone(@ptrCast(@alignCast(ctx)), @ptrCast(@alignCast(window)), page);
+            }
+        }.f });
         try b.services.put(gpa, svc.name, svc);
         b.gen = &generator;
         b.dropClient(gpa);
@@ -38,6 +49,14 @@ pub const Bindings = struct {
         try b.events.append(gpa, E.client);
         b.gen = &generator;
         b.dropClient(gpa);
+    }
+
+    /// The document `page` of `window` showed is gone: it navigated,
+    /// reloaded or closed. Services that keep work for a page (a stream it
+    /// reads, a database it opened) let that page's go: it will never call
+    /// for it again, nor read what comes.
+    pub fn pageGone(b: *const Bindings, window: *anyopaque, page: *anyopaque) void {
+        for (b.gone.items) |g| g.func(g.ctx, window, page);
     }
 
     fn dropClient(b: *Bindings, gpa: std.mem.Allocator) void {
@@ -115,3 +134,34 @@ pub const Bindings = struct {
         std.log.info("myzig: wrote {s}/myzig.js and myzig.d.ts", .{dir_path});
     }
 };
+
+test "services that keep work for pages hear when a page is gone, and pages never call it" {
+    const Window = struct { n: u8 = 0 };
+    const Streams = struct {
+        gone: ?*anyopaque = null,
+        from: ?*Window = null,
+        pub fn open(_: *@This()) void {}
+        pub fn myzig_pageGone(s: *@This(), window: *Window, page: *anyopaque) void {
+            s.from = window;
+            s.gone = page;
+        }
+    };
+    const Plain = struct {
+        pub fn ping(_: *@This()) void {}
+    };
+    const gpa = std.testing.allocator;
+    var b: Bindings = .{};
+    defer b.deinit(gpa);
+    var streams: Streams = .{};
+    var plain: Plain = .{};
+    try b.bind(gpa, &streams);
+    try b.bind(gpa, &plain);
+    try std.testing.expectEqual(@as(usize, 1), b.gone.items.len);
+    var window: Window = .{};
+    var page: u32 = 0;
+    b.pageGone(&window, &page);
+    try std.testing.expectEqual(@as(?*anyopaque, &page), streams.gone);
+    try std.testing.expectEqual(@as(?*Window, &window), streams.from);
+    const js = try b.clientJs(gpa);
+    try std.testing.expect(std.mem.indexOf(u8, js, "pageGone") == null);
+}

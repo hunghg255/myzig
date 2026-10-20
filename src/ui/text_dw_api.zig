@@ -25,6 +25,7 @@ pub const iid_pixel_snapping = GUID.parse("eaf3a2da-ecf4-4d24-b644-b34f6842024b"
 pub const factory = struct {
     pub const get_system_font_collection = 3;
     pub const create_text_format = 15;
+    pub const create_typography = 16;
     pub const create_text_layout = 18;
     pub const translate_color_glyph_run = 28;
     pub const create_glyph_run_analysis2 = 30;
@@ -58,8 +59,20 @@ pub const layout = struct {
     pub const set_font_weight = 32;
     pub const set_font_style = 33;
     pub const set_font_size = 35;
+    pub const set_typography = 40;
     pub const draw = 58;
 };
+
+/// IDWriteTypography.
+pub const typography = struct {
+    pub const add_font_feature = 3;
+};
+
+/// A DWRITE_FONT_FEATURE (an OpenType tag and its value), passed in a
+/// register as the SDK's ABI passes 8-byte structures.
+pub fn fontFeature(tag: [4]u8, value: u32) u64 {
+    return @as(u64, std.mem.readInt(u32, &tag, .little)) | (@as(u64, value) << 32);
+}
 
 pub const analysis = struct {
     pub const get_alpha_texture_bounds = 3;

@@ -1,8 +1,8 @@
 //! The service pages call (`js/sqlite.js` wraps it): databases opened by
 //! file name in the app's data directory, guarded SQL, parameters and
 //! cells in their wire form (values.zig). Each connection belongs to the
-//! window that opened it; those of windows that closed are closed on the
-//! next call.
+//! page that opened it, and closes when that page navigates, reloads or
+//! closes (`myzig_pageGone`).
 //!
 //!     var db_service: sqlite.Service = .init(gpa, .{});
 //!     defer db_service.deinit();
@@ -35,6 +35,8 @@ pub const StatementArgs = struct {
 const Conn = struct {
     id: u64,
     window: *myzig.Window,
+    /// The page that opened it (`myzig.Call.page`).
+    page: ?*anyopaque,
     db: sqlite.Db,
 };
 
@@ -82,7 +84,7 @@ pub const Service = struct {
         errdefer db.close();
         const id = s.next_id;
         s.next_id += 1;
-        try s.conns.append(s.gpa, .{ .id = id, .window = call.window, .db = db });
+        try s.conns.append(s.gpa, .{ .id = id, .window = call.window, .page = call.page, .db = db });
         return std.fmt.allocPrint(call.arena, "{d}", .{id});
     }
 
@@ -132,6 +134,19 @@ pub const Service = struct {
         for (s.conns.items) |*c| if (c.id == n and c.window == call.window) return &c.db;
         // Closed, or another window's.
         return error.DatabaseClosed;
+    }
+
+    /// The page that opened databases is gone (it navigated, reloaded or
+    /// closed): they close, as a new document opens its own.
+    pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void {
+        var i: usize = 0;
+        while (i < s.conns.items.len) {
+            const c = &s.conns.items[i];
+            if (c.window == window and c.page == page) {
+                c.db.close();
+                _ = s.conns.swapRemove(i);
+            } else i += 1;
+        }
     }
 
     /// Closes the connections of windows that closed.

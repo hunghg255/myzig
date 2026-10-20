@@ -40,6 +40,9 @@ const StyleKey = struct { family: u64, weight: u16, italic: bool };
 const FallbackKey = struct { cp: u21, weight: u16, italic: bool, emoji: bool };
 const FaceKey = struct { path: u64, index: u32, bold: bool, slant: bool };
 
+/// An hb_feature_t: a tag, its value, over the whole buffer.
+const HbFeature = extern struct { tag: u32, value: u32, start: c_uint = 0, end: c_uint = std.math.maxInt(c_uint) };
+
 pub const Engine = struct {
     gpa: std.mem.Allocator,
     config: ?*anyopaque,
@@ -275,7 +278,18 @@ pub const Engine = struct {
             hb.hb_buffer_add_utf8(e.buffer, e.text.items.ptr, @intCast(s.len), sg.start, @intCast(sg.end - sg.start));
             hb.hb_buffer_set_direction(e.buffer, if (sg.level & 1 != 0) api.hb_direction_rtl else api.hb_direction_ltr);
             hb.hb_buffer_guess_segment_properties(e.buffer);
-            hb.hb_shape(f.font, e.buffer, null, 0);
+            // The OpenType features of the piece the segment is in.
+            var feats: [16]HbFeature = undefined;
+            var nf: usize = 0;
+            for (pieces) |p| if (sg.start >= p.start and sg.start < p.end) {
+                var list: [16]engine.Feature = undefined;
+                for (list[0..engine.parseFeatures(p.features, &list)]) |ft| {
+                    feats[nf] = .{ .tag = std.mem.readInt(u32, &ft.tag, .big), .value = ft.value };
+                    nf += 1;
+                }
+                break;
+            };
+            hb.hb_shape(f.font, e.buffer, if (nf > 0) @ptrCast(&feats) else null, @intCast(nf));
             var n: c_uint = 0;
             const infos = hb.hb_buffer_get_glyph_infos(e.buffer, &n);
             const pos = hb.hb_buffer_get_glyph_positions(e.buffer, null);

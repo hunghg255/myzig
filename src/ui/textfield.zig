@@ -15,8 +15,10 @@ const EditState = ctx_mod.EditState;
 pub const TextBuffer = struct {
     buf: [1024]u8 = undefined,
     len: usize = 0,
-    /// Where the caret goes in the next frame, after the app set the text.
+    /// Where the caret goes in the next frame, after the app set the text,
+    /// and where the selection starts (null: at the caret).
     want_caret: ?usize = null,
+    want_anchor: ?usize = null,
 
     pub fn text(b: *const TextBuffer) []const u8 {
         return b.buf[0..b.len];
@@ -27,6 +29,13 @@ pub const TextBuffer = struct {
         b.len = 0;
         _ = b.replace(0, 0, s);
         b.want_caret = b.len;
+    }
+
+    /// Selects bytes [anchor, caret) in the next frame, as a box that
+    /// renames a file chooses its name without its extension.
+    pub fn select(b: *TextBuffer, anchor: usize, caret: usize) void {
+        b.want_anchor = @min(anchor, b.len);
+        b.want_caret = @min(caret, b.len);
     }
 
     pub fn clear(b: *TextBuffer) void {
@@ -260,9 +269,10 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
     const e = entry.value_ptr;
     if (buffer.want_caret) |at| {
         e.caret = at;
-        e.anchor = at;
+        e.anchor = buffer.want_anchor orelse at;
         e.marked = null;
         buffer.want_caret = null;
+        buffer.want_anchor = null;
     }
     // Assistive technology moved the caret or the selection.
     if (access.selectRequest(c, it.id)) |sel| {

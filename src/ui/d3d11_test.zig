@@ -14,9 +14,12 @@ const Scene = struct {
     on: bool = true,
     value: f32 = 0.4,
     picture: []const u8 = "",
+    /// Text shown first when not empty: glyphs new to the atlas.
+    extra: []const u8 = "",
     fn view(s: *Scene, c: *ui.Context) void {
         ui.column(c, .{ .padding = .all(20), .gap = 14, .width = .fill, .height = .fill });
         defer ui.end(c);
+        if (s.extra.len > 0) ui.text(c, s.extra, .{ .size = 17, .weight = .bold });
         ui.text(c, "Settings", .{ .size = 22, .weight = .bold });
         ui.card(c, .{ .gap = 10, .shadow = .{ .blur = 18, .y = 6 } });
         {
@@ -86,7 +89,7 @@ test "Direct3D draws the widgets the CPU renderer draws: text, icons, shadows, c
     try t.init(gpa, .init(&s, Scene.view), .{ .width = 360, .height = 300 });
     defer t.deinit();
     t.settle(1);
-    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation);
+    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, null);
     r.syncImages(&t.text.images);
     const frame = try r.drawOffscreen(gpa, t.instances.items, t.size, t.scale, t.theme.background);
     defer frame.deinit(gpa);
@@ -95,6 +98,74 @@ test "Direct3D draws the widgets the CPU renderer draws: text, icons, shadows, c
     raster.draw(.{ .bytes = cpu, .width = frame.width, .height = frame.height }, t.instances.items, t.text.atlas.mask(), t.text.images.pictures(), t.scale, t.theme.background);
     // Measured: a mean of 0.03, at worst 2 levels apart.
     try expectClose(frame.bytes, cpu, 0.05, 4);
+}
+
+test "pictures sent straight to Direct3D draw as those it copies from memory, and come back to memory" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const gpa = testing.allocator;
+    var px: [40 * 30 * 4]u8 = undefined;
+    for (0..30) |y| for (0..40) |x| {
+        px[(y * 40 + x) * 4 ..][0..4].* = .{ @intCast(x * 6), @intCast(y * 8), 180, 255 };
+    };
+    const picture = try @import("png.zig").encode(gpa, .{ .bytes = &px, .width = 40, .height = 30 });
+    defer gpa.free(picture);
+    var frames: [2]@import("gpu.zig").Pixels = undefined;
+    var kept: [2]usize = undefined;
+    var back: []u8 = &.{};
+    defer gpa.free(back);
+    for (0..2) |k| {
+        var r = try renderer();
+        defer r.deinit();
+        var s: Scene = .{ .picture = picture };
+        var t: ui.Tester = undefined;
+        try t.init(gpa, .init(&s, Scene.view), .{ .width = 360, .height = 300 });
+        defer t.deinit();
+        t.settle(1);
+        // As a window does once Direct3D is there: what is packed goes to
+        // the GPU, where frames already painted find it.
+        if (k == 1) t.text.images.useSink(.{ .ctx = &r, .upload = d3d11.Renderer.uploadImage });
+        r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, null);
+        r.syncImages(&t.text.images);
+        frames[k] = try r.drawOffscreen(gpa, t.instances.items, t.size, t.scale, t.theme.background);
+        kept[k] = t.text.images.pixels.len;
+        if (k == 0) back = try gpa.dupe(u8, t.text.images.pixels);
+        // And as it does when Direct3D is gone.
+        if (k == 1) {
+            t.text.images.useCpu();
+            try testing.expectEqualSlices(u8, back, t.text.images.pixels);
+        }
+    }
+    defer for (frames) |f| f.deinit(gpa);
+    try testing.expect(kept[0] > 0);
+    try testing.expectEqual(@as(usize, 0), kept[1]);
+    try testing.expectEqualSlices(u8, frames[0].bytes, frames[1].bytes);
+}
+
+test "glyphs new to the atlas reach Direct3D as rows that changed, as uploading it whole does" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const gpa = testing.allocator;
+    var r = try renderer();
+    defer r.deinit();
+    var s: Scene = .{};
+    var t: ui.Tester = undefined;
+    try t.init(gpa, .init(&s, Scene.view), .{ .width = 360, .height = 300 });
+    defer t.deinit();
+    t.settle(1);
+    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, t.text.atlas.takeDirty());
+    s.extra = "Quizzical jumbo VEX 0123456789";
+    t.frame();
+    t.settle(1);
+    const dirty = t.text.atlas.takeDirty() orelse return error.TestExpectedDirty;
+    try testing.expect(dirty[1] - dirty[0] < t.text.atlas.size);
+    r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, dirty);
+    const part = try r.drawOffscreen(gpa, t.instances.items, t.size, t.scale, t.theme.background);
+    defer part.deinit(gpa);
+    var whole_r = try renderer();
+    defer whole_r.deinit();
+    whole_r.syncAtlas(t.text.atlas.mask(), t.text.atlas.generation, null);
+    const whole = try whole_r.drawOffscreen(gpa, t.instances.items, t.size, t.scale, t.theme.background);
+    defer whole.deinit(gpa);
+    try testing.expectEqualSlices(u8, whole.bytes, part.bytes);
 }
 
 test "Direct3D draws quads, borders, rounded clips, glyphs and shadows as the CPU renderer does" {
@@ -110,7 +181,7 @@ test "Direct3D draws quads, borders, rounded clips, glyphs and shadows as the CP
         mask[y * 64 + x] = @intFromFloat(std.math.clamp(28 - @sqrt(dx * dx + dy * dy), 0, 1) * 255);
     };
     const m: raster.Mask = .{ .pixels = &mask, .size = 64 };
-    r.syncAtlas(m, 1);
+    r.syncAtlas(m, 1, null);
     var prng: std.Random.DefaultPrng = .init(0xd3d11);
     const rnd = prng.random();
     const f = struct {

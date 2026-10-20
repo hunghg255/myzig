@@ -376,7 +376,7 @@ const D3d = struct {
         return @ptrCast(@alignCast(ctx));
     }
     fn sync(ctx: *anyopaque, mask: raster.Mask) void {
-        of(ctx).r.syncAtlas(mask, 1);
+        of(ctx).r.syncAtlas(mask, 1, null);
     }
     fn draw(ctx: *anyopaque, instances: []const gpu.Instance, w: u32, h: u32, scale: f32, clear: types.Color, part: ?damage.Box) anyerror!void {
         const d = of(ctx);
@@ -419,7 +419,7 @@ test "a window's swap chain presents frames drawn in part as the frames drawn wh
     defer _ = DestroyWindow(hwnd);
     try r.attach(hwnd, 200, 150);
     var mask = glyphMask();
-    r.syncAtlas(.{ .pixels = &mask, .size = 64 }, 1);
+    r.syncAtlas(.{ .pixels = &mask, .size = 64 }, 1, null);
     var prng: std.Random.DefaultPrng = .init(0x5a7c);
     const rnd = prng.random();
     var parts: [12]Part = undefined;
@@ -475,7 +475,7 @@ const Gl = struct {
         return @ptrCast(@alignCast(ctx));
     }
     fn sync(ctx: *anyopaque, mask: raster.Mask) void {
-        of(ctx).r.syncAtlas(mask, 1);
+        of(ctx).r.syncAtlas(mask, 1, null);
     }
     fn draw(ctx: *anyopaque, instances: []const gpu.Instance, w: u32, h: u32, scale: f32, clear: types.Color, part: ?damage.Box) anyerror!void {
         const d = of(ctx);

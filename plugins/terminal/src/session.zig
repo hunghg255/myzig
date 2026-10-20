@@ -14,7 +14,9 @@ const Theme = @import("theme.zig").Theme;
 const waker = @import("waker.zig");
 const encode = @import("encode.zig");
 
-pub const Event = enum { output, title, bell, exit };
+/// `.notify`: a program asked for a desktop notification (OSC 9, OSC
+/// 777), whose text `notification` gives.
+pub const Event = enum { output, title, bell, exit, notify };
 
 pub const EventHandler = struct {
     ctx: ?*anyopaque = null,
@@ -39,8 +41,15 @@ pub const Options = struct {
     cursor: vt.CursorStyle = .block,
     /// About how many bytes of output to keep above the screen.
     scrollback: usize = 10 << 20,
-    /// The text's size in points (DIPs).
+    /// The text's size in points (DIPs). The font options may change while
+    /// the terminal shows: the grid follows them.
     font_size: f32 = 13,
+    /// A family other than the theme's monospaced one, OpenType features
+    /// ("calt=0"), and a weight from 100 to 900 (0: regular), as
+    /// `ui.TextStyle` takes them.
+    font_family: ?[]const u8 = null,
+    font_features: []const u8 = "",
+    font_weight: u16 = 0,
     /// Events, on the main thread: what an app redraws its window on
     /// (`.output`), titles it with (`.title`), and closes it on (`.exit`).
     on_event: ?EventHandler = null,
@@ -49,6 +58,9 @@ pub const Options = struct {
     /// otherwise the system opens URLs.
     open_link: ?*const fn (ctx: ?*anyopaque, link: []const u8, path: bool) bool = null,
     open_link_ctx: ?*anyopaque = null,
+    /// Copies what a drag or a double or triple click selects as the pointer
+    /// lets go.
+    copy_on_select: bool = false,
     /// Reads the clipboard's text for a paste: the system's when null.
     read_clipboard: ?*const fn (ctx: ?*anyopaque, gpa: std.mem.Allocator) ?[]u8 = null,
     read_clipboard_ctx: ?*anyopaque = null,
@@ -68,6 +80,10 @@ pub const Terminal = struct {
     chunks: u64 = 0,
     title_changed: bool = false,
     bells: u32 = 0,
+    notes: @import("notify.zig").Scanner = .{},
+    /// The text of the last notification delivered (main thread).
+    note_buf: [512]u8 = undefined,
+    note_len: usize = 0,
     exited: bool = false,
     exit_code: i32 = 0,
     started: bool = false,
@@ -187,6 +203,7 @@ pub const Terminal = struct {
             if (n == 0) break;
             t.lock.lockUncancelable(t.io);
             t.vt.write(buf[0..n]);
+            t.notes.feed(buf[0..n]);
             t.chunks += 1;
             t.changed.broadcast(t.io);
             t.lock.unlock(t.io);
@@ -265,6 +282,11 @@ pub const Terminal = struct {
         t.send(bytes);
     }
 
+    /// The last notification's text (its title and body), as `.notify` said.
+    pub fn notification(t: *const Terminal) []const u8 {
+        return t.note_buf[0..t.note_len];
+    }
+
     /// Shows `bytes` as if the program wrote them: text and escape sequences.
     pub fn feed(t: *Terminal, bytes: []const u8) void {
         t.lock.lockUncancelable(t.io);
@@ -341,10 +363,17 @@ pub const Terminal = struct {
         t.title_changed = false;
         const bells = t.bells;
         t.bells = 0;
+        const noted = t.notes.pending;
+        if (noted) {
+            t.notes.pending = false;
+            t.note_len = t.notes.note_len;
+            @memcpy(t.note_buf[0..t.note_len], t.notes.note[0..t.note_len]);
+        }
         t.lock.unlock(t.io);
         if (events & (1 << @intFromEnum(Event.output)) != 0) h.func(h.ctx, t, .output);
         if (titled) h.func(h.ctx, t, .title);
         if (bells > 0) h.func(h.ctx, t, .bell);
+        if (noted) h.func(h.ctx, t, .notify);
         if (events & (1 << @intFromEnum(Event.exit)) != 0) h.func(h.ctx, t, .exit);
     }
 

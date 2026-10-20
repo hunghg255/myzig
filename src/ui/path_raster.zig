@@ -152,8 +152,10 @@ pub const Coverage = struct {
             var run: ?usize = null;
             var b = b0;
             while (b < b1) : (b += 1) {
-                const s = @max(b << block_shift, x0);
-                const e = @min((b + 1) << block_shift, xe);
+                // A block past the picture's right edge (rows are as wide
+                // as whole blocks) has none of its pixels: s = e = xe.
+                const s = @min(@max(b << block_shift, x0), xe);
+                const e = @max(@min((b + 1) << block_shift, xe), s);
                 const hit = bits[b >> 6] & (@as(u64, 1) << @intCast(b & 63)) != 0;
                 if (!hit) {
                     // Untouched: the sum holds, and so does the coverage.
@@ -338,4 +340,28 @@ test "the sweep by touched blocks gives every pixel the dense sweep gives" {
         }
         try std.testing.expectEqualSlices(u8, b, a);
     }
+}
+
+test "a shape past the right edge of a picture a block's width but one wide" {
+    // 79 wide: its rows (81 cells) reach into a block that holds none of
+    // its pixels, which the sweep must pass over.
+    const gpa = std.testing.allocator;
+    var p: path.Path = .init(gpa);
+    defer p.deinit();
+    p.rect(70, 0, 30, 4);
+    const out = try fillTest(gpa, 79, 4, p.data(), .nonzero);
+    defer gpa.free(out);
+    try std.testing.expectApproxEqAbs(@as(f32, 36), total(out), 0.01);
+}
+
+test "a shape ending inside a picture whose rows reach a block past it" {
+    // Its coverage ends before the block past the edge, which the sweep
+    // reaches with the run of pixels gathered so far.
+    const gpa = std.testing.allocator;
+    var p: path.Path = .init(gpa);
+    defer p.deinit();
+    p.rect(60, 0, 10, 4);
+    const out = try fillTest(gpa, 79, 4, p.data(), .nonzero);
+    defer gpa.free(out);
+    try std.testing.expectApproxEqAbs(@as(f32, 40), total(out), 0.01);
 }

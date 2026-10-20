@@ -1,6 +1,14 @@
 (async () => {
   const expect = (ok, what) => { if (!ok) throw new Error(what); };
   const { open } = await import("/plugins/sqlite.js");
+
+  // After the reload below: the last document's databases closed with it;
+  // this one's own (index.html opens notes.db) may be open already.
+  if (sessionStorage.getItem("reloaded")) {
+    const after = await myzig.call("Demo.connections");
+    expect(after <= 1, "databases left by the last document: " + after);
+    return true;
+  }
   const db = await open(":memory:");
   await db.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT, data BLOB, big INTEGER)");
   const r = await db.execute("INSERT INTO t(name, data, big) VALUES (?, ?, ?)", ["Ada", new Uint8Array([0, 255]), 9007199254740993n]);
@@ -35,5 +43,19 @@
   err = "";
   try { await db.query("SELECT 1"); } catch (e) { err = String(e); }
   expect(err.includes("DatabaseClosed") || err === "", "closed " + err);
+
+  // A database left open as the page reloads, with index.html's.
+  await open(":memory:");
+  const before = await myzig.call("Demo.connections");
+  expect(before >= 2, "databases before the reload: " + before);
+  sessionStorage.setItem("reloaded", "1");
+  location.reload();
+  return false;
+})().then((done) => {
+  if (!done) return;
   myzig.log("ok");
-})().catch((e) => myzig.log("FAIL", String(e))).finally(() => myzig.window.close());
+  myzig.window.close();
+}, (e) => {
+  myzig.log("FAIL", String(e));
+  myzig.window.close();
+});

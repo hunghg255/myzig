@@ -36,6 +36,8 @@ pub const DiffView = struct {
     hunks: []diff.Hunk = &.{},
     rows: std.ArrayList(Row) = .empty,
     mode: Mode = .unified,
+    /// Shows this row at the top in the next frame (the app's "next change").
+    scroll_to: ?u32 = null,
     /// Unchanged lines shown around each change.
     context: usize = 3,
     /// The runs of unchanged lines expanded, by the old line they start at.

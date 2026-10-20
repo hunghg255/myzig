@@ -163,6 +163,13 @@ pub fn image(c: *Context, opts: ImageOptions) bool {
     return true;
 }
 
+/// A picture's size in pixels, decoded (and kept) by its key; null when
+/// it doesn't decode.
+pub fn imageSize(c: *Context, name: []const u8, bytes: []const u8) ?types.Size {
+    const e = c.text.images.info(@import("images.zig").Images.key(name), bytes) orelse return null;
+    return .{ .w = @floatFromInt(e.width), .h = @floatFromInt(e.height) };
+}
+
 pub fn heading(c: *Context, str: []const u8) void {
     if (c.access.enabled) c.describe(c.peekId(null), .{ .role = .heading, .level = 1 });
     text(c, str, .{ .size = 22, .weight = .bold });

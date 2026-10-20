@@ -36,14 +36,16 @@ t.advance(0.3); // animations move by simulated time
 try t.screenshot("/tmp/counter.png");
 ```
 
-It offers pointer input (`moveTo`, `click`, `doubleClick`, `rightClick`,
+It offers pointer input (`moveTo`, `click`, `doubleClick`, `rightClick`, `middleClick`,
 `drag`, `scroll`, `clickText`), keys (`key`, `keyEdge`, `shortcut`,
 `typeText`, `textOps`), time (`frame`, `advance`, `settle`, with `dt`
 seconds a frame), `resize`, queries (`findText`, `hasText`,
 `containsText`), and pixels (`render`, `rasterize`, `screenshot`,
 `pixelSize`). Its `clipboard` is a buffer of its own. `runScript` runs
 the steps the `--myzig-script` flag takes: `click:TEXT`, `move:TEXT`,
-`type:TEXT`, `key:enter|backspace|tab|escape|left|right`, `scroll:DY`,
+`type:TEXT`, `key:enter|backspace|tab|escape|left|right`,
+`shortcut:ctrl+shift+p` (a key combination, to the menu bar's
+accelerators and the view as a window gives it), `scroll:DY`,
 `wait:SECONDS` (simulated), `live:SECONDS` (the real loop) and
 `resize:WxH`.
 

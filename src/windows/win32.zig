@@ -147,6 +147,7 @@ pub const WM_LBUTTONDOWN = 0x0201;
 pub const WM_LBUTTONUP = 0x0202;
 pub const WM_LBUTTONDBLCLK = 0x0203;
 pub const WM_RBUTTONDOWN = 0x0204;
+pub const WM_MBUTTONDOWN = 0x0207;
 pub const WM_MOUSEWHEEL = 0x020A;
 pub const WM_MOUSELEAVE = 0x02A3;
 pub const WM_DPICHANGED = 0x02E0;

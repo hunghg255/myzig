@@ -110,7 +110,8 @@ while after the box is gone.
 ## Input
 
 `c.input` is this event's input: the pointer (`mouse`, `down`,
-`pressed`, `released`, `click_count`), the modifiers, the key (`key`,
+`pressed`, `released`, `click_count`, and `right_pressed` and
+`middle_pressed` for the other buttons), the modifiers, the key (`key`,
 `shortcut`) and the text typed (`chars`). A widget that answers a key
 takes it, so that what is built later does not see it too:
 `c.shortcut(...)` takes a key combination, and `ui.overlays.takeKey(c, k)`

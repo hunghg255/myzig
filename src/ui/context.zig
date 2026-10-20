@@ -128,6 +128,10 @@ pub const Context = struct {
     copy_done: bool = false,
     /// Set when the view took the offered shortcut: it goes no further.
     shortcut_taken: bool = false,
+    /// Set by the view, kept across frames: shortcuts go to the view
+    /// before the menu bar's accelerators (a terminal that has the
+    /// keyboard keeps Ctrl+L and Ctrl+W for its shell). On Windows and Linux.
+    keys_first: bool = false,
     /// Set by the focused text field each frame.
     focused_text: ?FocusedText = null,
     clipboard: Clipboard = .{},

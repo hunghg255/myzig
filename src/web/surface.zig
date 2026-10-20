@@ -169,7 +169,7 @@ pub const Surface = struct {
         const px = self.pixelSize();
         self.stale = false;
         if (self.glRenderer()) |g| {
-            g.syncAtlas(self.text.atlas.mask(), self.text.atlas.generation);
+            g.syncAtlas(self.text.atlas.mask(), self.text.atlas.generation, self.text.atlas.takeDirty());
             g.syncImages(&self.text.images);
             _ = g.render(self.frameOf(px));
             return;

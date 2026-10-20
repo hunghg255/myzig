@@ -205,6 +205,13 @@ Rules the official plugins keep, and yours should too:
   [`mainthread.post`](plugins/mainthread.md); only there may it emit
   events or touch windows. Check that the window is still open before
   emitting (`app.windows`), and drop the work of windows that closed.
+- **Work kept for a page goes with it.** A service with
+  `pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void`
+  hears when a page's document is gone (it navigated, reloaded or closed):
+  it lets go of what it kept for that page, which it knows by `call.page`.
+  A page that reloads never calls for that work again, nor reads what
+  comes, so a stream waiting for its `ack` would wait for good. Pages
+  never call `myzig_*` methods.
 - **Backpressure.** Streams wait while the page has more than a window of
   bytes unread (the page acknowledges what it read, `ack`), so a fast
   source never piles up in the page.

@@ -60,6 +60,9 @@ fn fontKey(style: types.TextStyle) FontKey {
     return .{ .size_bits = @bitCast(style.size), .weight = style.weight, .mono = style.mono, .italic = style.italic };
 }
 
+/// Run fonts kept at most, as `text_tt.zig` keeps.
+const max_run_fonts = 256;
+
 pub const TextSystem = struct {
     gpa: std.mem.Allocator,
     atlas: Atlas,
@@ -68,7 +71,11 @@ pub const TextSystem = struct {
     scale: f32 = 2,
     fonts: std.AutoHashMapUnmanaged(FontKey, Font) = .empty,
     /// Every font a run used, retained; glyphs refer to them by index.
+    /// Past `max_run_fonts`, a frame starts them over.
     run_fonts: std.ArrayList(cf.CTFontRef) = .empty,
+    /// Bumped when the run fonts start over: glyphs laid out before name
+    /// fonts by ids that are others' now (`textlayout_long.zig` checks).
+    epoch: u32 = 0,
     /// The fast path's cached shaping of printable ASCII, per font.
     tables: std.AutoHashMapUnmanaged(FontKey, *shaper.Table) = .empty,
     layouts: std.AutoHashMapUnmanaged(u64, Layout) = .empty,
@@ -166,6 +173,14 @@ pub const TextSystem = struct {
     /// Called at the start of every frame: layouts unused for two frames go.
     pub fn beginFrame(self: *TextSystem) void {
         self.atlas.reset_during_frame = false;
+        if (self.run_fonts.items.len > max_run_fonts) {
+            // Sizes that change all the time (a zoom slider) add one a frame.
+            self.dropCaches();
+            for (self.run_fonts.items) |f| cf.CFRelease(f);
+            self.run_fonts.clearRetainingCapacity();
+            self.atlas.reset();
+            self.epoch +%= 1;
+        }
         freeLayouts(self.gpa, &self.previous);
         std.mem.swap(std.AutoHashMapUnmanaged(u64, Layout), &self.layouts, &self.previous);
     }
@@ -195,6 +210,9 @@ pub const TextSystem = struct {
         h.update(s);
         h.update(std.mem.asBytes(&style.size));
         h.update(&.{ @intFromEnum(style.weight), @intFromBool(style.mono), @intFromBool(style.italic) });
+        h.update(std.mem.asBytes(&style.weight_value));
+        h.update(style.family orelse "\x00");
+        h.update(style.features);
         return h.final();
     }
 

@@ -16,6 +16,7 @@ const Context = ctx_mod.Context;
 const widgets = @import("widgets.zig");
 const list = @import("list.zig");
 const diff = @import("diff.zig");
+const row_text = @import("textarea_rows.zig");
 const hl = @import("markdown/highlight.zig");
 const model = @import("diffview_model.zig");
 const DiffView = model.DiffView;
@@ -28,6 +29,15 @@ pub const Options = struct {
     size: f32 = 13,
     /// Changed lines less alike than this aren't marked word by word.
     min_same: f32 = 0.3,
+    /// The tokens' colors; the light or dark default when null.
+    colors: ?hl.Colors = null,
+    /// The digits of the line numbers' column (0: as many as the texts need).
+    digits: usize = 0,
+    /// The text's family (the theme's monospaced one when null), OpenType
+    /// features and weight, as `ui.TextStyle` takes them.
+    family: ?[]const u8 = null,
+    features: []const u8 = "",
+    weight_value: u16 = 0,
 };
 
 const Palette = struct {
@@ -58,7 +68,47 @@ const Ctx = struct {
     row_h: f32,
     pal: Palette,
     opts: Options,
+    /// Of a line wrapped at `cols` characters, the piece shown (0: none wrap).
+    part: usize = 0,
+    cols: usize = 0,
 };
+
+/// Bytes of piece `part` of `str` wrapped at `cols` characters.
+fn piece(str: []const u8, part: usize, cols: usize) [2]usize {
+    if (cols == 0) return .{ 0, str.len };
+    var i: usize = 0;
+    var n: usize = 0;
+    var start: usize = str.len;
+    while (i < str.len) : (n += 1) {
+        if (n == part * cols) start = i;
+        if (n == (part + 1) * cols) return .{ @min(start, i), i };
+        i += std.unicode.utf8ByteSequenceLength(str[i]) catch 1;
+    }
+    return .{ @min(start, str.len), str.len };
+}
+
+/// The pieces a row of `dv` takes wrapped at `cols` characters a side.
+pub fn rowParts(dv: *const DiffView, i: usize, cols: usize) usize {
+    const r = dv.rows.items[i];
+    if (cols == 0 or (r.kind == .gap and r.hidden > 0)) return 1;
+    var most: usize = 1;
+    if (r.old) |o| most = @max(most, (count(dv.old_lines[o]) + cols - 1) / cols);
+    if (r.new) |n| most = @max(most, (count(dv.new_lines[n]) + cols - 1) / cols);
+    return most;
+}
+
+fn count(s: []const u8) usize {
+    return std.unicode.utf8CountCodepoints(s) catch s.len;
+}
+
+/// How many characters a side has room for in a diff `width` wide.
+pub fn wrapColumns(c: *Context, dv: *DiffView, opts: Options, width: f32, split: bool) usize {
+    const x = context(c, dv, opts);
+    const side = (if (split) (width - 1) / 2 else width) - x.num_w * (if (split) @as(f32, 1) else 2) - 14 - 8;
+    const cw = c.text.width("0", x.style);
+    if (cw <= 0) return 0;
+    return @max(@as(usize, @intFromFloat(@max(side, 0) / cw)), 8);
+}
 
 fn backgroundOf(p: Palette, k: Kind) ?Color {
     return switch (k) {
@@ -82,7 +132,10 @@ fn number(x: *const Ctx, line: ?u32) void {
 fn lineText(x: *const Ctx, old_side: bool, line: u32, pair: ?u32, kind: Kind) void {
     const c = x.c;
     const dv = x.dv;
-    const str = if (old_side) dv.old_lines[line] else dv.new_lines[line];
+    const full = if (old_side) dv.old_lines[line] else dv.new_lines[line];
+    const pc = piece(full, x.part, x.cols);
+    const str = full[pc[0]..pc[1]];
+    const shift = if (pc[0] > 0) c.text.caretX(full, x.style, pc[0]) else 0;
     _ = c.open(.{ .grow = 1, .height = .fill, .clip = true, .align_items = .center, .direction = .row, .padding = .{ .left = 4 } }, null);
     defer c.end();
     if (pair) |p| {
@@ -93,8 +146,9 @@ fn lineText(x: *const Ctx, old_side: bool, line: u32, pair: ?u32, kind: Kind) vo
         if (w) |ws| if (ws.same >= x.opts.min_same) {
             const color = if (kind == .added) x.pal.added_word else x.pal.deleted_word;
             for (if (old_side) ws.a else ws.b) |r| {
-                const x0 = c.text.caretX(str, x.style, r.start);
-                const x1 = c.text.caretX(str, x.style, r.end);
+                if (r.end <= pc[0] or r.start >= pc[1]) continue;
+                const x0 = c.text.caretX(full, x.style, @max(r.start, pc[0])) - shift;
+                const x1 = c.text.caretX(full, x.style, @min(r.end, pc[1])) - shift;
                 if (x1 > x0) _ = c.leaf(.{ .absolute = true, .width = .{ .px = x1 - x0 }, .height = .{ .px = x.row_h - 4 }, .radius = 3, .background = color, .offset = .{ .x = 4 + x0, .y = 2 } }, .none, null);
             }
         };
@@ -103,9 +157,9 @@ fn lineText(x: *const Ctx, old_side: bool, line: u32, pair: ?u32, kind: Kind) vo
     if (dv.language) |lang| {
         var out: std.ArrayList(types.Span) = .empty;
         const st = if (old_side) dv.old_states[line] else dv.new_states[line];
-        _ = hl.line(c.alloc(), lang, str, st, 0, hl.Colors.of(c.theme.dark), &out);
+        _ = hl.line(c.alloc(), lang, full, st, 0, x.opts.colors orelse hl.Colors.of(c.theme.dark), &out);
         for (out.items) |*sp| sp.italic = false;
-        spans = out.items;
+        spans = if (pc[0] == 0 and pc[1] == full.len) out.items else row_text.clipSpans(c.alloc(), out.items, pc[0], pc[1]);
     }
     if (str.len > 0) _ = c.leaf(.{}, .{ .text = .{ .str = str, .style = x.style, .color = c.theme.text, .spans = spans } }, null);
 }
@@ -140,9 +194,9 @@ fn unifiedRow(x: *const Ctx, r: model.Row) void {
     const c = x.c;
     _ = c.open(.{ .direction = .row, .width = .fill, .height = .{ .px = x.row_h }, .background = backgroundOf(x.pal, r.kind) }, null);
     defer c.end();
-    number(x, r.old);
-    number(x, r.new);
-    sign(x, r.kind);
+    number(x, if (x.part == 0) r.old else null);
+    number(x, if (x.part == 0) r.new else null);
+    sign(x, if (x.part == 0) r.kind else .same);
     if (r.kind == .deleted) lineText(x, true, r.old.?, r.pair, r.kind) else lineText(x, false, r.new.?, r.pair, r.kind);
 }
 
@@ -155,11 +209,53 @@ fn splitRow(x: *const Ctx, r: model.Row) void {
         const kind = if (old_side) r.kind else r.new_kind;
         const line = if (old_side) r.old else r.new;
         _ = c.open(.{ .direction = .row, .grow = 1, .width = .{ .px = 0 }, .height = .fill, .background = backgroundOf(x.pal, kind), .clip = true }, null);
-        number(x, line);
-        sign(x, kind);
+        number(x, if (x.part == 0) line else null);
+        sign(x, if (x.part == 0) kind else .same);
         if (line) |l| lineText(x, old_side, l, if (paired) (if (old_side) r.new else r.old) else null, kind);
         c.end();
         if (old_side) _ = c.leaf(.{ .width = .{ .px = 1 }, .height = .fill, .background = c.theme.border }, .none, null);
+    }
+}
+
+/// The height of a diff's rows.
+pub fn rowHeight(c: *Context, opts: Options) f32 {
+    return c.text.lineHeight(.{ .size = opts.size, .mono = true, .leading = 1.4, .family = opts.family, .weight_value = opts.weight_value });
+}
+
+fn context(c: *Context, dv: *DiffView, opts: Options) Ctx {
+    const style: types.TextStyle = .{ .size = opts.size, .mono = true, .leading = 1.4, .family = opts.family, .features = opts.features, .weight_value = opts.weight_value };
+    var digits: usize = 1;
+    var n = @max(dv.old_lines.len, dv.new_lines.len);
+    while (n >= 10) : (n /= 10) digits += 1;
+    if (opts.digits > 0) digits = opts.digits;
+    return .{
+        .c = c,
+        .dv = dv,
+        .style = style,
+        .num_w = @as(f32, @floatFromInt(@max(digits, 2))) * c.text.width("0", .{ .size = opts.size * 0.9, .mono = true }) + 14,
+        .row_h = rowHeight(c, opts),
+        .pal = .of(c.theme),
+        .opts = opts,
+    };
+}
+
+/// Row `i` of a diff (after `dv.build()`), for a list of the app's own
+/// that shows several diffs, or rows between them: a row `rowHeight` tall.
+pub fn diffRow(c: *Context, dv: *DiffView, i: usize, opts: Options) void {
+    diffRowPart(c, dv, i, opts, 0, 0);
+}
+
+/// Piece `part` of row `i`, its lines wrapped at `cols` characters a side
+/// (`wrapColumns`; `rowParts` tells how many pieces it takes): the
+/// numbers and the sign on the first.
+pub fn diffRowPart(c: *Context, dv: *DiffView, i: usize, opts: Options, part: usize, cols: usize) void {
+    var x = context(c, dv, opts);
+    x.part = part;
+    x.cols = cols;
+    const r = dv.rows.items[i];
+    if (r.kind == .gap and r.hidden > 0) gapRow(&x, r) else switch (dv.mode) {
+        .unified => unifiedRow(&x, r),
+        .split => splitRow(&x, r),
     }
 }
 
@@ -167,23 +263,13 @@ fn splitRow(x: *const Ctx, r: model.Row) void {
 pub fn diffView(c: *Context, dv: *DiffView, opts: Options) void {
     dv.build();
     const th = c.theme;
-    const style: types.TextStyle = .{ .size = opts.size, .mono = true, .leading = 1.4 };
-    const row_h = c.text.lineHeight(style);
-    var digits: usize = 1;
-    var n = @max(dv.old_lines.len, dv.new_lines.len);
-    while (n >= 10) : (n /= 10) digits += 1;
-    const x: Ctx = .{
-        .c = c,
-        .dv = dv,
-        .style = style,
-        .num_w = @as(f32, @floatFromInt(@max(digits, 2))) * c.text.width("0", .{ .size = opts.size * 0.9, .mono = true }) + 14,
-        .row_h = row_h,
-        .pal = .of(th),
-        .opts = opts,
-    };
+    const x = context(c, dv, opts);
+    const row_h = x.row_h;
     _ = c.open(.{ .direction = .column, .width = opts.width, .height = opts.height, .background = if (th.dark) Color.hex(0x1e1f22) else Color.white, .clip = true }, null);
     defer c.end();
-    var rows = list.list(c, .{ .count = dv.rows.items.len, .row_height = row_h });
+    const to: ?f32 = if (dv.scroll_to) |r| @as(f32, @floatFromInt(r)) * row_h else null;
+    dv.scroll_to = null;
+    var rows = list.list(c, .{ .count = dv.rows.items.len, .row_height = row_h, .scroll_to = to });
     while (rows.next()) |i| {
         const r = dv.rows.items[i];
         if (r.kind == .gap and r.hidden > 0) gapRow(&x, r) else switch (dv.mode) {
@@ -192,4 +278,10 @@ pub fn diffView(c: *Context, dv: *DiffView, opts: Options) void {
         }
     }
     rows.end();
+}
+
+test piece {
+    try std.testing.expectEqual([2]usize{ 0, 3 }, piece("abcdefg", 0, 3));
+    try std.testing.expectEqual([2]usize{ 6, 7 }, piece("abcdefg", 2, 3));
+    try std.testing.expectEqual([2]usize{ 0, 7 }, piece("abcdefg", 0, 0));
 }

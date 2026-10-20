@@ -143,6 +143,11 @@ item, in native UI and in pages. On Windows and Linux, `&` in a label
 marks its mnemonic (`"&File"`; `"&&"` is an ampersand), as the standard
 menus' titles do; macOS shows labels as written.
 
+On Windows and Linux, a view that sets `c.keys_first` (kept across
+frames) is offered a key combination before the menu bar's
+accelerators, which run only when the view doesn't take it: a terminal
+with the keyboard keeps Ctrl+L or Ctrl+W for its shell.
+
 ## Context menus
 
 A context menu of native UI is a widget, `ui.contextMenu`, drawn by

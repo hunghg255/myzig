@@ -100,6 +100,8 @@ pub const Page = struct {
         scheme.abandon(self);
         extra.abandon(self);
         if (self.embed) |e| embed_mod.drop(self, e);
+        // Services let go of what they kept for it.
+        self.window.app.bindings.pageGone(self.window, self);
         const gpa = self.gpa;
         self.core.deinit();
         gtk.api.g_object_unref(self.ucm);
@@ -298,6 +300,7 @@ pub const Page = struct {
         for (self.held.items) |m| self.gpa.free(m);
         self.held.clearRetainingCapacity();
         self.core.navigated();
+        self.window.app.bindings.pageGone(self.window, self);
     }
 
     pub fn startDrag(self: *Page) void {

@@ -140,7 +140,8 @@ test "an activation posted from another thread reaches on_notification on the ma
     const ca = std.heap.c_allocator;
     const a = try ca.create(toast.Activation);
     a.* = .{ .id = try ca.dupe(u8, "x"), .action = try ca.dupe(u8, "open"), .reply = try ca.dupe(u8, "") };
-    const thread = try std.Thread.spawn(.{}, post, .{ @as(?*anyopaque, @ptrCast(hwnd)), a });
+    // It only posts: a default stack would commit 16 MB.
+    const thread = try std.Thread.spawn(.{ .stack_size = 64 * 1024 }, post, .{ @as(?*anyopaque, @ptrCast(hwnd)), a });
     thread.join();
     var msg: w.MSG = undefined;
     while (w.PeekMessageW(&msg, hwnd, 0, 0, 1) != 0) _ = w.DispatchMessageW(&msg);

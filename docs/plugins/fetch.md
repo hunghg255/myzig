@@ -78,7 +78,8 @@ A refused request rejects in the page (`NotAllowed`).
 Each request runs on a task of the app's `Io` (`io.concurrent`). Its head,
 body chunks and end come back as `myzig-fetch` events, handed to the main
 thread with [mainthread](mainthread.md) and given to the window that asked,
-if it is still open; a closed window's requests are canceled. Cancelation
+if it is still open. A page that navigates, reloads or closes cancels its
+requests, even one waiting for it to read its body. Cancelation
 is `Io`'s, so a request blocked on the network stops at once.
 
 ## From Zig

@@ -4,6 +4,14 @@
   const base = await myzig.call("Demo.base");
   const next = (ws, type) => new Promise((resolve) => ws.addEventListener(type, resolve, { once: true }));
 
+  // After the reload below: the last document's connections closed with
+  // it; this one's own (index.html keeps one) may be open already.
+  if (sessionStorage.getItem("reloaded")) {
+    const after = await myzig.call("Demo.connections");
+    expect(after <= 1, "connections left by the last document: " + after);
+    return true;
+  }
+
   // Headers and subprotocols on the handshake; the server closes.
   const hello = new WebSocket(base.replace("ws:", "http:") + "/hello", ["v2", "v1"], { headers: { "x-token": "abc" } });
   const got = [];
@@ -50,5 +58,21 @@
   const refused = new WebSocket(base + "/nope");
   const r = await next(refused, "close");
   expect(r.code === 1006 && !r.wasClean, "refused");
+
+  // A connection left open as the page reloads, with the one index.html
+  // keeps.
+  const left = new WebSocket(base + "/echo");
+  await next(left, "open");
+  const before = await myzig.call("Demo.connections");
+  expect(before === 2, "connections before the reload: " + before);
+  sessionStorage.setItem("reloaded", "1");
+  location.reload();
+  return false;
+})().then((done) => {
+  if (!done) return;
   myzig.log("ok");
-})().catch((e) => myzig.log("FAIL", String(e))).finally(() => myzig.window.close());
+  myzig.window.close();
+}, (e) => {
+  myzig.log("FAIL", String(e));
+  myzig.window.close();
+});

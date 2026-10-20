@@ -230,7 +230,7 @@ const d3d11 = if (builtin.os.tag == .windows) @import("d3d11.zig") else struct {
 
 fn d3dSync(ctx: *anyopaque, mask: raster.Mask, generation: u64, t: ?*ui.Tester) void {
     const r: *d3d11.Renderer = @ptrCast(@alignCast(ctx));
-    r.syncAtlas(mask, generation);
+    r.syncAtlas(mask, generation, null);
     if (t) |x| r.syncImages(&x.text.images);
 }
 
@@ -263,7 +263,7 @@ const Offscreen = if (linux) @import("gl_offscreen.zig").Offscreen else void;
 
 fn glSync(ctx: *anyopaque, mask: raster.Mask, generation: u64, t: ?*ui.Tester) void {
     const r: *gl.Renderer = @ptrCast(@alignCast(ctx));
-    r.syncAtlas(mask, generation);
+    r.syncAtlas(mask, generation, null);
     if (t) |x| r.syncImages(&x.text.images);
 }
 

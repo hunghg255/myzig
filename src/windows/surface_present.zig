@@ -11,8 +11,28 @@
 //! count stays that of the frames the screen can take.
 const std = @import("std");
 const w = @import("win32.zig");
+const d3d11 = @import("../ui/d3d11.zig");
 
 pub const WM_PRESENT = w.WM_APP + 2;
+
+/// A renderer on the GPU presenting to `h`, `pw` × `ph` pixels, or null
+/// when Direct3D 11 or its swap chain can't be had: frames are drawn on the
+/// CPU then.
+pub fn renderer(gpa: std.mem.Allocator, h: w.HWND, pw: usize, ph: usize) ?*d3d11.Renderer {
+    const r = gpa.create(d3d11.Renderer) catch return null;
+    r.* = d3d11.Renderer.init(gpa) catch |e| {
+        std.log.info("myzig: no Direct3D ({s}): frames are drawn on the CPU", .{@errorName(e)});
+        gpa.destroy(r);
+        return null;
+    };
+    r.attach(h, @intCast(pw), @intCast(ph)) catch |e| {
+        std.log.info("myzig: no swap chain ({s}): frames are drawn on the CPU", .{@errorName(e)});
+        r.deinit();
+        gpa.destroy(r);
+        return null;
+    };
+    return r;
+}
 
 const HANDLE = *anyopaque;
 extern "kernel32" fn WaitForSingleObject(h: HANDLE, ms: u32) callconv(.winapi) u32;
@@ -77,7 +97,8 @@ pub const Latency = struct {
                 return;
             };
             s.* = .{ .latency = h, .hwnd = hwnd, .arm = ev };
-            l.thread = std.Thread.spawn(.{}, Shared.run, .{s}) catch {
+            // It only waits and posts: a default stack would commit 16 MB.
+            l.thread = std.Thread.spawn(.{ .stack_size = 64 * 1024 }, Shared.run, .{s}) catch {
                 _ = CloseHandle(ev);
                 l.gpa.destroy(s);
                 return;

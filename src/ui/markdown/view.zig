@@ -75,7 +75,20 @@ pub const Options = struct {
     max_column_width: f32 = 320,
     /// The key of the view's box, as `ui.key` gives.
     key: ?[]const u8 = null,
+    /// Reads an image's destination (a local file, as the app resolves
+    /// it): it shows under its paragraph, which then leaves out its
+    /// description. Null shows descriptions only.
+    images: ?ImageReader = null,
 };
+
+pub const ImageReader = struct {
+    ctx: *anyopaque,
+    read: *const fn (ctx: *anyopaque, c: *Context, url: []const u8) ?Image,
+};
+
+/// An image's encoded bytes (PNG, or what the platform decodes; `svg`
+/// for an SVG document), named by `key`; kept by the app while shown.
+pub const Image = struct { key: []const u8, bytes: []const u8, svg: bool = false };
 
 pub const Result = struct {
     /// A link clicked this frame: its destination.
@@ -139,8 +152,34 @@ pub const V = struct {
     /// The rendered inlines of block `i` as a paragraph whose links click.
     pub fn paragraph(v: *V, i: u32, style: TextStyle, color: Color) void {
         const r = v.rendered(i);
-        const idx = v.textLeaf(r.text, r.spans, style, color);
-        if (r.links.len > 0) v.links(idx, r, style);
+        var shown: [8]?Image = @splat(null);
+        var any = false;
+        if (v.opts.images) |ir| for (r.images[0..@min(r.images.len, shown.len)], 0..) |im, k| if (!im.pending) {
+            shown[k] = ir.read(ir.ctx, v.c, im.url);
+            any = any or shown[k] != null;
+        };
+        // A paragraph of images alone shows them, not their descriptions.
+        if (!any or !imagesOnly(r)) {
+            const idx = v.textLeaf(r.text, r.spans, style, color);
+            if (r.links.len > 0) v.links(idx, r, style);
+        }
+        for (shown) |s| if (s) |im| {
+            const w = @max(v.c.size.w - 80, 120);
+            if (im.svg) _ = @import("../svg.zig").svg(v.c, im.bytes, .{ .width = @min(w, 640), .key = im.key }) else _ = @import("../widgets.zig").image(v.c, .{ .key = im.key, .bytes = im.bytes, .max_width = w, .max_height = 2000, .radius = 4 });
+        };
+    }
+
+    /// Whether `r` is images and blanks.
+    fn imagesOnly(r: *const render.Rendered) bool {
+        for (r.text, 0..) |ch, at| {
+            if (ch == ' ' or ch == '\n' or ch == '\t') continue;
+            var inside = false;
+            for (r.images) |im| if (at >= im.start and at < im.end) {
+                inside = true;
+            };
+            if (!inside) return false;
+        }
+        return true;
     }
 
     /// Reports the links of text box `idx` under the pointer and clicked.

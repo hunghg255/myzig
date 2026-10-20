@@ -57,12 +57,15 @@ pub const Rendered = struct {
     text: []u8 = &.{},
     spans: []Span = &.{},
     links: []Link = &.{},
+    /// The images: their destinations, and their descriptions in `text`.
+    images: []Link = &.{},
     key: u64 = 0,
 
     pub fn deinit(r: *Rendered, gpa: std.mem.Allocator) void {
         gpa.free(r.text);
         gpa.free(r.spans);
         gpa.free(r.links);
+        gpa.free(r.images);
         r.* = .{};
     }
 };
@@ -87,6 +90,7 @@ const R = struct {
     text: std.ArrayList(u8) = .empty,
     spans: std.ArrayList(Span) = .empty,
     links: std.ArrayList(Link) = .empty,
+    images: std.ArrayList(Link) = .empty,
 
     fn put(r: *R, s: []const u8, st: Style) void {
         if (s.len == 0) return;
@@ -156,6 +160,7 @@ const R = struct {
                     const a = r.text.items.len;
                     r.walk(j + 1, n.next, s);
                     if (r.text.items.len == a) r.put("image", s);
+                    r.images.append(r.gpa, .{ .start = @intCast(a), .end = @intCast(r.text.items.len), .url = r.x.text(j), .pending = n.pending }) catch @panic("OOM");
                 },
             }
             j = n.next;
@@ -171,6 +176,7 @@ pub fn render(gpa: std.mem.Allocator, x: *const inl.Inlines, pal: Palette) Rende
         .text = r.text.toOwnedSlice(gpa) catch @panic("OOM"),
         .spans = r.spans.toOwnedSlice(gpa) catch @panic("OOM"),
         .links = r.links.toOwnedSlice(gpa) catch @panic("OOM"),
+        .images = r.images.toOwnedSlice(gpa) catch @panic("OOM"),
         .key = pal.key(),
     };
 }

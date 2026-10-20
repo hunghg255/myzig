@@ -58,6 +58,11 @@ pub const Surface = struct {
     start_time: f64,
     ticking: bool = false,
     frame_posted: bool = false,
+    /// A frame is being built: a modal loop the view started (a file
+    /// dialog, a message box) must not build another inside it.
+    in_frame: bool = false,
+    /// A frame was asked for while one was built: it runs after.
+    frame_again: bool = false,
     tracking: bool = false,
     theme_override: ?Theme = null,
     cursor: ctx_mod.Cursor = .arrow,
@@ -78,6 +83,8 @@ pub const Surface = struct {
 
     pub fn destroy(self: *Surface) void {
         surface_access.destroy(self);
+        // Going: the pictures need no copy in memory.
+        self.text.images.sink = null;
         self.dropDirect3D();
         self.cpu_damage.deinit();
         self.instances.deinit(self.gpa);
@@ -98,12 +105,24 @@ pub const Surface = struct {
 
     pub fn frame(self: *Surface) void {
         if (self.size.w <= 0 or self.size.h <= 0) return;
+        if (self.in_frame) {
+            self.frame_again = true;
+            return;
+        }
+        self.in_frame = true;
+        defer {
+            self.in_frame = false;
+            if (self.frame_again) {
+                self.frame_again = false;
+                self.requestFrame();
+            }
+        }
         const c = &self.ctx;
         const now = clock.now();
         const dt: f32 = if (self.last_frame_time > 0) @floatCast(@min(now - self.last_frame_time, 0.1)) else 1.0 / 60.0;
         self.last_frame_time = now;
         const r = frame_mod.run(c, self.view, &self.text, &self.instances, self.size, self.scale, self.theme(), dt, now - self.start_time);
-        surface_access.afterFrame(self);
+        self.window.afterFrame(self);
         self.stale = true;
         if (self.hwnd()) |h| _ = w.InvalidateRect(h, null, 0);
         self.updateCursor();
@@ -146,6 +165,8 @@ pub const Surface = struct {
         self.latency.stop();
         self.pending = false;
         const r = self.direct3d orelse return;
+        // The pictures the GPU held, in memory again where they were.
+        self.text.images.useCpu();
         r.deinit();
         self.gpa.destroy(r);
         self.direct3d = null;
@@ -155,20 +176,11 @@ pub const Surface = struct {
     fn gpuRenderer(self: *Surface, h: w.HWND, pw: usize, ph: usize) ?*d3d11.Renderer {
         if (self.direct3d_tried) return self.direct3d;
         self.direct3d_tried = true;
-        const r = self.gpa.create(d3d11.Renderer) catch return null;
-        r.* = d3d11.Renderer.init(self.gpa) catch |e| {
-            std.log.info("myzig: no Direct3D ({s}): frames are drawn on the CPU", .{@errorName(e)});
-            self.gpa.destroy(r);
-            return null;
-        };
-        r.attach(h, @intCast(pw), @intCast(ph)) catch |e| {
-            std.log.info("myzig: no swap chain ({s}): frames are drawn on the CPU", .{@errorName(e)});
-            r.deinit();
-            self.gpa.destroy(r);
-            return null;
-        };
+        const r = present_mod.renderer(self.gpa, h, pw, ph) orelse return null;
         self.direct3d = r;
         self.latency.handle = r.latency;
+        // Pictures go straight to the GPU: no copy of their atlas in memory.
+        self.text.images.useSink(.{ .ctx = r, .upload = d3d11.Renderer.uploadImage });
         return r;
     }
 
@@ -219,7 +231,7 @@ pub const Surface = struct {
     /// then on.
     fn present(self: *Surface, h: w.HWND, pw: usize, ph: usize) bool {
         const r = self.gpuRenderer(h, pw, ph) orelse return false;
-        r.syncAtlas(self.text.atlas.mask(), self.text.atlas.generation);
+        r.syncAtlas(self.text.atlas.mask(), self.text.atlas.generation, self.text.atlas.takeDirty());
         r.syncImages(&self.text.images);
         const before: [2]u32 = .{ r.width, r.height };
         r.resize(@intCast(pw), @intCast(ph)) catch {};
@@ -383,6 +395,12 @@ pub const Surface = struct {
                 self.ctx.input.right_pressed = true;
                 self.frame();
             },
+            w.WM_MBUTTONDOWN => {
+                self.setMouse(lp);
+                self.ctx.updateHot();
+                self.ctx.input.middle_pressed = true;
+                self.frame();
+            },
             w.WM_LBUTTONUP => {
                 _ = w.ReleaseCapture();
                 self.setMouse(lp);
@@ -486,7 +504,13 @@ pub const Surface = struct {
             .tab => S.tab,
             .escape => S.escape,
             .enter => S.enter,
-            else => null,
+            .home => S.home,
+            .end => S.end,
+            .page_up => S.page_up,
+            .page_down => S.page_down,
+            .backspace => S.backspace,
+            .delete => S.delete,
+            else => if (vk >= 0x70 and vk <= 0x7B) S.f1 + @as(u21, @intCast(vk - 0x70)) else null,
         } else null;
         // Letters and digits by their virtual key; other characters come as WM_CHAR.
         const letter: u21 = if ((vk >= 'A' and vk <= 'Z') or (vk >= '0' and vk <= '9')) std.ascii.toLower(@intCast(vk)) else switch (vk) {
@@ -499,19 +523,25 @@ pub const Surface = struct {
             0xBD => '-',
             0xBB => '=',
             0x20 => ' ',
+            0xC0 => '`',
+            0xBA => ';',
+            0xDE => '\'',
             else => 0,
         };
         const base: u21 = special orelse letter;
-        const offer = base != 0 and (ctrl or alt or base == S.up or base == S.down or base == S.tab or base == S.escape);
+        const fkey = base >= S.f1 and base < S.f1 + 12;
+        const offer = base != 0 and (ctrl or alt or fkey or base == S.up or base == S.down or base == S.tab or base == S.escape);
         if (offer) {
             const sc: S = .{ .key = base, .ctrl = ctrl, .alt = alt, .shift = in.shift };
-            if (self.window.app.accelerator(sc)) return true;
+            const first = self.ctx.keys_first;
+            if (!first and self.window.app.accelerator(sc)) return true;
             if (ctrl and self.ctx.focused_text != null and self.editShortcut(base)) return true;
             self.ctx.shortcut_taken = false;
             in.shortcut = sc;
             self.frame();
             in.shortcut = null;
             if (self.ctx.shortcut_taken) return true;
+            if (first and self.window.app.accelerator(sc)) return true;
         }
         if (key) |k| {
             in.key = k;

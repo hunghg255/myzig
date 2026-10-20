@@ -294,10 +294,10 @@ fn onPress(w: *gtk.Widget, e: *gtk.Event, data: ?*anyopaque) callconv(.c) c_int 
     g.gtk_widget_grab_focus(w);
     var button: c_uint = 0;
     _ = g.gdk_event_get_button(e, &button);
-    if (button == 3) {
+    if (button == 3 or button == 2) {
         s.setMouse(e);
         s.ctx.updateHot();
-        s.ctx.input.right_pressed = true;
+        if (button == 3) s.ctx.input.right_pressed = true else s.ctx.input.middle_pressed = true;
         s.frame();
         return 1;
     }
@@ -506,13 +506,15 @@ fn onKeyPress(_: *gtk.Widget, e: *gtk.Event, data: ?*anyopaque) callconv(.c) c_i
     const base: u21 = special orelse if (cp < 128) std.ascii.toLower(@intCast(cp)) else cp;
     if (base != 0 and (ctrl or alt or (special != null and (base == ui.Shortcut.up or base == ui.Shortcut.down or base == ui.Shortcut.tab or base == ui.Shortcut.escape)))) {
         const sc: ui.Shortcut = .{ .key = base, .ctrl = ctrl, .alt = alt, .shift = in.shift };
-        if (s.window.app.accelerator(sc)) return 1;
+        const first = s.ctx.keys_first;
+        if (!first and s.window.app.accelerator(sc)) return 1;
         if (ctrl and s.ctx.focused_text != null and editShortcut(s, base)) return 1;
         s.ctx.shortcut_taken = false;
         in.shortcut = sc;
         s.frame();
         in.shortcut = null;
         if (s.ctx.shortcut_taken) return 1;
+        if (first and s.window.app.accelerator(sc)) return 1;
     }
     if (key) |k| {
         in.key = k;

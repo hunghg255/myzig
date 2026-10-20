@@ -20,8 +20,10 @@ pub const State = hl.State;
 
 /// The language of a file, by its extension (or its name: a language's).
 pub fn languageFor(name: []const u8) ?*const Language {
-    const dot = std.mem.lastIndexOfScalar(u8, name, '.');
-    const ext = if (dot) |d| name[d + 1 ..] else name;
+    // The extension, or the whole name: "Dockerfile", ".gitignore".
+    const base = if (std.mem.lastIndexOfAny(u8, name, "/\\")) |i| name[i + 1 ..] else name;
+    const dot = std.mem.lastIndexOfScalar(u8, base, '.');
+    const ext = if (dot) |d| (if (d > 0) base[d + 1 ..] else base[1..]) else base;
     if (hl.language(ext)) |l| return l;
     const Alias = struct { []const u8, []const u8 };
     const aliases = [_]Alias{ .{ "mts", "ts" }, .{ "cjs", "js" }, .{ "pyw", "py" }, .{ "bashrc", "sh" }, .{ "zon", "zig" } };
@@ -40,6 +42,8 @@ pub const Syntax = struct {
     seen: u64 = 0,
     synced: bool = false,
     language: ?*const Language = null,
+    /// The app's colors for the tokens; the light or dark default when null.
+    colors: ?hl.Colors = null,
     /// Lines tokenized to find states (tests count them).
     tokenized: usize = 0,
     /// The runs of long lines, kept across frames until the text changes.
@@ -125,7 +129,7 @@ pub const Syntax = struct {
     pub fn spans(s: *Syntax, arena: std.mem.Allocator, doc: *const TextDoc, line: usize, str: []const u8, dark: bool) []const types.Span {
         const lang = s.language orelse return &.{};
         if (line >= s.starts.items.len) return &.{};
-        const colors = hl.Colors.of(dark);
+        const colors = s.colors orelse hl.Colors.of(dark);
         s.ensure(arena, doc, line, colors);
         if (str.len >= 4096) {
             for (s.long) |k| if (k.line == line and k.version == doc.version and k.len == str.len and k.dark == dark) return k.spans;

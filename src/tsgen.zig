@@ -20,6 +20,8 @@ pub fn shortName(comptime T: type) []const u8 {
 /// Functions taking no service (constructors, helpers) are never exposed.
 pub fn isMethod(comptime T: type, comptime name: []const u8) bool {
     if (std.mem.eql(u8, name, "init") or std.mem.eql(u8, name, "deinit")) return false;
+    // What myzig calls itself (`myzig_pageGone`), never pages.
+    if (std.mem.startsWith(u8, name, "myzig_")) return false;
     if (@hasDecl(T, "myzig_skip")) for (T.myzig_skip) |skip| {
         if (std.mem.eql(u8, skip, name)) return false;
     };
@@ -259,6 +261,9 @@ test "lifecycle, helpers without the service and skipped names are not exposed" 
         pub fn reset(s: *@This()) void {
             s.items = 0;
         }
+        pub fn myzig_pageGone(s: *@This(), _: *u8, _: *anyopaque) void {
+            s.items = 0;
+        }
         pub fn count(s: *const @This()) u32 {
             return s.items;
         }
@@ -268,7 +273,7 @@ test "lifecycle, helpers without the service and skipped names are not exposed" 
     try std.testing.expectEqualStrings("count", names[0]);
     const svc = comptime service(Store);
     try std.testing.expect(std.mem.indexOf(u8, svc.dts, "count(") != null);
-    for ([_][]const u8{ "init(", "deinit(", "create(", "helper(", "reset(" }) |hidden| {
+    for ([_][]const u8{ "init(", "deinit(", "create(", "helper(", "reset(", "myzig_pageGone(" }) |hidden| {
         try std.testing.expect(std.mem.indexOf(u8, svc.dts, hidden) == null);
         try std.testing.expect(std.mem.indexOf(u8, svc.js, hidden) == null);
     }

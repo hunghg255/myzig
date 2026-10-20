@@ -20,6 +20,7 @@ pub const Pixels = gpu.Pixels;
 pub const Renderer = struct {
     /// The image atlas on the GPU, copied when its generation changes.
     images_texture: ?objc.Object = null,
+    images_side: u32 = 0,
     images_generation: u64 = std.math.maxInt(u64),
     device: objc.Object,
     queue: objc.Object,
@@ -110,33 +111,46 @@ pub const Renderer = struct {
         return .{ .device = device, .queue = queue, .pipeline = pipeline, .layer = layer, .in_flight = objc.dispatch_semaphore_create(frames_in_flight) };
     }
 
-    /// Brings the GPU's copy of the image atlas up to date (made on the
-    /// first picture).
     /// Puts a packed picture straight into the GPU's image atlas (the
     /// `Images.Sink` of a window): no copy of the atlas stays in memory.
-    pub fn uploadImage(ctx: *anyopaque, x: u32, y: u32, w: u32, h: u32, bgra: []const u8) void {
+    pub fn uploadImage(ctx: *anyopaque, side: u32, x: u32, y: u32, w: u32, h: u32, bgra: []const u8) void {
         const self: *Renderer = @ptrCast(@alignCast(ctx));
-        const side: objc.NSUInteger = @import("images.zig").size;
-        if (self.images_texture == null) {
-            const desc = objc.msg(objc.Object, objc.class("MTLTextureDescriptor"), "texture2DDescriptorWithPixelFormat:width:height:mipmapped:", .{ pixel_format, side, side, objc.NO });
-            self.images_texture = objc.msg(objc.Object, self.device, "newTextureWithDescriptor:", .{desc});
-        }
         const Region = extern struct { x: usize, y: usize, z: usize, w: usize, h: usize, d: usize };
+        if (side != self.images_side) {
+            self.imagesTexture(side);
+            // Cleared, as the atlas in memory starts.
+            const zero = std.heap.page_allocator.alloc(u8, @as(usize, side) * side * 4) catch return;
+            defer std.heap.page_allocator.free(zero);
+            @memset(zero, 0);
+            objc.msg(void, self.images_texture.?, "replaceRegion:mipmapLevel:withBytes:bytesPerRow:", .{
+                Region{ .x = 0, .y = 0, .z = 0, .w = side, .h = side, .d = 1 }, @as(objc.NSUInteger, 0), @as(*const anyopaque, zero.ptr), @as(objc.NSUInteger, side) * 4,
+            });
+        }
+        if (w == 0 or h == 0) return;
         objc.msg(void, self.images_texture.?, "replaceRegion:mipmapLevel:withBytes:bytesPerRow:", .{
             Region{ .x = x, .y = y, .z = 0, .w = w, .h = h, .d = 1 }, @as(objc.NSUInteger, 0), @as(*const anyopaque, bgra.ptr), @as(objc.NSUInteger, w) * 4,
         });
     }
 
+    /// The image atlas made anew, `side` on a side.
+    fn imagesTexture(self: *Renderer, side: u32) void {
+        if (self.images_texture) |t| objc.release(t);
+        const n: objc.NSUInteger = side;
+        const desc = objc.msg(objc.Object, objc.class("MTLTextureDescriptor"), "texture2DDescriptorWithPixelFormat:width:height:mipmapped:", .{ pixel_format, n, n, objc.NO });
+        self.images_texture = objc.msg(objc.Object, self.device, "newTextureWithDescriptor:", .{desc});
+        self.images_side = side;
+    }
+
+    /// Brings the GPU's copy of the image atlas up to date (made on the
+    /// first picture).
     pub fn syncImages(self: *Renderer, im: *Images) void {
         if (im.pixels.len == 0 or im.generation == self.images_generation) return;
-        const side: objc.NSUInteger = @import("images.zig").size;
-        if (self.images_texture == null) {
-            const desc = objc.msg(objc.Object, objc.class("MTLTextureDescriptor"), "texture2DDescriptorWithPixelFormat:width:height:mipmapped:", .{ pixel_format, side, side, objc.NO });
-            self.images_texture = objc.msg(objc.Object, self.device, "newTextureWithDescriptor:", .{desc});
-        }
+        const side: objc.NSUInteger = im.side;
+        const new = self.images_texture == null or self.images_side != im.side;
+        if (new) self.imagesTexture(im.side);
         const Region = extern struct { x: usize, y: usize, z: usize, w: usize, h: usize, d: usize };
         // Only the rows that changed, unless the texture is new.
-        const rows: [2]u32 = if (self.images_generation == std.math.maxInt(u64)) .{ 0, @intCast(side) } else im.dirty orelse .{ 0, 0 };
+        const rows: [2]u32 = if (new) .{ 0, im.side } else im.dirty orelse .{ 0, 0 };
         if (rows[1] > rows[0]) objc.msg(void, self.images_texture.?, "replaceRegion:mipmapLevel:withBytes:bytesPerRow:", .{
             Region{ .x = 0, .y = rows[0], .z = 0, .w = side, .h = rows[1] - rows[0], .d = 1 }, @as(objc.NSUInteger, 0), @as(*const anyopaque, im.pixels.ptr + @as(usize, rows[0]) * side * 4), side * 4,
         });

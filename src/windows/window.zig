@@ -2,6 +2,7 @@
 //! myzig, or a web page in WebView2.
 const std = @import("std");
 const w = @import("win32.zig");
+extern "user32" fn LoadIconW(inst: ?w.HINSTANCE, name: usize) callconv(.winapi) ?*anyopaque;
 const App = @import("app.zig").App;
 const Surface = @import("surface.zig").Surface;
 const page_mod = @import("page.zig");
@@ -34,7 +35,8 @@ const class_name = std.unicode.utf8ToUtf16LeStringLiteral("MyZigWindow");
 var registered = false;
 
 /// A message for the page from another thread: lParam is a `Sent`.
-const WM_SEND = w.WM_APP + 2;
+// Not WM_APP + 2: that is surface_present's WM_PRESENT, posted to the same window.
+const WM_SEND = w.WM_APP + 3;
 const Sent = struct { msg: []u8 };
 const WM_PARENTNOTIFY = 0x0210;
 const WM_RAISE_CAPTION = w.WM_APP + 22;
@@ -95,7 +97,10 @@ pub const Window = struct {
         if (!app.gui) return self;
         const inst = w.GetModuleHandleW(null);
         if (!registered) {
-            const wc: w.WNDCLASSEXW = .{ .style = w.CS_DBLCLKS, .lpfnWndProc = wndProc, .hInstance = inst, .hCursor = w.LoadCursorW(null, 32512), .lpszClassName = class_name };
+            // The executable's icon (resource 1, which `myzig build` links) in the
+            // title bar, the taskbar and Alt+Tab; the system's when it has none.
+            const icon = LoadIconW(inst, 1);
+            const wc: w.WNDCLASSEXW = .{ .style = w.CS_DBLCLKS, .lpfnWndProc = wndProc, .hInstance = inst, .hCursor = w.LoadCursorW(null, 32512), .lpszClassName = class_name, .hIcon = icon, .hIconSm = icon };
             if (w.RegisterClassExW(&wc) == 0) return error.RegisterClass;
             registered = true;
         }
@@ -154,10 +159,21 @@ pub const Window = struct {
         return self.title_bar != .default or self.flyout != null;
     }
 
+    /// Whether the title bar is dark: the window's fixed theme's, else the
+    /// one its native UI drew with last (a view may apply its own), else
+    /// the system's.
     fn isDark(ctx: *anyopaque) bool {
         const self: *Window = @ptrCast(@alignCast(ctx));
         if (self.theme) |t| return t.dark;
+        if (self.surface) |s| return s.ctx.theme.dark;
         return self.app.dark;
+    }
+
+    /// After each frame of its native UI: its accessibility, and the
+    /// caption buttons in the theme it drew with.
+    pub fn afterFrame(self: *Window, s: *Surface) void {
+        @import("surface_access.zig").afterFrame(s);
+        if (self.caption) |c| c.followTheme();
     }
 
     fn isFull(ctx: *anyopaque) bool {
@@ -331,7 +347,7 @@ pub const Window = struct {
             w.WM_CLOSE => self.rememberState(),
             else => {},
         }
-        if (msg == WM_SEND) {
+        if (msg == WM_SEND and lp != 0) {
             const sent: *Sent = @ptrFromInt(@as(usize, @bitCast(lp)));
             defer self.app.gpa.destroy(sent);
             defer self.app.gpa.free(sent.msg);

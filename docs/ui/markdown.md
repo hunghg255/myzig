@@ -90,7 +90,15 @@ route them within the app.
 
 The built-in highlighter colors keywords, strings, numbers, comments,
 functions and types of Zig, JavaScript and TypeScript, Go, Python, JSON
-and shell, chosen by the fence's info string (` ```zig `). It works a line
+and shell, C-like languages (C, C++, C#, Java, Kotlin, Swift, Rust),
+scripting languages (Ruby, PHP, Lua, Perl, R, Julia, PowerShell, SQL),
+functional ones (Haskell, Elm, OCaml, F#, Elixir, Erlang, Lisps, Nix),
+config formats (YAML, TOML, HCL, CMake, INI) and more, chosen by the
+fence's info string (` ```zig `). Markup (HTML, XML, SVG, Vue, Svelte)
+colors tags, attributes and their values, with the code of `<script>` and
+the rules of `<style>` in JavaScript and CSS; Markdown its headings,
+quotes, lists, emphasis, code and links; a diff its added, removed and
+hunk lines. It works a line
 at a time from the state the line before left (inside a block comment, a
 multiline string), so a block streaming in highlights only its new lines.
 
@@ -120,7 +128,11 @@ state of its own.
 - Emphasis, strong emphasis, strikethrough, code spans.
 - Links and images by destination or reference, and autolinks (GitHub's
   `www.` and bare URLs with `autolinks`). Images show their
-  description (their alternative text), in italics.
+  description (their alternative text), in italics, unless the options'
+  `images` (a `ui.MarkdownImageReader`) reads them: then each shows under
+  its paragraph (a `ui.MarkdownImage`: bytes under a key, or an SVG), and
+  a paragraph of images alone leaves its descriptions out. The app
+  resolves destinations itself, local files only, say.
 - Block quotes, ordered and bullet lists, nested, tight and loose, and task
   lists with their checkboxes.
 - Fenced and indented code blocks.

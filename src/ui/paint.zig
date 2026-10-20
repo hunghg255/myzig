@@ -390,6 +390,22 @@ fn paintScrollbar(c: *Context, out: *std.ArrayList(metal.Instance), n: *const ct
     if (n.first_child == none) return;
     const first = c.node(n.first_child).rect;
     const last = c.node(n.last_child).rect;
+    if (n.style.direction == .row) {
+        // A row's, thin along its bottom.
+        const content_w = last.x + last.w - first.x + n.style.padding.horizontal();
+        const view_w = n.rect.w;
+        if (content_w <= view_w + 0.5) return;
+        const bar_w = @max(24, view_w * view_w / content_w);
+        const tx = offset / (content_w - view_w);
+        const x = n.rect.x + (view_w - bar_w) * std.math.clamp(tx, 0, 1);
+        push(c, out, .{
+            .rect = .{ x + 2, n.rect.y + n.rect.h - 4, bar_w - 4, 3 },
+            .color = metal.color4(c.theme.muted.alpha(0.45 * opacity)),
+            .radius = 1.5,
+            .clip = metal.clip4(visible),
+        });
+        return;
+    }
     const content_h = last.y + last.h - first.y + n.style.padding.vertical();
     const view_h = n.rect.h;
     if (content_h <= view_h + 0.5) return;

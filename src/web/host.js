@@ -138,7 +138,7 @@ class Host {
         win.gl = g;
         return true;
       },
-      gl_atlas: (id, ptr, size) => w(id)?.gl?.setAtlas(this.bytes(ptr, size * size), size),
+      gl_atlas: (id, ptr, size, row0, row1) => w(id)?.gl?.setAtlas(this.bytes(ptr, size * size), size, row0, row1),
       gl_images: (id, ptr, side, row0, row1) => w(id)?.gl?.setImages(this.bytes(ptr, side * side * 4), side, row0, row1),
       gl_fx: (id, src, len, main, mainLen, plain, plainLen) => w(id)?.gl?.setFx(this.str(src, len), this.str(main, mainLen), this.str(plain, plainLen)),
       gl_effect: (id, index, ptr, len) => w(id)?.gl?.setEffect(index, this.str(ptr, len)),

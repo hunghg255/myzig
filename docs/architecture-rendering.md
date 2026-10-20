@@ -128,8 +128,9 @@ pixels are the same.
 | CPU | `ui/raster.zig`, `raster_lanes.zig`, `raster_fill.zig`, `raster_shadow.zig`, `raster_xf.zig`, `raster_fx.zig`, `raster_pool.zig` | everywhere: the fallback, the Tester off macOS, the reference |
 
 Each GPU renderer uses one pipeline: it uploads the frame's instances,
-the atlases when their `generation` changes, and draws the
-instances in one call. Effects and blurred layers need what was drawn so
+the rows of the atlases that changed since it last did (`dirty`), and
+draws the instances in one call. Metal and Direct3D 11 take pictures
+straight into their texture, with no copy of the image atlas in memory. Effects and blurred layers need what was drawn so
 far: at an `effect` mark the renderer reads the pixels around the shape,
 blurs them (`backdrop.zig`: averaged down for large blurs, then a Gaussian
 along rows and columns) and draws the box from them, with the effect's

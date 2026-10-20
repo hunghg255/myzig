@@ -9,6 +9,12 @@ const Server = @import("server").Server;
 /// Where the example's server listens, for the page.
 const Demo = struct {
     server: *Server,
+    service: *websocket.Service,
+
+    /// The connections the service keeps, for the page's check.
+    pub fn connections(d: *Demo) usize {
+        return d.service.tasks.items.len;
+    }
 
     pub fn base(d: *Demo, call: *myzig.Call) ![]const u8 {
         return std.fmt.allocPrint(call.arena, "ws://127.0.0.1:{d}", .{d.server.port});
@@ -32,7 +38,7 @@ pub fn main(init: std.process.Init) !void {
     defer service.deinit();
     try app.bind(&service);
     try app.registerEvent(websocket.PartEvent);
-    var demo: Demo = .{ .server = &server };
+    var demo: Demo = .{ .server = &server, .service = &service };
     try app.bind(&demo);
 
     _ = try app.newWindow(.{

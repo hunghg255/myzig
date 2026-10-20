@@ -25,6 +25,14 @@ pub const Shortcut = struct {
     pub const escape: u21 = 0x1b;
     pub const tab: u21 = '\t';
     pub const enter: u21 = '\r';
+    pub const backspace: u21 = 0x08;
+    pub const delete: u21 = 0x7f;
+    /// AppKit's function key codes, as accelerators name them.
+    pub const home: u21 = 0xF729;
+    pub const end: u21 = 0xF72B;
+    pub const page_up: u21 = 0xF72C;
+    pub const page_down: u21 = 0xF72D;
+    pub const f1: u21 = 0xF704;
 
     /// As this platform has it: Command is Control off macOS.
     pub fn native(s: Shortcut) Shortcut {
@@ -151,6 +159,9 @@ pub const Input = struct {
     pressed: bool = false,
     /// The secondary button went down in this event (a context menu).
     right_pressed: bool = false,
+    /// The middle button (the wheel) went down in this event: a tab
+    /// closes, as in browsers.
+    middle_pressed: bool = false,
     released: bool = false,
     click_count: u32 = 0,
     scroll: types.Point = .{},
@@ -184,6 +195,7 @@ pub const Input = struct {
     pub fn clearEdges(i: *Input) void {
         i.pressed = false;
         i.right_pressed = false;
+        i.middle_pressed = false;
         i.released = false;
         i.scroll = .{};
         i.key = null;

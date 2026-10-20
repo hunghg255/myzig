@@ -1,8 +1,8 @@
 //! The service pages call (`js/fetch.js` wraps it in a standard `fetch`):
 //! each request runs concurrently on the app's `Io`, and its response
 //! comes back to the page that made it as `myzig-fetch` events, through
-//! the main thread. Aborting cancels the task; a window that closed
-//! cancels its requests when their next part arrives.
+//! the main thread. Aborting cancels the task; a page that navigates,
+//! reloads or closes cancels its requests (`myzig_pageGone`).
 //!
 //!     var fetch_service: fetch.Service = try .init(gpa, app.io, .{});
 //!     defer fetch_service.deinit();
@@ -57,6 +57,8 @@ const Task = struct {
     svc: *Service,
     serial: u64,
     window: *myzig.Window,
+    /// The page that made it (`myzig.Call.page`).
+    page: ?*anyopaque,
     page_id: []const u8,
     /// The worker's memory: the request, and what `perform` needs.
     arena: std.heap.ArenaAllocator,
@@ -108,7 +110,7 @@ pub const Service = struct {
     pub fn start(s: *Service, call: *myzig.Call, request: PageRequest) !void {
         for (s.tasks.items) |t| if (t.window == call.window and std.mem.eql(u8, t.page_id, request.id)) return error.DuplicateId;
         const t = try s.gpa.create(Task);
-        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .page_id = "", .arena = .init(s.gpa), .req = undefined };
+        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .page = call.page, .page_id = "", .arena = .init(s.gpa), .req = undefined };
         errdefer {
             t.arena.deinit();
             s.gpa.destroy(t);
@@ -145,6 +147,17 @@ pub const Service = struct {
             t.cond.signal(s.io);
             return;
         };
+    }
+
+    /// The page that made requests is gone (it navigated, reloaded or
+    /// closed): they are canceled, even those waiting for it to read.
+    pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void {
+        var i = s.tasks.items.len;
+        while (i > 0) {
+            i -= 1;
+            const t = s.tasks.items[i];
+            if (t.window == window and t.page == page) s.cancel(i);
+        }
     }
 
     fn cancel(s: *Service, index: usize) void {

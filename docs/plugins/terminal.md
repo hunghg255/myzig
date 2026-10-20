@@ -39,7 +39,7 @@ const State = struct {
                 defer s.gpa.free(title);
                 win.setTitle(if (title.len > 0) title else "Terminal");
             },
-            .bell => {},
+            .bell, .notify => {},
             .exit => win.close(),
         }
     }
@@ -79,8 +79,12 @@ pub fn main(init: std.process.Init) !void {
 | `cursor` | `.block` | `.block`, `.bar` or `.underline` |
 | `scrollback` | 10 MB | about how many bytes of output to keep above the screen |
 | `font_size` | 13 | in points |
-| `on_event` | null | `.{ .ctx, .func }`: `.output` (redraw), `.title`, `.bell`, `.exit`, on the main thread |
+| `font_family` | null | a family of its own; the theme's monospaced one when null |
+| `font_features` | `""` | OpenType features, as `ui.TextStyle.features` takes them (`"calt=0"`) |
+| `font_weight` | 0 | 100 to 900, bold three hundred heavier; 0 for regular and bold |
+| `on_event` | null | `.{ .ctx, .func }`: `.output` (redraw), `.title`, `.bell`, `.exit`, and `.notify` (a desktop notification a program asked for with OSC 9 or OSC 777; `t.notification()` is its title and body), on the main thread |
 | `open_link` | null | opens a link Ctrl+click chose (a hyperlink, a URL, a file path); otherwise the system opens URLs |
+| `copy_on_select` | false | copies what a drag, a double or a triple click selects as the pointer lets go |
 | `read_clipboard` | null | reads the clipboard's text for a paste; the system's when null |
 
 A `Terminal` also has `send(bytes)` (type into the program), `paste(data)`,

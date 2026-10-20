@@ -162,3 +162,35 @@ test "the code editor colors the first part of a long line, once" {
     // Kept: asked again, the same runs.
     try testing.expectEqual(spans.ptr, s.ed.syntax.spans(arena.allocator(), doc, 0, line, false).ptr);
 }
+
+const Zoom = struct {
+    ta: ui.TextArea,
+    n: usize = 0,
+    fn view(s: *Zoom, c: *ui.Context) void {
+        ui.column(c, .{ .width = .fill, .height = .fill });
+        defer ui.end(c);
+        // A size for every frame, as a zoom slider dragged gives.
+        ui.text(c, "Zoomed", .{ .size = 10 + @as(f32, @floatFromInt(s.n % 400)) * 0.25 });
+        _ = ui.textArea(c, &s.ta, .{ .height = .fill, .wrap = true });
+    }
+};
+
+test "sizes that change every frame start the run fonts over, and long lines laid out before follow" {
+    const gpa = testing.allocator;
+    const s0 = try words(gpa, 1, 1 << 17);
+    defer gpa.free(s0);
+    var s: Zoom = .{ .ta = .init(gpa, s0) };
+    defer s.ta.deinit();
+    var t: ui.Tester = undefined;
+    try t.init(gpa, .init(&s, Zoom.view), .{ .width = 400, .height = 300 });
+    defer t.deinit();
+    for (0..700) |_| {
+        s.n += 1;
+        t.frame();
+        try testing.expect(t.text.run_fonts.items.len <= 300);
+    }
+    try testing.expect(t.text.epoch >= 2);
+    // The long line's glyphs are of this epoch's fonts.
+    try testing.expectEqual(t.text.epoch, s.ta.long.epoch);
+    try testing.expect(t.hasText("Zoomed"));
+}

@@ -48,6 +48,27 @@ pub const CodeEditor = struct {
     query_id: u64 = 0,
     replacement_id: u64 = 0,
     goto_id: u64 = 0,
+    /// What the app adds to the lines: backgrounds of runs, gutter bars.
+    extra: ?Extra = null,
+    /// The text's background; the default light or dark one when null.
+    background: ?types.Color = null,
+    /// Lines at each level of indentation, in this color.
+    guides: ?types.Color = null,
+    /// The spaces and tabs of the selection show in this color: a dot, an
+    /// arrow as wide as a tab.
+    whitespace: ?types.Color = null,
+    /// The app draws the find bar itself (over the text, in its own
+    /// look) from `find`, `query_id`, `replacement_id` and `focus_next`:
+    /// the editor finds, marks the matches and takes the keys, but draws
+    /// no bar.
+    own_find_bar: bool = false,
+
+    pub const Extra = struct {
+        ctx: *anyopaque,
+        marks: ?*const fn (ctx: *anyopaque, c: *Context, line: usize, start: usize, str: []const u8) []const tv.Mark = null,
+        gutter: ?*const fn (ctx: *anyopaque, c: *Context, line: usize) ?types.Color = null,
+        after: ?*const fn (ctx: *anyopaque, c: *Context, line: usize) ?tv.After = null,
+    };
 
     /// An editor of `text`, highlighted as the language of the file `name`.
     pub fn init(gpa: std.mem.Allocator, text: []const u8, name: ?[]const u8) CodeEditor {
@@ -90,6 +111,36 @@ pub const CodeEditor = struct {
         ed.focus_next = if (replacing and ed.find.query.len > 0) .replacement else .query;
     }
 
+    /// Selects the next match of the find bar's query (the previous with
+    /// `back`), or opens the bar when it has none, as Mod+G and F3 do.
+    pub fn findNext(ed: *CodeEditor, back: bool) void {
+        if (ed.find.query.len == 0) return ed.openFind(false);
+        const ta = &ed.area;
+        ed.find.update(ta.doc.gpa, &ta.doc);
+        ed.find.step(ta, back);
+    }
+
+    /// Indents the selected lines one level, or outdents them with `back`.
+    pub fn indentLines(ed: *CodeEditor, back: bool) void {
+        if (!ed.read_only) indent.indentLines(&ed.area, ed.indent, back);
+    }
+
+    /// Comments the selected lines out with the language's line comment,
+    /// or back in; nothing in a language without one, or plain text.
+    pub fn toggleComment(ed: *CodeEditor) void {
+        if (ed.read_only) return;
+        const lang = ed.syntax.language orelse return;
+        if (lang.line_comment.len > 0) indent.toggleComment(&ed.area, lang.line_comment);
+    }
+
+    /// Moves the caret to the partner of the bracket beside it.
+    pub fn goToBracket(ed: *CodeEditor) void {
+        const ta = &ed.area;
+        const pair = indent.matchBracket(ta, ta.doc.gpa, 100_000) orelse return;
+        ta.collapse(pair[1]);
+        ed.focus_next = .editor;
+    }
+
     pub fn closeBars(ed: *CodeEditor) void {
         ed.find.open = false;
         ed.find.replacing = false;
@@ -111,6 +162,15 @@ pub const Options = struct {
     line_numbers: bool = true,
     /// Fills the caret's line.
     current_line: bool = true,
+    /// Line height, as a multiple of the font's.
+    leading: f32 = 1.45,
+    /// The text's weight, or a weight from 100 to 900 (`weight_value`).
+    weight: types.Weight = .regular,
+    weight_value: u16 = 0,
+    /// A family other than the theme's monospaced one, and OpenType
+    /// features ("calt=0,ss01"), as `ui.TextStyle` takes them.
+    family: ?[]const u8 = null,
+    features: []const u8 = "",
     placeholder: []const u8 = "",
 };
 
@@ -156,8 +216,7 @@ fn shortcuts(c: *Context, ed: *CodeEditor) void {
     if (c.shortcut(primary(']', false))) return indent.indentLines(ta, ed.indent, false);
     if (c.shortcut(primary('[', false))) return indent.indentLines(ta, ed.indent, true);
     if (c.shortcut(primary('/', false))) {
-        const lang = ed.syntax.language orelse return;
-        return indent.toggleComment(ta, if (lang.line_comment.len > 0) lang.line_comment else "//");
+        return ed.toggleComment();
     }
     if (c.shortcut(.{ .key = 'z', .alt = true })) ed.wrap = !ed.wrap;
 }
@@ -201,11 +260,26 @@ fn spans(ctx: *anyopaque, c: *Context, line: usize, str: []const u8) []const typ
 
 const match_color: types.Color = .hex(0xf2b84b);
 
-fn marks(ctx: *anyopaque, c: *Context, _: usize, start: usize, str: []const u8) []const tv.Mark {
+fn gutterBar(ctx: *anyopaque, c: *Context, line: usize) ?types.Color {
+    const ed: *CodeEditor = @ptrCast(@alignCast(ctx));
+    const x = ed.extra orelse return null;
+    const f = x.gutter orelse return null;
+    return f(x.ctx, c, line);
+}
+
+fn afterLine(ctx: *anyopaque, c: *Context, line: usize) ?tv.After {
+    const ed: *CodeEditor = @ptrCast(@alignCast(ctx));
+    const x = ed.extra orelse return null;
+    const f = x.after orelse return null;
+    return f(x.ctx, c, line);
+}
+
+fn marks(ctx: *anyopaque, c: *Context, line: usize, start: usize, str: []const u8) []const tv.Mark {
     const ed: *CodeEditor = @ptrCast(@alignCast(ctx));
     var out: std.ArrayList(tv.Mark) = .empty;
     const gpa = c.alloc();
     const end = start + str.len;
+    if (ed.extra) |x| if (x.marks) |f| out.appendSlice(gpa, f(x.ctx, c, line, start, str)) catch {};
     if (ed.find.open) {
         ed.find.update(ed.area.doc.gpa, &ed.area.doc);
         const all = ed.find.within(start, end + 1);
@@ -228,7 +302,7 @@ fn marks(ctx: *anyopaque, c: *Context, _: usize, start: usize, str: []const u8) 
 /// A code editor of `ed`: give it a size, or let it fill its parent.
 pub fn codeEditor(c: *Context, ed: *CodeEditor, opts: Options) Result {
     const th = c.theme;
-    const bg = if (th.dark) types.Color.hex(0x1e1f22) else types.Color.hex(0xffffff);
+    const bg = ed.background orelse if (th.dark) types.Color.hex(0x1e1f22) else types.Color.hex(0xffffff);
     _ = c.open(.{ .direction = .column, .width = opts.width, .height = opts.height, .background = bg, .clip = true }, null);
     defer c.end();
     // The keyboard back to the text, in the build after the bar's key (its
@@ -242,7 +316,7 @@ pub fn codeEditor(c: *Context, ed: *CodeEditor, opts: Options) Result {
     if (ed.find.open) {
         ed.find.update(ed.area.doc.gpa, &ed.area.doc);
         ed.find.track(&ed.area);
-        bars.findBar(c, ed);
+        if (!ed.own_find_bar) bars.findBar(c, ed);
     }
     if (ed.goto_open) bars.gotoBar(c, ed);
     if (ed.focus_next == .editor) c.changed = true;
@@ -252,7 +326,7 @@ pub fn codeEditor(c: *Context, ed: *CodeEditor, opts: Options) Result {
         ed.find.update(ta.doc.gpa, &ta.doc);
         ed.find.track(ta);
     }
-    const style: types.TextStyle = .{ .size = opts.size, .mono = true, .leading = 1.45 };
+    const style: types.TextStyle = .{ .size = opts.size, .mono = true, .leading = opts.leading, .weight = opts.weight, .weight_value = opts.weight_value, .family = opts.family, .features = opts.features };
     var digits: usize = 1;
     var n = ta.doc.lineCount();
     while (n >= 10) : (n /= 10) digits += 1;
@@ -268,7 +342,9 @@ pub fn codeEditor(c: *Context, ed: *CodeEditor, opts: Options) Result {
         .padding = .{ .left = 8, .right = 8, .top = 6, .bottom = 6 },
         .gutter = if (opts.line_numbers) .{ .width = gutter_w, .color = th.muted.alpha(0.75), .active = th.text, .background = bg } else null,
         .current_line = if (opts.current_line) th.text.alpha(if (th.dark) 0.06 else 0.045) else null,
-        .decor = .{ .ctx = ed, .spans = spans, .marks = marks },
+        .decor = .{ .ctx = ed, .spans = spans, .marks = marks, .gutter = gutterBar, .after = afterLine },
+        .whitespace = ed.whitespace,
+        .guides = if (ed.guides) |g| .{ .color = g, .unit = if (std.mem.eql(u8, ed.indent.unit, "\t")) ed.indent.tab_size else ed.indent.unit.len, .tab = ed.indent.tab_size } else null,
         .hook = .{ .ctx = ed, .run = hook },
         .tab = true,
         .apply = .{ .smart_home = true },

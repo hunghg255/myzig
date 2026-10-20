@@ -32,6 +32,8 @@ pub const Engine = struct {
     names: std.AutoHashMapUnmanaged(u64, ?[:0]u16) = .empty,
     formats: std.AutoHashMapUnmanaged(FormatKey, Object) = .empty,
     faces: std.AutoHashMapUnmanaged(FaceKey, ?Object) = .empty,
+    /// IDWriteTypography objects by the hash of their features' list.
+    typos: std.AutoHashMapUnmanaged(u64, ?Object) = .empty,
     /// Faces runs came in, referenced once each, as run fonts keep them.
     held: std.AutoHashMapUnmanaged(usize, void) = .empty,
     color: std.AutoHashMapUnmanaged(usize, bool) = .empty,
@@ -57,17 +59,27 @@ pub const Engine = struct {
         return e;
     }
 
+    /// Lets go of the text formats, one a size: when the run fonts start
+    /// over (`text_tt.zig`'s `max_run_fonts`).
+    pub fn dropFormats(e: *Engine) void {
+        var fi = e.formats.valueIterator();
+        while (fi.next()) |v| api.release(v.*);
+        e.formats.clearRetainingCapacity();
+    }
+
     pub fn destroy(e: *Engine) void {
         const gpa = e.gpa;
         var ni = e.names.valueIterator();
         while (ni.next()) |v| if (v.*) |n| gpa.free(n);
         e.names.deinit(gpa);
-        var fi = e.formats.valueIterator();
-        while (fi.next()) |v| api.release(v.*);
+        e.dropFormats();
         e.formats.deinit(gpa);
         var ci = e.faces.valueIterator();
         while (ci.next()) |v| api.release(v.*);
         e.faces.deinit(gpa);
+        var ti = e.typos.valueIterator();
+        while (ti.next()) |v| api.release(v.*);
+        e.typos.deinit(gpa);
         var hi = e.held.keyIterator();
         while (hi.next()) |k| api.release(@ptrFromInt(k.*));
         e.held.deinit(gpa);
@@ -179,6 +191,7 @@ pub const Engine = struct {
         if (rtl) _ = api.call(l, api.layout.set_reading_direction, .{@as(u32, api.reading_direction_rtl)});
         const base = pieces[0];
         for (pieces[1..]) |p| e.restyle(l, base, p);
+        for (pieces) |p| if (p.features.len > 0) e.setFeatures(l, p);
         var ctx: Collect = .{ .e = e, .s = s, .sink = sink };
         if (api.failed(api.call(l, api.layout.draw, .{ @as(?*anyopaque, @ptrCast(&ctx)), @as(Object, @ptrCast(&renderer)), @as(f32, 0), @as(f32, 0) })) or ctx.failed) return false;
         sink.sortVisual();
@@ -198,6 +211,31 @@ pub const Engine = struct {
         if (p.weight != base.weight) _ = api.call(l, api.layout.set_font_weight, .{ @as(u32, p.weight), r });
         if (p.italic != base.italic) _ = api.call(l, api.layout.set_font_style, .{ @as(u32, if (p.italic) api.font_style_italic else api.font_style_normal), r });
         if (p.size != base.size) _ = api.call(l, api.layout.set_font_size, .{ p.size, r });
+    }
+
+    /// Gives piece `p`'s range its OpenType features.
+    fn setFeatures(e: *Engine, l: Object, p: Piece) void {
+        const typo = e.typography(p.features) orelse return;
+        const u = e.text.unit_of.items;
+        if (u.len == 0) return;
+        const a = u[@min(p.start, u.len - 1)];
+        const b = u[@min(p.end, u.len - 1)];
+        if (b <= a) return;
+        _ = api.call(l, api.layout.set_typography, .{ typo, api.range(a, b - a) });
+    }
+
+    /// The IDWriteTypography of a features' list, made once.
+    fn typography(e: *Engine, features: []const u8) ?Object {
+        const key = std.hash.Wyhash.hash(0, features);
+        if (e.typos.get(key)) |t| return t;
+        var list: [16]engine.Feature = undefined;
+        const n = engine.parseFeatures(features, &list);
+        var out: ?Object = null;
+        if (n > 0 and !api.failed(api.call(e.factory, api.factory.create_typography, .{&out})) and out != null) {
+            for (list[0..n]) |f| _ = api.call(out.?, api.typography.add_font_feature, .{api.fontFeature(f.tag, f.value)});
+        }
+        e.typos.put(e.gpa, key, out) catch {};
+        return out;
     }
 
     /// Keeps a face a run came in for as long as the engine lives.

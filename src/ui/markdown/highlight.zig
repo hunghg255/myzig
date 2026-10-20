@@ -23,7 +23,19 @@ pub const Language = struct {
     sigil: u8 = 0,
     /// JSON: a string before a colon is a key.
     keys: bool = false,
+    /// A block comment's delimiters other than C's `/*` and `*/`:
+    /// Haskell's `{-` `-}`, OCaml's `(*` `*)`, Lua's `--[[` `]]`.
+    block: ?[2][]const u8 = null,
+    /// Tags and attributes (HTML, XML, Vue), Markdown's marks, or a
+    /// diff's lines, rather than code (`highlight_markup.zig`).
+    mode: enum { code, markup, markdown, diff } = .code,
 };
+
+/// A language's block comment delimiters, if it has block comments.
+fn blockOf(lang: *const Language) ?[2][]const u8 {
+    if (lang.block) |b| return b;
+    return if (lang.block_comment) .{ "/*", "*/" } else null;
+}
 
 const zig: Language = .{
     .keywords = &.{ "const", "var", "fn", "pub", "return", "if", "else", "while", "for", "switch", "break", "continue", "defer", "errdefer", "try", "catch", "orelse", "and", "or", "struct", "enum", "union", "error", "comptime", "inline", "test", "unreachable", "extern", "export", "packed", "align", "noinline", "threadlocal", "usingnamespace", "anytype", "opaque", "suspend", "resume", "nosuspend", "volatile", "allowzero", "linksection", "callconv" },
@@ -69,7 +81,7 @@ pub fn language(name: []const u8) ?*const Language {
         .{ "console", &shell },
     };
     for (names) |e| if (std.ascii.eqlIgnoreCase(e[0], name)) return e[1];
-    return null;
+    return @import("highlight_langs.zig").language(name);
 }
 
 pub const Colors = struct {
@@ -103,8 +115,24 @@ pub const Colors = struct {
 };
 
 /// What a line leaves open for the next: nothing, a block comment, or a
-/// string going on (in backticks, or Python's triple quotes).
-pub const State = enum(u8) { none, comment, backtick, triple_double, triple_single };
+/// string going on (in backticks, or Python's triple quotes); in markup,
+/// a comment, a tag's attributes, a script or a style (and what their
+/// code leaves open); in Markdown, a fenced block of code.
+pub const State = enum(u8) {
+    none,
+    comment,
+    backtick,
+    triple_double,
+    triple_single,
+    markup_comment,
+    markup_tag,
+    markup_script,
+    markup_script_comment,
+    markup_script_backtick,
+    markup_style,
+    markup_style_comment,
+    md_fence,
+};
 
 fn identStart(c: u8) bool {
     return std.ascii.isAlphabetic(c) or c == '_' or c >= 0x80;
@@ -119,13 +147,13 @@ fn contains(list: []const []const u8, w: []const u8) bool {
     return false;
 }
 
-const H = struct {
+pub const H = struct {
     gpa: std.mem.Allocator,
     out: *std.ArrayList(Span),
     base: usize,
     colors: Colors,
 
-    fn span(h: *H, a: usize, b: usize, color: Color, italic: bool) void {
+    pub fn span(h: *H, a: usize, b: usize, color: Color, italic: bool) void {
         if (b <= a) return;
         h.out.append(h.gpa, .{ .start = @intCast(h.base + a), .end = @intCast(h.base + b), .color = color, .italic = italic }) catch {};
     }
@@ -133,19 +161,29 @@ const H = struct {
 
 /// Highlights one line, its spans offset by `base`; returns the state it leaves.
 pub fn line(gpa: std.mem.Allocator, lang: *const Language, s: []const u8, state_in: State, base: usize, colors: Colors, out: *std.ArrayList(Span)) State {
+    switch (lang.mode) {
+        .code => {},
+        else => return @import("highlight_markup.zig").line(gpa, lang, s, state_in, base, colors, out),
+    }
     var h: H = .{ .gpa = gpa, .out = out, .base = base, .colors = colors };
     var i: usize = 0;
     var state = state_in;
+    const block = blockOf(lang);
     // What the line before left open.
     switch (state) {
         .none => {},
         .comment => {
-            const e = std.mem.indexOf(u8, s, "*/") orelse {
+            const close = if (block) |b| b[1] else "*/";
+            const e = std.mem.indexOf(u8, s, close) orelse {
                 h.span(0, s.len, colors.comment, true);
                 return state;
             };
-            h.span(0, e + 2, colors.comment, true);
-            i = e + 2;
+            h.span(0, e + close.len, colors.comment, true);
+            i = e + close.len;
+            state = .none;
+        },
+        // A state of markup's, given to code: begun afresh.
+        else => if (state != .backtick and state != .triple_double and state != .triple_single) {
             state = .none;
         },
         .backtick, .triple_double, .triple_single => {
@@ -170,15 +208,15 @@ pub fn line(gpa: std.mem.Allocator, lang: *const Language, s: []const u8, state_
             h.span(i, s.len, colors.comment, true);
             return state;
         }
-        if (lang.block_comment and std.mem.startsWith(u8, rest, "/*")) {
-            const e = std.mem.indexOfPos(u8, s, i + 2, "*/") orelse {
+        if (block) |b| if (std.mem.startsWith(u8, rest, b[0])) {
+            const e = std.mem.indexOfPos(u8, s, i + b[0].len, b[1]) orelse {
                 h.span(i, s.len, colors.comment, true);
                 return .comment;
             };
-            h.span(i, e + 2, colors.comment, true);
-            i = e + 2;
+            h.span(i, e + b[1].len, colors.comment, true);
+            i = e + b[1].len;
             continue;
-        }
+        };
         if (lang.triple and (std.mem.startsWith(u8, rest, "\"\"\"") or std.mem.startsWith(u8, rest, "'''"))) {
             const e = std.mem.indexOfPos(u8, s, i + 3, rest[0..3]) orelse {
                 h.span(i, s.len, colors.string, false);
@@ -284,5 +322,6 @@ test "highlight" {
     out.clearRetainingCapacity();
     _ = highlight(gpa, language("json").?, "{\"a\": 1}", .none, 0, colors, &out);
     try std.testing.expectEqual(colors.key, out.items[0].color.?);
-    try std.testing.expect(language("rust") == null);
+    try std.testing.expect(language("rust") != null); // highlight_langs.zig
+    try std.testing.expect(language("cobol") == null);
 }

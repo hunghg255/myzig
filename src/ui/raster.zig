@@ -88,7 +88,7 @@ const Frame = struct {
     fn bandRows(f: *const Frame, y0: usize, y1: usize) void {
         const p = f.part;
         if (f.clear) |px| f.clearRows(px, y0, y1);
-        for (f.instances) |*i| {
+        for (f.instances, 0..) |*i, k| {
             var b = boundsOf(f.out, i, f.rows, f.scale) orelse continue;
             b[0] = @max(b[0], p[0]);
             b[1] = @max(b[1], y0);
@@ -97,6 +97,11 @@ const Frame = struct {
             if (b[3] <= b[1] or b[2] <= b[0]) continue;
             if (xf.general(i)) {
                 xf.draw(f.out, i, f.rows, f.mask, f.pictures, f.scale, b);
+            } else if (i.kind == gpu.Kind.shadow) {
+                // A box's shadow comes just before the box: under its
+                // opaque fill the shadow is not seen.
+                const next = if (k + 1 < f.instances.len) &f.instances[k + 1] else null;
+                shadow(f.out, i, f.scale, b, coverOf(f.out, next, f.scale));
             } else drawOne(f.out, i, f.mask, f.pictures, f.scale, b);
         }
     }
@@ -217,8 +222,15 @@ fn bounds(out: gpu.Pixels, i: *const gpu.Instance, scale: f32) ?[4]usize {
 fn drawOne(out: gpu.Pixels, i: *const gpu.Instance, mask: Mask, pictures: Pictures, scale: f32, b: [4]usize) void {
     if (i.kind == gpu.Kind.text) return glyph(out, i, mask, scale, b);
     if (i.kind == gpu.Kind.image) return picture(out, i, pictures, scale, b);
-    if (i.kind == gpu.Kind.shadow) return shadow(out, i, scale, b);
     quad(out, i, scale, b);
+}
+
+/// The pixels `next` sets to its fill whatever is under them, when it is
+/// an opaque quad (`quad` copies its fill there).
+fn coverOf(out: gpu.Pixels, next: ?*const gpu.Instance, scale: f32) ?quad_fill.Cover {
+    const q = next orelse return null;
+    if (!quad_fill.opaqueQuad(q)) return null;
+    return .{ .inner = .of(q, scale), .b = bounds(out, q, scale) orelse return null };
 }
 
 const V4 = @Vector(4, f32);

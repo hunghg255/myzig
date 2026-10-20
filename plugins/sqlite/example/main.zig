@@ -4,6 +4,15 @@ const std = @import("std");
 const myzig = @import("myzig");
 const sqlite = @import("sqlite");
 
+/// The databases the service keeps open, for the page's check.
+const Demo = struct {
+    service: *sqlite.Service,
+
+    pub fn connections(d: *Demo) usize {
+        return d.service.conns.items.len;
+    }
+};
+
 const assets = [_]myzig.Asset{
     .{ .path = "/index.html", .data = @embedFile("index.html") },
     sqlite.asset,
@@ -16,6 +25,8 @@ pub fn main(init: std.process.Init) !void {
     var service: sqlite.Service = .init(init.gpa, .{});
     defer service.deinit();
     try app.bind(&service);
+    var demo: Demo = .{ .service = &service };
+    try app.bind(&demo);
 
     _ = try app.newWindow(.{
         .title = "SQLite Notes",

@@ -22,7 +22,7 @@ const damage = @import("damage.zig");
 pub const Instance = gpu.Instance;
 
 extern "myzig" fn gl_init(id: u32, vs: [*]const u8, vs_len: usize, fs: [*]const u8, fs_len: usize) bool;
-extern "myzig" fn gl_atlas(id: u32, pixels: [*]const u8, size: u32) void;
+extern "myzig" fn gl_atlas(id: u32, pixels: [*]const u8, size: u32, row0: u32, row1: u32) void;
 extern "myzig" fn gl_images(id: u32, pixels: [*]const u8, side: u32, row0: u32, row1: u32) void;
 extern "myzig" fn gl_draw(id: u32, instances: [*]const u8, count: usize, width: u32, height: u32, scale: f32, r: f32, g: f32, b: f32, plans: [*]const f32, plan_floats: usize, x0: i32, y0: i32, x1: i32, y1: i32) void;
 extern "myzig" fn gl_fx(id: u32, src: [*]const u8, len: usize, main: [*]const u8, main_len: usize, plain: [*]const u8, plain_len: usize) void;
@@ -48,7 +48,8 @@ pub const Renderer = struct {
     atlas_size: u32 = 0,
     atlas_generation: u64 = std.math.maxInt(u64),
     images_generation: u64 = std.math.maxInt(u64),
-    images_sent: bool = false,
+    /// The side of the image atlas the host has (0: none yet).
+    images_sent: u32 = 0,
     fx_sent: bool = false,
     /// The effects' shaders the host was given, by index.
     effects: [32]usize = @splat(0),
@@ -90,11 +91,14 @@ pub const Renderer = struct {
         return true;
     }
 
-    /// Brings the glyph atlas up to date (all of it, when it changed).
-    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64) void {
+    /// Brings the glyph atlas up to date: the rows that changed since the
+    /// last sync (`Atlas.takeDirty`), or all of it when they are not known
+    /// (null) or its size changed (the host makes its texture anew).
+    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64, dirty: ?[2]u32) void {
         if (mask.size == 0) return;
         if (mask.size == self.atlas_size and generation == self.atlas_generation) return;
-        gl_atlas(self.id, mask.pixels.ptr, mask.size);
+        const rows: [2]u32 = if (mask.size == self.atlas_size) dirty orelse .{ 0, mask.size } else .{ 0, mask.size };
+        if (rows[1] > rows[0]) gl_atlas(self.id, mask.pixels.ptr, mask.size, rows[0], rows[1]);
         self.atlas_size = mask.size;
         self.atlas_generation = generation;
     }
@@ -102,10 +106,11 @@ pub const Renderer = struct {
     /// Brings the image atlas up to date: the rows that changed.
     pub fn syncImages(self: *Renderer, im: *images_mod.Images) void {
         if (im.pixels.len == 0 or im.generation == self.images_generation) return;
-        const side = images_mod.size;
-        if (!self.images_sent) {
+        const side = im.side;
+        // The host makes its texture anew when the side changes.
+        if (self.images_sent != side) {
             gl_images(self.id, im.pixels.ptr, side, 0, side);
-            self.images_sent = true;
+            self.images_sent = side;
         } else if (im.dirty) |rows| if (rows[1] > rows[0]) {
             gl_images(self.id, im.pixels.ptr, side, rows[0], rows[1]);
         };

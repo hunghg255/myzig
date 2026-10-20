@@ -195,7 +195,9 @@ change nothing, and myzig drops them.
   controls: macOS's traffic lights, Windows 11's caption buttons over the
   top right corner (with snap layouts on maximize), GTK's header bar with
   its title buttons. The empty space of the top `title_bar_height` moves
-  the window, as a title bar does, and a double click there maximizes it.
+  the window, as a title bar does, and a double click there maximizes it. On
+  Windows the caption buttons are light or dark as the native UI's theme
+  is (the window's `theme`, or the one the view applies), not the system's.
 - **`.frameless`**: no title bar and no controls. The content draws all
   of it and moves the window from its drag regions. The window still
   resizes from its edges and keeps its shadow.

@@ -115,6 +115,8 @@ pub const Page = struct {
         objc.release(self.webview);
         objc.release(self.handler);
         if (self.last_mouse_down) |e| objc.release(e);
+        // Services let go of what they kept for it.
+        self.window.app.bindings.pageGone(self.window, self);
         const gpa = self.gpa;
         self.core.deinit();
         self.outbox.deinit(gpa);
@@ -321,6 +323,7 @@ pub const Page = struct {
         for (self.held.items) |m| self.gpa.free(m);
         self.held.clearRetainingCapacity();
         self.core.navigated();
+        self.window.app.bindings.pageGone(self.window, self);
     }
 
     pub fn startDrag(self: *Page) void {

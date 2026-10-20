@@ -3,6 +3,14 @@
   const { fetch } = await import("/plugins/fetch.js");
   const base = await myzig.call("Demo.base");
 
+  // After the reload below: the request the last document left waiting
+  // for it to read was canceled with it.
+  if (sessionStorage.getItem("reloaded")) {
+    const after = await myzig.call("Demo.requests");
+    expect(after === 0, "requests left by the last document: " + after);
+    return true;
+  }
+
   const hello = await fetch(base + "/hello", { headers: { origin: "https://example.com" } });
   expect(hello.ok && hello.status === 200 && hello.statusText === "OK", "status " + hello.status);
   expect(hello.headers.get("x-test") === "1" && !hello.headers.has("set-cookie"), "headers");
@@ -47,5 +55,21 @@
   err = "";
   try { await fetch("http://127.0.0.1:1/"); } catch (e) { err = e instanceof TypeError ? "TypeError " + e.message : String(e); }
   expect(err.startsWith("TypeError fetch failed"), "unreachable " + err);
+
+  // A body of 3 MiB left unread as the page reloads: past its window of
+  // unread bytes, the request waits for the page.
+  const left = await fetch(base + "/big");
+  expect(left.ok, "big");
+  const before = await myzig.call("Demo.requests");
+  expect(before === 1, "requests before the reload: " + before);
+  sessionStorage.setItem("reloaded", "1");
+  location.reload();
+  return false;
+})().then((done) => {
+  if (!done) return;
   myzig.log("ok");
-})().catch((e) => myzig.log("FAIL", String(e))).finally(() => myzig.window.close());
+  myzig.window.close();
+}, (e) => {
+  myzig.log("FAIL", String(e));
+  myzig.window.close();
+});

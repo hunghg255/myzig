@@ -58,6 +58,8 @@ pub const Atlas = struct {
     resets: u32 = 0,
     /// Bumped whenever texels change, for renderers that upload them.
     generation: u64 = 0,
+    /// The rows whose texels changed since `takeDirty` last took them.
+    dirty: ?[2]u32 = null,
     scratch: std.ArrayList(u8) = .empty,
 
     pub fn init(gpa: std.mem.Allocator) Atlas {
@@ -98,6 +100,14 @@ pub const Atlas = struct {
         a.resets +%= 1;
         @memset(a.pixels, 0);
         a.generation += 1;
+        a.dirty = .{ 0, a.size };
+    }
+
+    /// The rows whose texels changed since the last call (null: none), for
+    /// a renderer to upload only those.
+    pub fn takeDirty(a: *Atlas) ?[2]u32 {
+        defer a.dirty = null;
+        return a.dirty;
     }
 
     fn makeRoom(a: *Atlas) void {
@@ -154,6 +164,7 @@ pub const Atlas = struct {
             @memcpy(a.pixels[dst..][0..w], src[y * w ..][0..w]);
         }
         a.generation += 1;
+        a.dirty = if (a.dirty) |r| .{ @min(r[0], at[1]), @max(r[1], at[1] + h) } else .{ at[1], at[1] + h };
     }
 
     /// The sprite of glyph `g` of run font `font_id`, drawn `bin` quarters

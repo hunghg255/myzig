@@ -108,3 +108,27 @@ test "wheel: an inner box takes the notches it has room for, the outer the next"
     try testing.expectEqual(@as(f32, 50), offset(&t, s.inner));
     try testing.expectApproxEqAbs(@as(f32, 40), offset(&t, s.outer), 0.01);
 }
+
+const Strip = struct {
+    fn view(_: *Strip, c: *ui.Context) void {
+        _ = c.open(.{ .direction = .row, .width = .{ .px = 200 }, .height = .{ .px = 30 }, .scroll = true }, null);
+        for (0..20) |i| ui.textf(c, .{}, "Tab {d}", .{i});
+        c.end();
+    }
+};
+
+test "a scrolling row is as wide as it is given and scrolls sideways" {
+    var s: Strip = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Strip.view), .{ .width = 400, .height = 100 });
+    defer t.deinit();
+    const before = t.findText("Tab 3").?.x;
+    t.scroll(50, 10, -40);
+    for (0..30) |_| t.frame();
+    try testing.expect(t.findText("Tab 3").?.x < before - 1);
+    // Scrolled to its end, the last tab ends at the row's right edge.
+    t.scroll(50, 10, -100000);
+    for (0..60) |_| t.frame();
+    const last = t.findText("Tab 19").?;
+    try testing.expectApproxEqAbs(@as(f32, 200), last.x + last.w, 1);
+}

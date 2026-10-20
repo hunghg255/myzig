@@ -33,6 +33,7 @@ pub const Renderer = struct {
     atlas_size: u32 = 0,
     atlas_generation: u64 = std.math.maxInt(u64),
     images: u32 = 0,
+    images_side: u32 = 0,
     images_generation: u64 = std.math.maxInt(u64),
     es: bool = false,
     /// The frame's rows (`gpu.Frame`), 1024 a texture row, RGBA floats.
@@ -112,8 +113,10 @@ pub const Renderer = struct {
         return std.mem.span(s);
     }
 
-    /// Brings the GPU's glyph atlas up to date (all of it, when it changed).
-    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64) void {
+    /// Brings the GPU's glyph atlas up to date: the rows that changed since
+    /// the last sync (`Atlas.takeDirty`), or all of it when they are not
+    /// known (null).
+    pub fn syncAtlas(self: *Renderer, mask: raster.Mask, generation: u64, dirty: ?[2]u32) void {
         if (mask.size == 0) return;
         const g = &gl.api;
         const n: i32 = @intCast(mask.size);
@@ -124,8 +127,11 @@ pub const Renderer = struct {
             self.atlas = texture(gl.r8, gl.red, n, mask.pixels.ptr);
             self.atlas_size = mask.size;
         } else if (generation != self.atlas_generation) {
-            g.glBindTexture(gl.texture_2d, self.atlas);
-            g.glTexSubImage2D(gl.texture_2d, 0, 0, 0, n, n, gl.red, gl.unsigned_byte, mask.pixels.ptr);
+            const rows: [2]u32 = dirty orelse .{ 0, mask.size };
+            if (rows[1] > rows[0]) {
+                g.glBindTexture(gl.texture_2d, self.atlas);
+                g.glTexSubImage2D(gl.texture_2d, 0, 0, @intCast(rows[0]), n, @intCast(rows[1] - rows[0]), gl.red, gl.unsigned_byte, mask.pixels.ptr + @as(usize, rows[0]) * mask.size);
+            }
         }
         self.atlas_generation = generation;
     }
@@ -133,13 +139,15 @@ pub const Renderer = struct {
     /// Brings the GPU's image atlas up to date: the rows that changed.
     pub fn syncImages(self: *Renderer, im: *images_mod.Images) void {
         if (im.pixels.len == 0 or im.generation == self.images_generation) return;
-        const side: i32 = images_mod.size;
+        const side: i32 = @intCast(im.side);
         const g = &gl.api;
-        if (self.images == 0) {
+        if (self.images == 0 or self.images_side != im.side) {
+            if (self.images != 0) g.glDeleteTextures(1, &self.images);
             self.images = texture(gl.rgba8, gl.rgba, side, im.pixels.ptr);
+            self.images_side = im.side;
         } else if (im.dirty) |rows| if (rows[1] > rows[0]) {
             g.glBindTexture(gl.texture_2d, self.images);
-            const from = im.pixels.ptr + @as(usize, rows[0]) * images_mod.size * 4;
+            const from = im.pixels.ptr + @as(usize, rows[0]) * im.side * 4;
             g.glTexSubImage2D(gl.texture_2d, 0, 0, @intCast(rows[0]), side, @intCast(rows[1] - rows[0]), gl.rgba, gl.unsigned_byte, from);
         };
         im.dirty = null;

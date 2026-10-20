@@ -28,7 +28,7 @@ const State = struct {
                 defer s.gpa.free(title);
                 win.setTitle(if (title.len > 0) title else "Terminal");
             },
-            .bell => {},
+            .bell, .notify => {},
             .exit => win.close(),
         }
     }

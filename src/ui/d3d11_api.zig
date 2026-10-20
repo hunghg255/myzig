@@ -293,11 +293,14 @@ pub fn createDevice() ?Device {
     const create = proc(CreateDevice, "d3d11.dll", "D3D11CreateDevice") orelse return null;
     const levels = [_]u32{ 0xb000, 0xa100, 0xa000 }; // 11.0, 10.1, 10.0
     const bgra_support = 0x20;
+    // One draw a frame needs no driver thread of its own, and that thread's
+    // buffers cost about 20 MB a device (measured on Intel's iGPU).
+    const no_internal_threading = 0x8;
     const hardware = 1;
     var device: ?Object = null;
     var context: ?Object = null;
     const sdk_version = 7;
-    if (failed(create(null, hardware, null, bgra_support, &levels, levels.len, sdk_version, &device, null, &context))) return null;
+    if (failed(create(null, hardware, null, bgra_support | no_internal_threading, &levels, levels.len, sdk_version, &device, null, &context))) return null;
     return .{ .device = device orelse return null, .context = context orelse return null };
 }
 

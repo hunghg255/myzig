@@ -120,6 +120,11 @@ defer ui.end(c);
 for (s.messages) |m| messageRow(c, m);
 ```
 
+A row with `scroll = true` scrolls sideways instead, as a strip of tabs:
+it takes the width it is given rather than its content's, the wheel moves
+it along, and a thin bar shows along its bottom while its content
+overflows. Set `c.scroll` for its id to bring a child into view.
+
 With `follow_end = true` a scrolling box stays at its end as its content
 grows, while the reader left it there: logs, chats and terminals. Scrolled
 up, it stays put; scrolled back down, it follows again. `c.capScroll(id,

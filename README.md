@@ -265,7 +265,22 @@ windowed runs on a Mac are in [hillclimb/notes](hillclimb/notes/windowed-results
 
 There the release binaries of the counter are 0.68 MB for myzig
 (`ReleaseSmall`; 1.14 MB `ReleaseFast`) and 9.04 MB for mygo's
-`counter-native` (as mygo's benchmarks build it).
+`counter-native` (as mygo's benchmarks build it). A shadow under an
+opaque box is no longer drawn where the box covers it: `dashboard`
+renders in 2.7 ms instead of 4.0 on the same machine, the pixels unchanged
+([the runs](hillclimb/notes/windows-shadow-cover-2026-10-20.md)).
+
+### Memory
+
+Apps of native UI keep little: on Windows the counter's private memory is
+2.6 MB, and chart-streaming's, which draws a canvas, 11 to 14 MB. The
+image atlas starts at 512 pixels a side and grows as pictures need, and
+where the GPU draws (Metal, Direct3D 11) no copy of it stays in memory;
+fonts kept for every size shown start over past 256 of them. A page's
+webview is most of a web app's memory (WebView2's processes take about
+128 MB for `hello`). Plugins let go of what they kept for a page (its
+connections, requests and databases) when it navigates, reloads or
+closes.
 
 ## Development
 

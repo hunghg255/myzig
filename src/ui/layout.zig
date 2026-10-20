@@ -117,8 +117,11 @@ inline fn compute(c: *Context, index: u32, avail_w: f32) types.Size {
     }
 
     // A scrolling box takes the room it is given, not its content's height
-    // (CSS's `min-height: 0`): its content scrolls instead.
-    if (st.scroll and st.max_height == std.math.inf(f32)) content.h = 0;
+    // (CSS's `min-height: 0`), or a scrolling row its content's width: its
+    // content scrolls instead.
+    if (st.scroll and st.direction == .row) {
+        content.w = 0;
+    } else if (st.scroll and st.max_height == std.math.inf(f32)) content.h = 0;
     var size: types.Size = .{
         .w = content.w + st.padding.horizontal(),
         .h = content.h + st.padding.vertical(),
@@ -256,7 +259,10 @@ pub fn arrangeBox(c: *Context, index: u32, rect_in: types.Rect) void {
         if (ch.style.absolute) {
             const w = if (ch.style.width == .fill) inner.w else ch.measured.w;
             const h = if (ch.style.height == .fill) inner.h else ch.measured.h;
-            arrangeBox(c, child, .{ .x = inner.x, .y = inner.y - scroll_y, .w = w, .h = h });
+            arrangeBox(c, child, if (dir == .row)
+                .{ .x = inner.x - scroll_y, .y = inner.y, .w = w, .h = h }
+            else
+                .{ .x = inner.x, .y = inner.y - scroll_y, .w = w, .h = h });
             continue;
         }
         const m = mainAt(c, dir, child, items, k, per);
@@ -274,8 +280,9 @@ pub fn arrangeBox(c: *Context, index: u32, rect_in: types.Rect) void {
             .center => (inner_cross - x) / 2,
             .end => inner_cross - x,
         };
+        // A scrolling row scrolls sideways (a strip of tabs).
         const r: types.Rect = if (dir == .row)
-            .{ .x = inner.x + pos, .y = inner.y + cpos, .w = m, .h = x }
+            .{ .x = inner.x + pos - scroll_y, .y = inner.y + cpos, .w = m, .h = x }
         else
             .{ .x = inner.x + cpos, .y = inner.y + pos - scroll_y, .w = x, .h = m };
         arrangeBox(c, child, r);

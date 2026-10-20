@@ -14,6 +14,9 @@ and `-testing` pages) before changing code. The rules that most often bite:
 
 - Every file is at most 600 lines (`zig build lines`): split by
   responsibility before growing a file.
+- Zig 0.17.0 APIs only (`std.process.Init`, `std.Io`, `@Fn`,
+  `std.lang.Type`'s `field_names`/`field_types`/`decl_names`), not older
+  idioms.
 - No C: no `@cImport`, no `.c`/`.m`. Native code is `extern` declarations,
   `dlopen`/`dlsym` (Linux), `GetProcAddress`/COM vtables (Windows), the
   Objective-C runtime through `src/objc.zig` (macOS).
@@ -52,6 +55,16 @@ write one with `pub const portable: bool = false; pub const inspector: bool = fa
 ```sh
 zig test -lc --dep build_options -Mroot=src/myzig.zig -Mbuild_options=/path/to/bo.zig \
   --test-filter "part of the test name"
+```
+
+On macOS also pass `-lobjc` and `-framework <name>` for each entry of
+`frameworks` at the top of `build.zig`.
+
+Headless checks of a built app (no window is shown):
+
+```sh
+zig-out/bin/gallery --myzig-snapshot=/tmp/g.png --myzig-script="click:Tasks;type:Hi;key:enter"
+zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig.log(v);myzig.window.close()})'
 ```
 
 Linux tests run in the container: `zig build test-bin

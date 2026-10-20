@@ -70,7 +70,8 @@ Creates an app in a new or empty directory:
 | `--skip-generate` | don't build the web template to write its client |
 
 Where myzig comes from: `--myzig`, else `MYZIG_ROOT`, else the myzig
-repository on GitHub (`git+https://github.com/justrach/nanoui#main`). A
+repository on GitHub at the CLI's version
+(`git+https://github.com/hunghg255/myzig#v0.1.2` for CLI 0.1.2). A
 checkout becomes a path dependency (`.myzig = .{ .path = "../myzig" }`)
 when a relative path reaches it; a URL (or a checkout on another drive) is
 fetched with `zig fetch --save=myzig`.
@@ -146,7 +147,8 @@ myzig build --platform web
 Builds the release (ReleaseSmall and stripped by default) and packages it
 in `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...): a `.app` and, on
 a Mac, a `.dmg`; a Windows `.exe` with its icon, manifest and version
-resources, a `.zip`, and an installer with NSIS; a Linux directory, a
+resources, in a portable `.zip` that runs unpacked, and an installer with
+NSIS (`<Name> Setup <version> <arch>.exe`); a Linux directory, a
 `.tar.gz` and a `.deb`. Linux and Windows releases build from any machine,
 as Zig cross-compiles and myzig links nothing of theirs; macOS releases
 need the macOS SDK, and the `.dmg` and code signing a Mac. See
@@ -182,6 +184,13 @@ the app is signed ad hoc.
 
 The targets are `<arch>-macos`, `<arch>-windows-gnu`, `<arch>-linux-gnu`
 and `wasm32-wasi`. Intermediate files go in `.myzig/build/`.
+
+Every build starts from nothing: before anything builds (`build_command`
+too), `myzig build` deletes `<out>` and `.myzig/build/` and makes `<out>`
+again, so it holds only this build's package, of one platform. Packages of
+several platforms are built one after another, each kept elsewhere
+(`--out dist/mac`, ...). An `<out>` that is the app's directory or holds
+it is refused.
 
 ## myzig generate
 

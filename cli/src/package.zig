@@ -58,6 +58,8 @@ pub fn run(ctx: Ctx, o: Options) !Result {
     }
     // Before building: where to, and the key, or installed apps could not update.
     if (o.upload) try publish.checkUpload(ctx, c);
+    // Made anew before anything builds, what `build_command` writes too.
+    const out_root = try freshOut(ctx, c, o.out);
     if (c.build_command.len > 0 and !o.skip_build_command) {
         ctx.log("Running {s}", .{c.build_command});
         const sh = proc.shell(c.build_command);
@@ -77,9 +79,7 @@ pub fn run(ctx: Ctx, o: Options) !Result {
     const declared = try proc.BuildOptions.read(ctx, c.root);
     const arch = o.arch orelse Arch.host();
     const arch_name = if (o.universal) "universal" else @tagName(arch);
-    const out_root = try c.path(ctx.gpa, if (o.out.len > 0) o.out else c.out);
     const dir = try ctx.join(&.{ out_root, try ctx.fmt("{t}-{s}", .{ o.platform, arch_name }) });
-    fsx.remove(ctx.io, dir);
     try fsx.makeDir(ctx.io, dir);
     const work = try ctx.join(&.{ c.root, ".myzig", "build", try ctx.fmt("{t}-{s}", .{ o.platform, arch_name }) });
     try fsx.makeDir(ctx.io, work);
@@ -210,7 +210,8 @@ fn packageWindows(ctx: Ctx, c: Config, dir: []const u8, work: []const u8, exe: [
     var entries: std.ArrayList(archive.Entry) = .empty;
     try entries.append(ctx.gpa, .{ .path = name, .kind = .dir, .mode = 0o755 });
     try archive.collect(ctx, &entries, stage, name, &.{exe_name});
-    const zip = try ctx.join(&.{ dir, try ctx.fmt("{s}-{s}-windows-{s}.zip", .{ name, c.version, arch }) });
+    // Runs where it is unpacked, installing nothing: beside the installer.
+    const zip = try ctx.join(&.{ dir, try ctx.fmt("{s} Portable {s} {s}.zip", .{ name, try fsx.fsName(ctx.gpa, c.version), arch }) });
     try fsx.write(ctx.io, zip, try archive.zip(ctx.gpa, entries.items, fsx.epoch(ctx)));
     try files.append(ctx.gpa, zip);
 
@@ -225,12 +226,41 @@ fn packageWindows(ctx: Ctx, c: Config, dir: []const u8, work: []const u8, exe: [
     const nsi = try ctx.join(&.{ work, "installer.nsi" });
     try fsx.write(ctx.io, nsi, script);
     const makensis = makensisPath(ctx) orelse {
-        ctx.log("Wrote {s}; install NSIS (makensis) to make the installer", .{nsi});
+        const how = switch (builtin.os.tag) {
+            .windows => "winget install NSIS.NSIS",
+            .macos => "brew install makensis",
+            else => "apt install nsis, or your system's package",
+        };
+        ctx.warn("NSIS (makensis) is not installed: only the portable .zip was made, no installer. Install it ({s}) and build again (the script is {s})", .{ how, nsi });
         return;
     };
     ctx.log("Making {s}", .{std.fs.path.basename(setup)});
     try proc.check(ctx, &.{ makensis, "-V2", nsi }, null);
     try files.append(ctx.gpa, setup);
+}
+
+/// The output directory (`out`, else `out` of myzig.zon) made anew, and
+/// the intermediate files of builds (`.myzig/build`) gone: every build
+/// starts from nothing, so the directory holds only what it made. One that
+/// is the app's directory or holds it is refused.
+pub fn freshOut(ctx: Ctx, c: Config, out: []const u8) ![]const u8 {
+    const out_root = try std.fs.path.resolveAlloc(ctx.gpa, &.{try c.path(ctx.gpa, if (out.len > 0) out else c.out)});
+    const root = try std.fs.path.resolveAlloc(ctx.gpa, &.{c.root});
+    if (holds(out_root, root)) {
+        std.debug.print("error: the output directory {s} holds the app: give it a directory of its own (--out, or out in myzig.zon)\n", .{out_root});
+        return error.CommandFailed;
+    }
+    fsx.remove(ctx.io, out_root);
+    fsx.remove(ctx.io, try ctx.join(&.{ c.root, ".myzig", "build" }));
+    try fsx.makeDir(ctx.io, out_root);
+    return out_root;
+}
+
+/// Whether directory `dir` is `path` or holds it (both resolved).
+fn holds(dir: []const u8, path: []const u8) bool {
+    const same = if (builtin.os.tag == .windows) std.ascii.eqlIgnoreCase else std.mem.eql;
+    if (path.len < dir.len or !same(path[0..dir.len], dir)) return false;
+    return path.len == dir.len or std.fs.path.isSep(path[dir.len]) or std.fs.path.isSep(dir[dir.len - 1]);
 }
 
 /// The NSIS compiler: on the PATH, or where its installer puts it.
@@ -272,4 +302,17 @@ fn packageLinux(ctx: Ctx, c: Config, dir: []const u8, exe: []const u8, resources
     const deb = try ctx.join(&.{ dir, deb_name });
     try fsx.write(ctx.io, deb, bytes);
     try files.append(ctx.gpa, deb);
+}
+
+test holds {
+    const sep = std.fs.path.sep_str;
+    const app = "x" ++ sep ++ "apps" ++ sep ++ "notes";
+    // The app's directory, and those that hold it, are refused.
+    try std.testing.expect(holds(app, app));
+    try std.testing.expect(holds("x" ++ sep ++ "apps", app));
+    try std.testing.expect(holds("x" ++ sep, app));
+    // Directories in it, beside it, or named as its start, are its own.
+    try std.testing.expect(!holds(app ++ sep ++ "dist", app));
+    try std.testing.expect(!holds("x" ++ sep ++ "apps" ++ sep ++ "notes-dist", app));
+    try std.testing.expect(!holds("x" ++ sep ++ "apps" ++ sep ++ "no", app));
 }

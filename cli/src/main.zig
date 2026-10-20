@@ -51,7 +51,7 @@ const commands = [_]Command{
     .{ .name = "dev", .args = "[dir] [-- app arguments]", .summary = "Builds the app, writes its client, runs it, and rebuilds and restarts it when its files\nchange (watched by the system: nothing polls). With dev_command and dev_url, runs the dev\nserver first and points the app at it (MYZIG_DEV_URL). Quitting the app ends it.", .flags =
     \\  --skip-dev-command     don't run dev_command (its server already runs)
     },
-    .{ .name = "build", .args = "[dir]", .summary = "Builds the release (stripped) and packages it in <out>/<platform>-<arch>: a .app (and a .dmg\non a Mac), a Windows .exe with its icon and version resources and a .zip (and an installer\nwith NSIS), or a Linux directory, .tar.gz and .deb.", .flags =
+    .{ .name = "build", .args = "[dir]", .summary = "Builds the release (stripped) and packages it in <out>/<platform>-<arch>: a .app (and a .dmg\non a Mac), a Windows .exe with its icon and version resources and a .zip (and an installer\nwith NSIS), or a Linux directory, .tar.gz and .deb. <out> and .myzig/build are emptied first.", .flags =
     \\  --platform macos|windows|linux|web  the system to build for (default: this one); web: a
     \\                                  static site for browsers in <out>/web (native UI only)
     \\  --arch x86_64|aarch64|universal  the architecture (default: this one; universal: macOS, both)

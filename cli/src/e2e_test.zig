@@ -93,9 +93,11 @@ fn checkPackage(ctx: Ctx, c: config.Config, p: proc.Platform, r: package.Result)
             const ident = try std.unicode.utf8ToUtf16LeAlloc(ctx.gpa, c.identifier);
             try std.testing.expect(contains(bin, std.mem.sliceAsBytes(ident)));
             try std.testing.expect(contains(bin, "PerMonitorV2"));
-            try expectFile(ctx, try ctx.join(&.{ r.dir, "Hello Native-0.1.0-windows-x86_64.zip" }));
+            // The portable zip, and the installer where NSIS is installed.
+            try expectFile(ctx, try ctx.join(&.{ r.dir, "Hello Native Portable 0.1.0 x86_64.zip" }));
             const nsi = try fsx.read(ctx, try ctx.join(&.{ c.root, ".myzig", "build", "windows-x86_64", "installer.nsi" }));
             try std.testing.expect(contains(nsi, "Hello Native.exe"));
+            if (package.makensisPath(ctx) != null) try expectFile(ctx, try ctx.join(&.{ r.dir, "Hello Native Setup 0.1.0 x86_64.exe" }));
         },
         .linux => {
             const deb = try fsx.read(ctx, try ctx.join(&.{ r.dir, "hello-native_0.1.0_amd64.deb" }));

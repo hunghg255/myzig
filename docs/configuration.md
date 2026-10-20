@@ -155,6 +155,8 @@ are required.
 | field | default | |
 |---|---|---|
 | `installer` | true | write the NSIS installer's script, and make the installer when `makensis` is installed |
+| `uninstall_run` | none | arguments the uninstaller runs the app with, and waits for, before taking its files away: for the app to undo what it set up itself (a command on the `PATH`, File Explorer's menus) |
+| `uninstall_data` | none | folders of the app's data, as NSIS paths (`$APPDATA\\MyApp`), the uninstaller offers to delete too, asking first; a silent uninstall keeps them |
 
 ## linux
 

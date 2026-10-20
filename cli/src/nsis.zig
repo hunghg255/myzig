@@ -128,7 +128,16 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     try escape(w, dir_name);
     try w.writeAll(".lnk\" \"$INSTDIR\\");
     try escape(w, f.exe);
-    try w.writeAll("\"\nFunctionEnd\n\nSection \"Uninstall\"\n  Delete \"$SMPROGRAMS\\");
+    try w.writeAll("\"\nFunctionEnd\n\nSection \"Uninstall\"\n");
+    // The app undoes what it set up itself, before its files go.
+    if (c.windows.uninstall_run.len > 0) {
+        try w.writeAll("  ExecWait '\"$INSTDIR\\");
+        try escape(w, f.exe);
+        try w.writeAll("\" ");
+        try escape(w, c.windows.uninstall_run);
+        try w.writeAll("'\n");
+    }
+    try w.writeAll("  Delete \"$SMPROGRAMS\\");
     try escape(w, dir_name);
     try w.writeAll(".lnk\"\n  Delete \"$DESKTOP\\");
     try escape(w, dir_name);
@@ -136,7 +145,22 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     try quoted(w, key);
     try w.writeByte('\n');
     try w.writeAll(unreg.written());
-    try w.writeAll("  RMDir /r \"$INSTDIR\"\nSectionEnd\n");
+    try w.writeAll("  RMDir /r \"$INSTDIR\"\n");
+    // The data too, once asked; a silent uninstall keeps it.
+    if (c.windows.uninstall_data.len > 0) {
+        try w.writeAll("  IfSilent keep_data\n  MessageBox MB_YESNO|MB_ICONQUESTION ");
+        const ask = try std.fmt.allocPrint(gpa, "Also delete {s}'s settings and data?", .{c.name});
+        defer gpa.free(ask);
+        try quoted(w, ask);
+        try w.writeAll(" /SD IDNO IDNO keep_data\n");
+        for (c.windows.uninstall_data) |d| {
+            try w.writeAll("  RMDir /r \"");
+            try w.writeAll(d);
+            try w.writeAll("\"\n");
+        }
+        try w.writeAll("  keep_data:\n");
+    }
+    try w.writeAll("SectionEnd\n");
     return out.toOwnedSlice();
 }
 
@@ -213,4 +237,16 @@ test script {
         std.debug.print("missing:\n{s}\nin:\n{s}\n", .{ want, s });
         return error.TestUnexpectedResult;
     };
+}
+
+test "the uninstaller runs the app, and offers to delete its data" {
+    const gpa = std.testing.allocator;
+    var c: Config = .{ .root = "/x", .name = "My App", .identifier = "com.example.my-app", .version = "1.0.0" };
+    c.windows.uninstall_run = "--uninstall-shell";
+    c.windows.uninstall_data = &.{"$APPDATA\\My App"};
+    const s = try script(gpa, c, "My App", .{ .paths = &.{}, .exe = "My App.exe", .out = "setup.exe" }, &.{});
+    defer gpa.free(s);
+    try std.testing.expect(std.mem.indexOf(u8, s, "ExecWait '\"$INSTDIR\\My App.exe\" --uninstall-shell'") != null);
+    try std.testing.expect(std.mem.indexOf(u8, s, "IfSilent keep_data") != null);
+    try std.testing.expect(std.mem.indexOf(u8, s, "RMDir /r \"$APPDATA\\My App\"") != null);
 }

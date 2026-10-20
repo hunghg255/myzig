@@ -503,6 +503,7 @@ test {
     _ = @import("tests_grid.zig");
     _ = @import("focusgroup.zig");
     _ = @import("tests_focusgroup.zig");
+    _ = @import("tests_press_check.zig");
     _ = @import("actions.zig");
     _ = @import("tests_actions.zig");
     _ = @import("preferences.zig");

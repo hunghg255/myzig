@@ -8,5 +8,7 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        // build.zig imports its steps (`zig build check-msl`).
+        "tools/msl",
     },
 }

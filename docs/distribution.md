@@ -12,13 +12,14 @@ myzig build --platform web                    # a static site (native UI only)
 
 The release is built with ReleaseSmall and stripped (`--optimize fast` or
 `safe` for others), into `dist/<platform>-<arch>` (`out` in
-[myzig.zon](configuration.md), or `--out`). The flags are in
+[myzig.zon](configuration.md), or `--out`), which each build empties
+first. The flags are in
 [the CLI's page](cli.md#myzig-build).
 
 | platform | what `myzig build` makes |
 |---|---|
 | macOS | `<Name>.app`; on a Mac, signed (ad hoc by default) with `<Name> <version> <arch>.dmg`; elsewhere `<Name>-<version>-macos-<arch>.zip` of the bundle |
-| Windows | `<Name>/<Name>.exe` with its icon, manifest and version resources, and the resources beside it; `<Name>-<version>-windows-<arch>.zip`; the NSIS installer when `makensis` is installed |
+| Windows | two ways to ship it: `<Name> Portable <version> <arch>.zip`, which runs where it is unpacked and installs nothing (`<Name>/<Name>.exe` with its icon, manifest and version resources, and the resources beside it, also left unzipped), and `<Name> Setup <version> <arch>.exe`, the NSIS installer, when `makensis` is installed (without it, a warning says how to install it) |
 | Linux | `<executable>/` (the executable, its desktop entry and icon, the resources); `<executable>-<version>-linux-<arch>.tar.gz`; `<package>_<version>_<arch>.deb` |
 | browsers | `dist/web`: `index.html`, the host's scripts, `app.wasm` and the fonts (see [Browsers](browsers.md)) |
 
@@ -186,7 +187,10 @@ without administrator rights:
   desktop shortcut the finish page offers;
 - the file associations and URL schemes of `myzig.zon`, under
   `HKCU\Software\Classes`;
-- an uninstaller that Settings > Apps lists, under the app's `identifier`.
+- an uninstaller that Settings > Apps lists, under the app's `identifier`;
+  it runs the app with `windows.uninstall_run` first, for the app to undo
+  what it set up itself, and offers to delete the folders of
+  `windows.uninstall_data`.
 
 Without NSIS, the `.zip` is the package.
 
@@ -253,7 +257,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
         with: { version: 0.17.0 }
-      - run: git clone https://github.com/justrach/nanoui ../myzig && (cd ../myzig/cli && zig build --prefix ~/.local)
+      - run: git clone https://github.com/hunghg255/myzig ../myzig && (cd ../myzig/cli && zig build --prefix ~/.local)
       - run: |
           for p in ${{ matrix.platforms }}; do
             for a in x86_64 aarch64; do ~/.local/bin/myzig build --platform $p --arch $a; done

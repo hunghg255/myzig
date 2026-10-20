@@ -57,6 +57,14 @@ pub const MacOS = struct {
 pub const Windows = struct {
     /// Makes an NSIS installer when makensis is found.
     installer: bool = true,
+    /// Arguments the uninstaller runs the app with, and waits for, before
+    /// it takes the files away: for the app to undo what it set up itself
+    /// (a command on the PATH, File Explorer's menus). "" for none.
+    uninstall_run: []const u8 = "",
+    /// Folders of the app's data (NSIS paths, as `$APPDATA\\MyApp`) the
+    /// uninstaller offers to delete too, asking first; silent
+    /// uninstalls keep them.
+    uninstall_data: []const []const u8 = &.{},
 };
 
 pub const Linux = struct {
@@ -215,8 +223,10 @@ fn decode(gpa: std.mem.Allocator, c: *Config, v: zon.Value) LoadError!void {
         }
     }
     if (v.get("windows")) |w| {
-        try checkKeys(gpa, w, "windows", &.{"installer"});
+        try checkKeys(gpa, w, "windows", &.{ "installer", "uninstall_run", "uninstall_data" });
         try boolean(gpa, w, "installer", &c.windows.installer);
+        try str(gpa, w, "uninstall_run", &c.windows.uninstall_run);
+        try strList(gpa, w, "uninstall_data", &c.windows.uninstall_data);
     }
     if (v.get("updates")) |u| c.updates = try updates.decode(gpa, u);
     if (v.get("linux")) |l| {

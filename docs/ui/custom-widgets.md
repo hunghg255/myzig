@@ -42,6 +42,35 @@ parent's children, or from a key:
 - `c.peekId(key)` is the id the next child of the open box will get, for
   a widget that must know its id before it opens its box.
 
+### A box that comes or goes moves the ids after it
+
+An id made from a place changes when the place does. A box shown only
+sometimes before a button (a mark while the row is hovered, a badge
+while something is new) gives the button another id in the frames it
+shows, and the box that came takes the button's old one. The press, made
+on the id the pointer was over in the last frame, then finds no button
+to take it: the click is lost, without an error.
+
+```zig
+// The mark comes with the hover, and the button's id goes with it.
+if (s.hovered) _ = c.leaf(.{ .width = .{ .px = 3 } }, .none, null);
+const it = ui.button(c, project.name, .{});
+s.hovered = it.hovered;
+```
+
+Either keep the ids still:
+
+- key the button (`c.keyed(project)` or `ui.key(c, project.path)` before
+  it): a keyed id does not depend on its place, or
+- always build the box before it, and hide it with its look instead (a
+  transparent background, a width of 0), so the places stay.
+
+Debug builds tell of it: when no box answers to the id pressed while the
+pointer is still where that box was, and the box now under the pointer
+was not there the frame before, the log says once
+`myzig: the box pressed changed its id between frames (a box before it
+came or went?)`. Release builds don't check.
+
 Strings given to boxes are kept until the frame is drawn, after the view
 returns: pass the app's own memory or the frame's (`c.print`,
 `c.alloc()`), never a buffer on the stack.

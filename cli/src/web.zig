@@ -24,15 +24,15 @@ pub const target = "wasm32-wasi";
 
 pub fn run(ctx: Ctx, o: Options) !Result {
     const c = try config.load(ctx, o.dir);
+    // Made anew before anything builds, what `build_command` writes too.
+    const out_root = try @import("package.zig").freshOut(ctx, c, o.out);
     if (c.build_command.len > 0 and !o.skip_build_command) {
         ctx.log("Running {s}", .{c.build_command});
         const sh = proc.shell(c.build_command);
         try proc.check(ctx, &sh, c.root);
     }
     const declared = try proc.BuildOptions.read(ctx, c.root);
-    const out_root = try c.path(ctx.gpa, if (o.out.len > 0) o.out else c.out);
     const dir = try ctx.join(&.{ out_root, "web" });
-    fsx.remove(ctx.io, dir);
     try fsx.makeDir(ctx.io, dir);
     const prefix = try ctx.join(&.{ c.root, ".myzig", "build", "web" });
     try fsx.makeDir(ctx.io, prefix);

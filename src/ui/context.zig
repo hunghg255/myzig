@@ -45,6 +45,7 @@ pub const Interaction = struct {
 const Hit = @import("hit.zig").Hit;
 const events = @import("context_events.zig");
 const access = @import("access.zig");
+const press_check = @import("press_check.zig");
 
 pub const Cursor = enum { arrow, hand, text, resize_left_right, resize_up_down };
 
@@ -143,6 +144,9 @@ pub const Context = struct {
     /// The hot box and the boxes it is in, innermost first: all hovered.
     hot_path: std.ArrayList(u64) = .empty,
     active: u64 = 0,
+    /// Debug builds: tells of a press lost to an id that changed
+    /// (`press_check.zig`).
+    press_check: press_check.State = .{},
     focus: u64 = 0,
     /// The boxes that take the focus, in the order built: where Tab goes.
     focus_order: std.ArrayList(u64) = .empty,
@@ -247,6 +251,7 @@ pub const Context = struct {
         c.wants_moves = false;
         c.scroll_cap.clearRetainingCapacity();
         c.access.begin();
+        press_check.begin(c);
         if (c.web) |l| l.built.clearRetainingCapacity();
         c.nodes.append(c.gpa, .{
             .id = 0x9e3779b97f4a7c15,
@@ -266,6 +271,7 @@ pub const Context = struct {
     pub fn finish(c: *Context) void {
         c.input.clearEdges();
         c.changed = false;
+        press_check.check(c);
         if (!c.input.down) c.active = 0;
         // What assistive technology asked for was done, or is gone.
         c.access.press = 0;
@@ -410,6 +416,7 @@ pub const Context = struct {
         const n = c.node(index);
         n.interactive = true;
         const id = n.id;
+        press_check.saw(c, id);
         if (opts.focusable) c.focus_order.append(c.gpa, id) catch {};
         var by_key = false;
         if (opts.keys and c.focus == id) {

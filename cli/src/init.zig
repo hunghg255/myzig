@@ -9,8 +9,9 @@ const appbuild = @import("appbuild.zig");
 const assets = @import("assets.zig");
 const Ctx = fsx.Ctx;
 
-/// Where apps get myzig unless --myzig names another source.
-pub const default_source = "git+https://github.com/justrach/nanoui#main";
+/// Where apps get myzig unless --myzig names another source: the release
+/// of this CLI's version, which it was made with.
+pub const default_source = "git+https://github.com/hunghg255/myzig#v" ++ @import("build_options").version;
 
 pub const Options = struct {
     dir: []const u8,

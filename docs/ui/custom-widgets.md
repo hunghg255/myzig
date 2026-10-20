@@ -71,7 +71,9 @@ was not there the frame before, the log says once
 `myzig: the box pressed changed its id between frames (a box before it
 came or went?)`. Release builds don't check.
 
-Strings given to boxes are kept until the frame is drawn, after the view
+A text box's string and spans are copied into the frame's memory by
+`c.leaf`, as are the strings `c.describe` takes. Other slices a box keeps
+(a picture's bytes, an icon's name, a gradient) are read after the view
 returns: pass the app's own memory or the frame's (`c.print`,
 `c.alloc()`), never a buffer on the stack.
 

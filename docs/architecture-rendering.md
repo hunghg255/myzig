@@ -54,6 +54,19 @@ and `ui.Tester` call it, so what a test sees is what a window shows:
    it changed under a still pointer, `Result.hot_changed` asks for another
    frame.
 
+What the view passes is read in the later phases, after it returns: a
+text's shaping and wrapping in layout, its glyphs in paint, the
+accessibility tree after both. So `Context.leaf` copies a text box's
+string and spans into the frame's arena (`c.alloc()`, reset when the next
+frame begins), and `access.describe` its strings: freeing them in the
+view, even between two widgets that show them, cannot leave layout reading
+freed memory (`tests_frame_strings.zig`). The copy costs 0.04 to 0.06 ms a
+frame per thousand text boxes on the hill climb's scenes. Everything else
+a node points to (a picture's bytes, an icon's name, gradients, canvas
+paths) must live until the frame is drawn: the app frees such data after
+the frame (a frame later, or on the next event) or keeps the old copy for
+one more update.
+
 `c.stats` (`ui.FrameStats`) records each phase's milliseconds, the
 passes, nodes and instances: the inspector and the hill climb read it.
 

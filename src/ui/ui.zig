@@ -1,9 +1,11 @@
 //! Native UI: views are Zig functions of the app's state, drawn by myzig
 //! on the GPU. No HTML, no JavaScript, no webview.
 //!
-//! Strings given to widgets are kept until the frame is drawn, after the
-//! view returns: pass the app's own memory or the frame's (`c.print`,
-//! `c.alloc()`), never a buffer on the stack.
+//! Texts given to widgets are copied into the frame's memory (`c.leaf`):
+//! a view may free them at once. Other slices (a picture's bytes, an
+//! icon's name, a gradient) are read after the view returns: pass the
+//! app's own memory or the frame's (`c.print`, `c.alloc()`), never a
+//! buffer on the stack.
 //!
 //!     fn view(s: *Counter, c: *ui.Context) void {
 //!         ui.column(c, .{ .width = .fill, .height = .fill, .align_items = .center, .justify = .center, .gap = 12 });
@@ -462,6 +464,7 @@ test {
     _ = @import("tests_baseline.zig");
     _ = @import("tests_form_baselines.zig");
     _ = @import("tests_layout_cache.zig");
+    _ = @import("tests_frame_strings.zig");
     _ = @import("tests_table_cells.zig");
     _ = @import("tests_table_select.zig");
     _ = @import("tests_list_select.zig");

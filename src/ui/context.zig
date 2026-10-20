@@ -378,8 +378,17 @@ pub const Context = struct {
     }
 
     /// Adds a box without children.
+    /// A box with no children. A text's bytes and spans are copied into
+    /// the frame's memory: layout and paint read them after the view has
+    /// returned, so a view may free or change them at once.
     pub fn leaf(c: *Context, style: types.Style, content: Content, key: ?[]const u8) u32 {
-        return c.add(.{ .id = c.childId(key), .style = style, .content = content });
+        var kept = content;
+        if (kept == .text) {
+            const a = c.alloc();
+            kept.text.str = a.dupe(u8, kept.text.str) catch @panic("OOM");
+            if (kept.text.spans.len > 0) kept.text.spans = a.dupe(types.Span, kept.text.spans) catch @panic("OOM");
+        }
+        return c.add(.{ .id = c.childId(key), .style = style, .content = kept });
     }
 
     pub fn node(c: *Context, index: u32) *Node {

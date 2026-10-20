@@ -298,7 +298,7 @@ const Rich = struct {
         const plain = "Run the build and read the log";
         ui.text(c, plain, .{ .size = 14 });
         // The same words, "build" bold and "log" as code.
-        // Spans, as strings, must live until the frame is drawn.
+        // Spans are copied, as strings are: frame memory serves too.
         const spans = c.alloc().dupe(ui.Span, &.{
             .{ .start = 8, .end = 13, .weight = .bold },
             .{ .start = 27, .end = 30, .mono = true, .background = c.theme.border },

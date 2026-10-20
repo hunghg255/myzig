@@ -53,13 +53,20 @@ Nothing polls. A frame is drawn on input, on a resize, while an animation
 runs, or when the app asks (`Window.redraw`, `c.frameIn`); an idle window
 uses no CPU.
 
-## Strings live until the frame is drawn
+## What a frame keeps of what you pass
 
-Widgets keep the strings and slices you pass them until the frame is drawn,
-after the view returns. Pass the app's own memory, constants, or the
-frame's memory: `c.print("{d} left", .{n})` formats into an arena freed
-after the frame, and `c.alloc()` gives that arena for anything else. Never
-pass a buffer on the view function's stack.
+A frame is built, then laid out, then painted: layout and paint run
+after the view has returned. Texts are copied into the frame's memory as
+they are shown (`ui.text`, `ui.richText` and its spans, labels, tooltips,
+fields, what `c.describe` tells assistive technology), so a view may
+free or change a string right after showing it. Other slices and pointers
+a widget takes (a picture's bytes, an icon's name, a gradient, a canvas's
+points) are read where they are until the frame is drawn: pass constants,
+the app's own memory, or the frame's (`c.print("{d} left", .{n})` formats
+into an arena freed when the next frame begins, `c.alloc()` gives that
+arena for anything else), never a buffer on the view function's stack.
+To free such data the view showed, free it after the frame (the next
+event, or a frame later), or keep the old copy for one more update.
 
 ## Two ways to write boxes
 

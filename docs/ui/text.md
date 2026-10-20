@@ -10,9 +10,12 @@ ui.text(c, "const mono = \"monospaced, for code\";", .{ .mono = true, .size = 13
 ui.textf(c, .{ .mono = true, .size = 12 }, "{d:.0}%", .{s.volume * 100});
 ```
 
-The string is kept until the frame is drawn: pass a constant, the app's own
-memory, or the frame's (`c.print`, `c.alloc()`), never a buffer on the
-stack.
+The string (and a rich text's spans) is copied into the frame's memory:
+layout measures it and paint draws it after the view returns, so the view
+may free or change its own copy right after `ui.text`, as two panes
+rebuilding one list of names in turn do. Strings in the frame's memory
+(`c.print`, `c.alloc()`) are copied too; for a text of many megabytes,
+show the part in view (as `ui.textArea` and `ui.codeEditor` do).
 
 ## Style
 
@@ -67,7 +70,7 @@ may set:
 
 ```zig
 const s = "Spans: bold, italic, code, a link, struck, marked.";
-// Spans are kept until the frame is drawn: in the frame's memory.
+// Spans are copied, as the string is: the frame's memory or the app's.
 const spans = c.alloc().dupe(ui.Span, &.{
     .{ .start = 7, .end = 11, .weight = .bold },
     .{ .start = 13, .end = 19, .italic = true },

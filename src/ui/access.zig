@@ -312,11 +312,18 @@ pub const State = struct {
 
 /// Tells assistive technology what the box `id` is: its role, name and
 /// states. Nothing is kept while no assistive technology listens.
-/// Strings must live until the frame is drawn, as other strings of views.
+/// Its strings are copied into the frame's memory.
 pub fn describe(c: *Context, id: u64, d: Description) void {
     if (!c.access.enabled) return;
+    // Read after the view returns: copied, as a text's bytes are.
+    var kept = d;
+    const a = c.alloc();
+    if (kept.label) |l| kept.label = a.dupe(u8, l) catch return;
+    if (kept.value) |v| kept.value = a.dupe(u8, v) catch return;
+    kept.description = a.dupe(u8, kept.description) catch return;
+    kept.placeholder = a.dupe(u8, kept.placeholder) catch return;
     const gop = c.access.described.getOrPut(c.gpa, id) catch return;
-    gop.value_ptr.* = if (gop.found_existing) gop.value_ptr.over(d) else d;
+    gop.value_ptr.* = if (gop.found_existing) gop.value_ptr.over(kept) else kept;
 }
 
 /// Describes the innermost open box (a `pressable`'s, a `column`'s).

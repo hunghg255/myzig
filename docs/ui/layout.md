@@ -124,6 +124,9 @@ A row with `scroll = true` scrolls sideways instead, as a strip of tabs:
 it takes the width it is given rather than its content's, the wheel moves
 it along, and a thin bar shows along its bottom while its content
 overflows. Set `c.scroll` for its id to bring a child into view.
+`c.glideBy(id, dy)` glides box `id` by `dy` points (up positive), as a
+notch over it would, for what scrolls a box from elsewhere: a minimap, an
+overview.
 
 With `follow_end = true` a scrolling box stays at its end as its content
 grows, while the reader left it there: logs, chats and terminals. Scrolled

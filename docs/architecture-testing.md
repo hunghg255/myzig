@@ -37,16 +37,18 @@ try t.screenshot("/tmp/counter.png");
 ```
 
 It offers pointer input (`moveTo`, `click`, `doubleClick`, `rightClick`, `middleClick`,
-`drag`, `scroll`, `clickText`), keys (`key`, `keyEdge`, `shortcut`,
+`drag`, `scroll`, `wheel`, `clickText`), keys (`key`, `keyEdge`, `shortcut`,
 `typeText`, `textOps`), time (`frame`, `advance`, `settle`, with `dt`
 seconds a frame), `resize`, queries (`findText`, `hasText`,
 `containsText`), and pixels (`render`, `rasterize`, `screenshot`,
 `pixelSize`). Its `clipboard` is a buffer of its own. `runScript` runs
-the steps the `--myzig-script` flag takes: `click:TEXT`, `rclick:TEXT`, `move:TEXT`,
-`type:TEXT`, `key:enter|backspace|tab|escape|left|right`,
+the steps the `--myzig-script` flag takes: `click:TEXT`, `rclick:TEXT`,
+`move:TEXT`, `visible:TEXT` (fails unless the text shows whole in the
+window), `type:TEXT`, `key:enter|backspace|tab|escape|left|right`,
 `shortcut:ctrl+shift+p` (a key combination, to the menu bar's
 accelerators and the view as a window gives it), `scroll:DY`,
-`wait:SECONDS` (simulated), `live:SECONDS` (the real loop) and
+`wheel:DY` (notches, gliding), `drag:FROM>TO`, `wait:SECONDS`
+(simulated), `frames:N`, `live:SECONDS` (the real loop) and
 `resize:WxH`.
 
 Every widget behavior has a test through the Tester in `src/ui/tests*.zig`

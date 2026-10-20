@@ -67,6 +67,23 @@ pub fn applyWheel(c: *Context, dy: f32) bool {
     return under;
 }
 
+/// Glides scrolling box `id` by `dy` points (up positive), as a notch over
+/// it would: for what scrolls a box from elsewhere (a minimap, an
+/// overview), with the motion the box has under the pointer.
+pub fn glideBy(c: *Context, id: u64, dy: f32) void {
+    if (motion.reduced(c)) {
+        const gop = c.scroll.getOrPut(c.gpa, id) catch return;
+        if (!gop.found_existing) gop.value_ptr.* = 0;
+        gop.value_ptr.* = std.math.clamp(gop.value_ptr.* - dy, 0, limitOf(c, id));
+        _ = c.wheel.remove(id);
+        return;
+    }
+    const gop = c.wheel.getOrPut(c.gpa, id) catch return;
+    if (!gop.found_existing) gop.value_ptr.* = .{ .seen = c.scroll.get(id) orelse 0 };
+    gop.value_ptr.queued -= dy;
+    c.animating = true;
+}
+
 /// A notch with less motion: at once, the box around one at its end
 /// taking it.
 fn scrollAtOnce(c: *Context, dy: f32) bool {

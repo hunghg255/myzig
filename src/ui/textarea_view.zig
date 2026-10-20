@@ -62,6 +62,9 @@ pub const Gutter = struct {
 pub const Config = struct {
     style: types.TextStyle,
     wrap: bool = true,
+    /// With `wrap`, the column lines wrap at (0: the edge), or the edge
+    /// where that is nearer, as VS Code's `bounded` word wrap.
+    wrap_column: usize = 0,
     read_only: bool = false,
     placeholder: []const u8 = "",
     padding: types.Edges = .xy(10, 7),
@@ -213,7 +216,10 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         .h = if (box.height == .px) box.height.px else c.size.h,
     };
     const text_w = @max(1, view_rect.w - gutter_w);
-    const wrap_w: f32 = if (cfg.wrap) @max(20, text_w - pad.horizontal() - 6) else 0;
+    const char_w = c.text.width("0", cfg.style);
+    const edge_w = @max(20, text_w - pad.horizontal() - 6);
+    const column_w = @as(f32, @floatFromInt(cfg.wrap_column)) * char_w + 1;
+    const wrap_w: f32 = if (!cfg.wrap) 0 else if (cfg.wrap_column > 0) @min(edge_w, @max(20, column_w)) else edge_w;
     var f: Frame = .{ .view = view_rect, .scroll = c.scroll.get(scroll_id) orelse 0, .gutter_w = gutter_w, .pad = pad, .text_w = text_w };
     ta.long.beginFrame(ta.doc.gpa, c.frame);
     const g: Geo = .{
@@ -225,7 +231,6 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         .arena = c.alloc(),
         .long = &ta.long,
     };
-    const char_w = c.text.width("0", cfg.style);
     ta.wrap.sync(ta.doc.gpa, &ta.doc, wrap_w, char_w);
     // Assistive technology moved the caret or the selection.
     if (access.selectRequest(c, it.id)) |sel| {

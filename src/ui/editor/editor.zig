@@ -38,6 +38,8 @@ pub const CodeEditor = struct {
     goto: TextBuffer = .{},
     /// Lines wrap at the editor's width (Alt+Z), rather than scrolling.
     wrap: bool = false,
+    /// The column `wrap` wraps at, or the edge where nearer (0: the edge).
+    wrap_column: usize = 0,
     indent: indent.Indent = .{},
     read_only: bool = false,
     /// The bracket at the caret and its partner, this frame.
@@ -337,6 +339,7 @@ pub fn codeEditor(c: *Context, ed: *CodeEditor, opts: Options) Result {
     return tv.view(c, ta, .{ .width = .fill, .grow = 1 }, .{
         .style = style,
         .wrap = ed.wrap,
+        .wrap_column = ed.wrap_column,
         .read_only = ed.read_only,
         .placeholder = opts.placeholder,
         .padding = .{ .left = 8, .right = 8, .top = 6, .bottom = 6 },

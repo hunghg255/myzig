@@ -318,11 +318,13 @@ pub const Tester = struct {
     }
 
     /// Runs a script of steps separated by `;`: `click:TEXT`, `rclick:TEXT`
-    /// (the right button, as for a context menu; `X,Y` too), `move:TEXT`,
+    /// (the right button, as for a context menu; `X,Y` too), `visible:TEXT`
+    /// (fails unless the text shows whole within the window), `move:TEXT`,
     /// `type:TEXT` (a character an event), `key:enter|backspace|tab|escape|left|right`,
     /// `shortcut:ctrl+shift+p` (cmd, ctrl, alt, shift, then a character or
     /// up, down, left, right, enter, tab, escape, f1 to f12),
-    /// `scroll:DY` (at the pointer), `drag:FROM>TO` (each a text or `X,Y`
+    /// `scroll:DY` (at the pointer), `wheel:DY` (a mouse wheel's notches,
+    /// which glide), `drag:FROM>TO` (each a text or `X,Y`
     /// in points), `wait:SECONDS` (simulated time), `frames:N` (N frames,
     /// then no settling: a snapshot mid-animation), `live:SECONDS` (the
     /// real event loop: replies, processes, timers), `resize:WxH`. Each
@@ -340,6 +342,10 @@ pub const Tester = struct {
             } else if (std.mem.eql(u8, op, "rclick")) {
                 const p = try t.place(arg);
                 t.rightClick(p.x, p.y);
+            } else if (std.mem.eql(u8, op, "visible")) {
+                const r = t.findText(arg) orelse return error.TextNotFound;
+                if (r.x < 0 or r.y < 0 or r.x + r.w > t.size.w or r.y + r.h > t.size.h) return error.TextOutOfView;
+                continue;
             } else if (std.mem.eql(u8, op, "move")) {
                 const r = t.findText(arg) orelse return error.TextNotFound;
                 t.moveTo(r.x + r.w / 2, r.y + r.h / 2);
@@ -369,6 +375,8 @@ pub const Tester = struct {
                 }
             } else if (std.mem.eql(u8, op, "scroll")) {
                 t.scroll(t.ctx.input.mouse.x, t.ctx.input.mouse.y, try std.fmt.parseFloat(f32, arg));
+            } else if (std.mem.eql(u8, op, "wheel")) {
+                t.wheel(t.ctx.input.mouse.x, t.ctx.input.mouse.y, try std.fmt.parseFloat(f32, arg));
             } else if (std.mem.eql(u8, op, "wait")) {
                 t.advance(try std.fmt.parseFloat(f32, arg));
             } else if (std.mem.eql(u8, op, "live")) {

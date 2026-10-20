@@ -51,6 +51,21 @@ test "wheel: a notch glides, notches add up and stop at the end" {
     try testing.expectEqual(@as(u32, 0), t.ctx.wheel.count());
 }
 
+test "wheel: glideBy glides a box from elsewhere, as a notch over it" {
+    var s: One = .{};
+    var t: ui.Tester = undefined;
+    try tester(&t, &s);
+    defer t.deinit();
+    // The pointer off the box: as a minimap beside it scrolls it.
+    t.moveTo(-50, -50);
+    t.ctx.glideBy(s.id, -100);
+    t.advance(0.05);
+    const mid = offset(&t, s.id);
+    try testing.expect(mid > 0 and mid < 100);
+    t.advance(1);
+    try testing.expectApproxEqAbs(@as(f32, 100), offset(&t, s.id), 0.01);
+}
+
 test "wheel: the app or a touchpad moving the offset takes over" {
     var s: One = .{};
     var t: ui.Tester = undefined;

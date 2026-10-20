@@ -120,11 +120,16 @@ until animations settle:
 | Step | What it does |
 |---|---|
 | `click:TEXT`, `move:TEXT` | clicks or hovers the middle of a text |
+| `visible:TEXT` | fails unless the text shows whole within the window (`move:` finds it outside too) |
 | `rclick:TEXT` | right-clicks the middle of a text (or `X,Y` in points), as for its context menu |
 | `type:TEXT` | types text |
 | `key:NAME` | presses a key: `enter`, `backspace`, `tab`, `escape`, `left`, `right`, `up`, `down`, ... |
+| `shortcut:KEYS` | a key combination such as `ctrl+shift+p` (`cmd`, `ctrl`, `alt`, `shift`, then a character, an arrow, `enter`, `tab`, `escape` or `f1` to `f12`) |
 | `scroll:DY` | scrolls at the pointer |
+| `wheel:DY` | scrolls at the pointer as a mouse wheel's notches do, gliding (`frames:N` to watch it) |
+| `drag:FROM>TO` | drags from one text (or `X,Y`) to another |
 | `wait:SECONDS` | advances the simulated clock |
+| `frames:N` | runs N frames, then no settling: a snapshot mid-animation |
 | `live:SECONDS` | runs the real event loop meanwhile: replies, processes, timers |
 | `resize:WxH` | resizes the window |
 

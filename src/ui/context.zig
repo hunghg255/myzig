@@ -532,6 +532,7 @@ pub const Context = struct {
     pub const updateHot = events.updateHot;
     pub const applyScroll = events.applyScroll;
     pub const applyWheel = @import("wheel.zig").applyWheel;
+    pub const glideBy = @import("wheel.zig").glideBy;
     pub const pointerUp = events.pointerUp;
     pub const moveFocus = events.moveFocus;
     pub const tabPressed = events.tabPressed;

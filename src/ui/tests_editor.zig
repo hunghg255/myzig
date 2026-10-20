@@ -271,3 +271,26 @@ test "a file of 100,000 lines builds and highlights only what is in view" {
     t.key(.backspace);
     try testing.expect(t.ctx.stats.nodes < 250);
 }
+
+test "lines wrap at a column, or at the edge where that is nearer" {
+    var s: App = undefined;
+    var t: ui.Tester = undefined;
+    // 120 characters: past 40 columns, within the 640-point editor's edge.
+    const line = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij";
+    try setup(&t, &s, line, "a.txt");
+    defer t.deinit();
+    defer s.ed.deinit();
+    s.ed.wrap = true;
+    t.frame();
+    const at_edge = s.ed.area.wrap.rowsOf(&s.ed.area.doc, 0);
+    s.ed.wrap_column = 40;
+    t.frame();
+    t.frame();
+    try testing.expectEqual(@as(usize, 3), s.ed.area.wrap.rowsOf(&s.ed.area.doc, 0));
+    try testing.expect(at_edge < 3);
+    // A column past the edge: the edge.
+    s.ed.wrap_column = 1000;
+    t.frame();
+    t.frame();
+    try testing.expectEqual(at_edge, s.ed.area.wrap.rowsOf(&s.ed.area.doc, 0));
+}

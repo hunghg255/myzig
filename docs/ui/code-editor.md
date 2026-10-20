@@ -36,6 +36,7 @@ highlighted as the language of the file `name` (null: none). Free it with
 |---|---|
 | `area` | its `ui.TextArea`: the text, the selection, undo ([Text area](text-area.md)) |
 | `wrap` | lines wrap at the editor's width, rather than scrolling sideways |
+| `wrap_column` | with `wrap`, lines wrap at this column, or at the width where that is nearer (0, the default: the width) |
 | `read_only` | selectable, searchable and copyable, not editable |
 | `indent` | `unit` (one level: `"    "` by default, or `"\t"`) and `tab_size` (4) |
 | `find` | the find bar's state: `open`, `replacing`, `query`, `replacement`, `flags` (`case`, `word`, `regex`), `matches` |

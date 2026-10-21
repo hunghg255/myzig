@@ -10,6 +10,13 @@ performance from an app's side, [rendering](ui/rendering.md) and
 
 ## One frame
 
+![Native UI pipeline: a window surface or Tester runs the view, layout and paint; damage limits redraw, and a GPU or CPU renderer draws the instances.](images/architecture-native-ui.svg)
+
+Read the arrows from the frame caller through build, layout and paint,
+then down to the renderer. `gpu.Instance` is the shared drawing contract;
+the CPU path also provides the reference pixels for GPU tests. Text
+shaping happens during layout and glyph atlases are read during paint.
+
 `ui/frame.zig`'s `run` makes one frame, and both every window's surface
 and `ui.Tester` call it, so what a test sees is what a window shows:
 

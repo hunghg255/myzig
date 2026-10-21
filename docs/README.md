@@ -77,6 +77,9 @@ pub fn main(init: std.process.Init) !void {
 
 Start here:
 
+- [Architecture at a glance](architecture.md#architecture-at-a-glance):
+  a visual map of the layers, platform adapters and two UI paths, with
+  diagrams of page IPC and native rendering.
 - [Getting started](getting-started.md): Zig 0.17, the CLI, `myzig init`,
   building and running, every example.
 

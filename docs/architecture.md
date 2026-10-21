@@ -17,6 +17,28 @@ pages go deeper:
   container and the Wine images, the hill climb, and the checklist for a
   new feature.
 
+## Architecture at a glance
+
+![Framework layers: application, public API, shared behavior, two UI paths and platform adapters. Plugins use the public API; the CLI is separate tooling.](images/architecture-overview.svg)
+
+Start at the top: your app calls `src/myzig.zig`, which exposes shared
+contracts and the backend selected at compile time. Below the shared
+code, follow the window's content: a **web page** uses typed IPC and the
+system webview; a **native view** uses myzig's own layout and renderer.
+These are cooperating components, not a chain every API call traverses:
+desktop services such as menus and dialogs go directly to their platform
+adapters. Plugins consume the public API; the CLI creates and builds apps.
+
+The browser target runs native UI through `src/web/host.js` and WebGL 2.
+The desktop webview IPC path is not a browser backend feature. A desktop
+app can have both page windows and native UI windows, and native UI can
+also embed a webview with the [web view widget](ui/web-view.md).
+
+For the details, follow [a page calling Zig](architecture-ipc.md) or
+[a native view becoming pixels](architecture-rendering.md). The
+[standalone diagram sheet](public/architecture-diagrams.html) contains all
+three diagrams in one HTML file that can be opened offline.
+
 ## Goals and constraints
 
 - **One Zig program per app.** An app is a single binary (about 0.7 MB for

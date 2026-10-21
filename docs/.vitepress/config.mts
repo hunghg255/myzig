@@ -143,6 +143,11 @@ function outOfDocs(md: any) {
         if (/^[a-z]+:|^#|^\//i.test(href)) continue
         const [file, hash] = href.split('#')
         const target = path.posix.normalize(path.posix.join(from, file))
+        // public/ is the site root; keep source links usable on GitHub too.
+        if (target.startsWith('public/')) {
+          t.attrSet('href', `/${target.slice('public/'.length)}${hash ? '#' + hash : ''}`)
+          continue
+        }
         if (!target.startsWith('../')) continue
         const inRepo = target.replace(/^\.\.\//, '')
         const kind = /\.[a-z0-9]+$/i.test(inRepo) ? 'blob' : 'tree'

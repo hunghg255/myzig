@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>myzig architecture diagrams</title>
+<style>
+body { margin: 0; background: #f5f5f5; color: #2d3142; font: 16px/1.6 Geist, Arial, sans-serif; }
+main { max-width: 1040px; margin: auto; padding: 32px 16px; }
+h1 { font: 400 40px/1.2 "Instrument Serif", Georgia, serif; }
+h2 { font-size: 24px; margin: 48px 0 8px; }
+p { max-width: 76ch; color: #4f5d75; }
+svg { display: block; width: 100%; height: auto; }
+figure { margin: 24px 0; overflow-x: auto; }
+@media (max-width: 640px) { svg { min-width: 760px; } }
+@media print { figure { break-inside: avoid; } }
+</style>
+</head>
+<body><main>
+<h1>myzig architecture</h1>
+<p>Start with the layers, then follow the two UI paths. Plugins depend on the public API; the CLI creates and builds apps. Platform implementations are selected at compile time.</p>
+<h2>1. Framework overview</h2>
+<figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1000" role="img" aria-labelledby="diagram-1-title diagram-1-desc">
+<title id="diagram-1-title">myzig: the framework at a glance</title>
+<desc id="diagram-1-desc">Read top to bottom: app, public API, shared code, two UI paths, then the selected platform backend. Plugins use the public API; the CLI is build tooling. The browser target supports native UI, not desktop page IPC.</desc>
+<defs>
+<marker id="diagram-1-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#4f5d75"/></marker>
+<marker id="diagram-1-arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#eb6c36"/></marker>
+<marker id="diagram-1-arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#2e5aa8"/></marker>
+</defs>
+<style>text{font-family:Geist,Arial,sans-serif;fill:#2d3142}.title{font-size:24px;font-weight:600}.name{font-size:20px;font-weight:600}.body{font-size:16px;fill:#4f5d75}.code{font-family:"Geist Mono",Consolas,monospace;font-size:16px;fill:#4f5d75}.tag{font-size:12px;letter-spacing:1px;fill:#4f5d75}</style>
+<rect width="960" height="1000" rx="8" fill="#f5f5f5"/>
+<text x="32" y="44" class="title">One API. Two UI paths. A backend chosen at compile time.</text>
+<text x="32" y="76" class="body">Read downward for dependencies; branches show the two kinds of window content.</text>
+<path d="M360 204V232" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M360 344V372" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M360 484V504H188V532" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M360 504H532V532" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M188 692V744" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M532 692V744" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<path d="M704 148H680V288H660" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-1-arrow)"/>
+<rect x="32" y="108" width="628" height="96" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="108" width="628" height="96" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="140" class="name">Your application</text>
+<text x="52" y="168" class="body">Zig state, services and views / examples/</text>
+<rect x="704" y="108" width="224" height="144" rx="8" fill="#f5f5f5"/>
+<rect x="704" y="108" width="224" height="144" rx="8" fill="#ffffff" stroke="#2d3142" stroke-dasharray="4 4"/>
+<text x="724" y="140" class="name">Optional plugins</text>
+<text x="724" y="168" class="body">Public API clients</text>
+<text x="724" y="192" class="body">fetch / sqlite / more</text>
+<text x="724" y="216" class="body">plugins/&lt;name&gt;/</text>
+<rect x="32" y="232" width="628" height="112" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="232" width="628" height="112" rx="8" fill="#fce9df" stroke="#eb6c36"/>
+<text x="52" y="264" class="name">Public API</text>
+<text x="52" y="292" class="code">src/myzig.zig</text>
+<text x="52" y="316" class="body">App / Window / ui / Call / Event / Channel</text>
+<rect x="704" y="284" width="224" height="144" rx="8" fill="#f5f5f5"/>
+<rect x="704" y="284" width="224" height="144" rx="8" fill="#ffffff" stroke="#2d3142" stroke-dasharray="4 4"/>
+<text x="724" y="316" class="name">CLI / build tooling</text>
+<text x="724" y="344" class="body">init / dev / build</text>
+<text x="724" y="368" class="body">generate / doctor</text>
+<text x="724" y="392" class="body">cli/</text>
+<rect x="32" y="372" width="628" height="112" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="372" width="628" height="112" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="404" class="name">Shared behavior and contracts</text>
+<text x="52" y="432" class="body">app_types / window_types / page_core / ipc</text>
+<text x="52" y="456" class="body">documents / transfer / i18n / l10n / audio</text>
+<text x="704" y="472" class="body">Tooling creates and builds</text>
+<text x="704" y="496" class="body">apps; it is not a runtime</text>
+<text x="704" y="520" class="body">layer inside the framework.</text>
+<rect x="32" y="532" width="312" height="160" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="532" width="312" height="160" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="564" class="name">Web page path</text>
+<text x="52" y="592" class="body">HTML / CSS / JS frontend</text>
+<text x="52" y="616" class="body">bridge.js + typed Zig IPC</text>
+<text x="52" y="640" class="body">OS webview draws the page</text>
+<text x="52" y="664" class="body">Desktop targets only</text>
+<rect x="376" y="532" width="312" height="160" rx="8" fill="#f5f5f5"/>
+<rect x="376" y="532" width="312" height="160" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="396" y="564" class="name">Native UI path</text>
+<text x="396" y="592" class="body">Zig views and widgets</text>
+<text x="396" y="616" class="code">src/ui/</text>
+<text x="396" y="640" class="body">Layout → paint → renderer</text>
+<text x="396" y="664" class="body">Desktop + browser target</text>
+<text x="716" y="592" class="body">A desktop app can use</text>
+<text x="716" y="616" class="body">both kinds of window.</text>
+<text x="32" y="728" class="tag">PLATFORM ADAPTERS → selected by builtin.os.tag</text>
+<rect x="32" y="744" width="896" height="176" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="744" width="896" height="176" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="776" class="name">Selected backend → native OS or browser APIs</text>
+<text x="52" y="816" class="name">macOS</text>
+<text x="52" y="844" class="code">src/*.zig</text>
+<text x="52" y="868" class="body">AppKit / WKWebView</text>
+<text x="52" y="892" class="body">Metal</text>
+<text x="276" y="816" class="name">Linux</text>
+<text x="276" y="844" class="code">src/linux/</text>
+<text x="276" y="868" class="body">GTK 3 / WebKitGTK</text>
+<text x="276" y="892" class="body">OpenGL</text>
+<text x="500" y="816" class="name">Windows</text>
+<text x="500" y="844" class="code">src/windows/</text>
+<text x="500" y="868" class="body">Win32 / WebView2</text>
+<text x="500" y="892" class="body">Direct3D 11</text>
+<text x="724" y="816" class="name">Browser</text>
+<text x="724" y="844" class="code">src/web/</text>
+<text x="724" y="868" class="body">wasm32-wasi / host.js</text>
+<text x="724" y="892" class="body">WebGL 2</text>
+<path d="M32 944H928" stroke="#bfc0c0"/>
+<text x="32" y="972" class="body">Solid arrows: dependencies / integration. Dashed boxes: optional packages and tooling.</text>
+</svg>
+</figure>
+<h2>2. Web page IPC</h2>
+<figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 800" role="img" aria-labelledby="diagram-2-title diagram-2-desc">
+<title id="diagram-2-title">myzig: a web page calling Zig</title>
+<desc id="diagram-2-desc">Desktop page IPC: frontend to bridge, native webview transport, shared dispatch and bound Zig service. Replies, events and channels return through a batched outbox. TypeScript generation happens at compile time.</desc>
+<defs>
+<marker id="diagram-2-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#4f5d75"/></marker>
+<marker id="diagram-2-arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#eb6c36"/></marker>
+<marker id="diagram-2-arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#2e5aa8"/></marker>
+</defs>
+<style>text{font-family:Geist,Arial,sans-serif;fill:#2d3142}.title{font-size:24px;font-weight:600}.name{font-size:20px;font-weight:600}.body{font-size:16px;fill:#4f5d75}.code{font-family:"Geist Mono",Consolas,monospace;font-size:16px;fill:#4f5d75}.tag{font-size:12px;letter-spacing:1px;fill:#4f5d75}</style>
+<rect width="960" height="800" rx="8" fill="#f5f5f5"/>
+<text x="32" y="44" class="title">Web pages: typed calls across the webview boundary</text>
+<text x="32" y="76" class="body">Desktop only: WKWebView (macOS), WebKitGTK (Linux), WebView2 (Windows).</text>
+<path d="M296 172H340" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M616 172H660" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M788 244V280H680V312" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M436 376H392" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M252 440V488" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M112 488V464H16V172H32" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)"/>
+<path d="M252 696H64V268H164V244" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-2-arrow)" stroke-dasharray="8 4"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="140" class="name">Frontend</text>
+<text x="52" y="168" class="body">Generated myzig.js client</text>
+<text x="52" y="192" class="code">myzig.d.ts type checking</text>
+<text x="52" y="216" class="body">HTML / CSS / JavaScript</text>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#fce9df" stroke="#eb6c36"/>
+<text x="360" y="140" class="name">Page runtime</text>
+<text x="360" y="168" class="code">src/bridge.js</text>
+<text x="360" y="192" class="body">window.myzig</text>
+<text x="360" y="216" class="body">Call IDs → Promise results</text>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="680" y="140" class="name">Native transport</text>
+<text x="680" y="168" class="body">Webview postMessage</text>
+<text x="680" y="192" class="body">Platform Page adapter</text>
+<text x="680" y="216" class="body">JSON messages</text>
+<rect x="436" y="312" width="492" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="436" y="312" width="492" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="456" y="344" class="name">Shared IPC dispatch</text>
+<text x="456" y="372" class="code">src/ipc.zig / bindings.zig</text>
+<text x="456" y="396" class="body">Trust check → decode → method dispatch</text>
+<text x="456" y="420" class="body">Bound methods run on the main thread</text>
+<rect x="112" y="312" width="280" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="312" width="280" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="344" class="name">Your Zig service</text>
+<text x="132" y="372" class="code">app.bind(&amp;service)</text>
+<text x="132" y="396" class="body">Typed method arguments</text>
+<text x="132" y="420" class="body">Return value or error</text>
+<rect x="112" y="488" width="816" height="104" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="488" width="816" height="104" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="520" class="name">Per-page outbox → native evaluation → bridge receive</text>
+<text x="132" y="548" class="body">Replies, events and channel values are batched once per main-loop turn.</text>
+<text x="132" y="572" class="code">__myzig.receive([...]) settles calls and delivers messages.</text>
+<rect x="252" y="648" width="676" height="96" rx="8" fill="#f5f5f5"/>
+<rect x="252" y="648" width="676" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-dasharray="4 4"/>
+<text x="272" y="680" class="name">Compile-time client generation</text>
+<text x="272" y="708" class="code">tsgen.zig + bindings.zig / myzig.js + myzig.d.ts</text>
+<text x="32" y="620" class="body">Runtime return path goes back to the frontend; generation is separate from message dispatch.</text>
+<path d="M32 760H928" stroke="#bfc0c0"/>
+<text x="32" y="788" class="body">Solid arrows: runtime messages. Dashed arrow / box: generated client supplied to the frontend.</text>
+</svg>
+</figure>
+<h2>3. Native UI rendering</h2>
+<figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 736" role="img" aria-labelledby="diagram-3-title diagram-3-desc">
+<title id="diagram-3-title">myzig: native UI from state to pixels</title>
+<desc id="diagram-3-desc">A surface or ui.Tester calls frame.run. A Zig view builds a Context box tree; layout and paint produce gpu.Instance data. A platform GPU renderer or CPU renderer draws it. Damage limits redraw; input uses previous frame layout.</desc>
+<defs>
+<marker id="diagram-3-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#4f5d75"/></marker>
+<marker id="diagram-3-arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#eb6c36"/></marker>
+<marker id="diagram-3-arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#2e5aa8"/></marker>
+</defs>
+<style>text{font-family:Geist,Arial,sans-serif;fill:#2d3142}.title{font-size:24px;font-weight:600}.name{font-size:20px;font-weight:600}.body{font-size:16px;fill:#4f5d75}.code{font-family:"Geist Mono",Consolas,monospace;font-size:16px;fill:#4f5d75}.tag{font-size:12px;letter-spacing:1px;fill:#4f5d75}</style>
+<rect width="960" height="736" rx="8" fill="#f5f5f5"/>
+<text x="32" y="44" class="title">Native UI: the same frame pipeline in windows and tests</text>
+<text x="32" y="76" class="body">Input, resize, explicit redraw or animation requests a frame; idle views do not poll.</text>
+<path d="M296 176H340" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+<path d="M616 176H660" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+<path d="M788 244V272H680V300" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+<path d="M436 364H392" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+<path d="M252 432V488" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+
+<path d="M252 432V456H680V488" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#diagram-3-arrow)"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="140" class="name">Frame caller</text>
+<text x="52" y="168" class="body">Platform window surface</text>
+<text x="52" y="192" class="body">or headless ui.Tester</text>
+<text x="52" y="216" class="code">ui/frame.zig → run</text>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#fce9df" stroke="#eb6c36"/>
+<text x="360" y="140" class="name">Build view</text>
+<text x="360" y="168" class="body">State → ui.View(Context)</text>
+<text x="360" y="192" class="body">Widgets → box tree</text>
+<text x="360" y="216" class="body">c.changed → rebuild</text>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="680" y="140" class="name">Layout</text>
+<text x="680" y="168" class="code">ui/layout.zig</text>
+<text x="680" y="192" class="body">Measure → arrange</text>
+<text x="680" y="216" class="body">Rects + text shaping</text>
+<rect x="436" y="300" width="492" height="132" rx="8" fill="#f5f5f5"/>
+<rect x="436" y="300" width="492" height="132" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="456" y="332" class="name">Paint</text>
+<text x="456" y="360" class="code">ui/paint.zig → gpu.Instance[]</text>
+<text x="456" y="384" class="body">Backgrounds / glyphs / images / effects</text>
+<text x="456" y="408" class="body">Clipping, hit regions and draw order</text>
+<rect x="112" y="300" width="280" height="132" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="300" width="280" height="132" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="332" class="name">Damage</text>
+<text x="132" y="360" class="code">ui/damage.zig</text>
+<text x="132" y="384" class="body">Find changed regions</text>
+<text x="132" y="408" class="body">Limit redraw work</text>
+<rect x="112" y="488" width="280" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="488" width="280" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="520" class="name">GPU renderer</text>
+<text x="132" y="548" class="body">Metal / D3D11</text>
+<text x="132" y="572" class="body">OpenGL / WebGL 2</text>
+<text x="132" y="596" class="body">Selected for the target</text>
+<rect x="436" y="488" width="492" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="436" y="488" width="492" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="456" y="520" class="name">CPU renderer / reference twin</text>
+<text x="456" y="548" class="code">ui/raster*.zig</text>
+<text x="456" y="572" class="body">Offscreen Tester rendering and CPU path</text>
+<text x="456" y="596" class="body">GPU tests compare against CPU pixels</text>
+<text x="32" y="656" class="body">Interaction reads the previous layout; frame commit updates hit state for the next event.</text>
+<path d="M32 688H928" stroke="#bfc0c0"/>
+<text x="32" y="716" class="body">Arrows: frame data / drawing work. GPU and CPU are alternative render paths for the same instances.</text>
+</svg>
+</figure>
+</main></body></html>

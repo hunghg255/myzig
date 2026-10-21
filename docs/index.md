@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: Overview
       link: /README
+    - theme: alt
+      text: Architecture
+      link: /architecture#architecture-at-a-glance
 
 features:
   - title: Native UI in Zig alone

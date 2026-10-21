@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 736" role="img" aria-labelledby="title desc">
+<title id="title">myzig: native UI from state to pixels</title>
+<desc id="desc">A surface or ui.Tester calls frame.run. A Zig view builds a Context box tree; layout and paint produce gpu.Instance data. A platform GPU renderer or CPU renderer draws it. Damage limits redraw; input uses previous frame layout.</desc>
+<defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#2e5aa8"/></marker>
+</defs>
+<style>text{font-family:Geist,Arial,sans-serif;fill:#2d3142}.title{font-size:24px;font-weight:600}.name{font-size:20px;font-weight:600}.body{font-size:16px;fill:#4f5d75}.code{font-family:"Geist Mono",Consolas,monospace;font-size:16px;fill:#4f5d75}.tag{font-size:12px;letter-spacing:1px;fill:#4f5d75}</style>
+<rect width="960" height="736" rx="8" fill="#f5f5f5"/>
+<text x="32" y="44" class="title">Native UI: the same frame pipeline in windows and tests</text>
+<text x="32" y="76" class="body">Input, resize, explicit redraw or animation requests a frame; idle views do not poll.</text>
+<path d="M296 176H340" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M616 176H660" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M788 244V272H680V300" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M436 364H392" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M252 432V488" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+<path d="M252 432V456H680V488" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="108" width="264" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="140" class="name">Frame caller</text>
+<text x="52" y="168" class="body">Platform window surface</text>
+<text x="52" y="192" class="body">or headless ui.Tester</text>
+<text x="52" y="216" class="code">ui/frame.zig → run</text>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="340" y="108" width="276" height="136" rx="8" fill="#fce9df" stroke="#eb6c36"/>
+<text x="360" y="140" class="name">Build view</text>
+<text x="360" y="168" class="body">State → ui.View(Context)</text>
+<text x="360" y="192" class="body">Widgets → box tree</text>
+<text x="360" y="216" class="body">c.changed → rebuild</text>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#f5f5f5"/>
+<rect x="660" y="108" width="268" height="136" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="680" y="140" class="name">Layout</text>
+<text x="680" y="168" class="code">ui/layout.zig</text>
+<text x="680" y="192" class="body">Measure → arrange</text>
+<text x="680" y="216" class="body">Rects + text shaping</text>
+<rect x="436" y="300" width="492" height="132" rx="8" fill="#f5f5f5"/>
+<rect x="436" y="300" width="492" height="132" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="456" y="332" class="name">Paint</text>
+<text x="456" y="360" class="code">ui/paint.zig → gpu.Instance[]</text>
+<text x="456" y="384" class="body">Backgrounds / glyphs / images / effects</text>
+<text x="456" y="408" class="body">Clipping, hit regions and draw order</text>
+<rect x="112" y="300" width="280" height="132" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="300" width="280" height="132" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="332" class="name">Damage</text>
+<text x="132" y="360" class="code">ui/damage.zig</text>
+<text x="132" y="384" class="body">Find changed regions</text>
+<text x="132" y="408" class="body">Limit redraw work</text>
+<rect x="112" y="488" width="280" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="112" y="488" width="280" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="132" y="520" class="name">GPU renderer</text>
+<text x="132" y="548" class="body">Metal / D3D11</text>
+<text x="132" y="572" class="body">OpenGL / WebGL 2</text>
+<text x="132" y="596" class="body">Selected for the target</text>
+<rect x="436" y="488" width="492" height="128" rx="8" fill="#f5f5f5"/>
+<rect x="436" y="488" width="492" height="128" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="456" y="520" class="name">CPU renderer / reference twin</text>
+<text x="456" y="548" class="code">ui/raster*.zig</text>
+<text x="456" y="572" class="body">Offscreen Tester rendering and CPU path</text>
+<text x="456" y="596" class="body">GPU tests compare against CPU pixels</text>
+<text x="32" y="656" class="body">Interaction reads the previous layout; frame commit updates hit state for the next event.</text>
+<path d="M32 688H928" stroke="#bfc0c0"/>
+<text x="32" y="716" class="body">Arrows: frame data / drawing work. GPU and CPU are alternative render paths for the same instances.</text>
+</svg>

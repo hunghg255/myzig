@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1000" role="img" aria-labelledby="title desc">
+<title id="title">myzig: the framework at a glance</title>
+<desc id="desc">Read top to bottom: app, public API, shared code, two UI paths, then the selected platform backend. Plugins use the public API; the CLI is build tooling. The browser target supports native UI, not desktop page IPC.</desc>
+<defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#2e5aa8"/></marker>
+</defs>
+<style>text{font-family:Geist,Arial,sans-serif;fill:#2d3142}.title{font-size:24px;font-weight:600}.name{font-size:20px;font-weight:600}.body{font-size:16px;fill:#4f5d75}.code{font-family:"Geist Mono",Consolas,monospace;font-size:16px;fill:#4f5d75}.tag{font-size:12px;letter-spacing:1px;fill:#4f5d75}</style>
+<rect width="960" height="1000" rx="8" fill="#f5f5f5"/>
+<text x="32" y="44" class="title">One API. Two UI paths. A backend chosen at compile time.</text>
+<text x="32" y="76" class="body">Read downward for dependencies; branches show the two kinds of window content.</text>
+<path d="M360 204V232" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M360 344V372" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M360 484V504H188V532" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M360 504H532V532" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M188 692V744" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M532 692V744" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M704 148H680V288H660" fill="none" stroke="#4f5d75" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="32" y="108" width="628" height="96" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="108" width="628" height="96" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="140" class="name">Your application</text>
+<text x="52" y="168" class="body">Zig state, services and views / examples/</text>
+<rect x="704" y="108" width="224" height="144" rx="8" fill="#f5f5f5"/>
+<rect x="704" y="108" width="224" height="144" rx="8" fill="#ffffff" stroke="#2d3142" stroke-dasharray="4 4"/>
+<text x="724" y="140" class="name">Optional plugins</text>
+<text x="724" y="168" class="body">Public API clients</text>
+<text x="724" y="192" class="body">fetch / sqlite / more</text>
+<text x="724" y="216" class="body">plugins/&lt;name&gt;/</text>
+<rect x="32" y="232" width="628" height="112" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="232" width="628" height="112" rx="8" fill="#fce9df" stroke="#eb6c36"/>
+<text x="52" y="264" class="name">Public API</text>
+<text x="52" y="292" class="code">src/myzig.zig</text>
+<text x="52" y="316" class="body">App / Window / ui / Call / Event / Channel</text>
+<rect x="704" y="284" width="224" height="144" rx="8" fill="#f5f5f5"/>
+<rect x="704" y="284" width="224" height="144" rx="8" fill="#ffffff" stroke="#2d3142" stroke-dasharray="4 4"/>
+<text x="724" y="316" class="name">CLI / build tooling</text>
+<text x="724" y="344" class="body">init / dev / build</text>
+<text x="724" y="368" class="body">generate / doctor</text>
+<text x="724" y="392" class="body">cli/</text>
+<rect x="32" y="372" width="628" height="112" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="372" width="628" height="112" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="404" class="name">Shared behavior and contracts</text>
+<text x="52" y="432" class="body">app_types / window_types / page_core / ipc</text>
+<text x="52" y="456" class="body">documents / transfer / i18n / l10n / audio</text>
+<text x="704" y="472" class="body">Tooling creates and builds</text>
+<text x="704" y="496" class="body">apps; it is not a runtime</text>
+<text x="704" y="520" class="body">layer inside the framework.</text>
+<rect x="32" y="532" width="312" height="160" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="532" width="312" height="160" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="564" class="name">Web page path</text>
+<text x="52" y="592" class="body">HTML / CSS / JS frontend</text>
+<text x="52" y="616" class="body">bridge.js + typed Zig IPC</text>
+<text x="52" y="640" class="body">OS webview draws the page</text>
+<text x="52" y="664" class="body">Desktop targets only</text>
+<rect x="376" y="532" width="312" height="160" rx="8" fill="#f5f5f5"/>
+<rect x="376" y="532" width="312" height="160" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="396" y="564" class="name">Native UI path</text>
+<text x="396" y="592" class="body">Zig views and widgets</text>
+<text x="396" y="616" class="code">src/ui/</text>
+<text x="396" y="640" class="body">Layout → paint → renderer</text>
+<text x="396" y="664" class="body">Desktop + browser target</text>
+<text x="716" y="592" class="body">A desktop app can use</text>
+<text x="716" y="616" class="body">both kinds of window.</text>
+<text x="32" y="728" class="tag">PLATFORM ADAPTERS → selected by builtin.os.tag</text>
+<rect x="32" y="744" width="896" height="176" rx="8" fill="#f5f5f5"/>
+<rect x="32" y="744" width="896" height="176" rx="8" fill="#ffffff" stroke="#2d3142"/>
+<text x="52" y="776" class="name">Selected backend → native OS or browser APIs</text>
+<text x="52" y="816" class="name">macOS</text>
+<text x="52" y="844" class="code">src/*.zig</text>
+<text x="52" y="868" class="body">AppKit / WKWebView</text>
+<text x="52" y="892" class="body">Metal</text>
+<text x="276" y="816" class="name">Linux</text>
+<text x="276" y="844" class="code">src/linux/</text>
+<text x="276" y="868" class="body">GTK 3 / WebKitGTK</text>
+<text x="276" y="892" class="body">OpenGL</text>
+<text x="500" y="816" class="name">Windows</text>
+<text x="500" y="844" class="code">src/windows/</text>
+<text x="500" y="868" class="body">Win32 / WebView2</text>
+<text x="500" y="892" class="body">Direct3D 11</text>
+<text x="724" y="816" class="name">Browser</text>
+<text x="724" y="844" class="code">src/web/</text>
+<text x="724" y="868" class="body">wasm32-wasi / host.js</text>
+<text x="724" y="892" class="body">WebGL 2</text>
+<path d="M32 944H928" stroke="#bfc0c0"/>
+<text x="32" y="972" class="body">Solid arrows: dependencies / integration. Dashed boxes: optional packages and tooling.</text>
+</svg>

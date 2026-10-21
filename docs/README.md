@@ -176,3 +176,8 @@ npm run preview   # serves what build wrote
 page gets its place there. Pages stay plain Markdown, read the same on
 GitHub; links out of `docs/` (to `AGENTS.md`, sources, benchmark notes)
 become links to the repository on the site.
+
+The site defaults to English at the root URL. Choose **Tiếng Việt** in the
+language menu for the corresponding page under `/vi/`, or read the
+[Vietnamese edition](vi/README.md) directly. Both editions keep the same
+API names, commands and code examples.

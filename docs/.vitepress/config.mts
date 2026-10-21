@@ -4,6 +4,7 @@
 // notes) go to the repository there.
 import { defineConfig } from 'vitepress'
 import path from 'node:path'
+import { vietnamese, vietnameseSearch } from './vi.mts'
 
 const repo = 'https://github.com/hunghg255/myzig'
 const branch = 'main'
@@ -159,9 +160,19 @@ function outOfDocs(md: any) {
 }
 
 export default defineConfig({
+  lang: 'en',
   title: 'myzig',
   description: 'Desktop apps in Zig, with native UI drawn on the GPU or a web frontend.',
   cleanUrls: true,
+  locales: {
+    root: { label: 'English', lang: 'en' },
+    vi: {
+      label: 'Tiếng Việt',
+      lang: 'vi',
+      description: 'Ứng dụng desktop bằng Zig với giao diện native trên GPU hoặc frontend web.',
+      themeConfig: vietnamese({ '/ui/': ui, '/plugins': plugins, '/architecture': architecture, '/': guide }),
+    },
+  },
   lastUpdated: false,
   head: [['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]],
   markdown: {
@@ -183,7 +194,7 @@ export default defineConfig({
       '/': guide,
     },
     socialLinks: [{ icon: 'github', link: repo }],
-    search: { provider: 'local' },
+    search: { provider: 'local', options: { locales: { vi: { translations: vietnameseSearch } } } },
     outline: { level: [2, 3] },
     editLink: { pattern: `${repo}/edit/${branch}/docs/:path` },
     footer: { message: 'Released under the MIT License.', copyright: 'myzig, after mygo and GPUI' },

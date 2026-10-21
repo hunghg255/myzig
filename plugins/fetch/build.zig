@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/tests.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{ .{ .name = "fetch", .module = mod }, .{ .name = "api", .module = api } },
+        .imports = &.{ .{ .name = "fetch", .module = mod }, .{ .name = "api", .module = api }, .{ .name = "myzig", .module = myzig } },
     }) });
     const test_step = b.step("test", "Run the tests (against a local server) and the example's page, hidden");
     // The modules own tests (codecs, parsers, the service compiled whole).

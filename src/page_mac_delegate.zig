@@ -7,6 +7,7 @@ const objc = @import("objc.zig");
 const types = @import("page_types.zig");
 const extra = @import("page_mac_extra.zig");
 const Page = @import("page.zig").Page;
+const ipc = @import("ipc.zig");
 
 pub fn handlerClass() objc.Class {
     return objc.defineClass(.{
@@ -53,6 +54,8 @@ fn didReceiveScriptMessage(self_obj: objc.Object, _: objc.SEL, _: objc.Object, m
     const page = pageOf(self_obj) orelse return;
     const pool = objc.Pool.push();
     defer pool.pop();
+    const frame = objc.msg(?objc.Object, message, "frameInfo", .{}) orelse return;
+    if (!objc.msg(objc.BOOL, frame, "isMainFrame", .{})) return;
     const body = objc.msg(?objc.Object, message, "body", .{}) orelse return;
     if (!objc.msg(objc.BOOL, body, "isKindOfClass:", .{objc.class("NSString")})) return;
     // The message may close the window, and free the page.
@@ -66,9 +69,12 @@ fn urlString(nsurl: ?objc.Object) []const u8 {
 
 fn didStart(self_obj: objc.Object, _: objc.SEL, webview: objc.Object, _: ?objc.Object) callconv(.c) void {
     const page = pageOf(self_obj) orelse return;
+    const window = page.window;
+    const app = window.app;
     const pool = objc.Pool.push();
     defer pool.pop();
     page.navigated();
+    if (!ipc.stillOpen(app, window, page)) return;
     page.core.fire(.{ .load_started = urlString(objc.msg(?objc.Object, webview, "URL", .{})) });
 }
 

@@ -21,6 +21,9 @@
 
   const redirected = await fetch(base + "/redirect");
   expect(redirected.redirected && redirected.url.endsWith("/hello"), "redirect " + redirected.url);
+  let blocked = false;
+  try { await fetch(base + "/blocked-redirect"); } catch (e) { blocked = String(e).includes("NotAllowed"); }
+  expect(blocked, "redirect escaped policy");
   const manual = await fetch(base + "/redirect", { redirect: "manual" });
   expect(manual.status === 302 && manual.headers.get("location") === "/hello", "manual");
 

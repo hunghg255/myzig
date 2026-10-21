@@ -8,6 +8,13 @@ architecture, [the overview](architecture.md).
 
 ## The pieces
 
+![Desktop IPC: frontend to bridge to native webview transport to shared dispatch and a bound Zig service; the outbox returns batched messages. Compile-time generation supplies the client.](images/architecture-ipc.svg)
+
+Follow the solid arrows for a runtime call and its reply. The dashed
+generation path happens at compile time: Zig service types produce the
+JavaScript client and TypeScript declarations used by the frontend.
+Events and channel values share the outbox return path.
+
 | file | what |
 |---|---|
 | `src/bridge.js` | the page runtime, `window.myzig`, injected into every document's main frame |
@@ -107,6 +114,8 @@ Zig → page:
 An error becomes `"ok":false` with `"Service.method: ErrorName"`, which
 rejects the page's promise with an `Error` of that message. If the method
 closed its own window, no reply is sent: the page is gone.
+Call and evaluation IDs must be nonnegative JavaScript safe integers;
+messages with missing or invalid IDs are ignored.
 
 ### The outbox
 
@@ -140,6 +149,10 @@ bound method taking `myzig.Channel(T)` (ids above 0); Zig opens one with
 `myzig.ChannelKind("logs", T).open(window)` (ids below 0), which the page
 hears of through `myzig.onChannel("logs", fn)` or the generated
 `onLogsChannel(fn)`.
+Retained Zig channels report closed after their window closes. The app
+must outlive its channels.
+An `onClose` listener may close its window or navigate: the old channel's
+end message is not sent to a page that disappeared or a new document.
 
 Flow control is a window of bytes (`page_channel.window_bytes`, 1 MiB) on
 each side. Values from Zig wait in the page until it takes them (an
@@ -172,6 +185,8 @@ The bridge awaits it and posts `{"t":"eval","id":ID,"k":TOKEN,...}`. The
 token is 8 random bytes per page (16 hex digits), so a page's own scripts cannot forge a
 result. A navigation or closing fails what is pending ("the page
 navigated", "the page closed").
+Values that cannot be encoded as JSON, such as a `BigInt` or an object
+with circular references, report an evaluation error too.
 
 ### Trust
 
@@ -186,6 +201,11 @@ permissions. `page_core.trusted` trusts:
 
 Trust is checked against the page's current URL at each call, so a
 page that navigates elsewhere loses it.
+Origins are compared in full, including long authorities; fixed-size
+header buffers never determine whether an origin is trusted. Messages
+from subframes are refused before dispatching IPC: macOS checks the
+frame, WebView2 delivers only the top frame's, and on Linux the bridge's
+messages carry the page's token, which subframes never see.
 
 ## The app's schemes
 
@@ -198,7 +218,8 @@ way on every platform:
    the `SchemeRequest` now or later (`req.respond(status, headers, body)`).
 3. `myzig://` serves the frontend: `/myzig.js` is the generated client
    (`App.clientJs`); then the file of `assets_dir` (`MYZIG_ASSETS_DIR`
-   overrides it; paths with `..`, backslashes or drives are refused),
+   overrides it; paths are percent-decoded once, then paths with `..`,
+   backslashes, drives or NUL bytes are refused),
    then the embedded `assets`; a path without an extension that is no
    file is a client-side route and gets `/index.html`.
 4. Anything else is `404 Not Found`.

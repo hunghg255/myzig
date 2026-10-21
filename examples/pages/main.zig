@@ -54,6 +54,7 @@ fn end() void {
 }
 
 const Test = struct {
+    iframe_calls: u32 = 0,
     uploaded_buf: [64]u8 = undefined,
     uploaded_len: usize = 0,
     flood_sent: u32 = 0,
@@ -66,6 +67,14 @@ const Test = struct {
 
     pub fn ping(_: *Test) []const u8 {
         return "pong";
+    }
+
+    pub fn iframeProbe(self: *Test) void {
+        self.iframe_calls += 1;
+    }
+
+    pub fn iframeCalls(self: *Test) u32 {
+        return self.iframe_calls;
     }
 
     /// Sends 0..n-1, then closes the channel.
@@ -142,13 +151,32 @@ fn checkEval(_: ?*anyopaque) callconv(.c) void {
                     expectEval("(() => { throw new Error('boom') })()", struct {
                         fn h(r3: myzig.EvalResult) void {
                             if (r3 != .err or std.mem.indexOf(u8, r3.err, "boom") == null) return fail("eval error {any}", .{r3});
-                            checkFind();
+                            checkEvalSerialization();
                         }
                     }.h);
                 }
             }.g);
         }
     }.f);
+}
+
+fn checkEvalSerialization() void {
+    expectEval("1n", struct {
+        fn bigint(r: myzig.EvalResult) void {
+            if (r != .err or r.err.len == 0) return fail("eval bigint {any}", .{r});
+            expectEval("(() => { const v = {}; v.self = v; return v; })()", struct {
+                fn cyclic(r2: myzig.EvalResult) void {
+                    if (r2 != .err or r2.err.len == 0) return fail("eval cyclic {any}", .{r2});
+                    expectEval("42", struct {
+                        fn recovered(r3: myzig.EvalResult) void {
+                            if (r3 != .ok or !std.mem.eql(u8, r3.ok, "42")) return fail("eval recovery {any}", .{r3});
+                            checkFind();
+                        }
+                    }.recovered);
+                }
+            }.cyclic);
+        }
+    }.bigint);
 }
 
 fn checkFind() void {
@@ -319,6 +347,8 @@ fn guard(_: ?*anyopaque) callconv(.c) void {
 const assets = [_]myzig.Asset{
     .{ .path = "/index.html", .data = @embedFile("frontend/index.html") },
     .{ .path = "/test.js", .data = @embedFile("frontend/test.js") },
+    .{ .path = "/embedded name.txt", .data = "embedded space" },
+    .{ .path = "/caf\xc3\xa9.txt", .data = "unicode" },
 };
 
 pub fn main(init: std.process.Init) !void {
@@ -339,6 +369,7 @@ pub fn main(init: std.process.Init) !void {
     defer cwd.deleteTree(init.io, dir) catch {};
     var sub = try cwd.openDir(init.io, dir, .{});
     try sub.writeFile(init.io, .{ .sub_path = "fromdisk.txt", .data = "from disk" });
+    try sub.writeFile(init.io, .{ .sub_path = "disk name.txt", .data = "disk space" });
     sub.close(init.io);
 
     window = try app.newWindow(.{

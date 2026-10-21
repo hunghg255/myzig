@@ -32,6 +32,10 @@ const assets = [_]myzig.Asset{
     fetch.asset,
 };
 
+fn allow(_: ?*anyopaque, req: *const fetch.Request) bool {
+    return std.mem.startsWith(u8, req.url, "http://127.0.0.1:") and !std.mem.endsWith(u8, req.url, "/forbidden");
+}
+
 pub fn main(init: std.process.Init) !void {
     const app = try myzig.App.create(init, .{ .name = "Fetch" });
     defer app.destroy();
@@ -40,7 +44,7 @@ pub fn main(init: std.process.Init) !void {
     try api.start(init.io);
     defer api.stop();
 
-    var service: fetch.Service = try .init(init.gpa, init.io, .{});
+    var service: fetch.Service = try .init(init.gpa, init.io, .{ .allow = allow });
     defer service.deinit();
     try app.bind(&service);
     try app.registerEvent(fetch.PartEvent);

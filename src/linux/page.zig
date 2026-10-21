@@ -18,6 +18,11 @@ const embed_mod = @import("page_embed.zig");
 const Window = @import("window.zig").Window;
 
 const bridge_js = @embedFile("../bridge.js");
+const frame_placeholder = "const frame = \"\";";
+const frame_at = at: {
+    @setEvalBranchQuota(1_000_000);
+    break :at std.mem.indexOf(u8, bridge_js, frame_placeholder).?;
+};
 
 /// Events wait for dom-ready so listeners exist; bounded per page.
 const max_held = 1024;
@@ -116,8 +121,16 @@ pub const Page = struct {
     }
 
     fn addScripts(self: *Page) void {
-        self.addScript(bridge_js);
+        self.addBridge();
         for (self.core.scripts.items) |s| self.addScript(s.source);
+    }
+
+    /// The bridge, its messages marked with the page's token: only the
+    /// main frame, where user scripts run, knows it.
+    fn addBridge(self: *Page) void {
+        const source = std.mem.concat(self.gpa, u8, &.{ bridge_js[0..frame_at], "const frame = \"", &self.core.token, "\";", bridge_js[frame_at + frame_placeholder.len ..] }) catch return;
+        defer self.gpa.free(source);
+        self.addScript(source);
     }
 
     fn addScript(self: *Page, source: []const u8) void {
@@ -296,11 +309,13 @@ pub const Page = struct {
 
     /// A new document: what waited for the last one's DOM is dropped.
     pub fn navigated(self: *Page) void {
+        const window = self.window;
+        const app = window.app;
         self.dom_ready = false;
         for (self.held.items) |m| self.gpa.free(m);
         self.held.clearRetainingCapacity();
         self.core.navigated();
-        self.window.app.bindings.pageGone(self.window, self);
+        if (ipc.stillOpen(app, window, self)) app.bindings.pageGone(window, self);
     }
 
     pub fn startDrag(self: *Page) void {
@@ -396,8 +411,11 @@ fn onMessage(_: *anyopaque, result: *anyopaque, data: ?*anyopaque) callconv(.c) 
     if (k.jsc_value_is_string(value) == 0) return;
     const s = k.jsc_value_to_string(value);
     defer gtk.api.g_free(s);
+    // Subframes have the handler too, but not the token.
+    const message = std.mem.span(s);
+    if (!std.mem.startsWith(u8, message, &self.core.token)) return;
     // The message may close the window, and free the page.
-    ipc.handleMessage(self.window, self, std.mem.span(s));
+    ipc.handleMessage(self.window, self, message[self.core.token.len..]);
 }
 
 fn onPress(_: *anyopaque, event: *anyopaque, data: ?*anyopaque) callconv(.c) c_int {

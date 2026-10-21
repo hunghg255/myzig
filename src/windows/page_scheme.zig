@@ -12,6 +12,8 @@ const core_mod = @import("../page_core.zig");
 const serve = @import("../page_serve.zig");
 const desktop = @import("desktop.zig");
 const Page = @import("page.zig").Page;
+const extra = @import("page_extra.zig");
+const ipc = @import("../ipc.zig");
 
 const env_create_response = 4;
 const wv_add_resource = 55;
@@ -31,6 +33,7 @@ extern "shlwapi" fn SHCreateMemStream(data: ?[*]const u8, size: u32) callconv(.w
 
 /// A request waiting for the app's answer.
 pub const Task = struct {
+    gpa: std.mem.Allocator,
     /// Null once the page closed.
     page: ?*Page,
     args: com.Object,
@@ -90,7 +93,8 @@ fn resourceRequested(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {
     if (url.ptr == uri.ptr) return; // not the app's
     p = null;
     _ = com.call(request, req_get_method, .{&p});
-    const method = com.takeString(gpa, p) catch return;
+    // From here an unanswered request would go to the network.
+    const method = com.takeString(gpa, p) catch return respondNow(args, 500, "", "");
     defer gpa.free(method);
     var content: ?com.Object = null;
     var body: std.ArrayList(u8) = .empty;
@@ -100,11 +104,8 @@ fn resourceRequested(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {
         com.release(s);
     };
     var deferral: ?com.Object = null;
-    if (com.failed(com.call(args, res_get_deferral, .{&deferral}))) return;
-    const task = gpa.create(Task) catch return;
-    com.addRef(args);
-    task.* = .{ .page = page, .args = args, .deferral = deferral.?, .document = context == context_document };
-    page.tasks.append(gpa, task) catch {};
+    if (com.failed(com.call(args, res_get_deferral, .{&deferral}))) return respondNow(args, 500, "", "");
+    const task = createTask(page, args, deferral orelse return respondNow(args, 500, "", ""), context == context_document) orelse return;
     const r = types.SchemeRequest.create(gpa, method, url, body.items, .{ .ctx = task, .begin = begin, .write = null, .finish = finish }) catch {
         respondNow(args, 500, "", "");
         return finishTask(task);
@@ -114,6 +115,25 @@ fn resourceRequested(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {
     const page_url = if (task.document) null else page.currentUrl(gpa) catch null;
     defer if (page_url) |u| gpa.free(u);
     serve.dispatch(&page.core, page.window.app, r, scheme_name, page_url);
+}
+
+fn createTask(page: *Page, args: com.Object, deferral: com.Object, document: bool) ?*Task {
+    const gpa = page.gpa;
+    var registered = false;
+    defer if (!registered) {
+        respondNow(args, 500, "", "");
+        _ = com.call(deferral, deferral_complete, .{});
+        com.release(deferral);
+    };
+    const task = gpa.create(Task) catch return null;
+    task.* = .{ .gpa = gpa, .page = page, .args = args, .deferral = deferral, .document = document };
+    page.tasks.append(gpa, task) catch {
+        gpa.destroy(task);
+        return null;
+    };
+    com.addRef(args);
+    registered = true;
+    return task;
 }
 
 fn readStream(gpa: std.mem.Allocator, s: com.Object, out: *std.ArrayList(u8)) void {
@@ -126,12 +146,63 @@ fn readStream(gpa: std.mem.Allocator, s: com.Object, out: *std.ArrayList(u8)) vo
     }
 }
 
+test "memory regression: scheme task allocation failures complete and release deferrals" {
+    const t = std.testing;
+    const Fake = extern struct {
+        vtbl: *const [4]*const anyopaque = &vtable,
+        refs: u32 = 1,
+        completed: u32 = 0,
+        const vtable: [4]*const anyopaque = .{ @ptrCast(&addRef), @ptrCast(&addRef), @ptrCast(&release), @ptrCast(&complete) };
+        fn addRef(f: *@This()) callconv(.winapi) u32 {
+            f.refs += 1;
+            return f.refs;
+        }
+        fn release(f: *@This()) callconv(.winapi) u32 {
+            std.debug.assert(f.refs > 0);
+            f.refs -= 1;
+            return f.refs;
+        }
+        fn complete(f: *@This()) callconv(.winapi) com.HRESULT {
+            f.completed += 1;
+            return com.S_OK;
+        }
+    };
+    for (0..4) |fail_index| {
+        var f: @import("page_test_support.zig").Fixture = undefined;
+        f.init();
+        defer f.deinit();
+        const page = try f.open(.{});
+        var failing = t.FailingAllocator.init(t.allocator, .{ .fail_index = fail_index });
+        page.gpa = failing.allocator();
+        defer page.gpa = t.allocator;
+        var args: Fake = .{};
+        var deferral: Fake = .{};
+        const task = createTask(page, &args, &deferral, false);
+        if (task) |pending| {
+            try t.expectEqual(@as(usize, 1), page.tasks.items.len);
+            try t.expectEqual(@as(u32, 2), args.refs);
+            try t.expectEqual(@as(u32, 0), deferral.completed);
+            // A download listener can close the page before finishTask runs.
+            if (fail_index == 3) abandon(page);
+            finishTask(pending);
+        }
+        try t.expectEqual(fail_index >= 2, task != null);
+        try t.expectEqual(@as(u32, 1), args.refs);
+        try t.expectEqual(@as(u32, 0), deferral.refs);
+        try t.expectEqual(@as(u32, 1), deferral.completed);
+        try t.expectEqual(@as(usize, 0), page.tasks.items.len);
+        page.tasks.deinit(failing.allocator());
+        page.tasks = .empty;
+        try t.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+    }
+}
+
 fn begin(_: *anyopaque, _: *types.SchemeRequest) void {}
 
 fn finish(ctx: *anyopaque, req: *types.SchemeRequest) void {
     const task: *Task = @ptrCast(@alignCast(ctx));
     defer req.destroy();
-    const page = task.page orelse return req.gpa.destroy(task);
+    const page = task.page orelse return finishTask(task);
     const ok = req.status >= 200 and req.status < 300;
     if (task.document and ok and isDownload(req)) {
         // The page stays; the app's answer becomes a file.
@@ -144,16 +215,16 @@ fn finish(ctx: *anyopaque, req: *types.SchemeRequest) void {
 }
 
 fn finishTask(task: *Task) void {
+    const gpa = task.gpa;
+    defer gpa.destroy(task);
     if (task.page) |page| {
         for (page.tasks.items, 0..) |t, i| if (t == task) {
             _ = page.tasks.swapRemove(i);
             break;
         };
-        const gpa = page.gpa;
         _ = com.call(task.deferral, deferral_complete, .{});
         com.release(task.deferral);
         com.release(task.args);
-        gpa.destroy(task);
     }
 }
 
@@ -183,34 +254,24 @@ fn respondNow(args: com.Object, status: u16, headers: []const u8, body: []const 
 /// Serves `url` of an app scheme into a download.
 pub fn download(page: *Page, url: []const u8, name: []const u8) void {
     const gpa = page.gpa;
-    const d = gpa.create(Saving) catch return;
-    d.* = .{ .page = page, .name = gpa.dupe(u8, name) catch return gpa.destroy(d) };
+    const d = extra.Op.create(page, .{ .download = .{ .url = url, .path = name } }) orelse return;
     const r = types.SchemeRequest.create(gpa, "GET", url, "", .{ .ctx = d, .begin = Saving.begin, .write = null, .finish = Saving.finish }) catch {
-        gpa.free(d.name);
-        return gpa.destroy(d);
+        return d.finish();
     };
     const scheme_name = url[0..std.mem.indexOfScalar(u8, url, ':').?];
     serve.dispatch(&page.core, page.window.app, r, scheme_name, null);
 }
 
 const Saving = struct {
-    page: *Page,
-    name: []u8,
-
     fn begin(_: *anyopaque, _: *types.SchemeRequest) void {}
 
     fn finish(ctx: *anyopaque, req: *types.SchemeRequest) void {
-        const d: *Saving = @ptrCast(@alignCast(ctx));
+        const d: *extra.Op = @ptrCast(@alignCast(ctx));
         defer req.destroy();
-        defer {
-            req.gpa.free(d.name);
-            req.gpa.destroy(d);
-        }
-        // The page may have closed meanwhile.
-        for (d.page.window.app.windows.items) |win| if (win.page == d.page) {
-            if (req.status >= 400) return d.page.core.fire(.{ .download_done = .{ .url = req.url, .path = "", .err = "the app's handler failed" } });
-            return saveAs(d.page, req.url, d.name, req);
-        };
+        defer d.finish();
+        const page = d.page orelse return;
+        if (req.status >= 400) return page.core.fire(.{ .download_done = .{ .url = req.url, .path = "", .err = "the app's handler failed" } });
+        saveAs(page, req.url, d.data.download.path, req);
     }
 };
 
@@ -223,14 +284,18 @@ fn save(page: *Page, url: []const u8, req: *types.SchemeRequest) void {
 }
 
 fn saveAs(page: *Page, url: []const u8, name: []const u8, req: *types.SchemeRequest) void {
+    const window = page.window;
+    const app = window.app;
     const gpa = page.gpa;
     const io = page.window.app.io;
     const dir = desktop.path(gpa, .downloads, page.window.app.options.name) catch null;
     defer if (dir) |x| gpa.free(x);
     const path = page.core.startDownload(io, dir, url, name) orelse return;
     defer gpa.free(path);
+    if (!ipc.stillOpen(app, window, page)) return;
     std.Io.Dir.cwd().writeFile(io, .{ .sub_path = path, .data = req.buffer.items }) catch |err|
         return page.core.fire(.{ .download_done = .{ .url = url, .path = path, .err = @errorName(err) } });
     page.core.fire(.{ .download_progress = .{ .url = url, .received = req.buffer.items.len, .total = req.buffer.items.len } });
+    if (!ipc.stillOpen(app, window, page)) return;
     page.core.fire(.{ .download_done = .{ .url = url, .path = path } });
 }

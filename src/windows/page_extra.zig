@@ -48,6 +48,8 @@ pub const Op = struct {
 
     pub fn create(page: *Page, data: Data) ?*Op {
         const gpa = page.gpa;
+        // Ownership of caller-provided data transfers only on success.
+        page.ops.ensureUnusedCapacity(gpa, 1) catch return null;
         const op = gpa.create(Op) catch return null;
         op.* = .{ .page = page, .gpa = gpa, .data = data };
         if (data == .download) {
@@ -59,11 +61,7 @@ pub const Op = struct {
             op.data.download.url = url;
             op.data.download.path = path;
         }
-        page.ops.append(gpa, op) catch {
-            op.page = null;
-            op.finish();
-            return null;
-        };
+        page.ops.appendAssumeCapacity(op);
         return op;
     }
 
@@ -107,6 +105,35 @@ pub const Settle = struct {
     tries: u32 = 0,
 };
 const max_tries = 500;
+
+test "memory regression: cookie settle allocation failures free strings once" {
+    const t = std.testing;
+    const Probe = struct {
+        calls: usize = 0,
+        fn done(ctx: ?*anyopaque, err: ?[]const u8) void {
+            const p: *@This() = @ptrCast(@alignCast(ctx));
+            std.debug.assert(err != null);
+            p.calls += 1;
+        }
+    };
+    // Fail each allocation in turn, then exercise successful registration.
+    for (0..4) |fail_index| {
+        var f: @import("page_test_support.zig").Fixture = undefined;
+        f.init();
+        defer f.deinit();
+        const page = try f.open(.{});
+        var failing = t.FailingAllocator.init(t.allocator, .{ .fail_index = fail_index });
+        page.gpa = failing.allocator();
+        defer page.gpa = t.allocator;
+        var p: Probe = .{};
+        settle(page, .{ .ctx = &p, .func = Probe.done }, "name", "localhost", "/", "value", true, false);
+        try t.expectEqual(@as(usize, 1), p.calls);
+        try t.expectEqual(@as(usize, 0), page.ops.items.len);
+        page.ops.deinit(failing.allocator());
+        page.ops = .empty;
+        try t.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+    }
+}
 
 fn settle(page: *Page, cb: types.DoneCallback, name: []const u8, domain: []const u8, path: []const u8, value: ?[]const u8, present: bool, all: bool) void {
     const gpa = page.gpa;

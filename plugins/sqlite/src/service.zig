@@ -83,9 +83,10 @@ pub const Service = struct {
         var db = try sqlite.Db.open(path, .{ .read_only = options.readOnly, .busy_timeout_ms = s.options.busy_timeout_ms, .guarded = true });
         errdefer db.close();
         const id = s.next_id;
-        s.next_id += 1;
+        const text = try std.fmt.allocPrint(call.arena, "{d}", .{id});
         try s.conns.append(s.gpa, .{ .id = id, .window = call.window, .page = call.page, .db = db });
-        return std.fmt.allocPrint(call.arena, "{d}", .{id});
+        s.next_id += 1;
+        return text;
     }
 
     /// Runs one statement and returns what it changed.
@@ -207,4 +208,34 @@ test checkName {
 test {
     // Compile every method, as bound services are.
     std.testing.refAllDecls(Service);
+}
+
+test "memory regression: failed open does not retain a closed database" {
+    const t = std.testing;
+    var env: std.process.Environ.Map = .init(t.allocator);
+    defer env.deinit();
+    var app: myzig.App = undefined;
+    app.gpa = t.allocator;
+    app.io = t.io;
+    app.options = .{ .name = "review" };
+    app.windows = .empty;
+    if (@hasField(myzig.App, "environ")) app.environ = &env;
+    defer app.windows.deinit(t.allocator);
+    var window: myzig.Window = undefined;
+    window.app = &app;
+    try app.windows.append(t.allocator, &window);
+    var failing = t.FailingAllocator.init(t.allocator, .{ .fail_index = 0 });
+    var call: myzig.Call = .{ .arena = failing.allocator(), .window = &window };
+    var svc: Service = .init(t.allocator, .{});
+    defer svc.deinit();
+    try t.expectError(error.OutOfMemory, svc.open(&call, ":memory:", .{}));
+    try t.expectEqual(@as(usize, 0), svc.conns.items.len);
+    try t.expectEqual(@as(u64, 1), svc.next_id);
+    var arena: std.heap.ArenaAllocator = .init(t.allocator);
+    defer arena.deinit();
+    call.arena = arena.allocator();
+    const id = try svc.open(&call, ":memory:", .{});
+    try t.expectEqualStrings("1", id);
+    _ = try svc.query(&call, id, "SELECT 1", &.{});
+    svc.close(&call, id);
 }

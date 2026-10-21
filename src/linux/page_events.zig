@@ -28,11 +28,13 @@ pub fn register(page: *Page) void {
 
 fn loadChanged(_: *anyopaque, event: c_int, data: ?*anyopaque) callconv(.c) void {
     const page = Page.alive(data) orelse return;
-    const url = page.url(page.gpa) catch return;
-    defer page.gpa.free(url);
+    const gpa = page.gpa;
+    const url = page.url(gpa) catch return;
+    defer gpa.free(url);
     switch (event) {
         0 => { // WEBKIT_LOAD_STARTED
             page.navigated();
+            if (Page.alive(data) == null) return;
             page.core.fire(.{ .load_started = url });
         },
         2 => page.core.fire(.{ .committed = url }), // WEBKIT_LOAD_COMMITTED
@@ -101,7 +103,7 @@ fn permissionRequest(wv: *anyopaque, req: *anyopaque, data: ?*anyopaque) callcon
         n = 1;
     }
     if (n == 0) return 0; // WebKit's default answer
-    var buf: [256]u8 = undefined;
+    var buf: [core_mod.max_origin]u8 = undefined;
     const origin = core_mod.originOf(&buf, webkit.span(k.webkit_web_view_get_uri(wv)));
     if (page.core.permission(kinds[0..n], origin)) k.webkit_permission_request_allow(req) else k.webkit_permission_request_deny(req);
     return 1;
@@ -135,6 +137,10 @@ fn decideDestination(download: *anyopaque, suggested: ?[*:0]const u8, data: ?*an
         return 1;
     };
     defer gpa.free(path);
+    if (Page.alive(page) == null) {
+        webkit.api.webkit_download_cancel(download);
+        return 1;
+    }
     op.setPath(path);
     var buf: [4096]u8 = undefined;
     const uri = webkit.printZ(&buf, "file://{s}", .{path}) orelse {

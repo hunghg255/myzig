@@ -61,9 +61,10 @@ fn handle(request: *anyopaque, _: ?*anyopaque) callconv(.c) void {
         }
         gtk.api.g_object_unref(body_stream);
     };
+    page.tasks.ensureUnusedCapacity(gpa, 1) catch return finishLegacy(request, "", "text/plain");
     const task = gpa.create(Task) catch return finishLegacy(request, "", "text/plain");
     task.* = .{ .page = page, .request = k.g_object_ref(request) };
-    page.tasks.append(gpa, task) catch {};
+    page.tasks.appendAssumeCapacity(task);
     const url = webkit.span(k.webkit_uri_scheme_request_get_uri(request));
     const r = types.SchemeRequest.create(gpa, if (method.len == 0) "GET" else method, url, body.items, .{ .ctx = task, .begin = begin, .write = null, .finish = finish }) catch {
         finishLegacy(request, "", "text/plain");

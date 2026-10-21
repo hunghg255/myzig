@@ -6,9 +6,12 @@
   if (window.myzig) return;
   // WebKit's message handler (macOS, Linux) or WebView2's (Windows).
   const webview2 = window.chrome && window.chrome.webview;
+  // WebKitGTK cannot tell which frame posted a message: there the main
+  // frame's messages start with the page's token (src/linux/page.zig).
+  const frame = "";
   const post = webview2
     ? (m) => webview2.postMessage(JSON.stringify(m))
-    : (m) => window.webkit.messageHandlers.myzig.postMessage(JSON.stringify(m));
+    : (m) => window.webkit.messageHandlers.myzig.postMessage(frame + JSON.stringify(m));
   const platform = webview2 ? "windows" : navigator.platform.startsWith("Linux") ? "linux" : "macos";
   const pending = new Map();
   const listeners = new Map();
@@ -222,13 +225,11 @@
   const settle = (id, k, fn) => {
     Promise.resolve()
       .then(fn)
-      .then(
-        (v) => {
-          const s = v === undefined ? "null" : JSON.stringify(v);
-          post({ t: "eval", id, k, ok: true, v: s === undefined ? "null" : s });
-        },
-        (e) => post({ t: "eval", id, k, ok: false, e: String((e && e.message) || e) }),
-      );
+      .then((v) => {
+        const s = v === undefined ? "null" : JSON.stringify(v);
+        post({ t: "eval", id, k, ok: true, v: s === undefined ? "null" : s });
+      })
+      .catch((e) => post({ t: "eval", id, k, ok: false, e: String((e && e.message) || e) }));
   };
 
   // Find in page (Page.findInPage): highlights with the CSS Custom

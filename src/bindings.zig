@@ -35,6 +35,8 @@ pub const Bindings = struct {
     pub fn bind(b: *Bindings, gpa: std.mem.Allocator, service: anytype) !void {
         const T = @typeInfo(@TypeOf(service)).pointer.child;
         const svc = ipc.service(T, service);
+        const gone_len = b.gone.items.len;
+        errdefer b.gone.items.len = gone_len;
         if (@hasDecl(T, "myzig_pageGone")) try b.gone.append(gpa, .{ .ctx = service, .func = struct {
             fn f(ctx: *anyopaque, window: *anyopaque, page: *anyopaque) void {
                 T.myzig_pageGone(@ptrCast(@alignCast(ctx)), @ptrCast(@alignCast(window)), page);
@@ -91,6 +93,7 @@ pub const Bindings = struct {
 
     fn sortedServices(b: *Bindings, gpa: std.mem.Allocator) ![]tsgen.Service {
         var parts: std.ArrayList(tsgen.Service) = .empty;
+        errdefer parts.deinit(gpa);
         var it = b.services.valueIterator();
         while (it.next()) |svc| try parts.append(gpa, svc.client);
         // Sorted, so the output is stable.
@@ -164,4 +167,48 @@ test "services that keep work for pages hear when a page is gone, and pages neve
     try std.testing.expectEqual(@as(?*Window, &window), streams.from);
     const js = try b.clientJs(gpa);
     try std.testing.expect(std.mem.indexOf(u8, js, "pageGone") == null);
+}
+
+test "memory regression: generated client cleans up every allocation failure" {
+    const Probe = struct {
+        fn generate(gpa: std.mem.Allocator) !void {
+            var b: Bindings = .{};
+            defer b.deinit(gpa);
+            inline for (0..24) |i| {
+                const Service = struct {
+                    pub const myzig_name = std.fmt.comptimePrint("Service{d}", .{i});
+                    pub fn ping(_: *@This()) void {}
+                };
+                var service: Service = .{};
+                try b.bind(gpa, &service);
+            }
+            _ = b.clientJs(gpa) catch |err| switch (err) {
+                error.WriteFailed => return error.OutOfMemory,
+                else => return err,
+            };
+        }
+    };
+    // Exercise allocation fallback even when the backing allocator can resize.
+    var no_resize = std.testing.FailingAllocator.init(std.testing.allocator, .{ .resize_fail_index = 0 });
+    try std.testing.checkAllAllocationFailures(no_resize.allocator(), Probe.generate, .{});
+}
+
+test "memory regression: failed bind leaves no lifecycle callback" {
+    const Probe = struct {
+        calls: usize = 0,
+        pub fn myzig_pageGone(p: *@This(), _: *anyopaque, _: *anyopaque) void {
+            p.calls += 1;
+        }
+    };
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+    const gpa = failing.allocator();
+    var b: Bindings = .{};
+    defer b.deinit(gpa);
+    var probe: Probe = .{};
+    try std.testing.expectError(error.OutOfMemory, b.bind(gpa, &probe));
+    try std.testing.expectEqual(@as(u32, 0), b.services.count());
+    var window: u8 = 0;
+    var page: u8 = 0;
+    b.pageGone(&window, &page);
+    try std.testing.expectEqual(@as(usize, 0), probe.calls);
 }

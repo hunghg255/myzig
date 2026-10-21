@@ -10,6 +10,7 @@ const core_mod = @import("page_core.zig");
 const serve = @import("page_serve.zig");
 const desktop = @import("desktop.zig");
 const Page = @import("page.zig").Page;
+const ipc = @import("ipc.zig");
 const callBlock = @import("page_mac_delegate.zig").callBlock;
 
 // Schemes.
@@ -36,9 +37,10 @@ pub fn startTask(self_obj: objc.Object, _: objc.SEL, _: objc.Object, task: objc.
         const n = objc.msg(objc.NSUInteger, data, "length", .{});
         if (objc.msg(?[*]const u8, data, "bytes", .{})) |p| body = p[0..n];
     }
+    page.tasks.ensureUnusedCapacity(gpa, 1) catch return;
     const t = gpa.create(Task) catch return;
     t.* = .{ .page = page, .task = objc.retain(task) };
-    page.tasks.append(gpa, t) catch {};
+    page.tasks.appendAssumeCapacity(t);
     const r = types.SchemeRequest.create(gpa, if (method.len == 0) "GET" else method, url, body, .{ .ctx = t, .begin = begin, .write = write, .finish = finish }) catch {
         drop(t, gpa);
         return;
@@ -195,9 +197,15 @@ pub fn decideDestination(self_obj: objc.Object, _: objc.SEL, download: objc.Obje
     const pool = objc.Pool.push();
     defer pool.pop();
     const gpa = page.gpa;
+    const window = page.window;
+    const app = window.app;
     const dir = desktop.path(gpa, .downloads, page.window.app.options.name) catch null;
     defer if (dir) |x| gpa.free(x);
     const path = page.core.startDownload(page.window.app.io, dir, op.data.download.url, core_mod.safeName(objc.fromNSString(suggested))) orelse return callBlock(completion, none);
+    if (!ipc.stillOpen(app, window, page)) {
+        gpa.free(path);
+        return callBlock(completion, none);
+    }
     op.data.download.path = path;
     std.Io.Dir.cwd().deleteFile(page.window.app.io, path) catch {}; // a file there is replaced
     callBlock(completion, @as(?objc.Object, objc.msg(objc.Object, objc.class("NSURL"), "fileURLWithPath:", .{objc.nsString(path)})));

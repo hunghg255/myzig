@@ -67,6 +67,7 @@ const Task = struct {
     svc: *Service,
     serial: u64,
     window: *myzig.Window,
+    app: *myzig.App,
     page_id: []u8,
     w: *watcher.Watcher,
     future: Io.Future(void) = undefined,
@@ -153,7 +154,7 @@ pub const Service = struct {
         errdefer w.deinit();
         const t = try s.gpa.create(Task);
         errdefer s.gpa.destroy(t);
-        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .page_id = try s.gpa.dupe(u8, request.id), .w = w };
+        t.* = .{ .svc = s, .serial = s.next_serial, .window = call.window, .app = call.window.app, .page_id = try s.gpa.dupe(u8, request.id), .w = w };
         errdefer s.gpa.free(t.page_id);
         try s.tasks.append(s.gpa, t);
         errdefer _ = s.tasks.pop();
@@ -206,7 +207,7 @@ pub const Service = struct {
             if (t.serial == msg.serial) break i;
         } else return;
         const t = s.tasks.items[i];
-        s.sweep(t.window.app);
+        s.sweep(t.app);
         if (s.tasks.items.len <= i or s.tasks.items[i] != t) return;
         BatchEvent.emit(t.window, msg.batch);
         if (msg.batch.kind == .end) {
@@ -280,4 +281,39 @@ test validName {
 
 test {
     std.testing.refAllDecls(Service);
+}
+
+test "lifetime regression: a queued watch batch after its window was freed" {
+    const t = std.testing;
+    var tmp = t.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try tmp.dir.realPathFileAlloc(t.io, ".", t.allocator);
+    defer t.allocator.free(path);
+    var app: myzig.App = undefined;
+    app.windows = .empty;
+    defer app.windows.deinit(t.allocator);
+    const window = try t.allocator.create(myzig.Window);
+    window.* = undefined;
+    window.app = &app;
+    try app.windows.append(t.allocator, window);
+    var s: Service = .{ .gpa = t.allocator, .io = t.io, .options = .{} };
+    defer s.deinit();
+    const task = try t.allocator.create(Task);
+    task.* = .{
+        .svc = &s,
+        .serial = 1,
+        .window = window,
+        .app = &app,
+        .page_id = try t.allocator.dupe(u8, "watch"),
+        .w = try watcher.Watcher.init(t.allocator, t.io, path, .{}),
+        // The worker has already posted its last batch and returned.
+        .future = .{ .any_future = null, .result = {} },
+    };
+    try s.tasks.append(t.allocator, task);
+    const msg = try t.allocator.create(Msg);
+    msg.* = .{ .svc = &s, .serial = 1, .arena = .init(t.allocator), .batch = .{ .id = "watch", .kind = .end } };
+    app.windows.clearRetainingCapacity();
+    t.allocator.destroy(window);
+    Service.deliver(msg);
+    try t.expectEqual(@as(usize, 0), s.tasks.items.len);
 }

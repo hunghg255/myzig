@@ -11,7 +11,7 @@ const mimeType = @import("window_types.zig").mimeType;
 /// a trusted page of another origin may read the answer (CORS).
 pub fn dispatch(core: *core_mod.Core, app: anytype, req: *types.SchemeRequest, scheme: []const u8, page_url: ?[]const u8) void {
     if (page_url) |u| if (core.isTrusted(u)) {
-        var buf: [256]u8 = undefined;
+        var buf: [core_mod.max_origin]u8 = undefined;
         const origin = core_mod.originOf(&buf, u);
         if (origin.len > 0) {
             req.addHeader("Access-Control-Allow-Origin", origin);
@@ -33,7 +33,12 @@ pub fn notFound(req: *types.SchemeRequest) void {
 }
 
 fn serveFrontend(core: *core_mod.Core, app: anytype, req: *types.SchemeRequest) void {
-    const path = if (std.mem.eql(u8, req.path, "/")) "/index.html" else req.path;
+    var path_buf: [4096]u8 = undefined;
+    const gpa = app.gpa;
+    const long_path = if (req.path.len > path_buf.len) gpa.alloc(u8, req.path.len) catch return notFound(req) else null;
+    defer if (long_path) |bytes| gpa.free(bytes);
+    const decoded = frontendPath(long_path orelse &path_buf, req.path) orelse return notFound(req);
+    const path = if (std.mem.eql(u8, decoded, "/")) "/index.html" else decoded;
     if (std.mem.eql(u8, path, "/myzig.js")) {
         const js = app.clientJs() catch return notFound(req);
         return ok(req, js, mimeType(path));
@@ -49,6 +54,28 @@ fn serveFrontend(core: *core_mod.Core, app: anytype, req: *types.SchemeRequest) 
     if (findAsset(core.options.assets, path)) |a| return ok(req, a.data, a.mime orelse mimeType(path));
     if (route) if (findAsset(core.options.assets, "/index.html")) |a| return ok(req, a.data, a.mime orelse mimeType("/index.html"));
     notFound(req);
+}
+
+/// Decode exactly once, then validate before either disk lookup or SPA fallback.
+fn frontendPath(buf: []u8, raw: []const u8) ?[]const u8 {
+    var i: usize = 0;
+    var n: usize = 0;
+    while (i < raw.len) {
+        if (n == buf.len) return null;
+        if (raw[i] == '%') {
+            if (raw.len - i < 3) return null;
+            const hi = std.fmt.charToDigit(raw[i + 1], 16) catch return null;
+            const lo = std.fmt.charToDigit(raw[i + 2], 16) catch return null;
+            buf[n] = hi * 16 + lo;
+            i += 3;
+        } else {
+            buf[n] = raw[i];
+            i += 1;
+        }
+        n += 1;
+    }
+    const path = buf[0..n];
+    return if (safePath(path)) path else null;
 }
 
 fn ok(req: *types.SchemeRequest, data: []const u8, mime: []const u8) void {
@@ -124,6 +151,81 @@ test "safe paths" {
     try std.testing.expect(!safePath("/a/./b"));
     try std.testing.expect(!safePath("/C:/x"));
     try std.testing.expect(!safePath("/a\\..\\b"));
+}
+
+test "frontend asset URLs decode once and reject unsafe paths" {
+    const t = std.testing;
+    const App = struct {
+        gpa: std.mem.Allocator,
+        io: std.Io,
+        fn clientJs(_: *@This()) ![]const u8 {
+            return "client";
+        }
+    };
+    const Response = struct {
+        status: u16 = 0,
+        body: [64]u8 = undefined,
+        len: usize = 0,
+        fn begin(_: *anyopaque, _: *types.SchemeRequest) void {}
+        fn finish(ctx: *anyopaque, req: *types.SchemeRequest) void {
+            const r: *@This() = @ptrCast(@alignCast(ctx));
+            r.status = req.status;
+            r.len = req.buffer.items.len;
+            @memcpy(r.body[0..r.len], req.buffer.items);
+            req.destroy();
+        }
+    };
+    var tmp = t.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(t.io, .{ .sub_path = "disk name.txt", .data = "disk" });
+    const dir = try tmp.dir.realPathFileAlloc(t.io, ".", t.allocator);
+    defer t.allocator.free(dir);
+    var app: App = .{ .gpa = t.allocator, .io = t.io };
+    var window: u8 = 0;
+    var core: core_mod.Core = .{
+        .gpa = t.allocator,
+        .window = &window,
+        .token = undefined,
+        .assets_dir = dir,
+        .options = .{ .assets = &.{
+            .{ .path = "/index.html", .data = "index" },
+            .{ .path = "/hello world.txt", .data = "space" },
+            .{ .path = "/caf\xc3\xa9.txt", .data = "unicode" },
+            .{ .path = "/a+b.txt", .data = "plus" },
+            .{ .path = "/%2e%2e.txt", .data = "literal" },
+        } },
+    };
+    defer core.deinit();
+    const long_route = try t.allocator.alloc(u8, 5001);
+    defer t.allocator.free(long_route);
+    @memset(long_route, 'a');
+    long_route[0] = '/';
+    const Case = struct { path: []const u8, status: u16 = 200, body: []const u8 = "Not Found" };
+    const cases = [_]Case{
+        .{ .path = "/hello%20world.txt", .body = "space" },
+        .{ .path = "/disk%20name.txt", .body = "disk" },
+        .{ .path = "/caf%C3%A9.txt", .body = "unicode" },
+        .{ .path = "/a+b.txt", .body = "plus" },
+        .{ .path = "/%252e%252e.txt", .body = "literal" },
+        .{ .path = "/some%20route", .body = "index" },
+        .{ .path = long_route, .body = "index" },
+        .{ .path = "/%2e%2e/secret", .status = 404 },
+        .{ .path = "/a%2f..%2fsecret", .status = 404 },
+        .{ .path = "/a%5c..%5csecret", .status = 404 },
+        .{ .path = "/C%3a/secret", .status = 404 },
+        .{ .path = "/nul%00.txt", .status = 404 },
+        .{ .path = "/bad%2", .status = 404 },
+        .{ .path = "/bad%zz", .status = 404 },
+    };
+    for (cases) |c| {
+        const url = try std.mem.concat(t.allocator, u8, &.{ "myzig://localhost", c.path });
+        defer t.allocator.free(url);
+        var response: Response = .{};
+        const req = try types.SchemeRequest.create(t.allocator, "GET", url, "", .{ .ctx = &response, .begin = Response.begin, .write = null, .finish = Response.finish });
+        dispatch(&core, &app, req, "myzig", null);
+        try t.expectEqual(c.status, response.status);
+        try t.expectEqualStrings(c.body, response.body[0..response.len]);
+    }
 }
 
 test "URLs of app schemes" {

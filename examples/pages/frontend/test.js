@@ -9,6 +9,27 @@ const app = (path) => (myzig.platform === "windows" ? "http://app.localhost" + p
 const run = async () => {
   expect((await myzig.call("Test.ping")) === "pong", "ping");
 
+  // WKScriptMessage handlers exist in subframes too. An opaque-origin
+  // iframe must not borrow the main document's permission to call Zig.
+  if (myzig.platform === "macos") {
+    const frame = document.createElement("iframe");
+    frame.sandbox = "allow-scripts";
+    await new Promise((resolve) => {
+      const received = (e) => {
+        if (e.source !== frame.contentWindow || e.data !== "frame-probe-sent") return;
+        window.removeEventListener("message", received);
+        resolve();
+      };
+      window.addEventListener("message", received);
+      frame.srcdoc = `<script>try{window.webkit.messageHandlers.myzig.postMessage(JSON.stringify({t:"call",id:9001,m:"Test.iframeProbe",a:[]}));}finally{parent.postMessage("frame-probe-sent","*");}<\/script>`;
+      document.body.append(frame);
+    });
+    expect((await myzig.call("Test.iframeCalls")) === 0, "iframe invoked a bound service");
+    await myzig.call("Test.iframeProbe");
+    expect((await myzig.call("Test.iframeCalls")) === 1, "main-frame IPC was blocked");
+    frame.remove();
+  }
+
   // The app's scheme: status, headers, a body answered later, errors.
   const r = await fetch(app("/data.json"));
   expect(r.status === 200 && r.headers.get("x-test") === "1", "scheme status " + r.status);
@@ -19,6 +40,9 @@ const run = async () => {
   expect((await posted.text()) === "POST sent", "post");
   // The frontend from disk, and client-side routes.
   expect((await (await fetch("/fromdisk.txt")).text()) === "from disk", "assets_dir");
+  expect((await (await fetch("/disk%20name.txt")).text()) === "disk space", "encoded disk asset");
+  expect((await (await fetch("/embedded%20name.txt")).text()) === "embedded space", "encoded embedded asset");
+  expect((await (await fetch("/caf%C3%A9.txt")).text()) === "unicode", "unicode asset");
   expect((await (await fetch("/a/route")).text()).includes("<title>Pages</title>"), "route");
 
   // Zig sends through a channel the page made, then closes it.

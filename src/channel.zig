@@ -13,7 +13,7 @@
 //! `onLogsChannel(fn)` of `const Logs = myzig.ChannelKind("logs", Line)`
 //! (registered with `app.registerEvent(Logs)`). Either side sends values
 //! of `T`, and closes it; navigating away closes the page's channels.
-//! Main thread only.
+//! Main thread only. The app must outlive its channels.
 const std = @import("std");
 const builtin = @import("builtin");
 const tsgen = @import("tsgen.zig");
@@ -27,6 +27,7 @@ pub const CloseReason = reg.CloseReason;
 
 pub fn Channel(comptime T: type) type {
     return struct {
+        app: @FieldType(Window, "app"),
         window: *Window,
         /// The page it belongs to (the window's, or one of its web views).
         page: Page,
@@ -51,7 +52,7 @@ pub fn Channel(comptime T: type) type {
             if (id <= 0) return error.InvalidArgument;
             const page = from orelse window.page orelse return error.NoPage;
             _ = try page.core.channels.ensure(window.app.gpa, id);
-            return .{ .window = window, .page = page, .id = id, .generation = page.core.generation };
+            return .{ .app = window.app, .window = window, .page = page, .id = id, .generation = page.core.generation };
         }
 
         /// Opens a channel to the window's page, which its listeners of
@@ -62,12 +63,12 @@ pub fn Channel(comptime T: type) type {
             const opened = try page.core.channels.open(gpa, name);
             defer gpa.free(opened[1]);
             page.enqueue(opened[1], true);
-            return .{ .window = window, .page = page, .id = opened[0].id, .generation = page.core.generation };
+            return .{ .app = window.app, .window = window, .page = page, .id = opened[0].id, .generation = page.core.generation };
         }
 
         fn entry(self: Self) ?*reg.Entry {
             // The window and its page may have closed meanwhile.
-            if (!ipc.stillOpen(self.window.app, self.window, self.page)) return null;
+            if (!ipc.stillOpen(self.app, self.window, self.page)) return null;
             if (self.page.core.generation != self.generation) return null;
             return self.page.core.channels.get(self.id);
         }
@@ -97,7 +98,9 @@ pub fn Channel(comptime T: type) type {
             const gpa = self.window.app.gpa;
             if (page.core.channels.close(gpa, self.id, .zig)) |m| {
                 defer gpa.free(m);
-                page.enqueue(m, true);
+                // onClose may have closed the window or replaced its document.
+                if (ipc.stillOpen(self.app, self.window, page) and page.core.generation == self.generation)
+                    page.enqueue(m, true);
             }
         }
 
@@ -109,13 +112,14 @@ pub fn Channel(comptime T: type) type {
                 fn call(ctx: ?*anyopaque, id: i64, json: []const u8) void {
                     const h: *Handle = @ptrCast(@alignCast(ctx));
                     const win: *Window = @ptrCast(@alignCast(h.window));
-                    var arena: std.heap.ArenaAllocator = .init(win.app.gpa);
+                    const app: @FieldType(Window, "app") = @ptrCast(@alignCast(h.app));
+                    var arena: std.heap.ArenaAllocator = .init(app.gpa);
                     defer arena.deinit();
                     const v = std.json.parseFromSliceLeaky(T, arena.allocator(), json, .{ .ignore_unknown_fields = true }) catch {
                         std.log.warn("myzig: channel {d}: a value that is not a {s}", .{ id, @typeName(T) });
                         return;
                     };
-                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .window = @ptrCast(@alignCast(h.window)), .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation }, v);
+                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .app = app, .window = win, .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation }, v);
                 }
             };
             const h = handle(self, @ptrCast(@constCast(ptr))) orelse return;
@@ -129,7 +133,8 @@ pub fn Channel(comptime T: type) type {
             const Impl = struct {
                 fn call(ctx: ?*anyopaque, id: i64, reason: CloseReason) void {
                     const h: *Handle = @ptrCast(@alignCast(ctx));
-                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .window = @ptrCast(@alignCast(h.window)), .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation }, reason);
+                    const win: *Window = @ptrCast(@alignCast(h.window));
+                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .app = @ptrCast(@alignCast(h.app)), .window = win, .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation }, reason);
                 }
             };
             const h = handle(self, @ptrCast(@constCast(ptr))) orelse return;
@@ -144,7 +149,8 @@ pub fn Channel(comptime T: type) type {
             const Impl = struct {
                 fn call(ctx: ?*anyopaque, id: i64, _: CloseReason) void {
                     const h: *Handle = @ptrCast(@alignCast(ctx));
-                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .window = @ptrCast(@alignCast(h.window)), .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation });
+                    const win: *Window = @ptrCast(@alignCast(h.window));
+                    func(@as(P, @ptrCast(@alignCast(h.ptr))), .{ .app = @ptrCast(@alignCast(h.app)), .window = win, .page = @ptrCast(@alignCast(h.page)), .id = id, .generation = h.generation });
                 }
             };
             const h = handle(self, @ptrCast(@constCast(ptr))) orelse return;
@@ -157,9 +163,9 @@ const Handle = reg.Handle;
 
 fn handle(ch: anytype, ptr: *anyopaque) ?*Handle {
     const page = ch.page;
-    const gpa = ch.window.app.gpa;
+    const gpa = ch.app.gpa;
     const h = gpa.create(Handle) catch return null;
-    h.* = .{ .window = ch.window, .page = page, .generation = ch.generation, .ptr = ptr };
+    h.* = .{ .app = ch.app, .window = ch.window, .page = page, .generation = ch.generation, .ptr = ptr };
     page.core.handles.append(gpa, h) catch {
         gpa.destroy(h);
         return null;

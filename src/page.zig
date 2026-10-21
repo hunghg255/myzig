@@ -319,11 +319,13 @@ pub const Page = struct {
 
     /// A new document: what waited for the last one's DOM is dropped.
     pub fn navigated(self: *Page) void {
+        const window = self.window;
+        const app = window.app;
         self.dom_ready = false;
         for (self.held.items) |m| self.gpa.free(m);
         self.held.clearRetainingCapacity();
         self.core.navigated();
-        self.window.app.bindings.pageGone(self.window, self);
+        if (ipc.stillOpen(app, window, self)) app.bindings.pageGone(window, self);
     }
 
     pub fn startDrag(self: *Page) void {

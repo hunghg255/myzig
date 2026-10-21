@@ -201,6 +201,7 @@ test {
     _ = @import("notify_types.zig");
     switch (builtin.os.tag) {
         .windows => {
+            _ = @import("windows/page_lifetime_test.zig");
             _ = @import("windows/winrt.zig");
             _ = @import("windows/toast_xml.zig");
             _ = @import("windows/toast_test.zig");

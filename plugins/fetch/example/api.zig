@@ -19,6 +19,7 @@ pub const Server = struct {
     /// Lets /stream send its second chunk.
     gate: Io.Event = .unset,
     requests: std.atomic.Value(u32) = .init(0),
+    redirect_target: ?[]const u8 = null,
 
     /// Listens on an ephemeral port of 127.0.0.1 and serves on a task of its own.
     pub fn start(s: *Server, io: Io) !void {
@@ -97,6 +98,12 @@ pub const Server = struct {
         }
         if (std.mem.eql(u8, target, "/loop")) {
             return req.respond("", .{ .status = .found, .extra_headers = &.{.{ .name = "Location", .value = "/loop" }} });
+        }
+        if (std.mem.eql(u8, target, "/blocked-redirect")) {
+            return req.respond("", .{ .status = .found, .extra_headers = &.{.{ .name = "Location", .value = "/forbidden" }} });
+        }
+        if (std.mem.eql(u8, target, "/external-redirect")) {
+            return req.respond("", .{ .status = .found, .extra_headers = &.{.{ .name = "Location", .value = s.redirect_target orelse "/hello" }} });
         }
         if (std.mem.eql(u8, target, "/stream")) {
             var buf: [256]u8 = undefined;

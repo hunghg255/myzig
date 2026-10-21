@@ -41,6 +41,7 @@ pub const Notifier = struct {
 /// What a channel's listeners get back: the window, the document and the
 /// listener's pointer. Kept by the page until its document goes.
 pub const Handle = struct {
+    app: *anyopaque,
     window: *anyopaque,
     /// The page of the channel (a window's, or a web view's).
     page: *anyopaque,
@@ -90,14 +91,16 @@ pub const Registry = struct {
 
     /// A channel Zig opens: its id, and the message telling the page.
     pub fn open(r: *Registry, gpa: std.mem.Allocator, name: []const u8) !struct { *Entry, []u8 } {
-        const e = try r.ensure(gpa, r.next_id);
-        r.next_id -= 1;
         var aw: std.Io.Writer.Allocating = .init(gpa);
         errdefer aw.deinit();
-        try aw.writer.print("{{\"t\":\"chan-open\",\"c\":{d},\"n\":", .{e.id});
+        try aw.writer.print("{{\"t\":\"chan-open\",\"c\":{d},\"n\":", .{r.next_id});
         try std.json.Stringify.encodeJsonString(name, .{}, &aw.writer);
         try aw.writer.writeByte('}');
-        return .{ e, try aw.toOwnedSlice() };
+        const msg = try aw.toOwnedSlice();
+        errdefer gpa.free(msg);
+        const e = try r.ensure(gpa, r.next_id);
+        r.next_id -= 1;
+        return .{ e, msg };
     }
 
     /// The message carrying `json` on `e`, or why it cannot be sent.
@@ -109,12 +112,11 @@ pub const Registry = struct {
         }
         const ask = e.sent + json.len - e.asked >= window_bytes / 2;
         const msg = try std.fmt.allocPrint(gpa, "{{\"t\":\"chan\",\"c\":{d},{s}\"p\":{s}}}", .{ e.id, if (ask) "\"a\":1," else "", json });
+        errdefer gpa.free(msg);
+        if (ask) try e.asks.append(gpa, .{ e.seq + 1, e.sent + msg.len });
         e.seq += 1;
         e.sent += msg.len;
-        if (ask) {
-            e.asked = e.sent;
-            e.asks.append(gpa, .{ e.seq, e.sent }) catch {};
-        }
+        if (ask) e.asked = e.sent;
         return msg;
     }
 
@@ -159,6 +161,41 @@ pub const Registry = struct {
 };
 
 const testing = std.testing;
+
+test "memory regression: failed channel open leaves no entry or consumed id" {
+    for (0..3) |fail_index| {
+        var failing = testing.FailingAllocator.init(testing.allocator, .{ .fail_index = fail_index });
+        const gpa = failing.allocator();
+        var r: Registry = .{};
+        defer r.deinit(gpa, .lost);
+        if (r.open(gpa, "stream")) |result| {
+            gpa.free(result[1]);
+            return error.ExpectedAllocationFailure;
+        } else |_| {}
+        try testing.expectEqual(@as(usize, 0), r.entries.items.len);
+        try testing.expectEqual(@as(i64, -1), r.next_id);
+    }
+}
+
+test "memory regression: failed ACK tracking leaves send counters unchanged" {
+    const json = try testing.allocator.alloc(u8, window_bytes / 2);
+    defer testing.allocator.free(json);
+    @memset(json, '0');
+    var failing = testing.FailingAllocator.init(testing.allocator, .{ .fail_index = 2 });
+    const gpa = failing.allocator();
+    var r: Registry = .{};
+    defer r.deinit(testing.allocator, .lost);
+    const e = try r.ensure(testing.allocator, 1);
+    const result = r.encodeValue(gpa, e, json);
+    if (result) |msg| {
+        gpa.free(msg);
+        return error.ExpectedAllocationFailure;
+    } else |err| try testing.expectEqual(error.OutOfMemory, err);
+    try testing.expectEqual(@as(u64, 0), e.seq);
+    try testing.expectEqual(@as(u64, 0), e.sent);
+    try testing.expectEqual(@as(u64, 0), e.asked);
+    try testing.expectEqual(@as(usize, 0), e.asks.items.len);
+}
 
 test "values wait for the page's acknowledgments" {
     const gpa = testing.allocator;

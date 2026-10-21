@@ -25,6 +25,8 @@ pub const Op = struct {
 
     pub fn create(page: *Page, data: Data) ?*Op {
         const gpa = page.gpa;
+        // Ownership of caller-provided data transfers only on success.
+        page.ops.ensureUnusedCapacity(gpa, 1) catch return null;
         const op = gpa.create(Op) catch return null;
         op.* = .{ .page = page, .gpa = gpa, .data = data };
         if (data == .download) {
@@ -34,11 +36,7 @@ pub const Op = struct {
             };
             op.data.download.path = "";
         }
-        page.ops.append(gpa, op) catch {
-            op.page = null;
-            op.finish();
-            return null;
-        };
+        page.ops.appendAssumeCapacity(op);
         return op;
     }
 

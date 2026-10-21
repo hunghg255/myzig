@@ -11,11 +11,13 @@ const std = @import("std");
 const myzig = @import("myzig");
 const mainthread = @import("mainthread");
 const http = @import("http.zig");
+const redirects = @import("redirect.zig");
 const Io = std.Io;
 
 pub const Options = struct {
     /// Decides whether pages may make a request (its URL, method and
-    /// headers); null lets them make any.
+    /// headers), including each redirect, on the main thread; null lets
+    /// them make any.
     allow: ?*const fn (ctx: ?*anyopaque, req: *const http.Request) bool = null,
     allow_ctx: ?*anyopaque = null,
     /// How many body bytes the page may have yet to read before the
@@ -63,6 +65,8 @@ const Task = struct {
     /// The worker's memory: the request, and what `perform` needs.
     arena: std.heap.ArenaAllocator,
     req: http.Request,
+    next_req: ?http.Request = null,
+    redirected: bool = false,
     future: Io.Future(void) = undefined,
     mutex: Io.Mutex = .init,
     cond: Io.Condition = .init,
@@ -75,6 +79,7 @@ const Msg = struct {
     serial: u64,
     arena: std.heap.ArenaAllocator,
     part: Part,
+    redirect: bool = false,
 };
 
 pub const Service = struct {
@@ -187,6 +192,28 @@ pub const Service = struct {
             if (w == t.window) break true;
         } else false;
         if (!live) return s.cancel(i);
+        if (msg.redirect) {
+            // The worker ended after posting this hop. Policy stays on the
+            // main thread and runs before any connection to the next target.
+            t.future.await(s.io);
+            const next = t.next_req.?;
+            const allowed = if (s.options.allow) |allow| allow(s.options.allow_ctx, &next) else true;
+            // The policy itself may abort the request or close its page.
+            const current_i = s.find(msg.serial) orelse return;
+            const current = s.tasks.items[current_i];
+            if (!allowed) {
+                PartEvent.emit(current.window, .{ .id = current.page_id, .kind = .failed, .message = "NotAllowed" });
+                return s.cancel(current_i);
+            }
+            current.req = next;
+            current.next_req = null;
+            current.redirected = true;
+            current.future = s.io.concurrent(run, .{current}) catch {
+                PartEvent.emit(current.window, .{ .id = current.page_id, .kind = .failed, .message = "ConcurrencyUnavailable" });
+                return s.cancel(current_i);
+            };
+            return;
+        }
         PartEvent.emit(t.window, msg.part);
         if (msg.part.kind == .end or msg.part.kind == .failed) {
             _ = s.tasks.orderedRemove(i);
@@ -200,9 +227,11 @@ pub const Service = struct {
 /// The request's task, concurrent with the main thread.
 fn run(t: *Task) void {
     const sink: http.Sink = .{ .ctx = t, .head = onHead, .chunk = onChunk };
-    http.perform(&t.svc.client, t.arena.allocator(), t.req, sink) catch |err| {
+    var req = t.req;
+    if (t.svc.options.allow != null and req.redirect == .follow) req.redirect = .manual;
+    http.perform(&t.svc.client, t.arena.allocator(), req, sink) catch |err| {
         // Canceled: nobody is listening any more.
-        if (err == error.Canceled) return;
+        if (err == error.Canceled or err == error.PolicyRedirect) return;
         post(t, .{ .id = t.page_id, .kind = .failed, .message = @errorName(err) }, &.{}) catch {};
         return;
     };
@@ -211,13 +240,25 @@ fn run(t: *Task) void {
 
 fn onHead(ctx: *anyopaque, head: http.Head) !void {
     const t: *Task = @ptrCast(@alignCast(ctx));
+    if (t.svc.options.allow != null and t.req.redirect == .follow and redirects.isRedirect(head.status)) {
+        t.next_req = try redirects.next(t.arena.allocator(), t.req, head);
+        const s = t.svc;
+        if (s.stopping.load(.acquire)) return error.Stopping;
+        const msg = try s.gpa.create(Msg);
+        msg.* = .{ .svc = s, .serial = t.serial, .arena = .init(s.gpa), .part = .{ .id = "", .kind = .head }, .redirect = true };
+        if (!mainthread.post(msg, Service.deliver)) {
+            s.gpa.destroy(msg);
+            return error.MainThreadUnavailable;
+        }
+        return error.PolicyRedirect;
+    }
     try post(t, .{
         .id = t.page_id,
         .kind = .head,
         .status = head.status,
         .statusText = head.status_text,
         .url = head.url,
-        .redirected = head.redirected,
+        .redirected = t.redirected or head.redirected,
     }, head.headers);
 }
 

@@ -98,9 +98,21 @@ pub const Core = struct {
     /// A new document: what belonged to the last one is gone.
     pub fn navigated(c: *Core) void {
         c.generation +%= 1;
-        c.failEvals("the page navigated");
-        c.channels.closeAll(c.gpa, .lost);
-        c.freeHandles();
+        // Detach the old document before any callback can destroy the page.
+        const gpa = c.gpa;
+        var evals = c.evals;
+        c.evals = .empty;
+        var old_channels = c.channels;
+        c.channels = .{ .next_id = old_channels.next_id };
+        var handles = c.handles;
+        c.handles = .empty;
+        defer evals.deinit(gpa);
+        defer {
+            for (handles.items) |h| gpa.destroy(h);
+            handles.deinit(gpa);
+        }
+        for (evals.items) |e| e.cb.func(e.cb.ctx, .{ .err = "the page navigated" });
+        old_channels.deinit(gpa, .lost);
     }
 
     fn freeHandles(c: *Core) void {
@@ -141,9 +153,13 @@ pub const Core = struct {
     }
 
     pub fn failEvals(c: *Core, why: []const u8) void {
+        const gpa = c.gpa;
+        // A callback may evaluate again: that one fails too.
         while (c.evals.items.len > 0) {
-            const e = c.evals.orderedRemove(0);
-            e.cb.func(e.cb.ctx, .{ .err = why });
+            var pending = c.evals;
+            c.evals = .empty;
+            defer pending.deinit(gpa);
+            for (pending.items) |e| e.cb.func(e.cb.ctx, .{ .err = why });
         }
     }
 
@@ -201,13 +217,14 @@ pub const Core = struct {
     /// listener's choice, else `dir` (the Downloads directory) and the
     /// suggested name, numbered when a file has it.
     pub fn startDownload(c: *Core, io: std.Io, dir: ?[]const u8, url: []const u8, suggested: []const u8) ?[]u8 {
+        const gpa = c.gpa;
         const name = safeName(suggested);
-        const default = if (dir) |d| uniquePath(c.gpa, io, d, name) catch null else null;
-        defer if (default) |p| c.gpa.free(p);
+        const default = if (dir) |d| uniquePath(gpa, io, d, name) catch null else null;
+        defer if (default) |p| gpa.free(p);
         var e: types.DownloadStart = .{ .url = url, .suggested_name = name, .path = default orelse "" };
         c.fire(.{ .download_started = &e });
         if (e.cancel or e.path.len == 0) return null;
-        return c.gpa.dupe(u8, e.path) catch null;
+        return gpa.dupe(u8, e.path) catch null;
     }
 };
 
@@ -218,13 +235,22 @@ fn env(app: anytype, comptime name: [:0]const u8) ?[]const u8 {
     return std.mem.span(v);
 }
 
-/// `scheme://host[:port]` of a URL, lowercased into `buf`.
+/// Room for any origin `originOf` gives (a host is at most 253 bytes).
+pub const max_origin = 1024;
+
+/// `scheme://host[:port]` of a URL, lowercased into `buf` ("" when it
+/// does not fit).
 pub fn originOf(buf: []u8, url: []const u8) []const u8 {
+    const origin = originSlice(url);
+    if (origin.len > buf.len) return "";
+    return std.ascii.lowerString(buf[0..origin.len], origin);
+}
+
+fn originSlice(url: []const u8) []const u8 {
     const sep = std.mem.indexOf(u8, url, "://") orelse return url[0..0];
     var end = sep + 3;
     while (end < url.len and url[end] != '/' and url[end] != '?' and url[end] != '#') end += 1;
-    const n = @min(end, buf.len);
-    return std.ascii.lowerString(buf[0..n], url[0..n]);
+    return url[0..end];
 }
 
 fn schemeOf(url: []const u8) []const u8 {
@@ -244,14 +270,12 @@ pub fn trusted(options: PageOptions, dev_url: ?[]const u8, url: []const u8) bool
     if (std.ascii.eqlIgnoreCase(scheme, "blob")) return trusted(options, dev_url, url[scheme.len + 1 ..]);
     if (std.ascii.eqlIgnoreCase(scheme, "about") or std.ascii.eqlIgnoreCase(scheme, "file")) return true;
     if (isAppScheme(options, scheme)) return true;
-    var buf: [256]u8 = undefined;
-    const origin = originOf(&buf, url);
+    const origin = originSlice(url);
     if (origin.len == 0) return false;
-    if (scheme_hosts and std.mem.startsWith(u8, origin, "http://") and std.mem.endsWith(u8, origin, ".localhost"))
+    if (scheme_hosts and std.ascii.startsWithIgnoreCase(origin, "http://") and std.ascii.endsWithIgnoreCase(origin, ".localhost"))
         if (isAppScheme(options, origin["http://".len .. origin.len - ".localhost".len])) return true;
     if (dev_url) |d| {
-        var dbuf: [256]u8 = undefined;
-        if (std.mem.eql(u8, originOf(&dbuf, d), origin)) return true;
+        if (std.ascii.eqlIgnoreCase(originSlice(d), origin)) return true;
     }
     for (options.trusted_origins) |o| {
         if (std.mem.eql(u8, o, "*") or std.ascii.eqlIgnoreCase(std.mem.trimEnd(u8, o, "/"), origin)) return true;
@@ -394,4 +418,51 @@ test "a dev server serves the frontend's paths" {
     try testing.expectEqualStrings("http://localhost:5173/", c.startUrl(&buf, "/"));
     try testing.expectEqualStrings("http://localhost:5173/settings", c.startUrl(&buf, "/settings"));
     try testing.expectEqualStrings("https://a.org/", c.startUrl(&buf, "https://a.org/"));
+}
+
+test "navigation preserves evaluations created by cancellation callbacks" {
+    const Probe = struct {
+        core: *Core,
+        calls: usize = 0,
+        fn canceled(ctx: ?*anyopaque, result: types.EvalResult) void {
+            const p: *@This() = @ptrCast(@alignCast(ctx));
+            std.debug.assert(result == .err);
+            p.calls += 1;
+            const next = p.core.evalScript("2", .{ .ctx = p, .func = done }) catch unreachable;
+            p.core.gpa.free(next);
+        }
+        fn done(ctx: ?*anyopaque, result: types.EvalResult) void {
+            const p: *@This() = @ptrCast(@alignCast(ctx));
+            std.debug.assert(result == .ok and std.mem.eql(u8, result.ok, "2"));
+            p.calls += 1;
+        }
+    };
+    var window: u8 = 0;
+    var core: Core = .{ .gpa = testing.allocator, .window = &window, .options = .{}, .token = "0123456789abcdef".* };
+    defer core.deinit();
+    var probe: Probe = .{ .core = &core };
+    const script = try core.evalScript("1", .{ .ctx = &probe, .func = Probe.canceled });
+    defer testing.allocator.free(script);
+    core.navigated();
+    try testing.expectEqual(@as(usize, 1), probe.calls);
+    try testing.expectEqual(@as(usize, 1), core.evals.items.len);
+    core.settle(2, "0123456789abcdef", .{ .ok = "2" });
+    try testing.expectEqual(@as(usize, 2), probe.calls);
+}
+
+test "trusted origins compare complete long authorities" {
+    const a: [63]u8 = @splat('a');
+    const b: [63]u8 = @splat('b');
+    const c: [63]u8 = @splat('c');
+    const d: [53]u8 = @splat('d');
+    const prefix = "https://" ++ a ++ "." ++ b ++ "." ++ c ++ "." ++ d;
+    const dev = prefix ++ ".com";
+    const attacker = prefix ++ ".co";
+    try testing.expect(!trusted(.{}, dev, attacker));
+    try testing.expect(trusted(.{}, dev, dev ++ "/page"));
+    try testing.expect(trusted(.{ .trusted_origins = &.{dev} }, null, dev ++ "/page"));
+    var small: [256]u8 = undefined;
+    try testing.expectEqualStrings("", originOf(&small, dev));
+    var full: [512]u8 = undefined;
+    try testing.expectEqualStrings(dev, originOf(&full, dev ++ "/page"));
 }

@@ -47,7 +47,10 @@ const reader = res.body.pipeThrough(new TextDecoderStream()).getReader(); // str
   than `window_bytes` (1 MiB) of the body yet to read.
 - URLs that are not http or https go to the webview's `fetch`.
 - `Options.allow` sees each request (URL, method, headers) and may refuse
-  it.
+  it. It runs on the main thread before the initial request and before
+  every redirect's next request. A refused hop fails with `NotAllowed`;
+  it never connects to that target. Cross-origin redirects drop explicit
+  credentials (`Authorization`, `Cookie`, `Proxy-Authorization`).
 
 How it works: each request runs on a task of the app's `Io`
 (`Io.concurrent`); its head, body chunks and end come back as

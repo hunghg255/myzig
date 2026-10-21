@@ -121,7 +121,7 @@ pub fn Event(comptime event_name: []const u8, comptime T: type) type {
 
 const Envelope = struct {
     t: []const u8,
-    id: f64 = 0,
+    id: ?f64 = null,
     m: []const u8 = "",
     a: []const std.json.Value = &.{},
     op: []const u8 = "",
@@ -149,8 +149,9 @@ pub fn handleMessage(window: *Window, page: anytype, body: []const u8) void {
         return;
     };
     if (std.mem.eql(u8, env.t, "call")) {
+        const id = messageId(env.id) orelse return;
         var aw: std.Io.Writer.Allocating = .init(a);
-        aw.writer.print("{{\"t\":\"reply\",\"id\":{d},", .{@as(u64, @intFromFloat(env.id))}) catch return;
+        aw.writer.print("{{\"t\":\"reply\",\"id\":{d},", .{id}) catch return;
         const mark = aw.written().len;
         const result = if (pageTrusted(page, a)) callMethod(app, window, page, a, env.m, env.a, &aw.writer) else error.Untrusted;
         // The method may have closed the window: its page is gone.
@@ -167,7 +168,8 @@ pub fn handleMessage(window: *Window, page: anytype, body: []const u8) void {
         aw.writer.writeByte('}') catch return;
         page.enqueue(aw.written(), false);
     } else if (std.mem.eql(u8, env.t, "eval")) {
-        page.core.settle(@intFromFloat(env.id), env.k, if (env.ok) .{ .ok = env.v orelse "null" } else .{ .err = env.e });
+        const id = messageId(env.id) orelse return;
+        page.core.settle(id, env.k, if (env.ok) .{ .ok = env.v orelse "null" } else .{ .err = env.e });
     } else if (std.mem.eql(u8, env.t, "chan-msg")) {
         const flagged = std.mem.indexOf(u8, body, "\"a\":1") != null;
         if (page.core.channels.received(app.gpa, env.c, env.v orelse "null", env.n, flagged)) |ack| {
@@ -195,6 +197,13 @@ pub fn handleMessage(window: *Window, page: anytype, body: []const u8) void {
         else if (std.mem.eql(u8, env.op, "zoom")) window.zoom() //
         else if (std.mem.eql(u8, env.op, "title")) window.setTitle(env.v orelse "");
     }
+}
+
+/// IDs cross JavaScript's Number representation: reject lossy or unsafe casts.
+fn messageId(value: ?f64) ?u64 {
+    const n = value orelse return null;
+    if (!std.math.isFinite(n) or n < 0 or n > 9007199254740991 or @trunc(n) != n) return null;
+    return @intFromFloat(n);
 }
 
 /// A channel message, whose "a" (ask for an acknowledgment) is a number.

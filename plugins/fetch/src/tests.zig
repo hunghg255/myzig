@@ -171,4 +171,5 @@ test "a HEAD has a head and no body" {
 
 test {
     _ = fetch;
+    _ = @import("tests_service.zig");
 }

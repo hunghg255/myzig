@@ -308,7 +308,7 @@
 
   Object.defineProperty(window, "__myzig", { value: Object.freeze({ receive, settle, find, stopFind }) });
   Object.defineProperty(window, "myzig", {
-    value: Object.freeze({ call, on, once, log, Channel, onChannel, window: win, platform, version: "0.1.6" }),
+    value: Object.freeze({ call, on, once, log, Channel, onChannel, window: win, platform, version: "0.1.7" }),
   });
 
   const ready = () => post({ t: "dom-ready" });

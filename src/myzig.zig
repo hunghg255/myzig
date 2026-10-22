@@ -186,7 +186,7 @@ fn redrawOf(win: *anyopaque) void {
 /// The app's light or dark appearance (`App.setAppearance`).
 pub const Appearance = @import("appearance.zig").Appearance;
 
-pub const version = "0.1.6";
+pub const version = "0.1.7";
 
 test {
     _ = tsgen;

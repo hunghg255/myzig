@@ -42,6 +42,24 @@ pub const Shortcut = struct {
         n.ctrl = true;
         return n;
     }
+
+    /// The key `s` names when no backend offers it as a shortcut: Delete,
+    /// Backspace, Home, End, Page Up and Down, Left and Right without a
+    /// modifier come as keys (`Input.key`), which `Context.shortcut` matches.
+    pub fn plainKey(s: Shortcut) ?Key {
+        if (s.cmd or s.ctrl or s.alt or s.shift) return null;
+        return switch (s.key) {
+            delete => .delete,
+            backspace => .backspace,
+            home => .home,
+            end => .end,
+            page_up => .page_up,
+            page_down => .page_down,
+            left => .left,
+            right => .right,
+            else => null,
+        };
+    }
 };
 
 /// What text input does to the focused text, in AppKit's terms: typed or

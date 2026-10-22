@@ -445,6 +445,7 @@ test {
     _ = @import("tests_structures_panes.zig");
     _ = @import("tests_structures_nav.zig");
     _ = @import("tests_structures_lists.zig");
+    _ = @import("tests_outline_keys.zig");
     _ = @import("d3d11_test.zig");
     _ = @import("gl_test.zig");
     _ = @import("gl_gtk_test.zig");

@@ -136,6 +136,8 @@ pub const Context = struct {
     keys_first: bool = false,
     /// Set by the focused text field each frame.
     focused_text: ?FocusedText = null,
+    /// A text field had the keyboard last frame: its keys stay its own.
+    text_had_keys: bool = false,
     clipboard: Clipboard = .{},
     /// The key of the next box, for ids that survive reordering.
     next_key: ?[]const u8 = null,
@@ -249,6 +251,7 @@ pub const Context = struct {
         c.cursor_hand = false;
         c.cursor_text = false;
         c.cursor = null;
+        c.text_had_keys = c.focused_text != null;
         c.focused_text = null;
         c.wants_wheel = false;
         c.wants_keys = false;
@@ -476,11 +479,24 @@ pub const Context = struct {
     pub fn shortcut(c: *Context, want_in: Shortcut) bool {
         // Command shortcuts are Control ones where there is no Command key.
         const want = want_in.native();
-        const s = (c.input.shortcut orelse return false).native();
+        const s = (c.input.shortcut orelse return c.plainKey(want)).native();
         if (s.key != want.key or s.cmd != want.cmd or s.ctrl != want.ctrl or s.alt != want.alt or s.shift != want.shift) return false;
         c.shortcut_taken = true;
         c.changed = true;
         c.input.shortcut = null;
+        return true;
+    }
+
+    /// Delete and the like without a modifier come as keys on every
+    /// backend: `shortcut` takes them as such, unless a text field had the
+    /// keyboard (they edit its text).
+    fn plainKey(c: *Context, want: Shortcut) bool {
+        const k = want.plainKey() orelse return false;
+        const held = c.input.shift or c.input.cmd or c.input.ctrl;
+        if (c.text_had_keys or held or c.input.key != k) return false;
+        c.shortcut_taken = true;
+        c.changed = true;
+        c.input.key = null;
         return true;
     }
 

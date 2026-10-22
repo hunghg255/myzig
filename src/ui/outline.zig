@@ -93,14 +93,12 @@ pub fn Rows(comptime T: type) type {
         focused: bool,
         result: Result,
         in_row: bool = false,
+        press_in_row: bool = false,
 
         /// The next row in view, opened, or null when the view is full.
         pub fn next(r: *Self) ?Row(T) {
             const c = r.c;
-            if (r.in_row) {
-                c.end();
-                r.in_row = false;
-            }
+            r.closeRow();
             const i = r.list.next() orelse return null;
             const row = r.rows[i];
             // Rows keep their identity (hover) as items open and close above them.
@@ -118,7 +116,10 @@ pub fn Rows(comptime T: type) type {
             }, null);
             r.in_row = true;
             const it = c.interact(box, .{});
-            if (it.pressed and c.input.pressed) r.takeFocus();
+            // A press anywhere in the row focuses the tree, on a box of the
+            // app's inside it too: once the row is built (`closeRow`), as
+            // that box's press takes the focus away.
+            r.press_in_row = it.hovered and c.input.pressed;
             if (row.has_children) {
                 const open = r.state.isOpen(row.item);
                 const arrow = c.open(.{ .width = .{ .px = 16 }, .height = .{ .px = 16 }, .align_items = .center, .justify = .center }, "arrow");
@@ -144,6 +145,16 @@ pub fn Rows(comptime T: type) type {
             return row;
         }
 
+        /// Closes the row open, focusing the tree when it was pressed and
+        /// no box in it took the focus for itself (a field to rename).
+        fn closeRow(r: *Self) void {
+            if (!r.in_row) return;
+            r.c.end();
+            r.in_row = false;
+            if (r.press_in_row and r.c.focus == 0) r.takeFocus();
+            r.press_in_row = false;
+        }
+
         fn takeFocus(r: *Self) void {
             if (r.c.focus == r.id) return;
             r.c.focus = r.id;
@@ -159,7 +170,7 @@ pub fn Rows(comptime T: type) type {
         }
 
         pub fn end(r: *Self) Result {
-            if (r.in_row) r.c.end();
+            r.closeRow();
             r.list.end();
             r.result.focused = r.focused;
             return r.result;

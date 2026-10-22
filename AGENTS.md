@@ -115,3 +115,8 @@ image built from `tools/linux.Dockerfile`, with the repository mounted at
   apps made by the CLI default to their own `0.1.0`.
 - `THIRD_PARTY_NOTICES.md` records which mygo commit the port is current
   with; update it when porting more of mygo.
+- The Zig skills in `.agents/skills/` supplement these rules; this file
+  and the installed compiler's standard library win where they differ.
+  `zig-best-practice` targets 0.16 (adapt its APIs to 0.17), and
+  `zig-tiger-style`'s naming, line-width and allocation policies are not
+  repository rules.

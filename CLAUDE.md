@@ -30,6 +30,10 @@ and `-testing` pages) before changing code. The rules that most often bite:
 - Apps pay only for what they use: measure `counter` and `hello` with
   `-Doptimize=ReleaseSmall` before and after a core change.
 - Never build with `-fno-llvm`/`-fno-lld`; one heavy build at a time.
+- `@min` with a comptime bound narrows its type: `@min(x, 64)` is a `u7`,
+  so counting on from it or `2 * n` overflows. Give such results a type
+  (`const n: usize = @min(x, buf.len)`). Release builds inline the panic
+  into a caller and report the wrong line; reproduce it in a Debug build.
 
 ## Commands
 

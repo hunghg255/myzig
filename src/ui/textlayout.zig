@@ -193,7 +193,9 @@ pub const WrapCache = struct {
                 if (sp.line + sp.old > w.rows.items.len) break;
                 for (w.rows.items[sp.line .. sp.line + sp.old]) |r| w.total -= r & ~measured_bit;
                 var fill: [64]u32 = undefined;
-                const n = @min(sp.new, fill.len);
+                // usize: @min with the array's length gives a u7, which
+                // counting on past it (a paste of 128 lines) overflows.
+                const n: usize = @min(sp.new, fill.len);
                 for (0..n) |k| {
                     const li = sp.line + k;
                     fill[k] = if (li < doc.lineCount()) w.estimate(doc.lineEnd(li) - doc.lineStart(li)) else 1;
@@ -267,3 +269,19 @@ pub const WrapCache = struct {
         return .{ .line = last, .sub = (w.rows.items[last] & ~measured_bit) - 1 };
     }
 };
+
+test "a wrapped document takes a paste of more lines than the stack holds" {
+    const gpa = std.testing.allocator;
+    var doc = TextDoc.init(gpa, "one\ntwo\n");
+    defer doc.deinit();
+    var w: WrapCache = .{};
+    defer w.deinit(gpa);
+    w.sync(gpa, &doc, 100, 10);
+    var many: std.ArrayList(u8) = .empty;
+    defer many.deinit(gpa);
+    for (0..300) |_| try many.appendSlice(gpa, "a line\n");
+    doc.replace(0, 0, many.items);
+    w.sync(gpa, &doc, 100, 10);
+    try std.testing.expectEqual(doc.lineCount(), w.rows.items.len);
+    try std.testing.expectEqual(doc.lineCount(), w.totalRows(&doc));
+}

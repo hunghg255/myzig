@@ -217,7 +217,7 @@ const Pen = struct {
             return;
         }
         var ring: [130][2]f32 = undefined;
-        const n = @min(pts.len, 64);
+        const n: usize = @min(pts.len, 64);
         for (0..n) |i| {
             const prev = if (i == 0) extend(pts[1], pts[0]) else pts[i - 1];
             const next = if (i == n - 1) extend(pts[n - 2], pts[n - 1]) else pts[i + 1];

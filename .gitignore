@@ -14,3 +14,6 @@ codedb.snapshot
 docs/node_modules/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+# hillclimb/webview-memory: the apps measure.ps1 builds
+hillclimb/webview-memory/electron-blank/node_modules/
+hillclimb/webview-memory/mygo-blank/mygo-blank.exe

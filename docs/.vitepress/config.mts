@@ -41,6 +41,7 @@ const guide = [
       page('Configuration', '/configuration'),
       page('Building and distributing', '/distribution'),
       page('Updates', '/updates'),
+      page('Benchmarks', '/benchmarks'),
     ],
   },
 ]

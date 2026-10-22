@@ -12,6 +12,8 @@ Một cửa sổ có thể hiển thị một trang web thay vì giao diện nat
 
 Không có gì được liên kết: WebKitGTK được tải khi trang đầu tiên mở ra (một ứng dụng có cửa sổ chỉ hiển thị giao diện native không bao giờ tải nó) và WebView2 được tìm thấy theo cách `WebView2Loader.dll` tìm thấy nó (một phiên bản cố định được đặt tên bởi `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, nếu không thì các kênh đã cài đặt, phiên bản ổn định nhất trước tiên). Máy Linux không có WebKitGTK ghi nhật ký mà các trang cần.
 
+Các tiến trình của WebView2 là gì, và một cửa sổ trang web tốn bao nhiêu so với mygo và Electron, xem ở [Benchmark](benchmarks.md).
+
 Trang này bao gồm nội dung của trang và ứng dụng có thể làm gì với trang đó. Phía frontend (thời gian chạy trang, máy chủ nhà phát triển, thanh tiêu đề) nằm trong [Giao diện người dùng](frontend.md) và gọi Zig từ trang trong [Bindings](bindings.md).
 
 <a id="a-window-with-a-page"></a>

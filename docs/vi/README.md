@@ -102,6 +102,7 @@ Mọi thứ khác:
 - [Cấu hình](configuration.md): mọi trường của `myzig.zon`.
 - [Xây dựng và phân phối](distribution.md): những gì `myzig build` tạo ra trên mỗi nền tảng (`.app` và `.dmg`, `.exe`, `.zip` và trình cài đặt NSIS, `.tar.gz` và `.deb`), ký kết, xây dựng chéo.
 - [Cập nhật](updates.md): các bản cập nhật đã ký với `myzig keygen`, `myzig build` và `--upload` (GitHub, S3), dành cho plugin trình cập nhật.
+- [Benchmark](benchmarks.md): bộ nhớ của một cửa sổ trang web so với mygo và Electron, các tiến trình của WebView2 là gì, các cờ Chromium giúp dùng ít bộ nhớ hơn.
 
 Cách thức hoạt động của myzig dành cho cộng tác viên:
 

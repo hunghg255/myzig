@@ -23,6 +23,7 @@ const labels: Record<string, string> = {
   Configuration: 'Cấu hình',
   'Building and distributing': 'Build và phân phối',
   Updates: 'Cập nhật',
+  Benchmarks: 'Benchmark',
   'Native UI': 'Giao diện native',
   Rendering: 'Kết xuất',
   Layout: 'Bố cục',

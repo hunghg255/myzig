@@ -22,6 +22,8 @@ JavaScript, timers, IPC and network connections keep running; the page is
 not suspended or reloaded. This is a best-effort reduction in resident
 memory, not a memory limit. Older runtimes without the API keep their
 normal memory target. See Microsoft's [memory usage target documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_19).
+What WebView2's processes are and what a page window costs next to mygo
+and Electron is in [Benchmarks](benchmarks.md).
 
 Primary page windows additionally disable controller rendering while their
 host is hidden or minimized, and restore it when shown. JavaScript and IPC

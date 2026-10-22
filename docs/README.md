@@ -142,6 +142,8 @@ Everything else:
   installer, `.tar.gz` and `.deb`), signing, cross-building.
 - [Updates](updates.md): signed updates with `myzig keygen`, `myzig build`
   and `--upload` (GitHub, S3), for the updater plugin.
+- [Benchmarks](benchmarks.md): a page window's memory against mygo and
+  Electron, what WebView2's processes are, Chromium flags that use less.
 
 How myzig works, for contributors:
 

@@ -5,6 +5,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const main = @import("main.zig");
 const clock = @import("clock.zig");
+pub const Profile = @import("profile.zig").Profile;
 
 /// Where the run ran: runs compare only with runs of the same platform.
 const platform = @tagName(builtin.os.tag);
@@ -17,6 +18,8 @@ const Entry = struct {
     label: []const u8 = "",
     /// Runs from before platforms were recorded ran on macOS.
     os: []const u8 = "macos",
+    /// Unknown in older entries: keep those, but do not auto-compare them.
+    profile: ?Profile = null,
     results: []const main.Result,
 };
 
@@ -37,7 +40,7 @@ pub fn status(text: []const u8) void {
     std.debug.print("\r\x1b[2K{s}{s}{s}", .{ dim, text, reset });
 }
 
-pub fn loadHistory(init: std.process.Init) ![]const Entry {
+pub fn loadHistory(init: std.process.Init, current: Profile) ![]const Entry {
     const arena = init.arena.allocator();
     const data = std.Io.Dir.cwd().readFileAlloc(init.io, history_path, arena, .limited(64 << 20)) catch return &.{};
     var list: std.ArrayList(Entry) = .empty;
@@ -45,12 +48,19 @@ pub fn loadHistory(init: std.process.Init) ![]const Entry {
     while (lines.next()) |line| {
         if (std.mem.trim(u8, line, " \r").len == 0) continue;
         const e = std.json.parseFromSliceLeaky(Entry, arena, line, .{ .ignore_unknown_fields = true, .allocate = .alloc_always }) catch continue;
-        if (std.mem.eql(u8, e.os, platform)) try list.append(arena, e);
+        if (!std.mem.eql(u8, e.os, platform)) continue;
+        const previous = e.profile orelse continue;
+        if (current.matches(previous)) try list.append(arena, e);
     }
     return list.items;
 }
 
-pub fn appendHistory(init: std.process.Init, label: []const u8, results: []const main.Result) !void {
+pub fn appendHistory(
+    init: std.process.Init,
+    label: []const u8,
+    results: []const main.Result,
+    profile: Profile,
+) !void {
     const gpa = init.gpa;
     const cwd = std.Io.Dir.cwd();
     const old = cwd.readFileAlloc(init.io, history_path, gpa, .limited(64 << 20)) catch try gpa.dupe(u8, "");
@@ -58,7 +68,13 @@ pub fn appendHistory(init: std.process.Init, label: []const u8, results: []const
     var aw: std.Io.Writer.Allocating = .init(gpa);
     defer aw.deinit();
     try aw.writer.writeAll(old);
-    const entry: Entry = .{ .time = clock.unixSeconds(), .label = label, .os = platform, .results = results };
+    const entry: Entry = .{
+        .time = clock.unixSeconds(),
+        .label = label,
+        .os = platform,
+        .profile = profile,
+        .results = results,
+    };
     try std.json.Stringify.value(entry, .{}, &aw.writer);
     try aw.writer.writeByte('\n');
     try cwd.writeFile(init.io, .{ .sub_path = history_path, .data = aw.written() });

@@ -7,6 +7,7 @@ GPU into an offscreen texture, as a window's frames would be.
 
 ```sh
 cd hillclimb
+zig build test                                 # OOM cleanup and history-profile matching
 zig build run                                  # every scene, myzig and mygo
 zig build run -- --label "what changed"        # name the run in history.jsonl
 zig build run -- --scene text,list --only myzig --frames 600 --repeat 5
@@ -15,6 +16,10 @@ zig build run -- --only myzig --hash           # and hash the CPU renderer's pix
 zig build run -- --only myzig --whole          # draw every frame whole, to compare
 zig build run -- --only myzig --gpu            # Windows: Direct3D 11, timed by the GPU
 ```
+
+`zig build run` executes the artifact in Zig's cache. To run
+`zig-out/bin/hillclimb` directly, first use `zig build` to install the
+current executable; otherwise that path can still hold an older build.
 
 On macOS the frames are drawn by Metal. On Windows and Linux both
 frameworks' CPU renderers draw each frame into memory, so `render CPU`
@@ -25,7 +30,12 @@ draws every frame whole), mygo's every frame whole. On Windows, `--gpu`
 has Direct3D 11 draw myzig's frames into a texture kept across frames, as
 a window's swap chain, with the GPU's time from timestamp queries
 (`render CPU` is then the time to encode them). Runs compare only with earlier runs of the same platform
-(`history.jsonl` records each run's `os`). `--mygo` matters only for the
+(`history.jsonl` records each run's `os`). New entries also record the
+frame/repeat counts, whole/partial mode (including `MYZIG_PARTIAL`), GPU
+and hash flags, optimization and output dimensions. Automatic delta
+columns compare only matching profiles. Older entries remain in the file
+for manual analysis, but are excluded from automatic comparisons because
+their mode is unknown. `--mygo` matters only for the
 first run: delete `.mygo` to clone again. `--hash` prints, per scene, a
 hash of every frame the CPU renderer drew: a change that makes it faster
 must leave them as they were (with the same `--frames`).

@@ -15,6 +15,7 @@ const scenes = @import("scenes.zig");
 const report = @import("report.zig");
 const mygo = @import("mygo.zig");
 const clock = @import("clock.zig");
+const samples = @import("samples.zig");
 
 pub const width = 900;
 pub const height = 640;
@@ -109,8 +110,7 @@ fn runMyzig(gpa: std.mem.Allocator, scene: scenes.Scene, frames: usize, hash: bo
     defer gpa.free(encode_ms);
     const gpu_ms = try gpa.alloc(f64, frames);
     defer gpa.free(gpu_ms);
-    var phases: [3][]f64 = undefined;
-    for (&phases) |*ph| ph.* = try gpa.alloc(f64, frames);
+    const phases = try samples.allocPhases(gpa, frames);
     defer for (phases) |ph| gpa.free(ph);
     var cpu0: f64 = 0;
     var pixels_hash: u64 = 0;
@@ -221,6 +221,18 @@ pub fn main(init: std.process.Init) !void {
     const gpa = init.gpa;
     const arena = init.arena.allocator();
     const opts = try parseArgs(init);
+    const profile: report.Profile = .{
+        .frames = opts.frames,
+        .repeat = opts.repeat,
+        .whole = opts.whole,
+        .gpu = opts.gpu,
+        .hash = opts.hash,
+        .partial = if (has_damage) ui.damage.enabled() else false,
+        .optimize = @tagName(@import("builtin").mode),
+        .width = width,
+        .height = height,
+        .scale = scale,
+    };
     const want = struct {
         fn f(o: Options, fw: []const u8) bool {
             return o.only == null or std.mem.eql(u8, o.only.?, fw);
@@ -243,11 +255,11 @@ pub fn main(init: std.process.Init) !void {
         var m_best: ?Result = null;
         for (0..opts.repeat) |rep| {
             if (want(opts, "myzig")) {
-                report.status(try std.fmt.allocPrint(arena, "myzig · {s} · run {d}/{d}…", .{ @tagName(scene), rep + 1, opts.repeat }));
+                report.status(try arena.print("myzig · {s} · run {d}/{d}…", .{ @tagName(scene), rep + 1, opts.repeat }));
                 n_best = better(n_best, try runMyzig(gpa, scene, opts.frames, opts.hash, opts.whole, opts.gpu));
             }
             if (want(opts, "mygo") and mygo.ready and scene.inMygo()) {
-                report.status(try std.fmt.allocPrint(arena, "mygo · {s} · run {d}/{d}…", .{ @tagName(scene), rep + 1, opts.repeat }));
+                report.status(try arena.print("mygo · {s} · run {d}/{d}…", .{ @tagName(scene), rep + 1, opts.repeat }));
                 if (mygo.run(init, scene, opts.frames)) |r| {
                     m_best = better(m_best, r);
                 } else |err| std.debug.print("mygo {s}: {s}\n", .{ @tagName(scene), @errorName(err) });
@@ -257,9 +269,9 @@ pub fn main(init: std.process.Init) !void {
         if (m_best) |r| try results.append(arena, r);
     }
     report.status("");
-    const history = report.loadHistory(init) catch &.{};
+    const history = report.loadHistory(init, profile) catch &.{};
     report.table(results.items, history);
     if (opts.hash) for (results.items) |r| if (r.pixels_hash != 0) std.debug.print("pixels {s:<10} {x:0>16}\n", .{ r.scene, r.pixels_hash });
     if (mygo_error) |err| std.debug.print("\x1b[31mmygo's twin did not build ({s}): its columns are empty.\x1b[0m\n", .{@errorName(err)});
-    try report.appendHistory(init, opts.label, results.items);
+    try report.appendHistory(init, opts.label, results.items, profile);
 }

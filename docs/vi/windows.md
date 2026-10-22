@@ -51,6 +51,7 @@ Các tùy chọn của trang là gì (`myzig.PageOptions`: nội dung, thư mụ
 | `always_on_top` | false | phía trên cửa sổ của các ứng dụng khác |
 | `skip_taskbar` | false | ra khỏi thanh tác vụ và trình chuyển đổi ứng dụng (Linux, Windows) |
 | `title_bar` | `.default` | `.default`, `.hidden` hoặc `.frameless` ([bên dưới](#title-bars)) |
+| `hide_window_buttons` | false | với `.hidden`, view tự vẽ nút cửa sổ; `titleBar()` không dành chỗ cho nút hệ thống; trình duyệt bỏ qua |
 | `title_bar_height` | 0 | chiều cao của thanh tiêu đề ẩn hoặc dải kéo của cửa sổ không khung; 0 là của hệ thống (32 trên Windows, 28 ở nơi khác) |
 | `theme` | null | Màu của giao diện native, cố định (`ui.Theme.light`, `ui.Theme.dark_theme`, một trong các màu của ứng dụng); hệ thống sáng hay tối khi null |
 | `material` | `.none` | những gì hiển thị qua nền ([Vật liệu](#materials)) |
@@ -62,6 +63,30 @@ Các tùy chọn của trang là gì (`myzig.PageOptions`: nội dung, thư mụ
 | `content` | (bắt buộc) | `.{ .view = ... }` hoặc `.{ .page = ... }` |
 
 Flyout cũng là một cửa sổ, được tạo bởi `App.newFlyout` ([Flyouts](#flyouts)).
+
+## Tự vẽ nút cửa sổ
+
+Dùng `.title_bar = .hidden` kèm `.hide_window_buttons = true` để view tự
+vẽ các nút thu nhỏ, phóng lớn và đóng. `win.titleBar()` không còn dành chỗ
+cho nút hệ thống. Tùy chọn này không tác động các chế độ title bar khác;
+trình duyệt bỏ qua trang trí cửa sổ.
+
+```zig
+const maximize = ui.div(c).size(46, 32).maximizeButton();
+if (maximize.clicked()) s.window.zoom();
+ui.text(c, "□", .{});
+maximize.end();
+```
+
+Dùng `minimize()`, `zoom()` và `requestClose()` cho các thao tác cửa sổ.
+`requestClose()` tôn trọng callback hỏi trước khi đóng. Windows 11 mở
+Snap Layouts khi hover nút `maximizeButton()` đầu tiên còn hiển thị và hợp
+lệ. Nút bị cắt hoàn toàn, trong suốt, xoay hoặc skew được bỏ qua. Vùng hit
+theo vị trí và layout mới, được cắt theo vùng nhìn thấy và bị xóa khi không
+còn marker hợp lệ. Marker không tác động trên nền tảng khác. API
+`setSnapButton` vẫn dùng được khi ứng dụng tự quản lý vùng hit.
+Chỉ tự đặt vùng Snap khi title bar ẩn và `hide_window_buttons = true`;
+các cấu hình khác giữ nguyên vùng do ứng dụng quản lý thủ công.
 
 <a id="show-windows-without-flashing"></a>
 

@@ -2,6 +2,9 @@
 
 # Plugin
 
+Plugin [loading](plugins/loading.md) cung cấp 29 chỉ báo native, hỗ trợ tạm
+dừng, giảm chuyển động, accessibility và cấu hình riêng từng mẫu.
+
 Plugin là một gói Zig bổ sung thêm một tính năng cốt lõi của myzig, do đó các ứng dụng không sử dụng nó sẽ không phát triển. Plugin cho các trang có hai nửa, giống như mygo: dịch vụ Zig mà ứng dụng liên kết và mô-đun JavaScript (được ứng dụng phân phối, không bao giờ được tìm nạp từ npm) có chức năng gọi nó. Chỉ có các plugin dành cho giao diện native là Zig.
 
 Mọi plugin chính thức đều tồn tại trong `plugins/<name>` của kho lưu trữ myzig, một gói riêng có `build.zig`, `build.zig.zon` (tùy thuộc vào myzig và trên `mainthread` khi nó hoạt động với luồng chính), nguồn của nó trong `src/`, ứng dụng `example/` và các kiểm thử của nó.

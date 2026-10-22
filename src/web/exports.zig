@@ -46,12 +46,22 @@ export fn myzig_web_animation_frame(id: u32) bool {
 export fn myzig_web_pointer(id: u32, kind: u32, x: f32, y: f32, button: u32, clicks: u32, mods: u32) bool {
     const s = surface(id) orelse return false;
     if (kind > 3) return false;
-    return input.pointer(s, @enumFromInt(kind), x, y, button, clicks, mods);
+    return input.pointer(s, @fromBackingInt(@intCast(kind)), x, y, button, clicks, mods);
 }
 
 export fn myzig_web_wheel(id: u32, x: f32, y: f32, dy: f32, mods: u32) bool {
     const s = surface(id) orelse return false;
     return input.wheel(s, x, y, dy, mods);
+}
+
+export fn myzig_web_pinch(id: u32, x: f32, y: f32, scale: f32, mods: u32) bool {
+    const s = surface(id) orelse return false;
+    return input.pinch(s, x, y, scale, mods);
+}
+
+export fn myzig_web_scroll(id: u32, x: f32, y: f32, dx: f32, dy: f32, precise: bool, mods: u32) bool {
+    const s = surface(id) orelse return false;
+    return input.scroll(s, x, y, dx, dy, precise, mods);
 }
 
 /// A key down (`up` false) or up, its `KeyboardEvent.key` in the buffer.

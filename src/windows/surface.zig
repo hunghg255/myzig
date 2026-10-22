@@ -408,23 +408,7 @@ pub const Surface = struct {
                 self.ctx.pointerUp();
                 self.frame();
             },
-            w.WM_MOUSEWHEEL => {
-                var p: w.POINT = .{ .x = @as(i16, @truncate(lp)), .y = @as(i16, @truncate(lp >> 16)) };
-                _ = w.ScreenToClient(h, &p);
-                self.ctx.input.mouse = .{ .x = @as(f32, @floatFromInt(p.x)) / self.scale, .y = @as(f32, @floatFromInt(p.y)) / self.scale };
-                const notches: f32 = @as(f32, @floatFromInt(@as(i16, @truncate(@as(isize, @bitCast(wp)) >> 16)))) / 120;
-                const delta = notches * 48;
-                // Whole notches of a wheel glide (`ui/wheel.zig`); a precision
-                // touchpad's small deltas follow the fingers.
-                const notch = notches == @round(notches);
-                if (if (notch) self.ctx.applyWheel(delta) else self.ctx.applyScroll(delta)) {
-                    self.frame();
-                    self.ctx.updateHot();
-                } else if (self.ctx.wants_wheel) {
-                    self.ctx.input.scroll = .{ .y = delta };
-                    self.frame();
-                }
-            },
+            w.WM_MOUSEWHEEL, w.WM_MOUSEHWHEEL => @import("surface_gesture.zig").wheel(self, h, wp, lp, msg == w.WM_MOUSEHWHEEL),
             w.WM_KEYDOWN, w.WM_SYSKEYDOWN => {
                 // Its edge, for views that follow keys (not the repeats).
                 const repeat = (@as(usize, @bitCast(lp)) >> 30) & 1 != 0;
@@ -492,7 +476,7 @@ pub const Surface = struct {
             0x1B => .escape,
             0x21 => .page_up,
             0x22 => .page_down,
-            0x70...0x7B => @enumFromInt(@intFromEnum(ctx_mod.Key.f1) + (vk - 0x70)),
+            0x70...0x7B => @fromBackingInt(@intCast(@backingInt(ctx_mod.Key.f1) + (vk - 0x70))),
             else => null,
         };
         const S = ui.Shortcut;

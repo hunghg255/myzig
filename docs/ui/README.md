@@ -43,11 +43,14 @@ pub fn main(init: std.process.Init) !void {
 The view is immediate mode: a function of your state that myzig runs on
 the main thread whenever something happens (input, a resize, an animation
 step). Widgets are function calls that answer at once: `ui.button` returns
-whether it was clicked, `ui.toggle` flips the `bool` you give it. There are
-no widget objects to keep, no callbacks to register and no bindings to
-update: you change your state, and the next frame shows it. When an
+whether it was clicked, `ui.toggle` flips the `bool` you give it. These
+widgets report interactions during the build: you change your state, and
+the next frame shows it. When an
 interaction changes the state, myzig builds the frame again before drawing
 it, so the screen never lags behind the state.
+
+Elements that need scroll or pinch events before the next build can use
+the optional [`handleInput` callback](gestures.md).
 
 Nothing polls. A frame is drawn on input, on a resize, while an animation
 runs, or when the app asks (`Window.redraw`, `c.frameIn`); an idle window
@@ -145,6 +148,10 @@ Widgets:
   it.
 - [Custom widgets](custom-widgets.md): boxes, interactions, animated
   values, handles: how myzig's own widgets are made.
+- [Scrolling and pinching](gestures.md): scroll/pinch handlers, event
+  routing and headless gesture tests.
+- [Loading indicators](../plugins/loading.md): the optional plugin's 29
+  designs, independent clocks and per-design options.
 
 Drawing and rich content:
 

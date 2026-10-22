@@ -150,8 +150,8 @@ pub const App = struct {
         return self;
     }
 
-    /// Whether the app runs headless (`--myzig-snapshot`, `--myzig-eval`,
-    /// `--myzig-generate`): no window shows, and its directories
+    /// Whether the app runs headless (`--myzig-hidden`, `--myzig-snapshot`,
+    /// `--myzig-eval`, `--myzig-generate`): no window shows, and its directories
     /// (`myzig.path`'s data and cache, `myzig.appPath`) are a temporary
     /// one's, removed when it is destroyed, so the user's state is untouched.
     pub fn headless(self: *const App) bool {

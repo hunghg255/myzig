@@ -179,6 +179,30 @@ pub const Div = struct {
 
     // Interaction.
 
+    /// Scroll/pinch events before the next build. Return false to let a
+    /// parent handler or scroll container take the event.
+    pub fn handleInput(d: Div, ptr: anytype, comptime call: fn (@TypeOf(ptr), @import("gesture.zig").InputEvent) bool) Div {
+        const Adapter = struct {
+            fn run(state: *anyopaque, e: @import("gesture.zig").InputEvent) bool {
+                return call(@ptrCast(@alignCast(state)), e);
+            }
+        };
+        const handler = d.c.alloc().create(@import("gesture.zig").Handler) catch @panic("OOM");
+        handler.* = .{ .ptr = ptr, .call = Adapter.run };
+        d.c.node(d.index).input_handler = handler;
+        d.c.node(d.index).interactive = true;
+        return d;
+    }
+
+    /// Marks the view's maximize button for Windows 11 Snap Layouts.
+    /// The view handles its click and calls Window.maximize/unmaximize.
+    pub fn maximizeButton(d: Div) Div {
+        d.c.node(d.index).maximize_button = true;
+        _ = d.c.interact(d.index, .{});
+        d.c.snap_update = @import("window_buttons.zig").update;
+        return d;
+    }
+
     /// A control: its texts do not select (see `Style.control`).
     pub fn control(d: Div) Div {
         return d.set("control", true);

@@ -206,7 +206,7 @@ Mọi ứng dụng myzig đều hiểu những cờ này mà CLI và các bài k
 | `--myzig-script=STEPS` | với `--myzig-snapshot`: các bước chạy trước (`click:Tasks;type:Hi;key:enter`; xem [Thử nghiệm](ui/testing.md)) |
 | `--myzig-dark` | với `--myzig-snapshot`: bề ngoài tối tăm |
 | `--myzig-wait=SECONDS` | với `--myzig-snapshot`: chạy vòng lặp sự kiện dài như vậy trước tiên |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ |
+| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
 | `--myzig-eval=JS` | đánh giá JS trong mỗi trang khi DOM của nó đã sẵn sàng (ngụ ý bị ẩn); `myzig.log` in ra thiết bị lỗi chuẩn |
 
 <a id="environment-variables"></a>

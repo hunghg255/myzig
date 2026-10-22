@@ -45,6 +45,7 @@ const labels: Record<string, string> = {
   'Navigation and focus': 'Điều hướng và focus',
   'Drag and drop': 'Kéo và thả',
   'Custom widgets': 'Widget tùy chỉnh',
+  'Scrolling and pinching': 'Cuộn và thu phóng bằng cử chỉ',
   'Motion and drawing': 'Chuyển động và đồ họa',
   Motion: 'Chuyển động',
   'Transforms and effects': 'Biến đổi và hiệu ứng',

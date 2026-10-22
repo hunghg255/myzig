@@ -54,6 +54,7 @@ dev server, schemes, trusted origins, scripts, its listener) is in
 | `always_on_top` | false | above other apps' windows |
 | `skip_taskbar` | false | out of the taskbar and the app switcher (Linux, Windows) |
 | `title_bar` | `.default` | `.default`, `.hidden` or `.frameless` ([below](#title-bars)) |
+| `hide_window_buttons` | false | with `.hidden`, the view draws its own controls; `titleBar()` reserves no room; ignored in browsers |
 | `title_bar_height` | 0 | the height of a hidden title bar, or of a frameless window's drag strip; 0 is the system's (32 on Windows, 28 elsewhere) |
 | `theme` | null | native UI's colors, fixed (`ui.Theme.light`, `ui.Theme.dark_theme`, one of the app's); the system's light or dark when null |
 | `material` | `.none` | what shows through the background ([Materials](#materials)) |
@@ -65,6 +66,33 @@ dev server, schemes, trusted origins, scripts, its listener) is in
 | `content` | (required) | `.{ .view = ... }` or `.{ .page = ... }` |
 
 A flyout is a window too, made by `App.newFlyout` ([Flyouts](#flyouts)).
+
+## Draw the window controls
+
+With `.title_bar = .hidden`, set `.hide_window_buttons = true` to draw
+your own minimize, maximize and close buttons in the view. `win.titleBar()`
+then reports no reserved space. Other title bar modes ignore this option.
+The browser target ignores window decorations.
+
+```zig
+const maximize = ui.div(c).size(46, 32).maximizeButton();
+if (maximize.clicked()) s.window.zoom();
+ui.text(c, "□", .{});
+maximize.end();
+```
+
+Call `minimize()`, `zoom()` and `requestClose()` for the other actions.
+`requestClose()` respects the app's close-request callback. On Windows 11,
+hovering the first valid visible `maximizeButton()` opens Snap Layouts.
+Fully clipped or transparent buttons and rotated or skewed buttons are
+skipped. Its hit rectangle follows movement and layout, is clipped to the
+visible area, and is cleared when no valid marker remains. Elsewhere the
+marker does nothing.
+The lower-level `setSnapButton` remains available for apps managing their
+own hit rectangles.
+Automatic placement runs only with a hidden title bar and
+`hide_window_buttons = true`; otherwise it leaves manually managed Snap
+rectangles alone.
 
 ## Show windows without flashing
 

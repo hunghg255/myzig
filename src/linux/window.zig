@@ -42,6 +42,7 @@ pub const Window = struct {
     height: f64 = 0,
     theme: ?ui.Theme = null,
     title_bar: TitleBar = .default,
+    hide_window_buttons: bool = false,
     on_close: ?Callback = null,
     closed: bool = false,
     full_screen: bool = false,
@@ -65,7 +66,7 @@ pub const Window = struct {
         const options = restored[0];
         const self = try app.gpa.create(Window);
         errdefer app.gpa.destroy(self);
-        self.* = .{ .app = app, .gtkwindow = null, .title_bar = options.title_bar, .on_close = options.on_close, .width = options.width, .height = options.height, .theme = options.theme, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout };
+        self.* = .{ .app = app, .gtkwindow = null, .title_bar = options.title_bar, .hide_window_buttons = options.hide_window_buttons, .on_close = options.on_close, .width = options.width, .height = options.height, .theme = options.theme, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout };
         var page_options: ?PageOptions = null;
         switch (options.content) {
             .page => |p| page_options = p,
@@ -83,7 +84,7 @@ pub const Window = struct {
         if (options.on_drop != null) extras.acceptDrops(win, self, onDrop);
         if (restored[1]) g.gtk_window_maximize(win);
         if (self.view) |v| self.surface = try Surface.create(self, v, options.theme);
-        if (options.title_bar == .hidden and options.flyout == null) if (self.surface) |s| {
+        if (options.title_bar == .hidden and !options.hide_window_buttons and options.flyout == null) if (self.surface) |s| {
             if (@import("titlebar_overlay.zig").install(win, s.area)) |o| self.header = o.bar;
         };
         if (page_options) |p| self.page = try Page.create(self, p);

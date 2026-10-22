@@ -8,7 +8,7 @@
 //!   --myzig-dark            with --myzig-snapshot: the dark appearance
 //!   --myzig-wait=SECONDS    with --myzig-snapshot: run the event loop that long first, so
 //!                            processes, timers and replies the app waits for arrive
-//!   --myzig-hidden          never show windows
+//!   --myzig-hidden          never show windows; the app's directories are temporary
 //!   --myzig-eval=JS         evaluate JS in each page once its DOM is ready (implies hidden);
 //!                            pages report with myzig.log() and finish with myzig.window.close()
 const std = @import("std");
@@ -41,11 +41,11 @@ pub const Flags = struct {
         return f;
     }
 
-    /// Whether the run is headless (a snapshot, evaluating pages, writing
-    /// the client): the app's directories are then a temporary one's
-    /// (`headless.zig`), so no user state is touched.
+    /// Whether the run is headless (hidden, a snapshot, evaluating pages,
+    /// writing the client): the app's directories are then a temporary
+    /// one's (`headless.zig`), so no user state is touched.
     pub fn headless(f: Flags) bool {
-        return f.snapshot != null or f.eval != null or f.generate_dir != null;
+        return f.hidden;
     }
 
     fn value(arg: []const u8, comptime flag: []const u8) ?[]const u8 {

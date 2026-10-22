@@ -1,5 +1,5 @@
-//! Headless runs (`--myzig-snapshot`, `--myzig-eval`, `--myzig-generate`,
-//! tests) leave the user's state alone: the app's own directories
+//! Headless runs (`--myzig-hidden`, `--myzig-snapshot`, `--myzig-eval`,
+//! `--myzig-generate`, tests) leave the user's state alone: the app's own directories
 //! (`desktop.path`'s data, cache and downloads, `myzig.appPath`'s) are
 //! made in a temporary directory of the run's instead, removed when the
 //! app is destroyed. Documents' recovery copies, window state, recent
@@ -17,7 +17,7 @@ pub fn active() bool {
     return requested or root != null or builtin.is_test;
 }
 
-/// Makes this run headless: an app started with `--myzig-snapshot`,
+/// Makes this run headless: an app started with `--myzig-hidden`, `--myzig-snapshot`,
 /// `--myzig-eval` or `--myzig-generate`. Its directory is made when first
 /// asked for.
 pub fn request() void {

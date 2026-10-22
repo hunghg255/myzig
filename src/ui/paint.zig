@@ -83,6 +83,7 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
         clip = entered[1];
     }
     const visible = r.intersect(clip);
+    if (n.input_handler) |h| h.inverse = p.sp.m.inverse() orelse .{};
     if (c.canvas_record) |record| record(c, n.id, r, p.sp.m, p.sp.mode == .general, p.sp.outer, clip);
     const clip4 = metal.clip4(clip);
     const rect4: [4]f32 = .{ r.x, r.y, r.w, r.h };
@@ -112,7 +113,7 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
         if (st.gradient) |g| @import("gradient.zig").paint(p, g.*, st, rect4, clip4, opacity);
         switch (n.content) {
             .text => |*t| paintText(p, index, n, t, clip4, opacity, selectable),
-            .icon => |ic| if (c.text.atlas.symbol(ic.name, ic.size, @intFromEnum(ic.weight))) |sp| {
+            .icon => |ic| if (c.text.atlas.symbol(ic.name, ic.size, @backingInt(ic.weight))) |sp| {
                 // Centered in its box, which may be larger (a fixed frame).
                 const inner = r.inset(st.padding);
                 const x = inner.x + (inner.w - (sp.w + 2 * sp.x)) / 2;

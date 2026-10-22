@@ -46,7 +46,10 @@ its boxes and the painter's own, so a canvas zoomed in sees as much less of
 itself as shows. A drawing taller than the window (a long document, a
 chart's many points) skips what falls outside it; a frame that scrolled it
 draws once more with the part as it now is. Until a frame painted it, it is
-the whole canvas.
+the whole canvas. Outside the painter, `ui.canvasVisibility(c, id, whole)`
+answers the same for the canvas that will take box id `id` (`c.peekId`),
+so an animation can pause while its canvas is scrolled out of view (the
+[loading plugin](../plugins/loading.md) does).
 
 ```zig
 const v = p.visible();

@@ -43,10 +43,14 @@ pub fn setUp(self: *Window, win: *gtk.Widget, options: anytype) void {
         .frameless => m.gtk_window_set_decorated(win, 0),
         // The desktop's own title buttons, in a header bar of the window's.
         .hidden => {
-            const bar = m.gtk_header_bar_new();
-            m.gtk_header_bar_set_show_close_button(bar, 1);
-            m.gtk_window_set_titlebar(win, bar);
-            m.gtk_widget_show(bar);
+            if (options.hide_window_buttons) {
+                if (!@import("titlebar_overlay.zig").hideButtons(win)) m.gtk_window_set_decorated(win, 0);
+            } else {
+                const bar = m.gtk_header_bar_new();
+                m.gtk_header_bar_set_show_close_button(bar, 1);
+                m.gtk_window_set_titlebar(win, bar);
+                m.gtk_widget_show(bar);
+            }
         },
     }
     if (options.skip_taskbar or options.flyout != null) {

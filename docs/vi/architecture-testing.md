@@ -43,7 +43,7 @@ Mọi hành vi của widget đều được kiểm tra thông qua Trình kiểm 
 | `--myzig-script=STEPS` | với `--myzig-snapshot`: trước tiên hãy chạy các bước Kiểm tra này |
 | `--myzig-dark` | với `--myzig-snapshot`: bề ngoài tối tăm |
 | `--myzig-wait=SECONDS` | với `--myzig-snapshot`: chạy vòng lặp sự kiện dài như vậy trước tiên |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ |
+| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
 | `--myzig-eval=JS` | đánh giá JS trong mỗi trang khi DOM của nó đã sẵn sàng (ngụ ý bị ẩn) |
 
 Một trang trong `--myzig-eval` báo cáo với `myzig.log(...)` (được in dưới dạng `page: ...` trên stderr) và kết thúc ứng dụng bằng `myzig.window.close()`. `MYZIG_DEBUG=1` giúp các ứng dụng ghi nhật ký cửa sổ và khung của chúng cho các công cụ.
@@ -59,10 +59,12 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 | lệnh | chạy |
 |---|---|
-| `zig build test` | các bài kiểm tra đơn vị và widget của khối kiểm tra của `src/myzig.zig`, cộng với các bài kiểm tra của Người kiểm tra các ví dụ với khối kiểm tra riêng của chúng (`blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi`) |
+| `zig build test` | unit/widget test của `src/myzig.zig`, test plugin loading và các test qua Tester của `blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi`, `loading` |
+| `zig build test-loading` | plugin và gallery loading: đủ 29 mẫu, thời lượng, đồng hồ độc lập, rebuild, tạm dừng/tiếp tục và giảm chuyển động, vẽ offscreen |
 | `zig build test -Dportable=true` | tương tự với bộ kết xuất CPU và văn bản TrueType của myzig (đường dẫn Linux và Windows, trên máy Mac) |
 | `zig build test-pages` | các trang ẩn trong view web thực: trang xin chào gọi Zig (cuộc gọi, lỗi, dịch vụ không xác định, sự kiện, client được tạo) và `examples/pages` (sơ đồ, kênh, sự kiện, quyền, tải xuống, eval, tìm, PDF, cookie, tin cậy), mỗi trang đều mong đợi `page: ok` trên thiết bị lỗi chuẩn |
-| `zig build test-web` | bộ đếm và thư viện được xây dựng cho trình duyệt, chạy headless trong Nút (`src/web/test_node.mjs`): vẽ khung, nhấp vào văn bản sẽ thay đổi view |
+| `zig build test-web` | counter, gallery và gestures dưới Node: frame, trạng thái idle, nhấp chuột, pinch và pan ngang/dọc |
+| `zig build test-web -Dweb-browser="PATH"` | các test Node cùng sự kiện wheel/pinch DOM thật trong Chrome hoặc Edge headless: chế độ delta và việc chặn mặc định |
 | `zig build test-bin` | cài đặt các bài kiểm tra đơn vị dưới dạng `zig-out/bin/myzig-tests` (`.exe` trên Windows), để chạy trên máy khác |
 | `zig build lines` | mỗi tập tin tối đa 600 dòng |
 | `cd cli && zig build test` | kiểm tra đơn vị của CLI: cấu hình, gói, kho lưu trữ, tài nguyên |

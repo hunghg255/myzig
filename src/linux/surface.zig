@@ -55,6 +55,7 @@ pub const Surface = struct {
     committed: std.ArrayList(u8) = .empty,
     /// The press that started a double or triple click was already sent.
     pressed: bool = false,
+    zoom: @import("surface_zoom.zig").State = .{},
     /// AT-SPI's view of the frames, while assistive technology is on.
     access: ?*@import("atspi.zig").Link = null,
     access_tried: bool = false,
@@ -89,6 +90,7 @@ pub const Surface = struct {
         gtk.connect(area, "motion-notify-event", @ptrCast(&onMotion), self);
         gtk.connect(area, "leave-notify-event", @ptrCast(&onLeave), self);
         gtk.connect(area, "scroll-event", @ptrCast(&onScroll), self);
+        @import("surface_zoom.zig").install(self);
         gtk.connect(area, "key-press-event", @ptrCast(&onKey), self);
         gtk.connect(area, "key-release-event", @ptrCast(&onKeyRelease), self);
         gtk.connect(area, "focus-in-event", @ptrCast(&onFocusIn), self);
@@ -104,6 +106,7 @@ pub const Surface = struct {
     }
 
     pub fn destroy(self: *Surface) void {
+        @import("surface_zoom.zig").destroy(self);
         surface_access.destroy(self);
         const g = &gtk.api;
         if (self.tick != 0) g.gtk_widget_remove_tick_callback(self.area, self.tick);
@@ -369,7 +372,8 @@ fn onScroll(_: *gtk.Widget, e: *gtk.Event, data: ?*anyopaque) callconv(.c) c_int
     // A wheel's notches (whole lines) glide (`ui/wheel.zig`); a touchpad's
     // fractions follow the fingers.
     var notch = true;
-    if (g.gdk_event_get_scroll_deltas(e, &dx, &dy) != 0) {
+    const precise = g.gdk_event_get_scroll_deltas(e, &dx, &dy) != 0;
+    if (precise) {
         // Smooth deltas are in lines of about 40 pixels; up is negative.
         delta = @floatCast(-dy * 40);
         notch = dy != 0 and dy == @round(dy);
@@ -377,6 +381,10 @@ fn onScroll(_: *gtk.Widget, e: *gtk.Event, data: ?*anyopaque) callconv(.c) c_int
         var dir: c_int = 0;
         _ = g.gdk_event_get_scroll_direction(e, &dir);
         delta = if (dir == 0) 48 else if (dir == 1) -48 else 0;
+    }
+    if (@import("../ui/gesture.zig").deliver(&s.ctx, .{ .kind = .scroll, .dx = @floatCast(dx * 40), .dy = -delta, .precise = precise })) {
+        s.frame();
+        return 1;
     }
     if (if (notch) s.ctx.applyWheel(delta) else s.ctx.applyScroll(delta)) {
         s.frame();
@@ -419,7 +427,7 @@ fn keyOf(keyval: c_uint) ?ctx_mod.Key {
         0xff1b => .escape,
         0xff55 => .page_up,
         0xff56 => .page_down,
-        0xffbe...0xffc9 => @enumFromInt(@intFromEnum(ctx_mod.Key.f1) + (keyval - 0xffbe)),
+        0xffbe...0xffc9 => @fromBackingInt(@intCast(@backingInt(ctx_mod.Key.f1) + (keyval - 0xffbe))),
         else => null,
     };
 }

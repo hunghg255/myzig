@@ -242,6 +242,8 @@ pub const GridViewOptions = @import("gridview.zig").Options;
 
 // Drawing: canvases of paths, SVG pictures, charts.
 pub const canvas = @import("canvas.zig").canvas;
+/// The canvas's visible part from the previous paint, for animation culling.
+pub const canvasVisibility = @import("canvas_visible.zig").of;
 pub const CanvasOptions = @import("canvas.zig").CanvasOptions;
 pub const Painter = @import("canvas.zig").Painter;
 pub const Path = @import("path.zig").Path;
@@ -398,6 +400,7 @@ pub const KeyCode = @import("keycode.zig").KeyCode;
 pub const TextOp = ctx_mod.TextOp;
 pub const TextCommand = ctx_mod.Command;
 pub const Input = ctx_mod.Input;
+pub const InputEvent = @import("gesture.zig").InputEvent;
 
 /// What a window of native UI shows: `build` runs on every frame.
 pub const View = struct {
@@ -419,6 +422,8 @@ pub const View = struct {
 };
 
 test {
+    _ = @import("tests_gesture.zig");
+    _ = @import("tests_window_buttons.zig");
     _ = types;
     _ = @import("layout.zig");
     _ = textfield;

@@ -23,7 +23,7 @@ pub fn shapeInto(ts: *TextSystem, out: *std.ArrayList(runs.Glyph), s: []const u8
     var i: usize = 0;
     while (i < s.len) {
         const n = @min(utf8.seqLen(s[i]), s.len - i);
-        const cp: u21 = std.unicode.utf8Decode(s[i .. i + n]) catch 0xfffd;
+        const cp: u21 = utf8.decode(s[i .. i + n]) catch 0xfffd;
         const m = ts.ttGlyph(f, style, cp);
         const rf = ts.ttFont(m.id);
         const k = size / rf.font.units_per_em;
@@ -93,7 +93,7 @@ pub fn shapeBidi(ts: *TextSystem, s: []const u8, pieces: []const Styled, sink: *
         var i: usize = r.start;
         while (i < r.end) {
             const n = @min(utf8.seqLen(s[i]), r.end - i);
-            var cp: u21 = std.unicode.utf8Decode(s[i .. i + n]) catch 0xfffd;
+            var cp: u21 = utf8.decode(s[i .. i + n]) catch 0xfffd;
             if (r.rtl()) cp = mirror(cp);
             const m = ts.ttGlyph(f, style, cp);
             const rf = ts.ttFont(m.id);

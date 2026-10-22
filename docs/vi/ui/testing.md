@@ -10,6 +10,10 @@ myzig kiểm tra giao diện native không có cửa sổ và các ứng dụng 
 
 ## ui.Tester
 
+`t.pinch(x, y, scale)` gửi pinch tới callback `handleInput` và trả về việc
+sự kiện có được nhận hay không. `t.scroll` và `t.wheel` cũng gửi sự kiện
+qua handler trước khi cuộn container. Xem [Cuộn và thu phóng](gestures.md).
+
 ```zig
 const std = @import("std");
 const myzig = @import("myzig");
@@ -49,6 +53,7 @@ Trình kiểm tra được khởi tạo tại chỗ (ngữ cảnh của nó tr�
 | `rightClick(x, y)` | nhấn nút phụ, sẽ mở menu ngữ cảnh |
 | `middleClick(x, y)` | nhấn nút giữa (`c.input.middle_pressed`), để đóng tab của trình duyệt |
 | `moveTo(x, y)` | di chuyển con trỏ: di chuột |
+| `pinch(x, y, scale)` | gửi hệ số zoom tới handler dưới điểm đó; trả về việc sự kiện có được nhận hay không |
 | `drag(x1, y1, x2, y2)` | nhấn, di chuyển theo tám bước, thả ra |
 | `scroll(x, y, dy)` | cuộn hộp bên dưới điểm cùng một lúc, giống như bàn di chuột, hoặc đưa bánh xe tới view đưa nó (`c.wants_wheel`) |
 | `wheel(x, y, dy)` | một khía của bánh xe chuột: hộp lướt tới đó khi đồng hồ tiến lên (`advance`), hộp bao quanh một cái ở đầu của nó lấy nó |
@@ -131,7 +136,7 @@ Mọi ứng dụng được tạo bằng `myzig.App` đều đọc các cờ nà
 | `--myzig-dark` | với một ảnh chụp nhanh: vẻ ngoài tối tăm |
 | `--myzig-wait=SECONDS` | với ảnh chụp nhanh: chạy vòng lặp sự kiện với thời gian dài trước tiên để các quy trình, bộ tính giờ và phản hồi mà ứng dụng chờ đến |
 | `--myzig-eval=JS` | đánh giá JavaScript trong mỗi trang khi DOM của nó đã sẵn sàng; các trang báo cáo với `myzig.log()` và kết thúc bằng `myzig.window.close()` |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ |
+| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
 | `--myzig-generate=DIR` | ghi client được tạo (`myzig.js`, `myzig.d.ts`) và thoát |
 
 Một ảnh chụp nhanh, một đánh giá hoặc một thế hệ ngụ ý các cửa sổ ẩn.
@@ -151,13 +156,33 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 ## Ví dụ với các bài kiểm tra
 
-Một ví dụ có thể chứa các khối `test` của riêng nó, được điều hành bởi `zig build test` (danh sách `tested_examples` của `build.zig`: blackhole, chat-glow, wind, Effort-slider và mayoi): view của chúng thông qua Trình kiểm tra, bóng đổ của chúng được vẽ trên CPU và kiểm tra những gì chúng phải vẽ.
+Các ví dụ blackhole, chat-glow, wind, effort-slider, mayoi và loading có
+test riêng, chạy bởi `zig build test`: view được dựng qua Tester, shader
+được vẽ trên CPU và so với kết quả mong đợi. `zig build test-loading -j1`
+chạy riêng plugin và gallery loading, gồm thời lượng, đồng hồ độc lập,
+rebuild cùng frame và giảm chuyển động.
 
 <a id="browsers"></a>
 
 ## Trình duyệt
 
-`zig build test-web` xây dựng bộ đếm và thư viện cho trình duyệt và chạy chúng headless trong Nút (`src/web/test_node.mjs`): một khung vẽ, không vẽ gì khi không hoạt động và nhấp vào văn bản sẽ hiển thị một khung khác. Nó cần `node`. `src/web/test_browser_run.mjs` chạy cùng một quy trình kiểm tra trong headless Crom (Chrome hoặc Edge, bị ẩn), với WebGL 2 đối với pixel của bộ kết xuất CPU và `src/web/test_wasm.mjs` chạy các bài kiểm tra đơn vị của myzig được biên dịch cho wasm32-wasi. Xem [Trình duyệt](../browsers.md).
+`zig build test-web` build counter, gallery và gestures cho trình duyệt,
+rồi chạy headless dưới Node (`src/web/test_node.mjs`). Test kiểm tra frame,
+trạng thái idle, nhấp chuột, pinch và pan. Lệnh này cần `node`.
+`src/web/test_browser_run.mjs` kiểm tra trang trong Chrome/Edge headless,
+bao gồm so sánh pixel WebGL 2 với CPU; `src/web/test_wasm.mjs` chạy unit
+test biên dịch cho wasm32-wasi. Xem [Trình duyệt](../browsers.md).
+
+Để kiểm tra cả listener `WheelEvent` DOM thật của host:
+
+```sh
+zig build test-web -j1 -Dweb-browser="/path/to/chrome-or-edge"
+```
+
+Ví dụ trên Windows:
+`-Dweb-browser="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`.
+Trình duyệt chạy headless. Test kiểm tra delta theo pixel/dòng/trang,
+Ctrl-pinch và chỉ chặn hành vi mặc định khi view nhận sự kiện.
 
 <a id="other-platforms"></a>
 

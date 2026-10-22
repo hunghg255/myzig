@@ -52,6 +52,8 @@ pub const Node = struct {
     style: types.Style,
     content: Content = .none,
     interactive: bool = false,
+    input_handler: ?*@import("gesture.zig").Handler = null,
+    maximize_button: bool = false,
     /// Holds wrapping text: may shrink below its measured width in a row.
     flexible: bool = false,
     measured: types.Size = .{},

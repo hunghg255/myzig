@@ -7,7 +7,17 @@ const expect = (ok, what) => {
 const app = (path) => (myzig.platform === "windows" ? "http://app.localhost" + path : "app://localhost" + path);
 
 const run = async () => {
+  // The inactive memory policy is installed when dom-ready reaches Zig.
+  if (document.readyState !== "complete") {
+    await new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
+  }
   expect((await myzig.call("Test.ping")) === "pong", "ping");
+  const memoryPolicy = await myzig.call("Test.memoryPolicy");
+  expect(memoryPolicy === null || memoryPolicy === true, "inactive memory target restore");
+  expect((await myzig.call("Test.ping")) === "pong", "IPC after memory target restore");
+  const memoryMode = await myzig.call("Test.memoryMode");
+  if (memoryMode === "ipc") return (await import("./ipc.js")).run();
+  if (memoryMode) return (await import("./memory.js")).run(memoryMode);
 
   // WKScriptMessage handlers exist in subframes too. An opaque-origin
   // iframe must not borrow the main document's permission to call Zig.

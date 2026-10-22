@@ -120,6 +120,13 @@ pub const Tester = struct {
         t.frame();
     }
 
+    /// A touchpad pinch at a point, without system input.
+    pub fn pinch(t: *Tester, x: f32, y: f32, scale: f32) bool {
+        const taken = @import("gesture.zig").pinch(&t.ctx, x, y, scale);
+        if (taken) t.frame();
+        return taken;
+    }
+
     /// Two clicks in quick succession: the second is a double click.
     pub fn doubleClick(t: *Tester, x: f32, y: f32) void {
         t.click(x, y);
@@ -228,6 +235,10 @@ pub const Tester = struct {
 
     fn scrollWith(t: *Tester, x: f32, y: f32, dy: f32, notch: bool) void {
         t.ctx.input.mouse = .{ .x = x, .y = y };
+        if (@import("gesture.zig").deliver(&t.ctx, .{ .kind = .scroll, .dy = -dy, .precise = !notch })) {
+            t.frame();
+            return;
+        }
         if (if (notch) t.ctx.applyWheel(dy) else t.ctx.applyScroll(dy)) {
             t.frame();
         } else if (t.ctx.wants_wheel) {

@@ -67,7 +67,7 @@ without touching the screen:
 | `--myzig-script=STEPS` | with `--myzig-snapshot`: run these Tester steps first |
 | `--myzig-dark` | with `--myzig-snapshot`: the dark appearance |
 | `--myzig-wait=SECONDS` | with `--myzig-snapshot`: run the event loop that long first |
-| `--myzig-hidden` | never show windows |
+| `--myzig-hidden` | never show windows; the app's directories are temporary (headless) |
 | `--myzig-eval=JS` | evaluate JS in each page once its DOM is ready (implies hidden) |
 
 A page under `--myzig-eval` reports with `myzig.log(...)` (printed as
@@ -83,10 +83,12 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 | command | runs |
 |---|---|
-| `zig build test` | the unit and widget tests of `src/myzig.zig`'s test block, plus the Tester tests of the examples with their own (`blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi`) |
+| `zig build test` | the unit and widget tests of `src/myzig.zig`, the loading plugin's tests, and the Tester tests of `blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi` and `loading` |
+| `zig build test-loading` | the loading plugin and gallery: all 29 designs, duration, independent clocks, rebuilds, pause/resume and reduced motion, rendered offscreen |
 | `zig build test -Dportable=true` | the same with myzig's TrueType text and CPU renderer (the Linux and Windows path, on a Mac) |
 | `zig build test-pages` | pages hidden in the real web view: hello's page calling Zig (calls, errors, unknown services, an event, the generated client), and `examples/pages` (schemes, channels, events, permissions, downloads, eval, find, PDF, cookies, trust), each expecting `page: ok` on stderr |
-| `zig build test-web` | counter and gallery built for browsers, run headless under Node (`src/web/test_node.mjs`): a frame draws, clicking a text changes the view |
+| `zig build test-web` | counter, gallery and gestures under Node: frames, idle behavior, clicks, pinch and horizontal/vertical pan |
+| `zig build test-web -Dweb-browser="PATH"` | the Node tests plus real DOM wheel/pinch events in headless Chrome or Edge: delta modes and cancellation |
 | `zig build test-bin` | installs the unit tests as `zig-out/bin/myzig-tests` (`.exe` on Windows), to run on another machine |
 | `zig build lines` | every file at most 600 lines |
 | `cd cli && zig build test` | the CLI's unit tests: configuration, bundles, archives, resources |
@@ -191,7 +193,7 @@ default. What keeps apps small:
 Measure before and after a change that touches what every app reaches:
 
 ```sh
-zig build -Doptimize=ReleaseSmall
+zig build size -Doptimize=ReleaseSmall -j1
 ls -l zig-out/bin/counter zig-out/bin/hello
 ```
 

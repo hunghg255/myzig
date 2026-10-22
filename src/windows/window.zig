@@ -50,6 +50,7 @@ pub const Window = struct {
     /// Pages inside its native UI (`ui.webView`).
     web_views: std.ArrayList(*Page) = .empty,
     title_bar: TitleBar = .default,
+    hide_window_buttons: bool = false,
     on_close: ?Callback = null,
     closed: bool = false,
     full_screen: bool = false,
@@ -87,7 +88,7 @@ pub const Window = struct {
         }
         const self = try app.gpa.create(Window);
         errdefer app.gpa.destroy(self);
-        self.* = .{ .app = app, .title_bar = options.title_bar, .on_close = options.on_close, .width = options.width, .height = options.height, .theme = options.theme, .min_width = options.min_width, .min_height = options.min_height, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout };
+        self.* = .{ .app = app, .title_bar = options.title_bar, .hide_window_buttons = options.hide_window_buttons, .on_close = options.on_close, .width = options.width, .height = options.height, .theme = options.theme, .min_width = options.min_width, .min_height = options.min_height, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout };
         self.storeTitle(options.title);
         var page_options: ?PageOptions = null;
         switch (options.content) {
@@ -127,7 +128,7 @@ pub const Window = struct {
         self.hwnd = hwnd;
         _ = w.SetWindowLongPtrW(hwnd, w.GWLP_USERDATA, @bitCast(@intFromPtr(self)));
         if (self.captionless()) _ = w.SetWindowPos(hwnd, null, 0, 0, 0, 0, gdi.SWP_NOMOVE | gdi.SWP_NOSIZE | gdi.SWP_NOZORDER | gdi.SWP_FRAMECHANGED | gdi.SWP_NOACTIVATE);
-        if (options.title_bar == .hidden and options.flyout == null) self.caption = caption_mod.Caption.create(app.gpa, .{
+        if (options.title_bar == .hidden and !options.hide_window_buttons and options.flyout == null) self.caption = caption_mod.Caption.create(app.gpa, .{
             .ctx = self,
             .hwnd = hwnd,
             .height = self.titleBarHeight(),
@@ -189,7 +190,7 @@ pub const Window = struct {
     /// The room the caption buttons take over the content of a window
     /// with a hidden title bar; none for others, and in full screen.
     pub fn titleBar(self: *Window) window_types.TitleBarArea {
-        if (self.title_bar != .hidden or self.full_screen or self.flyout != null) return .{};
+        if (self.title_bar != .hidden or self.hide_window_buttons or self.full_screen or self.flyout != null) return .{};
         const right: f64 = if (self.caption) |c| c.width() else caption_mod.button_width * 3;
         return .{ .height = self.titleBarHeight(), .right = right };
     }
@@ -311,6 +312,9 @@ pub const Window = struct {
             _ = w.SetWindowLongPtrW(hwnd, w.GWLP_USERDATA, 0);
             self.finish();
             return 0;
+        }
+        if (msg == w.WM_SHOWWINDOW or msg == w.WM_SIZE) {
+            @import("page_memory.zig").windowChanged(self, if (msg == w.WM_SHOWWINDOW) wp != 0 else self.isVisible(), if (msg == w.WM_SIZE) wp == 1 else gdi.IsIconic(hwnd) != 0);
         }
         if (events.handle(self, hwnd, msg, wp, lp)) |r| return r;
         if (msg == WM_PARENTNOTIFY and wp & 0xFFFF == 1) if (self.caption != null) {

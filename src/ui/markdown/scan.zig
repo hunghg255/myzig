@@ -2,6 +2,7 @@
 //! characters' classes, entities and escapes, link destinations, titles
 //! and labels, definitions, autolinks and raw HTML tags.
 const std = @import("std");
+const utf8 = @import("../utf8.zig");
 
 pub fn isPunct(c: u8) bool {
     return switch (c) {
@@ -36,7 +37,7 @@ pub fn cpBefore(s: []const u8, i: usize) u21 {
     if (i == 0) return '\n';
     var j = i - 1;
     while (j > 0 and s[j] & 0xC0 == 0x80 and i - j < 4) j -= 1;
-    return std.unicode.utf8Decode(s[j..i]) catch s[i - 1];
+    return utf8.decode(s[j..i]) catch s[i - 1];
 }
 
 /// The code point at byte `i` of `s` (a newline past the end).
@@ -44,7 +45,7 @@ pub fn cpAt(s: []const u8, i: usize) u21 {
     if (i >= s.len) return '\n';
     const n = std.unicode.utf8ByteSequenceLength(s[i]) catch return s[i];
     if (i + n > s.len) return s[i];
-    return std.unicode.utf8Decode(s[i .. i + n]) catch s[i];
+    return utf8.decode(s[i .. i + n]) catch s[i];
 }
 
 const Entity = struct { name: []const u8, value: []const u8 };

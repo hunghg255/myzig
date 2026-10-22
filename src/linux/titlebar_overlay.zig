@@ -56,6 +56,13 @@ const GTK_STYLE_PROVIDER_PRIORITY_APPLICATION = 600;
 
 pub const Installed = struct { bar: *gtk.Widget, overlay: *gtk.Widget };
 
+/// Keeps GTK's client-side resizing frame without showing title buttons.
+pub fn hideButtons(win: *gtk.Widget) bool {
+    if (!load()) return false;
+    api.gtk_window_set_titlebar(win, api.gtk_box_new(0, 0));
+    return true;
+}
+
 /// Puts `content` (the window's child) under a header bar of title
 /// buttons over its top right corner, in an overlay (which pages
 /// embedded in native UI later share); null where GTK lacks what it

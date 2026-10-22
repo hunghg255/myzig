@@ -228,6 +228,9 @@ pub fn Options(comptime Window: type) type {
         min_height: f64 = 150,
         resizable: bool = true,
         title_bar: TitleBar = .default,
+        /// With a hidden title bar, the view draws its own window controls.
+        /// Keeps the window's resizing edges. Ignored by browsers.
+        hide_window_buttons: bool = false,
         /// The height of the title bar a window with a hidden one draws:
         /// Windows' caption buttons fill it, the empty space in it moves
         /// the window. 0 is the system's (32 on Windows, 28 elsewhere).

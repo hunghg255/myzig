@@ -60,9 +60,10 @@ it); `site.dir` is its directory before installation and `site.wasm` the
 compile step. In myzig's own repository:
 
 ```sh
-zig build web                    # counter and gallery into zig-out/web/<name>
+zig build web                    # counter, gallery, gestures into zig-out/web/<name>
 zig build web -Dweb-fonts=DIR    # with the fonts of DIR
-zig build test-web               # both, run headless under Node
+zig build test-web               # run headless under Node
+zig build test-web -Dweb-browser="/path/to/chrome-or-edge" # also test DOM wheel/pinch headlessly
 ```
 
 Serve the directory over HTTP, with WebAssembly as `application/wasm`, as
@@ -136,10 +137,15 @@ the content yet: a canvas is all it reads.
 
 ## Testing
 
-- `zig build test-web` runs counter and gallery under Node
+- `zig build test-web` runs counter, gallery and gestures under Node
   (`src/web/test_node.mjs`), with the host's WASI and fonts and the page's
   functions stubbed (no WebGL: frames are drawn on the CPU): a frame
   draws, nothing draws while idle, and clicking a text shows another.
+  The gestures example also checks pinch and horizontal/vertical pan.
+- Add `-Dweb-browser="/path/to/chrome-or-edge"` to that command to run the
+  Node checks and real DOM `WheelEvent` tests in a headless browser. These
+  check pixel/line/page deltas, Ctrl-pinch, Ctrl-line scrolling and leaving
+  browser defaults alone outside the view's handler.
 - `src/web/test_browser_run.mjs BROWSER SITE_DIR "click=Increment&expect=1"`
   serves a site and runs `test_browser.js` in a headless Chromium (Chrome
   or Edge, hidden): frames draw with WebGL 2 and match the CPU renderer's

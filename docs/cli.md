@@ -267,7 +267,7 @@ never show a window on the screen:
 | `--myzig-script=STEPS` | with `--myzig-snapshot`: steps run first (`click:Tasks;type:Hi;key:enter`; see [Testing](ui/testing.md)) |
 | `--myzig-dark` | with `--myzig-snapshot`: the dark appearance |
 | `--myzig-wait=SECONDS` | with `--myzig-snapshot`: run the event loop that long first |
-| `--myzig-hidden` | never show windows |
+| `--myzig-hidden` | never show windows; the app's directories are temporary (headless) |
 | `--myzig-eval=JS` | evaluate JS in each page once its DOM is ready (implies hidden); `myzig.log` prints to stderr |
 
 ## Environment variables

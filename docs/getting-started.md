@@ -247,6 +247,7 @@ The repository's examples build with `zig build` from its root, into
 | `wind` | a pane of characters stirred by a wind shader |
 | `effort-slider` | the "galaxy brain" slider, with shaders and motion |
 | `mayoi` | a small game drawn as one shader |
+| `loading` | loading.dev's 29 native loading indicators, with size, color, easing, stroke caps and pause controls |
 | `farm` | a farming game on the game plugin: `cd examples/farm && zig build run` |
 
 The plugins have examples of their own (`plugins/<name>/example`).

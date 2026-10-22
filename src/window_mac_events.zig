@@ -72,7 +72,7 @@ pub fn setUp(nswindow: objc.Object, options: anytype) void {
     if (options.title_bar == .default) return;
     objc.msg(void, nswindow, "setTitlebarAppearsTransparent:", .{objc.YES});
     objc.msg(void, nswindow, "setTitleVisibility:", .{@as(objc.NSInteger, 1)});
-    if (options.title_bar == .frameless) for (0..3) |i| {
+    if (options.title_bar == .frameless or options.hide_window_buttons) for (0..3) |i| {
         // The close, miniaturize and zoom buttons go: the content draws all.
         const b = objc.msg(?objc.Object, nswindow, "standardWindowButton:", .{@as(objc.NSUInteger, i)}) orelse continue;
         objc.msg(void, b, "setHidden:", .{objc.YES});
@@ -81,7 +81,7 @@ pub fn setUp(nswindow: objc.Object, options: anytype) void {
 
 /// The room the traffic lights take over a hidden title bar's content.
 pub fn titleBar(self: *Window) window_types.TitleBarArea {
-    if (self.title_bar != .hidden or self.isFullScreen()) return .{};
+    if (self.title_bar != .hidden or self.hide_window_buttons or self.isFullScreen()) return .{};
     const f = objc.msg(objc.CGRect, self.nswindow, "frame", .{});
     const layout = objc.msg(objc.CGRect, self.nswindow, "contentLayoutRect", .{});
     const zoom = objc.msg(?objc.Object, self.nswindow, "standardWindowButton:", .{@as(objc.NSUInteger, 2)});

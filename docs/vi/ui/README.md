@@ -36,7 +36,15 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-View là chế độ ngay lập tức: một chức năng trong trạng thái của bạn myzig chạy trên luồng chính bất cứ khi nào có điều gì đó xảy ra (đầu vào, thay đổi kích thước, bước hoạt ảnh). Widget là các lệnh gọi hàm trả lời cùng một lúc: `ui.button` trả về xem nó có được nhấp vào hay không, `ui.toggle` lật `bool` mà bạn cung cấp. Không có đối tượng widget nào để giữ lại, không có lệnh gọi lại để đăng ký và không có ràng buộc nào để cập nhật: bạn thay đổi trạng thái của mình và khung tiếp theo sẽ hiển thị điều đó. Khi một tương tác thay đổi trạng thái, myzig sẽ xây dựng lại khung trước khi vẽ, để màn hình không bao giờ bị trễ so với trạng thái.
+View là hàm của state, được myzig chạy trên main thread khi có input,
+thay đổi kích thước hoặc một bước hoạt ảnh. Widget trả lời ngay trong
+lượt dựng view: `ui.button` cho biết có được nhấp hay không, `ui.toggle`
+đổi giá trị `bool` được truyền vào. Bạn cập nhật state và frame tiếp theo
+hiển thị nó. Nếu tương tác làm đổi state, myzig dựng lại frame trước khi
+vẽ để hình hiển thị theo kịp state.
+
+Phần tử cần nhận scroll hoặc pinch trước lượt dựng kế tiếp có thể dùng
+[callback `handleInput`](gestures.md).
 
 Không có polling nào. Một khung được vẽ khi nhập, khi thay đổi kích thước, trong khi hoạt ảnh chạy hoặc khi ứng dụng yêu cầu (`Window.redraw`, `c.frameIn`); một cửa sổ nhàn rỗi không sử dụng CPU.
 
@@ -110,6 +118,8 @@ Widget:
 - [Điều hướng](navigation.md): bộ định tuyến, hành động và lối tắt, nhóm tiêu điểm.
 - [Kéo và thả](drag-and-drop.md): kéo trong và ngoài cửa sổ.
 - [Tiện ích tùy chỉnh](custom-widgets.md): hộp, tương tác, giá trị hoạt ảnh, tay cầm: cách tạo ra các widget riêng của myzig.
+- [Cuộn và thu phóng](gestures.md): handler scroll/pinch, định tuyến sự kiện và test headless.
+- [Chỉ báo loading](../plugins/loading.md): plugin tùy chọn với 29 mẫu, đồng hồ độc lập và cấu hình riêng.
 
 Vẽ và nội dung phong phú:
 

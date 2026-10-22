@@ -294,7 +294,7 @@ pub const Surface = struct {
         self.pacedFrame();
     }
 
-    fn setMouse(self: *Surface, event: objc.Object) void {
+    pub fn setMouse(self: *Surface, event: objc.Object) void {
         const p = objc.msg(objc.CGPoint, event, "locationInWindow", .{});
         const local = objc.msg(objc.CGPoint, self.nsview, "convertPoint:fromView:", .{ p, @as(?objc.Object, null) });
         self.ctx.input.mouse = .{ .x = @floatCast(local.x), .y = @floatCast(local.y) };
@@ -309,27 +309,28 @@ pub const Surface = struct {
 extern "c" const NSRunLoopCommonModes: objc.Object;
 
 const view_methods = [_]objc.Method{
-                .{ .name = "isFlipped", .imp = &yes, .types = "c@:" },
-                .{ .name = "acceptsFirstResponder", .imp = &yes, .types = "c@:" },
-                .{ .name = "acceptsFirstMouse:", .imp = &yes1, .types = "c@:@" },
-                .{ .name = "mouseDown:", .imp = &mouseDown, .types = "v@:@" },
-                .{ .name = "rightMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
-                .{ .name = "otherMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
-                .{ .name = "mouseUp:", .imp = &mouseUp, .types = "v@:@" },
-                .{ .name = "mouseDragged:", .imp = &mouseDragged, .types = "v@:@" },
-                .{ .name = "mouseMoved:", .imp = &mouseMoved, .types = "v@:@" },
-                .{ .name = "mouseExited:", .imp = &mouseExited, .types = "v@:@" },
-                .{ .name = "scrollWheel:", .imp = &scrollWheel, .types = "v@:@" },
-                .{ .name = "keyDown:", .imp = &keyDown, .types = "v@:@" },
-                .{ .name = "keyUp:", .imp = &keyUp, .types = "v@:@" },
-                .{ .name = "paste:", .imp = &paste, .types = "v@:@" },
-                .{ .name = "setFrameSize:", .imp = &setFrameSize, .types = "v@:{CGSize=dd}" },
-                .{ .name = "viewDidChangeBackingProperties", .imp = &backingChanged, .types = "v@:" },
-                .{ .name = "viewDidChangeEffectiveAppearance", .imp = &backingChanged, .types = "v@:" },
-                .{ .name = "updateTrackingAreas", .imp = &updateTrackingAreas, .types = "v@:" },
-                .{ .name = "displayLinkFired:", .imp = &displayLinkFired, .types = "v@:@" },
-                .{ .name = "viewWillStartLiveResize", .imp = &liveResizeStart, .types = "v@:" },
-                .{ .name = "viewDidEndLiveResize", .imp = &liveResizeEnd, .types = "v@:" },
+    .{ .name = "isFlipped", .imp = &yes, .types = "c@:" },
+    .{ .name = "acceptsFirstResponder", .imp = &yes, .types = "c@:" },
+    .{ .name = "acceptsFirstMouse:", .imp = &yes1, .types = "c@:@" },
+    .{ .name = "mouseDown:", .imp = &mouseDown, .types = "v@:@" },
+    .{ .name = "rightMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
+    .{ .name = "otherMouseDown:", .imp = &rightMouseDown, .types = "v@:@" },
+    .{ .name = "mouseUp:", .imp = &mouseUp, .types = "v@:@" },
+    .{ .name = "mouseDragged:", .imp = &mouseDragged, .types = "v@:@" },
+    .{ .name = "mouseMoved:", .imp = &mouseMoved, .types = "v@:@" },
+    .{ .name = "mouseExited:", .imp = &mouseExited, .types = "v@:@" },
+    .{ .name = "scrollWheel:", .imp = &@import("surface_gesture.zig").scrollWheel, .types = "v@:@" },
+    .{ .name = "magnifyWithEvent:", .imp = &@import("surface_gesture.zig").magnify, .types = "v@:@" },
+    .{ .name = "keyDown:", .imp = &keyDown, .types = "v@:@" },
+    .{ .name = "keyUp:", .imp = &keyUp, .types = "v@:@" },
+    .{ .name = "paste:", .imp = &paste, .types = "v@:@" },
+    .{ .name = "setFrameSize:", .imp = &setFrameSize, .types = "v@:{CGSize=dd}" },
+    .{ .name = "viewDidChangeBackingProperties", .imp = &backingChanged, .types = "v@:" },
+    .{ .name = "viewDidChangeEffectiveAppearance", .imp = &backingChanged, .types = "v@:" },
+    .{ .name = "updateTrackingAreas", .imp = &updateTrackingAreas, .types = "v@:" },
+    .{ .name = "displayLinkFired:", .imp = &displayLinkFired, .types = "v@:@" },
+    .{ .name = "viewWillStartLiveResize", .imp = &liveResizeStart, .types = "v@:" },
+    .{ .name = "viewDidEndLiveResize", .imp = &liveResizeEnd, .types = "v@:" },
 } ++ textinput.methods ++ access_mac.viewMethods(Surface);
 
 fn surfaceOf(obj: objc.Object) ?*Surface {
@@ -406,22 +407,6 @@ fn mouseExited(obj: objc.Object, _: objc.SEL, _: objc.Object) callconv(.c) void 
     s.ctx.input.mouse = .{ .x = -1e6, .y = -1e6 };
     if (s.ctx.hot != 0) {
         s.ctx.updateHot();
-        s.frame();
-    }
-}
-
-fn scrollWheel(obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.c) void {
-    const s = surfaceOf(obj) orelse return;
-    s.setMouse(event);
-    var dy: f32 = @floatCast(objc.msg(f64, event, "scrollingDeltaY", .{}));
-    // A wheel's notches glide (`wheel.zig`); a touchpad follows the fingers.
-    const notch = !objc.msg(objc.BOOL, event, "hasPreciseScrollingDeltas", .{});
-    if (notch) dy *= 12;
-    if (if (notch) s.ctx.applyWheel(dy) else s.ctx.applyScroll(dy)) {
-        s.frame();
-        s.ctx.updateHot();
-    } else if (s.ctx.wants_wheel) {
-        s.ctx.input.scroll = .{ .y = dy };
         s.frame();
     }
 }

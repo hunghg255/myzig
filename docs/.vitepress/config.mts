@@ -75,6 +75,7 @@ const ui = [
       page('Navigation and focus', '/ui/navigation'),
       page('Drag and drop', '/ui/drag-and-drop'),
       page('Custom widgets', '/ui/custom-widgets'),
+      page('Scrolling and pinching', '/ui/gestures'),
     ],
   },
   {
@@ -113,7 +114,7 @@ const plugins = [
     text: 'Plugins',
     items: [
       page('Using and writing plugins', '/plugins'),
-      ...['fetch', 'websocket', 'sqlite', 'watch', 'updater', 'terminal', 'glass', 'game', 'mainthread'].map((name) =>
+      ...['fetch', 'websocket', 'sqlite', 'watch', 'updater', 'terminal', 'glass', 'game', 'mainthread', 'loading'].map((name) =>
         page(name, `/plugins/${name}`),
       ),
     ],

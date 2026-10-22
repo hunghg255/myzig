@@ -59,6 +59,43 @@ function click(host, id, r) {
   canvas.dispatchEvent(new PointerEvent("pointerup", { ...at, buttons: 0 }));
 }
 
+// Exercise the host's actual WheelEvent listener, not just the WASM exports.
+async function gestures(host, id) {
+  const canvas = host.windows.get(id).canvas;
+  const bounds = canvas.getBoundingClientRect();
+  const wheel = async (options, taken = true) => {
+    const event = new WheelEvent("wheel", {
+      clientX: bounds.left + 30, clientY: bounds.top + 30,
+      bubbles: true, cancelable: true, ...options,
+    });
+    canvas.dispatchEvent(event);
+    if (event.defaultPrevented !== taken) throw new Error("incorrect wheel preventDefault");
+    await settle(host);
+  };
+  const text = (s) => { if (!find(host, id, s)) throw new Error("no text " + s); };
+  text("Scale 1.00");
+  await wheel({ deltaY: -Math.log(2) * 100, ctrlKey: true });
+  text("Scale 2.00");
+  await wheel({ deltaY: Math.log(2) * 100, ctrlKey: true });
+  text("Scale 1.00");
+  await wheel({ deltaX: 12, deltaY: 8 });
+  text("Pan 20");
+  await wheel({ deltaX: 2, deltaY: -1, deltaMode: WheelEvent.DOM_DELTA_LINE });
+  text("Pan 60");
+  await wheel({ deltaX: 1, deltaMode: WheelEvent.DOM_DELTA_PAGE });
+  text(`Pan ${60 + canvas.clientWidth}`);
+  // Ctrl with line deltas stays scrolling, rather than zooming.
+  await wheel({ deltaY: 1, deltaMode: WheelEvent.DOM_DELTA_LINE, ctrlKey: true });
+  text(`Pan ${100 + canvas.clientWidth}`);
+  text("Scale 1.00");
+  // Events outside the handler leave the browser's default behavior alone.
+  const outside = { clientX: bounds.right - 1, clientY: bounds.bottom - 1 };
+  await wheel({ deltaY: 20, ...outside }, false);
+  await wheel({ deltaY: -20, ctrlKey: true, ...outside }, false);
+  text("Scale 1.00");
+  text(`Pan ${100 + canvas.clientWidth}`);
+}
+
 // `theme=dark` (or light) is the page's choice of appearance.
 if (params.get("theme")) document.documentElement.dataset.myzigTheme = params.get("theme");
 try {
@@ -76,6 +113,7 @@ try {
   const drawn = host.frames.get(id);
   for (let i = 0; i < 10; i++) await tick();
   if (host.frames.get(id) !== drawn) throw new Error("frames while idle");
+  if (params.has("gestures")) await gestures(host, id);
   let after = null;
   const clicks = params.getAll("click");
   const what = clicks.join(", ");

@@ -136,7 +136,7 @@ pub const Core = struct {
     pub fn evalScript(c: *Core, js: []const u8, cb: types.EvalCallback) ![]u8 {
         const id = c.next_eval;
         const code = std.mem.trimEnd(u8, js, " \t\r\n;");
-        const script = try std.fmt.allocPrint(c.gpa, "window.__myzig&&__myzig.settle({d},\"{s}\",async()=>(\n{s}\n))", .{ id, &c.token, code });
+        const script = try c.gpa.print("window.__myzig&&__myzig.settle({d},\"{s}\",async()=>(\n{s}\n))", .{ id, &c.token, code });
         errdefer c.gpa.free(script);
         try c.evals.append(c.gpa, .{ .id = id, .cb = cb });
         c.next_eval +%= 1;
@@ -167,7 +167,7 @@ pub const Core = struct {
 
     pub fn addScript(c: *Core, s: types.UserScript) !*Script {
         const source = if (s.at_document_end)
-            try std.fmt.allocPrint(c.gpa, "document.readyState===\"loading\"?document.addEventListener(\"DOMContentLoaded\",()=>{{\n{s}\n}},{{once:true}}):(()=>{{\n{s}\n}})();", .{ s.source, s.source })
+            try c.gpa.print("document.readyState===\"loading\"?document.addEventListener(\"DOMContentLoaded\",()=>{{\n{s}\n}},{{once:true}}):(()=>{{\n{s}\n}})();", .{ s.source, s.source })
         else
             try c.gpa.dupe(u8, s.source);
         errdefer c.gpa.free(source);
@@ -299,9 +299,9 @@ pub fn uniquePath(gpa: std.mem.Allocator, io: std.Io, dir: []const u8, name: []c
     var i: u32 = 1;
     while (true) : (i += 1) {
         const p = if (i == 1)
-            try std.fmt.allocPrint(gpa, "{s}{s}{s}", .{ dir, sep, name })
+            try gpa.print("{s}{s}{s}", .{ dir, sep, name })
         else
-            try std.fmt.allocPrint(gpa, "{s}{s}{s} ({d}){s}", .{ dir, sep, stem, i, ext });
+            try gpa.print("{s}{s}{s} ({d}){s}", .{ dir, sep, stem, i, ext });
         std.Io.Dir.cwd().access(io, p, .{}) catch return p;
         gpa.free(p);
         if (i > 9999) return error.NoName;

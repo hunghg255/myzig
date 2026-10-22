@@ -159,7 +159,7 @@ pub fn handleMessage(window: *Window, page: anytype, body: []const u8) void {
         result catch |err| {
             aw.shrinkRetainingCapacity(mark);
             aw.writer.writeAll("\"ok\":false,\"e\":") catch return;
-            const text = std.fmt.allocPrint(a, "{s}: {s}", .{ env.m, @errorName(err) }) catch return;
+            const text = a.print("{s}: {s}", .{ env.m, @errorName(err) }) catch return;
             std.json.Stringify.encodeJsonString(text, .{}, &aw.writer) catch return;
             aw.writer.writeByte('}') catch return;
             page.enqueue(aw.written(), false);

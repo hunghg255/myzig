@@ -173,6 +173,7 @@ fn apply(page: *Page, e: *Embed) void {
     const c = page.controller orelse return;
     if (e.shown) _ = com.call(c, ctl_put_bounds, .{e.bounds});
     _ = com.call(c, ctl_put_visible, .{@as(i32, @intFromBool(e.shown))});
+    @import("page_memory.zig").refresh(page);
 }
 
 pub fn hide(page: *Page) void {

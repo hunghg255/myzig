@@ -72,10 +72,18 @@ pub fn pointer(s: *Surface, kind: Pointer, x: f32, y: f32, button: u32, clicks: 
 
 /// The wheel, `dy` CSS pixels (down positive, as the browser's deltaY).
 pub fn wheel(s: *Surface, x: f32, y: f32, dy: f32, m: u32) bool {
+    return scroll(s, x, y, 0, dy, true, m);
+}
+
+pub fn scroll(s: *Surface, x: f32, y: f32, dx: f32, dy: f32, precise: bool, m: u32) bool {
     const c = &s.ctx;
     mods(s, m);
     c.input.mouse = .{ .x = x, .y = y };
     const delta = -dy;
+    if (@import("../ui/gesture.zig").deliver(c, .{ .kind = .scroll, .dx = dx, .dy = dy, .precise = precise })) {
+        s.frame();
+        return true;
+    }
     if (c.applyScroll(delta)) {
         s.frame();
         c.updateHot();
@@ -87,6 +95,13 @@ pub fn wheel(s: *Surface, x: f32, y: f32, dy: f32, m: u32) bool {
         return true;
     }
     return false;
+}
+
+pub fn pinch(s: *Surface, x: f32, y: f32, scale: f32, m: u32) bool {
+    mods(s, m);
+    const taken = @import("../ui/gesture.zig").pinch(&s.ctx, x, y, scale);
+    if (taken) s.frame();
+    return taken;
 }
 
 /// `KeyboardEvent.key` for the keys that are not text.
@@ -101,7 +116,7 @@ fn keyOf(name: []const u8) ?ctx_mod.Key {
     inline for (table) |e| if (std.mem.eql(u8, name, e[0])) return e[1];
     if (name.len >= 2 and name.len <= 3 and name[0] == 'F') {
         const n = std.fmt.parseInt(u8, name[1..], 10) catch return null;
-        if (n >= 1 and n <= 12) return @enumFromInt(@intFromEnum(ctx_mod.Key.f1) + n - 1);
+        if (n >= 1 and n <= 12) return @fromBackingInt(@intCast(@backingInt(ctx_mod.Key.f1) + n - 1));
     }
     return null;
 }

@@ -202,6 +202,9 @@ test {
     switch (builtin.os.tag) {
         .windows => {
             _ = @import("windows/page_lifetime_test.zig");
+            _ = @import("windows/page_memory_test.zig");
+            _ = @import("windows/page_visibility.zig");
+            _ = @import("windows/page_profile.zig");
             _ = @import("windows/winrt.zig");
             _ = @import("windows/toast_xml.zig");
             _ = @import("windows/toast_test.zig");
@@ -244,7 +247,10 @@ test {
         else => {},
     }
     _ = @import("audio/audio.zig");
-    if (builtin.os.tag == .windows) _ = @import("windows/oledrag.zig");
+    if (builtin.os.tag == .windows) {
+        _ = @import("windows/oledrag.zig");
+        _ = @import("windows/surface_gesture.zig");
+    }
     if (builtin.os.tag == .wasi) _ = @import("web/input.zig");
     _ = .{ @import("page_types.zig"), @import("page_core.zig"), @import("page_channel.zig"), @import("page_serve.zig"), @import("page_find.zig") };
     // Every page method, used by an example or not.
@@ -255,7 +261,14 @@ test {
         else => {},
     }
     if (!mac) {
-        inline for (.{ plat.app, plat.window, plat.menu, plat.dialog, plat.desktop, plat.fdwatch, }) |m| std.testing.refAllDecls(m);
+        inline for (.{
+            plat.app,
+            plat.window,
+            plat.menu,
+            plat.dialog,
+            plat.desktop,
+            plat.fdwatch,
+        }) |m| std.testing.refAllDecls(m);
         return;
     }
     // Analyze every declaration, used by an example or not.

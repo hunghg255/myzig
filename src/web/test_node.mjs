@@ -101,6 +101,14 @@ if (click) {
   animate();
   if (expect && !find(expect)) fail("no text " + expect + " after clicking " + click);
 }
+if (find("Pinch demo")) {
+  if (!ex.myzig_web_pinch(id, 30, 30, 2, 0)) fail("pinch not taken");
+  if (!find("Scale 4.00")) fail("pinch did not scale");
+  if (!ex.myzig_web_scroll(id, 30, 30, 12, 8, true, 0)) fail("pan not taken");
+  if (!find("Pan 20")) fail("scroll lost its deltas");
+  if (ex.myzig_web_pinch(id, 470, 310, 2, 0)) fail("pinch outside handler taken");
+  if (ex.myzig_web_pinch(id, 30, 30, 0, 0)) fail("invalid pinch taken");
+}
 if (process.env.MYZIG_WEB_PNG) writePng(process.env.MYZIG_WEB_PNG, frames[frames.length - 1]);
 console.log(`web: ok (${frames.length} frames, ${colors.size}+ colors)`);
 

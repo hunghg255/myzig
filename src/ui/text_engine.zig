@@ -3,6 +3,7 @@
 //! them: the styles of a paragraph's pieces, the runs they shape into, and
 //! the bitmaps they rasterize glyphs to.
 const std = @import("std");
+const utf8 = @import("utf8.zig");
 const runs = @import("text_runs.zig");
 
 /// Bytes `start`..`end` of a paragraph in one style.
@@ -148,8 +149,8 @@ pub const Utf16 = struct {
         u.unit_of.clearRetainingCapacity();
         var i: usize = 0;
         while (i < s.len) {
-            const n = @min(@import("utf8.zig").seqLen(s[i]), s.len - i);
-            var cp: u21 = std.unicode.utf8Decode(s[i .. i + n]) catch 0xfffd;
+            const n = @min(utf8.seqLen(s[i]), s.len - i);
+            var cp: u21 = utf8.decode(s[i .. i + n]) catch 0xfffd;
             if (cp == '\t') cp = ' ' else if (cp < 0x20 or (cp >= 0x7f and cp < 0xa0)) cp = 0x200b;
             const at: u32 = @intCast(u.units.items.len);
             for (0..n) |_| try u.unit_of.append(gpa, at);

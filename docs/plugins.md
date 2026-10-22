@@ -13,6 +13,9 @@ in `src/`, an `example/` app and its tests.
 
 ## Official plugins
 
+- [loading](plugins/loading.md): 29 native loading indicators, with pause,
+  reduced motion, accessible names and per-design options.
+
 - [fetch](plugins/fetch.md): a `fetch` for pages whose requests Zig makes,
   with no CORS, any header, streamed bodies and cancelation; and
   `fetch.perform` from Zig.

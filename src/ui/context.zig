@@ -189,6 +189,8 @@ pub const Context = struct {
     /// The platform's window showing the frames (null in a Tester), which
     /// native views placed in it reach (`webview.zig`).
     host: ?*anyopaque = null,
+    /// Activated only by a view that marks a maximize button.
+    snap_update: ?*const fn (*Context) void = null,
     /// The web views of the frames, made by the first one built.
     web: ?*@import("webview.zig").List = null,
 

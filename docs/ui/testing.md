@@ -56,6 +56,7 @@ own as a window's `theme` option gives.
 | `rightClick(x, y)` | a press of the secondary button, which opens a context menu |
 | `middleClick(x, y)` | a press of the middle button (`c.input.middle_pressed`), which closes a browser's tab |
 | `moveTo(x, y)` | moves the pointer: hover |
+| `pinch(x, y, scale)` | offers a multiplicative zoom to the handler under the point; returns whether it was taken |
 | `drag(x1, y1, x2, y2)` | presses, moves in eight steps, releases |
 | `scroll(x, y, dy)` | scrolls the box under the point at once, as a touchpad does, or hands the wheel to a view that takes it (`c.wants_wheel`) |
 | `wheel(x, y, dy)` | a notch of a mouse wheel: the box glides there as the clock advances (`advance`), the box around one at its end taking it |
@@ -95,6 +96,11 @@ try std.testing.expect(!t.ctx.animating);
 `t.advance(seconds)` runs the frames of that much time; `t.settle(max)`
 runs frames until animations settle. Never sleep in a test to let
 something happen: advance the clock.
+
+`t.pinch(x, y, scale)` offers a touchpad zoom to a
+[`handleInput` callback](gestures.md), and returns whether it was taken.
+`t.scroll` and `t.wheel` offer scroll events to those handlers before
+scrolling the surrounding containers.
 
 ### Pictures
 
@@ -146,7 +152,7 @@ Every app made with `myzig.App` reads these flags (`src/dev.zig`):
 | `--myzig-dark` | with a snapshot: the dark appearance |
 | `--myzig-wait=SECONDS` | with a snapshot: runs the event loop that long first, so that processes, timers and replies the app waits for arrive |
 | `--myzig-eval=JS` | evaluates JavaScript in each page once its DOM is ready; pages report with `myzig.log()` and finish with `myzig.window.close()` |
-| `--myzig-hidden` | never shows windows |
+| `--myzig-hidden` | never shows windows; the app's directories are temporary (headless) |
 | `--myzig-generate=DIR` | writes the generated client (`myzig.js`, `myzig.d.ts`) and exits |
 
 A snapshot, an evaluation or a generation implies hidden windows.
@@ -169,18 +175,32 @@ when the page logs `page: ok`.
 
 An example may hold `test` blocks of its own, run by `zig build test`
 (the list `tested_examples` of `build.zig`: blackhole, chat-glow, wind,
-effort-slider and mayoi): their views through a Tester, their shaders
+effort-slider, mayoi and loading): their views through a Tester, their shaders
 drawn on the CPU and checked for what they must draw.
+`zig build test-loading -j1` runs just the loading plugin and gallery,
+including duration, independent clocks, repeated builds and reduced motion.
 
 ## Browsers
 
-`zig build test-web` builds counter and gallery for browsers and runs them
+`zig build test-web` builds counter, gallery and gestures for browsers and runs them
 headless under Node (`src/web/test_node.mjs`): a frame draws, nothing
-draws while idle, and clicking a text shows another. It needs `node`.
+draws while idle, clicking a text shows another, and pinch and pan change
+the gesture example. It needs `node`.
 `src/web/test_browser_run.mjs` runs the same check in a headless Chromium
 (Chrome or Edge, hidden), with WebGL 2 against the CPU renderer's pixels,
 and `src/web/test_wasm.mjs` runs myzig's unit tests compiled for
 wasm32-wasi. See [Browsers](../browsers.md).
+
+To also check the host's real DOM `WheelEvent` listener:
+
+```sh
+zig build test-web -j1 -Dweb-browser="/path/to/chrome-or-edge"
+```
+
+On Windows, for example, use
+`-Dweb-browser="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`.
+The browser runs headlessly. These tests cover pixel, line and page deltas,
+Ctrl-pinch and preventing defaults only when the view handles the event.
 
 ## Other platforms
 

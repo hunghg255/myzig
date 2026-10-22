@@ -21,6 +21,20 @@ pub const Instance = extern struct {
     clip_round: f32 = 0,
 };
 
+comptime {
+    // Every shader and appendRows read six float4s with these byte offsets.
+    std.debug.assert(@sizeOf(Instance) == 96);
+    std.debug.assert(@offsetOf(Instance, "rect") == 0);
+    std.debug.assert(@offsetOf(Instance, "color") == 16);
+    std.debug.assert(@offsetOf(Instance, "border_color") == 32);
+    std.debug.assert(@offsetOf(Instance, "uv") == 48);
+    std.debug.assert(@offsetOf(Instance, "clip") == 64);
+    std.debug.assert(@offsetOf(Instance, "radius") == 80);
+    std.debug.assert(@offsetOf(Instance, "border_width") == 84);
+    std.debug.assert(@offsetOf(Instance, "kind") == 88);
+    std.debug.assert(@offsetOf(Instance, "clip_round") == 92);
+}
+
 /// The clip rectangle's corners rounded by `radius`: those in `corners`
 /// (1 top left, 2 top right, 4 bottom right, 8 bottom left), packed in one
 /// float as the shader reads it.

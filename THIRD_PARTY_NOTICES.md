@@ -18,6 +18,15 @@ in [`third_party/licenses/mygo-MIT.txt`](third_party/licenses/mygo-MIT.txt)
 (as of mygo
 [`269e2f9`](https://github.com/egoist/mygo/tree/269e2f9aca82b742f67497e467a95f6adb54bf5d)).
 
+The loading plugin (`plugins/loading`) and gallery (`examples/loading`) additionally port the example
+and indicator designs from mygo commit
+`6725e0d4ef2970dc41ba151f5c2d5bd909cbe278` (PR #538). This is an
+loading update; the rest of the port keeps the baseline above. Native UI
+also follows mygo's hidden window controls (#553) and pinch input (#601),
+reviewed through upstream `976f17c9391fb86f9afeba7a2d3b27b54e6d671a`.
+Its loading.dev shapes, path data and timing functions retain Jakub
+Krehel's MIT notice in [plugins/loading/NOTICE.md](plugins/loading/NOTICE.md).
+
 ## GPUI
 
 myzig's native UI follows designs from

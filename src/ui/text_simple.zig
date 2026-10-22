@@ -100,7 +100,7 @@ pub const Table = struct {
         while (i < s.len) : (n += 1) {
             if (n == max_chars) return null;
             const len = @min(utf8.seqLen(s[i]), s.len - i);
-            const cp = std.unicode.utf8Decode(s[i .. i + len]) catch return null;
+            const cp = utf8.decode(s[i .. i + len]) catch return null;
             if (!simple(cp)) return null;
             cps[n] = cp;
             at[n] = @intCast(i);

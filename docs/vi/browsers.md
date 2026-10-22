@@ -52,9 +52,10 @@ pub fn build(b: *std.Build) void {
 Trang web được cài đặt vào `zig-out/web/<name>` (`install_subdir` thay đổi nó); `site.dir` là thư mục của nó trước khi cài đặt và `site.wasm` là bước biên dịch. Trong kho lưu trữ riêng của myzig:
 
 ```sh
-zig build web                    # counter and gallery into zig-out/web/<name>
+zig build web                    # counter, gallery, gestures into zig-out/web/<name>
 zig build web -Dweb-fonts=DIR    # with the fonts of DIR
-zig build test-web               # both, run headless under Node
+zig build test-web               # run headless under Node
+zig build test-web -Dweb-browser="/path/to/chrome-or-edge" # kiểm tra thêm wheel/pinch DOM ở chế độ headless
 ```
 
 Cung cấp thư mục qua HTTP, với WebAssugging là `application/wasm`, như hầu hết các máy chủ đều làm. `index.html` khởi động ứng dụng:
@@ -96,7 +97,8 @@ Windows của các trang web (nội dung `.page`), các khay, thông báo, hộp
 
 ## Kiểm tra
 
-- `zig build test-web` chạy bộ đếm và thư viện trong Nút (`src/web/test_node.mjs`), với WASI và phông chữ của máy chủ cũng như các chức năng của trang được giữ nguyên (không có WebGL: khung được vẽ trên CPU): khung vẽ, không vẽ gì khi không hoạt động và nhấp vào văn bản sẽ hiển thị khung khác.
+- `zig build test-web` chạy counter, gallery và gestures dưới Node (`src/web/test_node.mjs`), dùng WASI và font của host, vẽ trên CPU. Test kiểm tra frame, trạng thái idle, nhấp chuột, pinch và pan ngang/dọc.
+- Thêm `-Dweb-browser="/path/to/chrome-or-edge"` để chạy cả test Node và `WheelEvent` DOM thật trong trình duyệt headless: delta theo pixel/dòng/trang, Ctrl-pinch, cuộn theo dòng khi giữ Ctrl và không chặn mặc định bên ngoài handler.
 - `src/web/test_browser_run.mjs BROWSER SITE_DIR "click=Increment&expect=1"` phục vụ một trang web và chạy `test_browser.js` trong headless Chrome (Chrome hoặc Edge, ẩn): các khung vẽ bằng WebGL 2 và khớp với các pixel của bộ kết xuất CPU, không có gì vẽ khi không hoạt động và các sự kiện con trỏ DOM trên khung vẽ sẽ thay đổi view. `index` tải trang riêng của trang web và kiểm tra xem ứng dụng đã bắt đầu ở đó chưa.
 - `src/web/test_wasm.mjs` chạy các bài kiểm tra đơn vị của myzig được biên dịch cho wasm32-wasi (`zig test -target wasm32-wasi --test-no-exec`) trong Node.
 

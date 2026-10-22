@@ -17,6 +17,7 @@ const serve = @import("../page_serve.zig");
 const events = @import("page_events.zig");
 const scheme = @import("page_scheme.zig");
 const extra = @import("page_extra.zig");
+const memory = @import("page_memory.zig");
 const Window = @import("window.zig").Window;
 
 const scripts = @import("page_scripts.zig");
@@ -32,7 +33,6 @@ pub const WM_FLUSH = w.WM_APP + 1;
 // Vtable indices, from WebView2.h (each interface extends the previous
 // version, so they stay valid for newer runtimes).
 const env_create_controller = 3;
-const ctl_put_visible = 4;
 const ctl_put_bounds = 6;
 const ctl_get_zoom = 7;
 const ctl_put_zoom = 8;
@@ -85,6 +85,8 @@ pub const Page = struct {
     core: core_mod.Core,
     controller: ?com.Object = null,
     webview: ?com.Object = null,
+    memory_target: memory.State = .{},
+    visibility: @import("page_visibility.zig").State = .{},
     /// The URL to load once the web view exists.
     url_next: []u8 = &.{},
     /// A document `loadHtml` serves at its base URL (in the web view's form).
@@ -113,20 +115,15 @@ pub const Page = struct {
 
     pub fn open(window: *Window, options: window_types.PageOptions, embed: ?*embed_mod.Embed) !*Page {
         const gpa = window.app.gpa;
+        var buf: [2048]u8 = undefined;
+        const profile = try @import("page_profile.zig").path(window.app, &buf);
         const self = try gpa.create(Page);
         self.* = .{ .window = window, .gpa = gpa, .options = options, .core = .init(gpa, window, window.app, options), .embed = embed };
         live.append(std.heap.page_allocator, self) catch {};
         self.load(options.url);
         self.waiting = true;
-        var buf: [1024]u8 = undefined;
-        webview2.environment.get(window.app.environ, userData(window.app, &buf), .{ .ctx = self, .func = envReady });
+        webview2.environment.get(window.app.environ, profile, .{ .ctx = self, .func = envReady });
         return self;
-    }
-
-    /// Where WebView2 keeps the app's profile: %LOCALAPPDATA%\<name>\WebView2.
-    fn userData(app: anytype, buf: []u8) []const u8 {
-        const base = app.environ.get("LOCALAPPDATA") orelse app.environ.get("TEMP") orelse ".";
-        return std.fmt.bufPrint(buf, "{s}\\{s}\\WebView2", .{ base, app.options.name }) catch ".";
     }
 
     /// The page of a handler's context, unless it was destroyed: WebView2
@@ -224,7 +221,7 @@ pub const Page = struct {
         _ = com.withHandler(self, messageReceived, addEvent, .{ wv, @as(usize, wv_add_message), &token });
         events.register(self);
         scheme.register(self);
-        _ = com.call(self.controller.?, ctl_put_visible, .{@as(i32, 1)});
+        memory.refresh(self);
         if (self.core.zoom != 1) _ = com.call(self.controller.?, ctl_put_zoom, .{self.core.zoom});
         if (self.embed) |e| e.setUp(self) else self.resize();
         self.navigate();
@@ -469,6 +466,7 @@ pub const Page = struct {
 
     pub fn domReady(self: *Page) void {
         self.dom_ready = true;
+        memory.refresh(self);
         const gpa = self.gpa;
         for (self.held.items) |m| {
             self.enqueue(m, false);
@@ -483,6 +481,7 @@ pub const Page = struct {
         const window = self.window;
         const app = window.app;
         self.dom_ready = false;
+        self.memory_target.applied = null;
         for (self.held.items) |m| self.gpa.free(m);
         self.held.clearRetainingCapacity();
         self.core.navigated();

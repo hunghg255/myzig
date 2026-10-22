@@ -280,7 +280,9 @@ class HostWindow {
       const [x, y] = this.point(e);
       // Lines and pages in pixels, about as desktops scroll them.
       const dy = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? c.clientHeight : 1);
-      if (ex.myzig_web_wheel(id, x, y, dy, this.mods(e))) e.preventDefault();
+      if (e.ctrlKey && e.deltaMode === 0) {
+        if (ex.myzig_web_pinch(id, x, y, Math.exp(-dy / 100), this.mods(e))) e.preventDefault();
+      } else if (ex.myzig_web_scroll(id, x, y, e.deltaX * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? c.clientWidth : 1), dy, e.deltaMode === 0, this.mods(e))) e.preventDefault();
     }, { passive: false });
     ta.addEventListener("keydown", (e) => {
       if (e.isComposing || e.keyCode === 229) return;

@@ -111,7 +111,7 @@ pub const Registry = struct {
             return error.ChannelFull;
         }
         const ask = e.sent + json.len - e.asked >= window_bytes / 2;
-        const msg = try std.fmt.allocPrint(gpa, "{{\"t\":\"chan\",\"c\":{d},{s}\"p\":{s}}}", .{ e.id, if (ask) "\"a\":1," else "", json });
+        const msg = try gpa.print("{{\"t\":\"chan\",\"c\":{d},{s}\"p\":{s}}}", .{ e.id, if (ask) "\"a\":1," else "", json });
         errdefer gpa.free(msg);
         if (ask) try e.asks.append(gpa, .{ e.seq + 1, e.sent + msg.len });
         e.seq += 1;
@@ -135,7 +135,7 @@ pub const Registry = struct {
         const e = r.get(id) orelse return null;
         if (e.on_message) |m| m.func(m.ctx, id, json);
         if (!ask) return null;
-        return std.fmt.allocPrint(gpa, "{{\"t\":\"chan-ack\",\"c\":{d},\"n\":{d}}}", .{ id, seq }) catch null;
+        return gpa.print("{{\"t\":\"chan-ack\",\"c\":{d},\"n\":{d}}}", .{ id, seq }) catch null;
     }
 
     /// Closes `id`; returns the message telling the page when Zig closed it.
@@ -147,7 +147,7 @@ pub const Registry = struct {
             gpa.destroy(e);
             if (cb) |c| c.func(c.ctx, id, reason);
             if (reason != .zig) return null;
-            return std.fmt.allocPrint(gpa, "{{\"t\":\"chan\",\"c\":{d},\"end\":true}}", .{id}) catch null;
+            return gpa.print("{{\"t\":\"chan\",\"c\":{d},\"end\":true}}", .{id}) catch null;
         };
         return null;
     }

@@ -28,7 +28,7 @@ const max_depth = 125;
 
 fn decode(s: []const u8, i: usize) struct { cp: u21, n: usize } {
     const n = @min(utf8.seqLen(s[i]), s.len - i);
-    const cp = std.unicode.utf8Decode(s[i .. i + n]) catch return .{ .cp = 0xfffd, .n = 1 };
+    const cp = utf8.decode(s[i .. i + n]) catch return .{ .cp = 0xfffd, .n = 1 };
     return .{ .cp = cp, .n = n };
 }
 

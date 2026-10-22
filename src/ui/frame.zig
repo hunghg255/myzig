@@ -93,6 +93,7 @@ pub fn run(c: *Context, view: View, ts: *text.TextSystem, instances: *std.ArrayL
     };
     const hot_before = c.hot;
     c.commitHits();
+    if (c.snap_update) |update| update(c);
     // Web views go where the frame shows them (`webview.zig`).
     if (c.web) |l| l.place(c, instances.items);
     c.finish();

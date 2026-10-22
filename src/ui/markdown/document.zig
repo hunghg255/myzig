@@ -11,6 +11,7 @@
 //! half-written syntax will most likely become (`heal.zig`) and lines that
 //! could still turn into something else wait for what follows them.
 const std = @import("std");
+const utf8 = @import("../utf8.zig");
 const blocks_mod = @import("blocks.zig");
 const inlines_mod = @import("inlines.zig");
 
@@ -558,7 +559,7 @@ pub fn normalizeLabel(label: []const u8, buf: []u8) ?[]const u8 {
             continue;
         }
         const len = @min(t.len - i, std.unicode.utf8ByteSequenceLength(c) catch 1);
-        const cp = std.unicode.utf8Decode(t[i .. i + len]) catch {
+        const cp = utf8.decode(t[i .. i + len]) catch {
             buf[n] = c;
             n += 1;
             i += 1;

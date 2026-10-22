@@ -224,10 +224,10 @@ pub const Engine = struct {
             var i: usize = p.start;
             while (i < p.end) {
                 const n = @min(utf8.seqLen(s[i]), p.end - i);
-                const cp: u21 = std.unicode.utf8Decode(s[i .. i + n]) catch 0xfffd;
+                const cp: u21 = utf8.decode(s[i .. i + n]) catch 0xfffd;
                 const next: u21 = if (i + n < p.end) blk: {
                     const m = @min(utf8.seqLen(s[i + n]), p.end - i - n);
-                    break :blk std.unicode.utf8Decode(s[i + n .. i + n + m]) catch 0;
+                    break :blk utf8.decode(s[i + n .. i + n + m]) catch 0;
                 } else 0;
                 const pf = e.faces.items;
                 const f: usize = blk: {

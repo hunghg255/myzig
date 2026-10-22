@@ -15,6 +15,8 @@ const Downloaded = myzig.Event("downloaded", struct { ok: bool });
 var app: *myzig.App = undefined;
 var window: *myzig.Window = undefined;
 var temp_dir: []u8 = &.{};
+/// `MYZIG_MEMORY_PROBE`: which probe the page runs instead of the test.
+var probe_mode: []const u8 = "";
 
 /// What the page's listener saw.
 const Seen = struct {
@@ -67,6 +69,32 @@ const Test = struct {
 
     pub fn ping(_: *Test) []const u8 {
         return "pong";
+    }
+
+    pub fn echo(_: *Test, value: []const u8) []const u8 {
+        return value;
+    }
+
+    /// Restore and reduce memory without hiding scripts or replacing the document.
+    pub fn memoryPolicy(_: *Test) ?bool {
+        if (comptime @import("builtin").os.tag == .windows) {
+            const p = window.page orelse return false;
+            const state = &p.memory_target;
+            if (state.unsupported) return null;
+            if (state.applied != .low) return false;
+            _ = @import("memory.zig").target(window, true) catch return false;
+            _ = @import("memory.zig").target(window, false) catch return false;
+            return true;
+        }
+        return null;
+    }
+
+    pub fn memoryMode(_: *Test) []const u8 {
+        return probe_mode;
+    }
+
+    pub fn memoryTarget(_: *Test, normal: bool) !?i32 {
+        return @import("memory.zig").target(window, normal);
     }
 
     pub fn iframeProbe(self: *Test) void {
@@ -347,11 +375,14 @@ fn guard(_: ?*anyopaque) callconv(.c) void {
 const assets = [_]myzig.Asset{
     .{ .path = "/index.html", .data = @embedFile("frontend/index.html") },
     .{ .path = "/test.js", .data = @embedFile("frontend/test.js") },
+    .{ .path = "/memory.js", .data = @embedFile("frontend/memory.js") },
+    .{ .path = "/ipc.js", .data = @embedFile("frontend/ipc.js") },
     .{ .path = "/embedded name.txt", .data = "embedded space" },
     .{ .path = "/caf\xc3\xa9.txt", .data = "unicode" },
 };
 
 pub fn main(init: std.process.Init) !void {
+    probe_mode = init.environ_map.get("MYZIG_MEMORY_PROBE") orelse "";
     app = try myzig.App.create(init, .{ .name = "MyzigPagesTest" });
     defer app.destroy();
     var t: Test = .{};

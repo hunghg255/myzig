@@ -28,6 +28,7 @@ pub const Window = struct {
     web_views: std.ArrayList(*Page) = .empty,
     surface: ?*Surface = null,
     title_bar: TitleBar = .default,
+    hide_window_buttons: bool = false,
     on_close: ?Callback = null,
     closed: bool = false,
     on_drop: ?window_types.DropCallback(Window) = null,
@@ -76,7 +77,7 @@ pub const Window = struct {
         objc.setZig(delegate, self);
         objc.msg(void, nswindow, "setDelegate:", .{delegate});
 
-        self.* = .{ .app = app, .nswindow = nswindow, .delegate = delegate, .title_bar = options.title_bar, .on_close = options.on_close, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout, .flyout_size = .{ options.width, options.height } };
+        self.* = .{ .app = app, .nswindow = nswindow, .delegate = delegate, .title_bar = options.title_bar, .hide_window_buttons = options.hide_window_buttons, .on_close = options.on_close, .on_drop = options.on_drop, .state = options.state, .on_close_request = options.on_close_request, .on_event = options.on_event, .title_bar_height = options.title_bar_height, .flyout = options.flyout, .flyout_size = .{ options.width, options.height } };
 
         switch (options.content) {
             .page => |p| self.page = try Page.create(self, p),

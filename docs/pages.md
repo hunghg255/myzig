@@ -15,6 +15,25 @@ the way `WebView2Loader.dll` finds it (a fixed version named by
 `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, else the installed channels, the most
 stable first). A Linux machine without WebKitGTK logs that pages need it.
 
+On Windows, pages whose host is hidden or minimized, and embedded pages
+clipped out of native UI, request WebView2's low memory target after the
+document loads. Showing or restoring them requests the normal target.
+JavaScript, timers, IPC and network connections keep running; the page is
+not suspended or reloaded. This is a best-effort reduction in resident
+memory, not a memory limit. Older runtimes without the API keep their
+normal memory target. See Microsoft's [memory usage target documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_19).
+
+Primary page windows additionally disable controller rendering while their
+host is hidden or minimized, and restore it when shown. JavaScript and IPC
+continue, but the browser can throttle background timers and animations;
+timer cadence while hidden is not guaranteed. Embedded web views retain
+their layout-driven controller visibility. See Microsoft's
+[controller visibility documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2controller#get_isvisible).
+
+Headless runs (`--myzig-hidden` and the flags that imply it) use a
+temporary WebView2 profile. Regular launches keep
+using `%LOCALAPPDATA%\<app name>\WebView2`.
+
 This page covers what a page is and what the app can do with it. The
 frontend's side (the page runtime, dev servers, title bars) is in
 [The frontend](frontend.md), and calling Zig from the page in
@@ -365,3 +384,21 @@ for a permission, opens a window and downloads a file; then Zig evaluates
 scripts, finds text, prints to PDF, sets and deletes cookies, adds a user
 script, and loads an untrusted document whose call fails. It prints
 `page: ok`.
+
+On Windows, `zig build test-page-memory -Doptimize=ReleaseSmall -j1`
+runs four sequential hidden WebView2 probes (Normal, restore, restore,
+Normal). Each reloads once, then checks ten memory-target cycles against
+the runtime memory-target and controller-visibility getters, timers,
+fetch, DOM/JS state and IPC. The recovery request follows a timer asking
+for two seconds without IPC or fetch (background throttling can extend
+that wait). Logs, including each
+timing sample, are saved in `zig-out/memory-probe/`; runs are not cached.
+This measures IPC recovery in a hidden host, not visible repaint latency
+or memory consumption while a window is shown. Older unsupported runtimes
+report a skip; the step is Windows-only.
+
+`zig build test-page-ipc -Doptimize=ReleaseSmall -j1` checks batched
+ASCII, Unicode and 64 KiB echo payloads through the real hidden webview.
+`zig build build-pages -Doptimize=ReleaseSmall -j1` installs
+`zig-out/bin/pages` (`pages.exe` on Windows) for external measurements;
+`MYZIG_MEMORY_PROBE=ipc` selects the IPC probe when launching it headless.

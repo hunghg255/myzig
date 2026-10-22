@@ -74,6 +74,13 @@ myzig build                       # the release and its packages
 See [Getting started](docs/getting-started.md), which also tours every
 example.
 
+The [loading gallery](examples/loading/README.md), ported from mygo's
+`6725e0d`, shows all 29 loading.dev indicators in native UI. Run
+`zig build run-loading`; its reusable [loading plugin](plugins/loading/README.md)
+also exposes duration, Ripple direction, Wave origin and Blocks sweep.
+`zig build test-loading` checks the plugin and gallery,
+animation, pause/resume and reduced motion offscreen.
+
 ## Native UI
 
 ```zig
@@ -151,7 +158,7 @@ const Greeter = struct {
     pub const myzig_params = .{ .greet = .{"name"} };
 
     pub fn greet(_: *Greeter, call: *myzig.Call, name: []const u8) ![]const u8 {
-        return std.fmt.allocPrint(call.arena, "Hello, {s}!", .{name});
+        return call.arena.print("Hello, {s}!", .{name});
     }
 };
 
@@ -282,11 +289,20 @@ webview is most of a web app's memory (WebView2's processes take about
 connections, requests and databases) when it navigates, reloads or
 closes.
 
+On Windows, hidden or minimized pages request WebView2's low memory
+target and return to normal when shown; a hidden page window also stops
+rendering, so its timers may be throttled while scripts, IPC and
+requests continue. Hidden, `hello` keeps 68.6 MiB, against 84.8 with the
+low target alone ([the runs](hillclimb/notes/windows-webview-experiments-2026-10-22.md)).
+
 ## Development
 
 ```sh
+zig build size -Doptimize=ReleaseSmall -j1                            # counter and hello binary sizes
 zig build lines                                                       # the 600-line limit, enforced
 zig build test-pages                                                  # pages hidden: hello and examples/pages
+zig build test-page-memory -Doptimize=ReleaseSmall -j1                # Windows: hidden RAM-policy recovery probe
+zig build test-page-ipc -Doptimize=ReleaseSmall -j1                   # hidden ASCII/Unicode/large IPC batches
 zig build web && zig build test-web                                   # counter and gallery for browsers, tested under Node
 zig build test-bin -Dtarget=aarch64-linux-gnu --prefix zig-out/linux  # Linux tests, for the container
 cd cli && zig build test && zig build e2e                             # the CLI, and apps made by `myzig init`
@@ -301,7 +317,7 @@ Rules for working here, by hand or with an agent, are in
 How myzig is built, from its layers to the IPC wire protocol and the
 renderers, is in [the architecture guide](docs/architecture.md). Official
 plugins live in [`plugins/`](docs/plugins.md): fetch, websocket, sqlite,
-watch, updater, terminal, glass, game and mainthread. Bound methods run on
+watch, updater, terminal, glass, game, mainthread and loading. Bound methods run on
 the main thread.
 
 ## License

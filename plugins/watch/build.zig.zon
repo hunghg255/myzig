@@ -1,6 +1,6 @@
 .{
     .name = .myzig_watch,
-    .version = "0.1.7",
+    .version = "0.1.8",
     .fingerprint = 0x755243286805e185,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

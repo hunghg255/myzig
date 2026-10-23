@@ -1,6 +1,6 @@
 .{
     .name = .myzig_fetch,
-    .version = "0.1.7",
+    .version = "0.1.8",
     .fingerprint = 0xa7b06a4d53fb2488,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

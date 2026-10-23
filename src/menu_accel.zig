@@ -62,6 +62,13 @@ pub const Node = union(enum) {
     close,
 };
 
+/// How the app runs an item chosen in a menu it shows itself (a tray's):
+/// its role, else its click (`App.perform`).
+pub const Perform = struct {
+    ctx: *anyopaque,
+    func: *const fn (ctx: *anyopaque, it: *Item) void,
+};
+
 pub const Menu = struct {
     gpa: std.mem.Allocator,
     items: std.ArrayList(Item) = .empty,
@@ -70,6 +77,9 @@ pub const Menu = struct {
     on_change: ?*const fn (menu: *Menu, item: *Item) void = null,
     /// Whoever builds the native menu (its owner's pointer).
     owner: ?*anyopaque = null,
+    /// Runs the items chosen, roles included; `choose` only activates
+    /// them without it.
+    perform: ?Perform = null,
 
     pub fn create(gpa: std.mem.Allocator, template: []const MenuItem) !*Menu {
         const m = try gpa.create(Menu);
@@ -167,6 +177,12 @@ pub const Menu = struct {
         return null;
     }
 
+    /// Runs an item the user chose: through the app's `perform`, which
+    /// carries out its role (`.quit`, ...), else as a click would.
+    pub fn choose(it: *Item) void {
+        if (it.menu.perform) |p| p.func(p.ctx, it) else activate(it);
+    }
+
     /// Runs an item as a click would.
     pub fn activate(it: *Item) void {
         switch (it.kind) {
@@ -226,4 +242,33 @@ test "menus' shape, roles and radio groups" {
     try std.testing.expect(m.item("g").?.checked);
     var buf: [32]u8 = undefined;
     try std.testing.expectEqualStrings("Save & Quit", plainLabel(&buf, "&Save && Quit"));
+}
+
+test "an item chosen goes through the app's perform, roles included" {
+    const gpa = std.testing.allocator;
+    const Seen = struct {
+        quit: bool = false,
+        clicks: u32 = 0,
+        fn perform(ctx: *anyopaque, it: *Item) void {
+            const s: *@This() = @ptrCast(@alignCast(ctx));
+            if (it.role == .quit) s.quit = true else Menu.activate(it);
+        }
+        fn click(s: *@This(), _: *Item) void {
+            s.clicks += 1;
+        }
+    };
+    var seen: Seen = .{};
+    const m = try Menu.create(gpa, &.{
+        .{ .label = "Open", .id = "o", .click = .of(&seen, Seen.click) },
+        .{ .role = .quit, .id = "q" },
+    });
+    defer m.destroy();
+    // Without the app's perform, a role does nothing: only clicks run.
+    Menu.choose(m.item("q").?);
+    try std.testing.expect(!seen.quit);
+    m.perform = .{ .ctx = &seen, .func = Seen.perform };
+    Menu.choose(m.item("q").?);
+    try std.testing.expect(seen.quit);
+    Menu.choose(m.item("o").?);
+    try std.testing.expectEqual(@as(u32, 1), seen.clicks);
 }

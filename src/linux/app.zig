@@ -276,6 +276,8 @@ pub const App = struct {
         if (!self.gui) return error.Headless;
         const t = try tray_mod.Tray.create(self.gpa, self.io, self.options.appId(), opts);
         errdefer t.destroy();
+        // Its menu's roles (`.quit`, ...) run as accelerators' do.
+        t.setPerform(.{ .ctx = self, .func = trayPerform });
         try self.trays.append(self.gpa, t);
         return t;
     }
@@ -387,6 +389,17 @@ pub const App = struct {
     pub fn accelerator(self: *App, sc: ui.Shortcut) bool {
         const m = self.main_menu orelse return false;
         const it = m.match(sc) orelse return false;
+        return self.perform(it);
+    }
+
+    fn trayPerform(ctx: *anyopaque, it: *menu_mod.Item) void {
+        const self: *App = @ptrCast(@alignCast(ctx));
+        _ = self.perform(it);
+    }
+
+    /// Runs a menu item: its role, else its click. False when it is an
+    /// editing role, which the focused view handles.
+    fn perform(self: *App, it: *menu_mod.Item) bool {
         if (it.role) |role| {
             const target = self.keyWindow();
             switch (role) {

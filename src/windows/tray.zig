@@ -81,6 +81,8 @@ pub const Tray = struct {
     owns_icon: bool = false,
     tip: [128]u16 = @splat(0),
     menu: ?*menu_mod.Menu = null,
+    /// The app's, to run the roles of the menu's items (`setPerform`).
+    perform: ?menu_mod.Perform = null,
     on_click: ?Click = null,
     on_appearance: ?Click = null,
     added: bool = false,
@@ -212,14 +214,21 @@ pub const Tray = struct {
 
     pub fn setMenu(self: *Tray, _: []const u8, template: []const menu_mod.MenuItem) !void {
         const m = try menu_mod.Menu.create(self.gpa, template);
+        m.perform = self.perform;
         if (self.menu) |old| old.destroy();
         self.menu = m;
+    }
+
+    /// How the items chosen run, roles included: set by the app.
+    pub fn setPerform(self: *Tray, p: menu_mod.Perform) void {
+        self.perform = p;
+        if (self.menu) |m| m.perform = p;
     }
 
     /// Shows the icon's menu at the mouse; runs the item chosen.
     pub fn popUpMenu(self: *Tray) void {
         const m = self.menu orelse return;
-        if (menubar.popup(m, self.hwnd)) |it| menu_mod.Menu.activate(it);
+        if (menubar.popup(m, self.hwnd)) |it| menu_mod.Menu.choose(it);
     }
 
     /// A mouse or balloon event of the icon; returns the notification

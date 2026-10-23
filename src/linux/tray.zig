@@ -54,6 +54,8 @@ pub const Tray = struct {
     is_indicator: bool,
     menu: ?*menu_mod.Menu = null,
     gtk_menu: ?*gtk.Widget = null,
+    /// The app's, to run the roles of the menu's items (`setPerform`).
+    perform: ?menu_mod.Perform = null,
     on_click: ?Click = null,
     /// Where the icon's PNG is written (indicators and status icons take files).
     icon_dir: ?[]u8 = null,
@@ -173,11 +175,18 @@ pub const Tray = struct {
     pub fn setMenu(self: *Tray, _: []const u8, template: []const menu_mod.MenuItem) !void {
         const m = try menu_mod.Menu.create(self.gpa, template);
         errdefer m.destroy();
+        m.perform = self.perform;
         const g = gtkmenu.build(m) orelse return error.GtkMissing;
         if (self.gtk_menu) |old| gtkmenu.destroy(self.menu.?, old);
         if (self.menu) |old| old.destroy();
         self.menu = m;
         self.gtk_menu = g;
         if (self.is_indicator) indicator.app_indicator_set_menu(self.handle, g);
+    }
+
+    /// How the items chosen run, roles included: set by the app.
+    pub fn setPerform(self: *Tray, p: menu_mod.Perform) void {
+        self.perform = p;
+        if (self.menu) |m| m.perform = p;
     }
 };

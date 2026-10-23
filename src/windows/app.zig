@@ -322,6 +322,8 @@ pub const App = struct {
         self.next_tray += 1;
         const t = try tray_mod.Tray.create(self.gpa, hwnd, self.trayNumber(opts.id), opts);
         errdefer t.destroy();
+        // Its menu's roles (`.quit`, ...) run as the menu bar's do.
+        t.setPerform(.{ .ctx = self, .func = trayPerform });
         try self.trays.append(self.gpa, t);
         return t;
     }
@@ -414,6 +416,10 @@ pub const App = struct {
 
 fn appOf(ctx: *anyopaque) *App {
     return @ptrCast(@alignCast(ctx));
+}
+
+fn trayPerform(ctx: *anyopaque, it: *menu_mod.Item) void {
+    _ = appOf(ctx).perform(it, null);
 }
 
 fn onTray(ctx: *anyopaque, id: u32, event: u32) void {

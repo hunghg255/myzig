@@ -75,7 +75,7 @@ var syncing = false;
 fn onActivate(_: *gtk.Widget, data: ?*anyopaque) callconv(.c) void {
     if (syncing) return;
     const it: *menu_mod.Item = @ptrCast(@alignCast(data));
-    menu_mod.Menu.activate(it);
+    menu_mod.Menu.choose(it);
 }
 
 fn onChange(_: *menu_mod.Menu, it: *menu_mod.Item) void {

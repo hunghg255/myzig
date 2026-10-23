@@ -127,7 +127,10 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
                 });
             },
             .image => |im| if (c.text.images.get(im.key, im.bytes)) |e| push(c, out, .{
-                .rect = rect4,
+                // A picture (an SVG, a canvas) is drawn at the window's
+                // pixels: on the pixel grid, at its pixel size, or it blurs
+                // (at 125%, between pixels).
+                .rect = if (im.bytes.len == 0) .{ snap(r.x, c.scale), snap(r.y, c.scale), snap(r.w, c.scale), snap(r.h, c.scale) } else rect4,
                 .color = .{ 1, 1, 1, im.opacity * opacity },
                 .uv = sourceUv(e, im.source),
                 .radius = st.corners.signed(st.radius),

@@ -37,6 +37,7 @@ Một trường lấy tiêu điểm bàn phím khi được nhấp vào (hoặc 
 | `placeholder` | `""` | văn bản mờ hiển thị trong khi nó trống |
 | `width` | 240 điểm | một `ui.Length`; `.fill` trên cha mẹ của nó |
 | `size` | 14 | kích thước của văn bản |
+| `disabled` | false | làm mờ, chặn chỉnh sửa và bỏ ô nhập khỏi thứ tự Tab |
 | `password` | false | dấu đầu dòng thay vì văn bản và văn bản được giữ ngoài bảng nhớ tạm |
 | `suggestion` | `""` | văn bản được vẽ mờ sau những gì được gõ, như sự tự gợi ý của shell; → hoặc End ở cuối văn bản lấy nó |
 | `bare` | false | không có hộp riêng (viền, tô màu, vòng tiêu điểm), dành cho trường bên trong khung lớn hơn, với tư cách là người soạn thảo trò chuyện |
@@ -55,6 +56,8 @@ Nó trả về một kết quả:
 <a id="the-buffer"></a>
 
 ## Bộ đệm
+
+Dùng [Input Group](input-group.md) để ghép ô nhập với icon, tiền tố/hậu tố và nút trong cùng khung.
 
 `ui.TextBuffer` chứa tới 1024 byte UTF-8, nội tuyến, không phân bổ: giữ nó ở trạng thái của bạn.
 

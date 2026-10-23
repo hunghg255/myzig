@@ -112,6 +112,8 @@ pub const Options = struct {
     bare: bool = false,
     /// Names it for assistive technology (a form's field names its own).
     label: []const u8 = "",
+    /// Dims the field and removes it from keyboard and pointer editing.
+    disabled: bool = false,
 };
 
 pub const Result = struct {
@@ -248,10 +250,13 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
         .border = if (opts.bare) null else th.border,
         .align_items = .center,
         .clip = true,
+        .opacity = if (opts.disabled) 0.45 else 1,
     }, null);
     defer c.end();
-    const it = c.interact(i, .{ .focusable = true });
-    if (it.hovered) {
+    if (opts.disabled and c.focus == c.node(i).id) c.focus = 0;
+    const it = c.interact(i, .{ .focusable = !opts.disabled });
+    c.describe(it.id, .{ .disabled = opts.disabled });
+    if (it.hovered and !opts.disabled) {
         c.cursor_hand = false;
         c.cursor_text = true;
     }

@@ -13,8 +13,12 @@ const TextPages = @import("text.zig").TextPages;
 const Drawing = @import("drawing.zig").Drawing;
 const MotionPage = @import("motion.zig").MotionPage;
 const Board = @import("dnd.zig").Board;
+const Composites = @import("composites.zig").Composites;
+const Advanced = @import("advanced.zig").Advanced;
+const DataTable = @import("data_table.zig").DataTable;
+const Feedback = @import("feedback.zig").Feedback;
 
-const Page = enum { controls, tasks, list, inputs, structures, overlays, typography, editing, markdown, drawing, charts, styling, motion, dnd };
+const Page = enum { controls, tasks, list, inputs, composites, feedback, advanced, data_table, structures, overlays, typography, editing, markdown, drawing, charts, styling, motion, dnd };
 
 const sections = [_]struct { title: []const u8, pages: []const struct { Page, []const u8, []const u8 } }{
     .{ .title = "Widgets", .pages = &.{
@@ -22,6 +26,10 @@ const sections = [_]struct { title: []const u8, pages: []const struct { Page, []
         .{ .tasks, "Tasks", "checklist" },
         .{ .list, "List", "list.bullet" },
         .{ .inputs, "Inputs", "text.cursor" },
+        .{ .composites, "Composition", "square.grid.2x2" },
+        .{ .feedback, "Feedback", "info.circle" },
+        .{ .advanced, "Actions & choices", "checklist" },
+        .{ .data_table, "Data table", "tablecells" },
         .{ .structures, "Structures", "square.grid.2x2" },
         .{ .overlays, "Overlays", "rectangle.on.rectangle" },
     } },
@@ -42,6 +50,10 @@ const Gallery = struct {
     page: Page = .controls,
     basics: Basics = .{},
     inputs: Inputs = .{},
+    composites: Composites = .{},
+    feedback: Feedback = .{},
+    advanced: Advanced,
+    data_table: DataTable = .{},
     structures: Structures = .{},
     overlays: Overlays = .{},
     text: TextPages,
@@ -50,9 +62,11 @@ const Gallery = struct {
     board: Board,
 
     fn init(g: *Gallery, gpa: std.mem.Allocator) !void {
-        g.* = .{ .gpa = gpa, .text = try .init(gpa), .board = .init(gpa) };
+        g.* = .{ .gpa = gpa, .text = try .init(gpa), .board = .init(gpa), .advanced = .init(gpa) };
         g.basics.init();
         g.inputs.init();
+        g.composites.init();
+        g.feedback.init();
         g.overlays.init();
     }
 
@@ -60,6 +74,7 @@ const Gallery = struct {
         g.text.deinit();
         g.structures.deinit(g.gpa);
         g.board.deinit();
+        g.advanced.deinit();
     }
 
     fn view(g: *Gallery, c: *ui.Context) void {
@@ -77,6 +92,10 @@ const Gallery = struct {
                     .tasks => g.basics.tasks(c),
                     .list => {},
                     .inputs => g.inputs.view(c),
+                    .composites => g.composites.view(c),
+                    .feedback => g.feedback.view(c),
+                    .advanced => g.advanced.view(c),
+                    .data_table => g.data_table.view(c),
                     .structures => g.structures.view(c),
                     .overlays => g.overlays.view(c),
                     .typography => g.basics.typography(c),
@@ -93,6 +112,7 @@ const Gallery = struct {
         // Over everything, last.
         g.overlays.toastLayer(c);
         g.board.preview(c);
+        g.feedback.layers(c);
     }
 
     fn sidebar(g: *Gallery, c: *ui.Context) void {

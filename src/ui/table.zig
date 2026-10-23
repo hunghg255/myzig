@@ -41,19 +41,9 @@ const menu_mod = @import("menu.zig");
 const Choice = set.Choice;
 const Context = ctx_mod.Context;
 
-pub const Alignment = enum { start, center, end };
-
-pub const Column = struct {
-    title: []const u8,
-    /// Points, or 0 to share the room left with the other such columns.
-    width: f32 = 0,
-    alignment: Alignment = .start,
-    sortable: bool = false,
-    /// A spreadsheet's row numbers: with `cells`, a click or a drag on its
-    /// cells chooses whole rows, every column, and a click on its header
-    /// every row. It does not sort.
-    row_header: bool = false,
-};
+const column_mod = @import("table_columns.zig");
+pub const Alignment = column_mod.Alignment;
+pub const Column = column_mod.Column;
 
 pub const Sort = struct {
     column: usize,
@@ -127,6 +117,9 @@ pub const Options = struct {
     /// without items does not open; one of what a cell holds takes the
     /// right-click over it instead).
     cell_menu: ?CellMenu = null,
+    /// App-owned widths parallel to columns. 0 shares room. Supplying
+    /// this slice enables resize grips (pointer, arrows, Home/End).
+    column_widths: ?[]f32 = null,
 };
 
 /// Builds the menu of the cell of `row` and `col` into `m`.
@@ -140,6 +133,7 @@ pub const Result = struct {
     changed: bool = false,
     /// A click on a header changed `state.sort`.
     sorted: bool = false,
+    resized: bool = false,
     /// Enter or a double click on the row chosen.
     submitted: bool = false,
     focused: bool = false,
@@ -288,10 +282,12 @@ pub const Table = struct {
         const c = t.c;
         std.debug.assert(t.row != null);
         t.closeCell();
+        while (t.next_col < t.columns.len and t.columns[t.next_col].hidden) t.next_col += 1;
         if (t.next_col >= t.columns.len) return null;
         const col = t.next_col;
         t.next_col += 1;
-        const cell_box = c.open(cellStyle(t.columns[col]), null);
+        c.next_key_int = col;
+        const cell_box = c.open(column_mod.cellStyle(t.columns[col]), null);
         t.cell_box = cell_box;
         if (t.cellSelected(t.row.?, col)) c.node(cell_box).style.background = if (t.focused) c.theme.accent else c.theme.text.alpha(0.12);
         t.col = col;
@@ -358,68 +354,18 @@ pub const Table = struct {
     }
 };
 
-fn cellStyle(col: Column) types.Style {
-    return .{
-        .direction = .row,
-        .width = if (col.width > 0) .{ .px = col.width } else .fill,
-        .align_items = .center,
-        .justify = switch (col.alignment) {
-            .start => .start,
-            .center => .center,
-            .end => .end,
-        },
-        .padding = .xy(8, 0),
-        .clip = true,
-    };
-}
-
-fn header(c: *Context, state: *TableState, columns: []const Column, count: usize, opts: Options, result: *Result) void {
-    const th = c.theme;
-    _ = c.open(.{ .direction = .row, .width = .fill, .height = .{ .px = opts.header_height }, .align_items = .stretch }, "header");
-    for (columns, 0..) |col, i| {
-        c.next_key_int = i;
-        var st = cellStyle(col);
-        st.gap = 4;
-        st.control = true;
-        const box = c.open(st, null);
-        defer c.end();
-        const sorted_by = if (state.sort) |s| s.column == i else false;
-        c.describe(c.node(box).id, .{ .role = .column_header, .label = col.title, .description = if (!sorted_by) "" else if (state.sort.?.descending) "descending" else "ascending" });
-        if (col.row_header and opts.cells) {
-            // A row header's header chooses every row and column.
-            const it = c.interact(box, .{});
-            if (it.clicked and count > 0) {
-                state.anchor = 0;
-                state.selected = count - 1;
-                _ = Choice.all(state, count);
-                state.cols = .{ 0, columns.len - 1 };
-                result.changed = true;
-                c.changed = true;
-            }
-        } else if (col.sortable) {
-            const it = c.interact(box, .{});
-            if (it.clicked) {
-                state.sort = if (sorted_by) .{ .column = i, .descending = !state.sort.?.descending } else .{ .column = i };
-                result.sorted = true;
-                c.changed = true;
-            }
-            const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
-            c.node(box).style.background = th.text.alpha(0.05 * hover);
-        }
-        widgets.text(c, col.title, .{ .size = 12, .weight = .semibold, .color = if (sorted_by) th.text else th.muted });
-        if (col.sortable and sorted_by)
-            widgets.icon(c, if (state.sort.?.descending) "chevron.down" else "chevron.up", .{ .size = 10, .weight = .semibold, .color = th.muted });
-    }
-    c.end();
-    widgets.divider(c);
-}
-
 /// Opens a table of `count` rows in `columns`: `next` each row in view,
 /// `cell` each of its columns, then `end`.
-pub fn table(c: *Context, state: *TableState, columns: []const Column, count: usize, opts: Options) Table {
+pub fn table(c: *Context, state: *TableState, input_columns: []const Column, count: usize, opts: Options) Table {
+    const columns = if (opts.column_widths) |widths| blk: {
+        std.debug.assert(widths.len == input_columns.len);
+        const copy = c.alloc().dupe(Column, input_columns) catch @panic("OOM");
+        for (copy, widths) |*col, width| col.width = if (width > 0) std.math.clamp(width, @max(1, col.min_width), @max(col.min_width, col.max_width)) else 0;
+        break :blk copy;
+    } else input_columns;
     _ = c.open(.{ .direction = .column, .width = opts.width, .height = opts.height }, null);
     var result: Result = .{};
-    header(c, state, columns, count, opts, &result);
+    column_mod.header(c, state, columns, count, opts, &result);
     // The choice follows its items (with a key), within the rows.
     Choice.sync(state, count);
     const id = c.peekId(null);
@@ -455,7 +401,15 @@ pub fn table(c: *Context, state: *TableState, columns: []const Column, count: us
             _ = structure.takeKey(c);
             c.changed = true;
             const cs = state.cols orelse [2]usize{ 0, 0 };
-            const to = if (k == .left) cs[1] -| 1 else @min(columns.len - 1, cs[1] + 1);
+            var to = @min(cs[1], columns.len - 1);
+            var remaining = columns.len;
+            while (remaining > 0) : (remaining -= 1) {
+                const next = if (k == .left) to -| 1 else @min(columns.len - 1, to + 1);
+                if (next == to) break;
+                to = next;
+                if (!columns[to].hidden) break;
+            }
+            if (columns[to].hidden) to = cs[1];
             state.cols = if (c.input.shift) .{ cs[0], to } else .{ to, to };
             if (state.selected == null and count > 0) {
                 state.selected = 0;

@@ -33,13 +33,22 @@ pub const Field = struct {
     pub fn end(f: Field) void {
         const c = f.c;
         const th = c.theme;
-        // The control: the first interactive box after the label.
+        // Prefer a text editor, then a focusable control: compound inputs
+        // can have chrome or buttons before the field. Disabled editors
+        // still need their accessible name, but cannot receive focus.
         var control: ?u32 = null;
+        var focusable: ?u32 = null;
         var at = f.start;
         while (at < c.nodes.items.len) : (at += 1) if (c.nodes.items[at].interactive) {
-            control = at;
-            break;
+            if (control == null) control = at;
+            if (focusable == null and std.mem.indexOfScalar(u64, c.focus_order.items, c.nodes.items[at].id) != null) focusable = at;
+            if (c.edits.contains(c.nodes.items[at].id)) {
+                control = at;
+                focusable = at;
+                break;
+            }
         };
+        control = focusable orelse control;
         if (f.opts.err.len > 0) {
             // The error marks the control's frame: its first box with one.
             at = f.start;
@@ -57,8 +66,11 @@ pub const Field = struct {
             .invalid = f.opts.err.len > 0,
         });
         if (f.label_clicked) if (control) |ci| {
-            c.focus = c.nodes.items[ci].id;
-            c.changed = true;
+            const id = c.nodes.items[ci].id;
+            if (std.mem.indexOfScalar(u64, c.focus_order.items, id) != null) {
+                c.focus = id;
+                c.changed = true;
+            }
         };
         if (f.opts.description.len > 0) widgets.text(c, f.opts.description, .{ .size = 12, .color = th.muted, .wrap = true });
         if (f.opts.err.len > 0) widgets.text(c, f.opts.err, .{ .size = 12, .color = th.danger, .wrap = true });

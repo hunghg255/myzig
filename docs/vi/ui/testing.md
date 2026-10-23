@@ -216,6 +216,12 @@ PNG không mất dữ liệu vào `docs/images/ui/`. Cần Zig 0.17 và Node, kh
 công cụ ảnh khác. Docs tiếng Anh và tiếng Việt dùng chung ảnh; nhãn trong ảnh
 giữ tiếng Anh theo ví dụ Gallery.
 
+Để chỉ cập nhật một số ảnh đã render, chạy từ thư mục gốc repository:
+
+```sh
+node docs/scripts/ui-images.mjs items.png input-groups.png pagination.png
+```
+
 [Công cụ tạo ảnh](../../../examples/gallery/snapshots.zig) dùng lại các view
 của Gallery, căn khung theo kích thước layout và mở menu, hộp thoại bằng input
 nội bộ của Tester. [Các ví dụ nền tảng](../../../examples/gallery/snapshot_foundations.zig)

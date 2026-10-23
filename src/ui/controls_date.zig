@@ -81,15 +81,39 @@ pub fn daysInMonth(y: i32, m: u8) u8 {
 pub const month_names = [_][]const u8{ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
 const weekday_names = [_][]const u8{ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
 
+pub const DateRange = struct {
+    start: Date,
+    end: Date,
+
+    pub fn ordered(a: Date, b: Date) DateRange {
+        return if (a.toDays() <= b.toDays()) .{ .start = a, .end = b } else .{ .start = b, .end = a };
+    }
+
+    pub fn eql(a: DateRange, b: DateRange) bool {
+        return a.start.eql(b.start) and a.end.eql(b.end);
+    }
+};
+
 pub const CalendarOptions = struct {
     /// The first day of the week: 0 for Sunday (the United States), 1 for
     /// Monday (most of Europe).
     first_weekday: u8 = 0,
     /// Today, marked with a ring; none when null.
     today: ?Date = null,
+    min: ?Date = null,
+    max: ?Date = null,
+    disabled: ?*const fn (Date) bool = null,
+    /// Inclusive range shading for a range picker.
+    range: ?DateRange = null,
+
+    pub fn allows(opts: CalendarOptions, date: Date) bool {
+        if (opts.min) |d| if (date.toDays() < d.toDays()) return false;
+        if (opts.max) |d| if (date.toDays() > d.toDays()) return false;
+        return if (opts.disabled) |f| !f(date) else true;
+    }
 };
 
-const GridResult = struct {
+pub const GridResult = struct {
     /// A day chosen: clicked, or Enter or Space on the cursor.
     chosen: ?Date = null,
     /// Where the keys or the buttons moved the cursor.
@@ -98,7 +122,7 @@ const GridResult = struct {
 
 /// The month around `cursor`, the day the keys move, with `selected`
 /// chosen; it reads the keys when `keyboard` is set.
-fn grid(c: *Context, selected: Date, cursor: Date, keyboard: bool, opts: CalendarOptions) GridResult {
+pub fn grid(c: *Context, selected: Date, cursor: Date, keyboard: bool, opts: CalendarOptions) GridResult {
     const th = c.theme;
     var res: GridResult = .{};
     if (keyboard) if (c.input.key) |key| {
@@ -148,22 +172,28 @@ fn grid(c: *Context, selected: Date, cursor: Date, keyboard: bool, opts: Calenda
         defer c.end();
         for (0..7) |d| {
             const day = Date.fromDays(start + @as(i32, @intCast(w * 7 + d)));
-            const chosen = day.eql(selected);
+            const chosen = day.eql(selected) or if (opts.range) |r| day.eql(r.start) or day.eql(r.end) else false;
+            const inside = if (opts.range) |r| day.toDays() >= r.start.toDays() and day.toDays() <= r.end.toDays() else false;
+            const enabled = opts.allows(day);
             const at_cursor = day.eql(cursor);
-            const i = c.open(.{ .width = .{ .px = cell_w }, .height = .{ .px = cell_h }, .radius = 6, .align_items = .center, .justify = .center, .control = true }, null);
+            const i = c.open(.{ .width = .{ .px = cell_w }, .height = .{ .px = cell_h }, .radius = 6, .align_items = .center, .justify = .center, .control = true, .opacity = if (enabled) 1 else 0.35 }, null);
             const it = c.interact(i, .{});
             const n = c.node(i);
             if (chosen) n.style.background = th.accent //
-            else if (at_cursor or it.hovered) n.style.background = th.surface_hover;
+            else if (inside) n.style.background = th.accent.alpha(0.15) else if (at_cursor or (enabled and it.hovered)) n.style.background = th.surface_hover;
             if (opts.today) |today| if (day.eql(today) and !chosen) {
                 n.style.border = th.accent;
             };
             const fg = if (chosen) th.accent_text else if (day.month != cursor.month) th.muted else th.text;
             widgets.text(c, c.print("{d}", .{day.day}), .{ .size = 13, .color = fg, .weight = if (chosen) .semibold else .regular });
             c.end();
-            if (it.clicked) res.chosen = day;
+            c.describe(it.id, .{ .role = .button, .label = c.print("{d}-{d:0>2}-{d:0>2}", .{ day.year, day.month, day.day }), .disabled = !enabled, .selected = chosen or inside });
+            if (enabled and it.clicked) res.chosen = day;
         }
     }
+    if (res.chosen) |day| if (!opts.allows(day)) {
+        res.chosen = null;
+    };
     return res;
 }
 
@@ -191,7 +221,7 @@ pub fn calendar(c: *Context, date: *Date, opts: CalendarOptions) bool {
     if (r.moved != null or r.chosen != null) c.focus = it.id;
     state.focusRing(c, i, c.focus == it.id);
     const next = r.chosen orelse r.moved orelse return false;
-    if (next.eql(date.*)) return false;
+    if (!opts.allows(next) or next.eql(date.*)) return false;
     date.* = next;
     c.changed = true;
     return true;

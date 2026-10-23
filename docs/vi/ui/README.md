@@ -121,6 +121,17 @@ Widget:
 - [Biểu mẫu](forms.md): trường được gắn nhãn, biểu mẫu, tập hợp trường, xác thực.
 - [Lớp phủ](overlays.md): cửa sổ bật lên, chú giải công cụ, hộp thoại, hộp thoại cảnh báo, chúc mừng.
 - [Menus](menus.md): menu, menu ngữ cảnh, nút menu, lựa chọn.
+- [Item](items.md): hàng nội dung có icon/avatar, mô tả và nút thao tác.
+- [Input Group](input-group.md): ô nhập có icon, tiền tố/hậu tố và nút.
+- [Pagination](pagination.md): phân trang với tổng đã biết hoặc chưa biết.
+- [Empty, Skeleton và Alert](feedback.md): nội dung trống, đang tải và thông báo trong trang.
+- [Command Palette](command-palette.md): tìm và kích hoạt lệnh bằng bàn phím.
+- [Sheet](sheet.md): panel modal ở các cạnh cửa sổ.
+- [Nh?m n?t v? n?t b?t/t?t](button-groups.md)
+- [Ch?n nhi?u m?c](multi-select.md)
+- [Ch?n kho?ng ng?y](date-range.md)
+- [Gh?p b?ng d? li?u](data-table.md)
+- [V?ng th? file](file-drop.md)
 - [Cấu trúc](structures.md): tab, thành phần thu gọn, accordion, phần tách, thanh bên, thanh công cụ, đường dẫn.
 - [Danh sách, cây và bảng](lists.md): danh sách ảo, cây, đường viền, bảng, view lưới.
 - [Bố cục lưới](grid.md): lưới kiểu CSS gồm các rãnh và ô.

@@ -59,8 +59,14 @@ function compress(png) {
 }
 
 await mkdir(destination, { recursive: true });
-const files = (await readdir(source)).filter(name => name.endsWith('.png')).sort();
-if (!files.length) throw new Error('Run zig build docs-ui before compressing images');
+// Optional filenames update just the guides whose widgets changed.
+const requested = new Set(process.argv.slice(2));
+const files = (await readdir(source))
+  .filter(name => name.endsWith('.png') && (!requested.size || requested.has(name)))
+  .sort();
+if (!files.length) throw new Error('No matching PNGs; run zig build docs-ui first');
+for (const name of requested)
+  if (!files.includes(name)) throw new Error(`No rendered image: ${name}`);
 let original = 0;
 let compressed = 0;
 for (const name of files) {

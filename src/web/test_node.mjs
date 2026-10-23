@@ -109,6 +109,56 @@ if (find("Pinch demo")) {
   if (ex.myzig_web_pinch(id, 470, 310, 2, 0)) fail("pinch outside handler taken");
   if (ex.myzig_web_pinch(id, 30, 30, 0, 0)) fail("invalid pinch taken");
 }
+if (find("Composition")) {
+  // Exercise the shared widgets in WASM as well as the native Tester.
+  ex.myzig_web_resize(id, 980, 1600, 1);
+  animate();
+  const pressText = (text) => {
+    const r = find(text) || fail("no text " + text);
+    const x = r[0] + r[2] / 2, y = r[1] + r[3] / 2;
+    ex.myzig_web_pointer(id, 0, x, y, 0, 0, 0);
+    ex.myzig_web_pointer(id, 1, x, y, 0, 1, 0);
+    ex.myzig_web_pointer(id, 2, x, y, 0, 0, 0);
+    animate();
+  };
+  pressText("Composition");
+  pressText("Open report");
+  if (!find("Opened report")) fail("item action");
+  pressText("Clear search");
+  if (!find("Search cleared") || !find("Search widgets")) fail("input group action");
+  pressText("Next");
+  if (!find("Page 7 of 20") || !find("Document 13")) fail("pagination next");
+  pressText("20");
+  pressText("Next");
+  if (!find("Page 20 of 20")) fail("pagination boundary");
+  pressText("Feedback");
+  if (!find("No projects yet")) fail("empty state");
+  pressText("Retry sync");
+  if (!find("Sync retried")) fail("inline alert action");
+  pressText("Create project");
+  if (!find("Your workspace is ready.")) fail("empty state action");
+  pressText("Open commands");
+  pressText("Workspace settings");
+  if (!find("Save details")) fail("command opens sheet");
+  pressText("Save details");
+  if (!find("Details saved")) fail("sheet action");
+  pressText("Actions & choices");
+  pressText("Save document");
+  if (!find("Document saved")) fail("button group action");
+  pressText("Languages (2)");
+  pressText("Python");
+  pressText("Done");
+  if (!find("Languages (3)")) fail("multi select choice");
+  pressText("Browse files");
+  if (!find("design-notes.md")) fail("file list browse event");
+  pressText("Data table");
+  pressText("Paid only");
+  if (!find("5 invoices · Page 1 of 2")) fail("data table filter");
+  pressText("Next");
+  if (!find("5 invoices · Page 2 of 2")) fail("data table pagination");
+  pressText("Loading preview");
+  if (find("Ada Lovelace")) fail("data table loading rows");
+}
 if (process.env.MYZIG_WEB_PNG) writePng(process.env.MYZIG_WEB_PNG, frames[frames.length - 1]);
 console.log(`web: ok (${frames.length} frames, ${colors.size}+ colors)`);
 

@@ -130,6 +130,8 @@ Một hộp thoại sẽ giữ cửa sổ cho chính nó: phông nền của nó
 | `dismissible` | true | một cái nhấn trên phông nền sẽ đóng nó lại |
 | `escape` | true | Escape đóng nó lại |
 | `bare` | false | không cần nhìn: tạo kiểu cho nó bằng `Dialog.backdropStyle()` và `Dialog.panelStyle()` |
+| `animated` | true | mờ dần khi mở |
+| `trap_focus` | true | Tab và Shift+Tab chỉ di chuyển trong dialog |
 
 <a id="alert-dialogs"></a>
 

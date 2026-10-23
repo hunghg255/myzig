@@ -164,6 +164,8 @@ pub fn takeKey(c: *Context, k: Key) bool {
         .escape => S.escape,
         .tab => S.tab,
         .enter => S.enter,
+        .home => S.home,
+        .end => S.end,
         else => null,
     };
     if (sc) |v| if (c.input.shortcut) |s| if (s.key == v and !s.cmd and !s.ctrl and !s.alt) {
@@ -181,6 +183,10 @@ pub fn takeKey(c: *Context, k: Key) bool {
     const cmd: ?ctx_mod.Command = switch (k) {
         .escape => .cancel,
         .enter => .insert_newline,
+        .up => .move_up,
+        .down => .move_down,
+        .home => .move_doc_start,
+        .end => .move_doc_end,
         else => null,
     };
     if (cmd) |want| for (c.input.ops, 0..) |op, i| if (op == .command and op.command == want) {

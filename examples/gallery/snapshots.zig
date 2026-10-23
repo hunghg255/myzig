@@ -11,6 +11,10 @@ const Drawing = @import("drawing.zig").Drawing;
 const MotionPage = @import("motion.zig").MotionPage;
 const Board = @import("dnd.zig").Board;
 const Foundations = @import("snapshot_foundations.zig").Foundations;
+const Composites = @import("composites.zig").Composites;
+const Advanced = @import("advanced.zig").Advanced;
+const DataTable = @import("data_table.zig").DataTable;
+const Feedback = @import("feedback.zig").Feedback;
 
 pub fn main(init: std.process.Init) !void {
     const args = try init.minimal.args.toSlice(init.arena.allocator());
@@ -49,6 +53,35 @@ pub fn main(init: std.process.Init) !void {
     try out.capture(&structures, Structures.view, "tree", .{ .card = "Sidebar, tree and outline in split panes" });
     try out.capture(&structures, Structures.view, "table", .{ .card = "Table" });
     try out.capture(&structures, Structures.view, "grid-view", .{ .card = "Grid" });
+
+    var composites: Composites = .{};
+    composites.init();
+    try out.capture(&composites, Composites.view, "items", .{ .card = "Items", .script = "click:Open report;visible:Opened report" });
+    try out.capture(&composites, Composites.view, "input-groups", .{ .card = "Input groups", .script = "click:Use URL;visible:URL selected" });
+    try out.capture(&composites, Composites.view, "pagination", .{ .card = "Pagination", .script = "click:Next;visible:Page 7 of 20;visible:Document 13" });
+
+    var advanced: Advanced = .init(init.gpa);
+    defer advanced.deinit();
+    try out.capture(&advanced, Advanced.groups, "button-groups", .{ .card = "Button and toggle groups" });
+    try out.capture(&advanced, Advanced.choices, "multi-select", .{ .height = 500, .script = "click:Languages (2);visible:Python" });
+    try out.capture(&advanced, Advanced.dateRange, "date-range", .{ .height = 500, .script = "click:Choose date range;visible:Choose start date" });
+    try out.capture(&advanced, Advanced.drop, "file-drop", .{ .card = "File drop zone", .script = "click:Browse files;visible:design-notes.md" });
+    var data_table: DataTable = .{};
+    try out.capture(&data_table, DataTable.view, "data-table", .{ .full = true });
+
+    var feedback: Feedback = .{};
+    feedback.init();
+    try out.capture(&feedback, Feedback.view, "alerts", .{ .card = "Inline alerts" });
+    try out.capture(&feedback, Feedback.view, "empty-state", .{ .card = "Empty state" });
+    try out.capture(&feedback, Feedback.view, "skeleton", .{ .card = "Skeleton placeholders" });
+    for ([_]struct { []const u8, []const u8 }{
+        .{ "command-palette", "click:Open commands;visible:Workspace settings" },
+        .{ "sheet", "click:Open details;wait:0.5;visible:Save details" },
+    }) |entry| {
+        var panels: Feedback = .{};
+        panels.init();
+        try out.capture(&panels, Feedback.panels, entry[0], .{ .height = 640, .script = entry[1] });
+    }
 
     // Fresh state for each overlay so an earlier dialog cannot obscure a menu.
     for ([_]struct { []const u8, []const u8 }{
@@ -124,6 +157,7 @@ const Output = struct {
                 }
                 if (@TypeOf(w.state) == *Overlays) w.state.toastLayer(c);
                 if (@TypeOf(w.state) == *Board) w.state.preview(c);
+                if (@TypeOf(w.state) == *Feedback) w.state.layers(c);
             }
         };
         var wrapped: Wrapped = .{ .state = state, .bare = opts.bare };

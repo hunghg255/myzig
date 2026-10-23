@@ -151,6 +151,9 @@ and Escape closes it (unless `escape` is false) once nothing inside took
 Escape first. The focus behind it is dropped as it opens and given back
 as it closes.
 
+Tab and Shift+Tab stay among its enabled controls. Set `trap_focus` to
+false only when the app supplies its own focus handling.
+
 `ui.DialogOptions`:
 
 | Field | Default | |
@@ -161,6 +164,8 @@ as it closes.
 | `dismissible` | true | a press on the backdrop closes it |
 | `escape` | true | Escape closes it |
 | `bare` | false | no look: style it with `Dialog.backdropStyle()` and `Dialog.panelStyle()` |
+| `animated` | true | fade in when opening |
+| `trap_focus` | true | Tab and Shift+Tab stay in the dialog |
 
 ## Alert dialogs
 

@@ -87,7 +87,7 @@ pub const Role = enum(u8) {
     /// rather than showing it as elements of their own.
     pub fn leaf(r: Role) bool {
         return switch (r) {
-            .group, .list, .scroll_area, .dialog, .alert_dialog, .popup, .status, .tab_list, .tab_panel, .table, .row, .cell, .tree, .list_item, .toolbar, .radio_group, .menu, .menu_bar => false,
+            .group, .list, .scroll_area, .dialog, .alert_dialog, .popup, .status, .tab_list, .tab_panel, .table, .row, .cell, .column_header, .tree, .list_item, .toolbar, .radio_group, .menu, .menu_bar => false,
             else => true,
         };
     }
@@ -95,7 +95,7 @@ pub const Role = enum(u8) {
     /// Whether elements of the role take their name from their content
     /// while still showing it (a row, a list's item, a toast).
     pub fn namedByContent(r: Role) bool {
-        return r.leaf() or r == .list_item or r == .row or r == .status or r == .cell;
+        return r.leaf() or r == .list_item or r == .row or r == .status or r == .cell or r == .column_header;
     }
 };
 

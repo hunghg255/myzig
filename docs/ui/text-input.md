@@ -43,6 +43,7 @@ box renaming a file chooses its name without its extension.
 | `placeholder` | `""` | faint text shown while it is empty |
 | `width` | 240 points | a `ui.Length`; `.fill` across its parent |
 | `size` | 14 | the text's size |
+| `disabled` | false | dim the field, prevent editing and remove it from Tab navigation |
 | `password` | false | bullets instead of the text, and the text kept off the clipboard |
 | `suggestion` | `""` | text drawn faintly after what is typed, as a shell's autosuggestion; → or End at the end of the text takes it |
 | `bare` | false | no box of its own (border, fill, focus ring), for a field inside a larger frame, as a chat composer |
@@ -59,6 +60,8 @@ It returns a result:
 | `caret` | (a `usize`) the caret's byte offset after this frame's edits |
 
 ## The buffer
+
+Use [Input Group](input-group.md) to share a frame with icons, affixes and action buttons.
 
 `ui.TextBuffer` holds up to 1024 bytes of UTF-8, inline, with no
 allocation: keep it in your state.

@@ -22,6 +22,7 @@ const std = @import("std");
 const ctx_mod = @import("context.zig");
 const widgets = @import("widgets.zig");
 const menu = @import("menu.zig");
+const commands = @import("command_palette.zig");
 const Context = ctx_mod.Context;
 const Shortcut = ctx_mod.Shortcut;
 
@@ -98,6 +99,18 @@ pub fn Actions(comptime E: type) type {
             if (!widgets.button(c, act.title, o).clicked) return false;
             _ = a.chose(c, e);
             return true;
+        }
+
+        /// Search the same actions offered by menus, buttons and keys.
+        pub fn commandPalette(a: *Self, c: *Context, s: *commands.State, opts: commands.Options) ?E {
+            const tags = std.enums.values(E);
+            const items = c.alloc().alloc(commands.Item, tags.len) catch return null;
+            for (tags, 0..) |e, i| {
+                const act = a.list.get(e);
+                items[i] = .{ .title = act.title, .icon = act.icon, .disabled = !act.enabled, .shortcut = if (act.shortcut) |sc| label(c, sc) else "" };
+            }
+            const index = commands.commandPalette(c, s, items, opts) orelse return null;
+            return a.chose(c, tags[index]);
         }
     };
 }

@@ -235,6 +235,12 @@ losslessly compresses the PNG data into `docs/images/ui/`. It needs Zig 0.17
 and Node, with no additional image tools. The English and Vietnamese pages
 share the images; their labels follow the English Gallery example.
 
+To update only selected images after rendering, run from the repository root:
+
+```sh
+node docs/scripts/ui-images.mjs items.png input-groups.png pagination.png
+```
+
 [The snapshot runner](../../examples/gallery/snapshots.zig) reuses Gallery
 views, frames each card from its computed layout and opens menus and dialogs
 with in-process Tester input. [The foundation scenes](../../examples/gallery/snapshot_foundations.zig)

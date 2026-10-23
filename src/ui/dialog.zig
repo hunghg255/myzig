@@ -30,6 +30,11 @@ pub const DialogOptions = struct {
     /// No look of its own (`DialogBase`): style the backdrop and the panel
     /// with `Dialog.backdropStyle` and `Dialog.panelStyle`.
     bare: bool = false,
+    /// Fade in on opening. Disable for frequently used command menus or
+    /// when the app asks for reduced motion.
+    animated: bool = true,
+    /// Tab and Shift+Tab stay among this dialog's controls.
+    trap_focus: bool = true,
 };
 
 /// An open dialog's panel: its children follow, then `end`.
@@ -40,6 +45,7 @@ pub const Dialog = struct {
     backdrop: u32,
     panel: u32,
     opts: DialogOptions,
+    focus_start: usize,
 
     pub fn backdropStyle(d: Dialog) *types.Style {
         return &d.c.node(d.backdrop).style;
@@ -64,10 +70,30 @@ pub const Dialog = struct {
             dismissed = true;
         }
         c.end();
+        if (d.state.open and d.opts.trap_focus and !c.shortcut_taken) if (modalTab(c)) |back| {
+            const order = c.focus_order.items[d.focus_start..];
+            if (order.len > 0) {
+                const at = std.mem.indexOfScalar(u64, order, c.focus);
+                const next = if (at) |i|
+                    (if (back) (i + order.len - 1) % order.len else (i + 1) % order.len)
+                else if (back) order.len - 1 else 0;
+                c.focus = order[next];
+                c.focus_visible = true;
+            } else c.focus = 0;
+            c.shortcut_taken = true;
+            c.input.shortcut = null;
+            if (c.input.key == .tab) c.input.key = null;
+            c.changed = true;
+        };
         d.state.record(c, d.lo);
         return dismissed;
     }
 };
+
+fn modalTab(c: *Context) ?bool {
+    for (c.input.ops) |op| if (op == .command and op.command == .insert_backtab) return true;
+    return c.tabPressed();
+}
 
 /// A dialog over the dimmed window while `state.open`; null while closed.
 pub fn dialog(c: *Context, state: *OverlayState, opts: DialogOptions) ?Dialog {
@@ -77,9 +103,10 @@ pub fn dialog(c: *Context, state: *OverlayState, opts: DialogOptions) ?Dialog {
     // What is behind it is inert: its focus goes until the dialog closes.
     if (opened) c.focus = 0;
     const lo: u32 = @intCast(c.nodes.items.len);
+    const focus_start = c.focus_order.items.len;
     const backdrop = base.overlay(c, .{ .absolute = true, .width = .fill, .height = .fill, .align_items = .center, .justify = .center }, base.seedOf(state));
     const bid = c.node(backdrop).id;
-    const t = base.fadeIn(c, bid, opened);
+    const t = if (opts.animated) base.fadeIn(c, bid, opened) else 1;
     if (!opts.bare) c.node(backdrop).style.background = types.Color.black.alpha((if (th.dark) @as(f32, 0.5) else 0.3) * t);
     _ = c.interact(backdrop, .{});
     if (opts.dismissible and c.input.pressed and c.hot == bid and !opened) state.dismiss(c);
@@ -100,7 +127,7 @@ pub fn dialog(c: *Context, state: *OverlayState, opts: DialogOptions) ?Dialog {
     // Presses on the panel are the panel's, not the backdrop's.
     _ = c.interact(panel, .{});
     c.describe(c.node(panel).id, .{ .role = .dialog, .modal = true });
-    return .{ .c = c, .state = state, .lo = lo, .backdrop = backdrop, .panel = panel, .opts = opts };
+    return .{ .c = c, .state = state, .lo = lo, .backdrop = backdrop, .panel = panel, .opts = opts, .focus_start = focus_start };
 }
 
 /// What an alert dialog answered in this frame.

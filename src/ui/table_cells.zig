@@ -42,15 +42,20 @@ pub fn colAt(c: *Context, id: u64, widths: anytype) ?usize {
     var fixed: f32 = 0;
     var fills: f32 = 0;
     for (widths) |col| {
+        if (col.hidden) continue;
         if (col.width > 0) fixed += col.width else fills += 1;
     }
     const share = if (fills > 0) @max(0, r.w - fixed) / fills else 0;
-    var x = r.x;
+    var x: f32 = 0;
+    const pointer = if (@import("direction.zig").current(c) == .rtl) r.x + r.w - c.input.mouse.x else c.input.mouse.x - r.x;
+    var last: ?usize = null;
     for (widths, 0..) |col, i| {
+        if (col.hidden) continue;
+        last = i;
         x += if (col.width > 0) col.width else share;
-        if (c.input.mouse.x < x) return i;
+        if (pointer < x) return i;
     }
-    return widths.len - 1;
+    return last;
 }
 
 /// Scrolls list `id` while a drag goes near or past its top or bottom,

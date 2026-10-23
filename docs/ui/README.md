@@ -132,6 +132,18 @@ Foundations:
 
 Widgets:
 
+- [Items](items.md): content rows with media, descriptions and actions.
+- [Input groups](input-group.md): text fields with icons, affixes and buttons.
+- [Pagination](pagination.md): numbered pages and unknown-total navigation.
+- [Empty, loading and alerts](feedback.md): empty content, skeleton placeholders and inline notices.
+- [Command palette](command-palette.md): searchable actions with keyboard navigation.
+- [Sheet](sheet.md): modal panels on the window's edges.
+- [Button and toggle groups](button-groups.md)
+- [Multi-select](multi-select.md)
+- [Date range picker](date-range.md)
+- [Data table composition](data-table.md)
+- [File drop zone](file-drop.md)
+
 - [Buttons and small things](buttons.md): buttons, links, badges, key
   caps, icons, images, avatars, history buttons.
 - [Choices](choices.md): checkboxes, checkbox groups, switches, radio

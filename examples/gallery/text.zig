@@ -130,7 +130,8 @@ pub const TextPages = struct {
             ui.column(c, .{ .width = .fill, .border = th.border, .radius = 8, .clip = true });
             defer ui.end(c);
             _ = ui.richTextToolbar(c, &t.rt, .{});
-            _ = ui.richTextEditor(c, &t.rt, .{ .bare = true, .padding = .xy(16, 12) });
+            // A scrolling editor needs a viewport inside this content-sized card.
+            _ = ui.richTextEditor(c, &t.rt, .{ .height = .{ .px = 280 }, .bare = true, .padding = .xy(16, 12) });
         }
     }
 

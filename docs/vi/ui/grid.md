@@ -4,6 +4,10 @@
 
 `ui.grid` sắp xếp các phần tử con của nó theo hàng và cột, sau lưới CSS và mygo của `ui.Grid`: phần tử con điền vào các ô của nó theo hàng hoặc đi đến nơi chúng được đặt, bao trùm các cột và hàng. Sử dụng nó cho các biểu mẫu (nhãn trong một cột, các trường trong cột kia), bảng thông tin và ngăn cài đặt. Một lưới xây dựng tất cả các con của nó; đối với nhiều mục chỉ được tạo khi chúng hiển thị, hãy sử dụng [`ui.gridView`](lists.md#grid-views).
 
+![Biểu mẫu hồ sơ dùng cột fit và fr; tiêu đề trải rộng cả hai cột.](../../images/ui/grid.png)
+
+*Biểu mẫu hồ sơ dùng cột fit và fr; tiêu đề trải rộng cả hai cột.*
+
 ```zig
 var g = ui.grid(c, .{ .columns = &.{ .fit, .{ .fr = 1 } }, .gap_x = 16, .gap_y = 8 });
 g.cell(.{ .col_span = -1 }); // across every column

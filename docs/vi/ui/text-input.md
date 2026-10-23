@@ -6,6 +6,10 @@
 
 <a id="text-fields"></a>
 
+![Ô nhập chứa Ada; view hiển thị lời chào tương ứng.](../../images/ui/text-field.png)
+
+*Ô nhập chứa Ada; view hiển thị lời chào tương ứng.*
+
 ## Trường văn bản
 
 ```zig
@@ -95,6 +99,10 @@ Trên macOS, view native là `NSTextInputClient` (`src/ui/textinput.zig`): dấu
 
 ## Trường tìm kiếm
 
+![Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.](../../images/ui/fields.png)
+
+*Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.*
+
 `ui.searchField(c, &query, options)` là một trường để tìm kiếm: kính lúp, văn bản và nút xóa nó trong khi nó giữ bất kỳ trường nào, như Escape thực hiện:
 
 ```zig
@@ -126,6 +134,10 @@ _ = ui.tokenField(c, &s.tokens, &tags, .{ .placeholder = "Add a tag", .width = 4
 <a id="comboboxes"></a>
 
 ## Hộp tổ hợp
+
+![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
+
+*Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.*
 
 `ui.combobox(c, &selected, options, &state, field_options)` chọn một trong `options` (chuỗi) thành `selected` (a `?usize`). Nó cho thấy sự lựa chọn; một cú nhấp chuột hoặc Xuống hiển thị tất cả các tùy chọn (nhấp chuột sẽ chọn văn bản, do đó việc nhập sẽ thay thế nó), việc nhập sẽ lọc chúng và văn bản sẽ quay lại lựa chọn khi trường mất tiêu điểm:
 

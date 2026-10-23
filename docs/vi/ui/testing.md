@@ -198,6 +198,37 @@ docker run --rm -v "$PWD/zig-out/linux:/work" myzig-linux xvfb-run ./bin/myzig-t
 
 Windows chương trình chạy trong Wine trên màn hình ảo (`tools/wine.Dockerfile` cho bản dựng arm64, `tools/wine-amd64.Dockerfile` cho bản dựng x86_64 trên máy Mac arm64). `zig build test -Dportable=true` chạy trên máy Mac, bộ kết xuất văn bản và CPU của Linux và Windows.
 
+<a id="documentation-images"></a>
+
+## Ảnh minh họa UI
+
+Các hướng dẫn UI dùng ảnh PNG của widget đang chạy, được render ngoài màn
+hình bằng `ui.Tester`. Từ thư mục gốc repository, tạo lại ảnh bằng:
+
+```sh
+cd docs
+npm run images:ui
+npm run build
+```
+
+`images:ui` chạy `zig build docs-ui -Doptimize=ReleaseFast -j1`, sau đó nén
+PNG không mất dữ liệu vào `docs/images/ui/`. Cần Zig 0.17 và Node, không cần
+công cụ ảnh khác. Docs tiếng Anh và tiếng Việt dùng chung ảnh; nhãn trong ảnh
+giữ tiếng Anh theo ví dụ Gallery.
+
+[Công cụ tạo ảnh](../../../examples/gallery/snapshots.zig) dùng lại các view
+của Gallery, căn khung theo kích thước layout và mở menu, hộp thoại bằng input
+nội bộ của Tester. [Các ví dụ nền tảng](../../../examples/gallery/snapshot_foundations.zig)
+minh họa bố cục, grid, hướng đọc và shader trong hướng dẫn. Không mở cửa sổ
+hay chụp màn hình desktop. Bộ ảnh hiện tại được tạo trên Windows bằng CPU
+renderer và phông hệ thống; kích thước chữ có thể khác trên nền tảng khác.
+Ảnh chuyển động là khung hình tĩnh; công cụ này không chụp webview hệ thống
+nhúng trong native UI.
+
+Khi sửa widget có ảnh minh họa, hãy tạo lại ảnh, kiểm tra nội dung không bị
+cắt và cập nhật ảnh cùng docs. `npm run build` kiểm tra đường dẫn ảnh trên
+trang tài liệu.
+
 <a id="rules"></a>
 
 ## Quy tắc

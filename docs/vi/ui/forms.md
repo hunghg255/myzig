@@ -6,6 +6,10 @@ Các điều khiển nhãn của trường, hiển thị mô tả hoặc lỗi b
 
 <a id="fields"></a>
 
+![Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.](../../images/ui/forms.png)
+
+*Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.*
+
 ## Trường
 
 `ui.field(c, title, options)` gắn nhãn cho điều khiển được tạo tiếp theo, nhãn phía trên nó như trên web và trả về `ui.Field` để kết thúc sau khi điều khiển được tạo:

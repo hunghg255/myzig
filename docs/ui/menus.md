@@ -8,6 +8,10 @@ tray menus, see [Menus](../menus.md); for the commands an app offers as
 menu items, buttons and shortcuts at once, see
 [Actions](navigation.md#actions).
 
+![The Sort by menu is open, with Name selected.](../images/ui/menu.png)
+
+*The Sort by menu is open, with Name selected.*
+
 ## A menu's state and items
 
 A menu's state is a `ui.Menu` kept by the app, one per menu:
@@ -138,6 +142,10 @@ if (ui.menu(c, &s.palette)) |m| {
 ```
 
 ## Selects
+
+![Closed select, combobox and autocomplete controls.](../images/ui/selects.png)
+
+*Closed select, combobox and autocomplete controls.*
 
 `ui.select(c, &selected, options, &state, opts)` is a drop-down choosing
 one of `options` (strings) into `selected.*`, an index. Its state is a

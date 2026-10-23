@@ -6,6 +6,10 @@ are drawn on a canvas ([Drawing](drawing.md)) and follow the theme. Its
 parts (scales, paths of lines, areas and slices, stacks, the nearest point)
 are public too, for charts of your own.
 
+![Line and stacked-area charts with labels and legends.](../images/ui/chart.png)
+
+*Line and stacked-area charts with labels and legends.*
+
 ```zig
 const chart = ui.chart;
 const months = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun" };
@@ -22,6 +26,10 @@ and `zig build run-chart-streaming` three waveforms of 15 000 samples each,
 1 000 new ones a second, drawn with the parts below.
 
 ## Lines, areas and bars
+
+![A stacked bar chart showing three traffic sources.](../images/ui/bars.png)
+
+*A stacked bar chart showing three traffic sources.*
 
 `chart.lineChart`, `chart.areaChart` and `chart.barChart` take
 `chart.Series` (a `name`, `values`, one for each point along x, NaN for

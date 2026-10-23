@@ -4,6 +4,10 @@
 
 `ui.text` hiển thị một chuỗi trong `ui.TextStyle`; `ui.textf` định dạng nó trước tiên vào bộ nhớ của khung:
 
+![Tiêu đề, chữ nghiêng, chữ monospace, rich span và văn bản xuống dòng.](../../images/ui/text.png)
+
+*Tiêu đề, chữ nghiêng, chữ monospace, rich span và văn bản xuống dòng.*
+
 ```zig
 ui.text(c, "Large Title", .{ .size = 30, .weight = .bold });
 ui.text(c, "Italic, for emphasis.", .{ .italic = true });

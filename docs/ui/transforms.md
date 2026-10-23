@@ -6,6 +6,10 @@ these are fields of `ui.Style`, so any box has them, and every renderer
 (Metal, Direct3D 11, OpenGL, WebGL 2 and the CPU) draws them alike. The
 gallery's Styling page shows each one (`examples/gallery/motion.zig`).
 
+![Rotation, gradients, blur and a frosted-glass backdrop rendered by myzig.](../images/ui/transforms.png)
+
+*Rotation, gradients, blur and a frosted-glass backdrop rendered by myzig.*
+
 ## Transforms
 
 `Style.transform` is a `ui.Affine`, an affine map of the plane as CSS's

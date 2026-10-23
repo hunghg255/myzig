@@ -4,6 +4,10 @@
 
 Một khung nhìn có thể lấp đầy một hộp bằng một shader của riêng nó: một hàm từ một điểm của hộp đến một màu, chạy cho mọi pixel. Bạn viết nó một lần, bằng ZSL, một ngôn ngữ nhỏ theo cú pháp của Zig và `ui.shader.compile` biên dịch nó tại thời điểm biên dịch thành HLSL (Direct3D 11), GLSL (OpenGL 3.3, OpenGL ES 3.0 và WebGL 2), Metal và một bản đối chiếu CPU của Zig mã vẽ các pixel giống nhau, trong phạm vi làm tròn, nơi không có GPU vẽ: bộ kết xuất CPU và `ui.Tester`. Vì vậy, shader hoạt động trên mọi nền tảng và trong các kiểm thử, và lỗi trong đó là lỗi biên dịch của ứng dụng.
 
+![Shader waves trong hướng dẫn, được render bằng bản CPU của myzig.](../../images/ui/shaders.png)
+
+*Shader waves trong hướng dẫn, được render bằng bản CPU của myzig.*
+
 ```zig
 const waves = ui.shader.compile("waves",
     \\uniform time: f32;

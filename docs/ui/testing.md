@@ -219,6 +219,35 @@ Windows programs run under Wine on a virtual display
 for x86_64 builds on an arm64 Mac). `zig build test -Dportable=true`
 runs, on a Mac, the text and CPU renderer of Linux and Windows.
 
+## Documentation images
+
+The UI guides use PNGs of running widgets, rendered offscreen by `ui.Tester`.
+From the repository root, regenerate them with:
+
+```sh
+cd docs
+npm run images:ui
+npm run build
+```
+
+`images:ui` runs `zig build docs-ui -Doptimize=ReleaseFast -j1`, then
+losslessly compresses the PNG data into `docs/images/ui/`. It needs Zig 0.17
+and Node, with no additional image tools. The English and Vietnamese pages
+share the images; their labels follow the English Gallery example.
+
+[The snapshot runner](../../examples/gallery/snapshots.zig) reuses Gallery
+views, frames each card from its computed layout and opens menus and dialogs
+with in-process Tester input. [The foundation scenes](../../examples/gallery/snapshot_foundations.zig)
+illustrate layout, grid, direction and the guide's shader. No window is shown
+and no desktop pixels are captured. The committed images were generated on
+Windows with the CPU renderer and system fonts; font metrics can differ on
+other platforms. Motion images are still frames, and embedded system webviews
+are not captured by this tool.
+
+After changing a pictured widget, regenerate the images, inspect them for
+clipped content and check them in alongside the docs. `npm run build` checks
+that the images resolve on the documentation site.
+
 ## Rules
 
 - Tests never pass or fail on wall-clock time: advance a Tester's clock,

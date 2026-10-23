@@ -4,6 +4,10 @@
 
 Cái nhìn cho biết mọi thứ ở đâu; chuyển động tìm đường đến đó. Giá trị được cấp cho `ui.motion` sẽ hoạt hình hướng tới mục tiêu mà view cung cấp cho nó trên mọi frame, với một lò xo giữ vận tốc hoặc đường cong trong một khoảng thời gian. Các hộp cũng có thể di chuyển trơn tru ở nơi bố trí đặt chúng và đến và đi (`motion.transition`). Mọi thứ chạy trên đồng hồ của ngữ cảnh (`c.time`, `ui.Tester` tiến lên) và các khung chỉ được vẽ khi có thứ gì đó di chuyển: một ứng dụng ở trạng thái nghỉ không vẽ gì cả.
 
+![Một khung hình tĩnh của demo chuyển động: easing, spring, keyframe và transition.](../../images/ui/motion.png)
+
+*Một khung hình tĩnh của demo chuyển động: easing, spring, keyframe và transition.*
+
 ```zig
 const motion = myzig.ui.motion;
 

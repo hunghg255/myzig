@@ -6,6 +6,10 @@ Các nút, liên kết, huy hiệu, keycap, biểu tượng, hình ảnh, hình 
 
 <a id="buttons"></a>
 
+![Các nút primary, secondary, ghost, danger và disabled, kèm badge và phím tắt.](../../images/ui/buttons.png)
+
+*Các nút primary, secondary, ghost, danger và disabled, kèm badge và phím tắt.*
+
 ## Nút
 
 `ui.button(c, title, options)` vẽ một nút và trả về `ui.Interaction` của nó; `.clicked` là true trong bản dựng xử lý lượt nhấp:

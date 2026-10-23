@@ -8,6 +8,10 @@ Các widget này tuân theo một mẫu: lựa chọn mà chúng đưa ra là c�
 
 <a id="tabs"></a>
 
+![Tab, mục thu gọn và accordion với phần Shipping đang mở.](../../images/ui/structures.png)
+
+*Tab, mục thu gọn và accordion với phần Shipping đang mở.*
+
 ## Tab
 
 `ui.tabs(c, labels, &selected, opts)` là một hàng nhãn trong đó một nhãn được chọn, trên trang mà view xây dựng cho nó:
@@ -66,6 +70,10 @@ Up và Down di chuyển tiêu điểm giữa các tiêu đề, Home và End đ�
 
 ## Chia lượt xem
 
+![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
+
+*Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
+
 `ui.split(c, &size, opts)` đặt hai ngăn cạnh nhau (hoặc một ngăn ở trên ngăn kia, `vertical`), với một dải phân cách giữa chúng mà con trỏ kéo để định cỡ lại chúng (hiển thị con trỏ đổi kích thước) hoặc các mũi tên di chuyển khi nó có tiêu điểm. Nó mở khung đầu tiên; `second()` đóng nó lại, thêm dải phân cách và mở dải phân cách thứ hai; `end()` đóng phần tách và trả về kết quả:
 
 ```zig
@@ -118,6 +126,10 @@ Một cú nhấp chuột sẽ chọn một mục; trong khi thanh bên có tiêu
 <a id="toolbars"></a>
 
 ## Thanh công cụ
+
+![Các thao tác trên thanh công cụ và đường dẫn breadcrumb.](../../images/ui/toolbar.png)
+
+*Các thao tác trên thanh công cụ và đường dẫn breadcrumb.*
 
 `ui.toolbar(c, opts)` là một hàng điều khiển dọc theo đầu cửa sổ hoặc khung, không có mặt nào cho đến khi được di chuột. Thanh công cụ là một điểm dừng của bàn phím: thao tác bấm vào một điều khiển sẽ đặt tiêu điểm cho nó, Trái và Phải rồi di chuyển giữa các điều khiển của nó, Home và End đến đầu tiên và cuối cùng, đồng thời Enter hoặc Space nhấn vào điều khiển được hiển thị (như [nhóm tiêu điểm](navigation.md#focus-groups) thực hiện đối với các điều khiển khác):
 

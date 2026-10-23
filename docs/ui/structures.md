@@ -12,6 +12,10 @@ Their `end` (or the call itself) returns what happened in this frame:
 `changed` when a click or a key changed the app's value, and `focused`
 when they have the keyboard focus.
 
+![Tabs, a disclosure and an accordion with the Shipping section expanded.](../images/ui/structures.png)
+
+*Tabs, a disclosure and an accordion with the Shipping section expanded.*
+
 ## Tabs
 
 `ui.tabs(c, labels, &selected, opts)` is a row of labels of which one is
@@ -78,6 +82,10 @@ where one section is open at a time, close the others when one opens:
 `if (it.changed and s.sections[i]) for (&s.sections, 0..) |*o, j| if (j != i) o.* = false;`.
 
 ## Split views
+
+![Sidebar, file tree and virtual outline arranged in split panes.](../images/ui/tree.png)
+
+*Sidebar, file tree and virtual outline arranged in split panes.*
 
 `ui.split(c, &size, opts)` puts two panes side by side (or one above the
 other, `vertical`), with a divider between them that the pointer drags to
@@ -149,6 +157,10 @@ otherwise, as AppKit's do. `ui.SidebarOptions` has `width`
 theme's).
 
 ## Toolbars
+
+![Toolbar actions and a breadcrumb trail.](../images/ui/toolbar.png)
+
+*Toolbar actions and a breadcrumb trail.*
 
 `ui.toolbar(c, opts)` is a row of controls along the top of a window or
 a pane, which take no face of their own until hovered. A toolbar is one

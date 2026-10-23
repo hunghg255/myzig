@@ -4,6 +4,10 @@ Calendars, fields of dates and times of day, and color pickers. Each edits
 a value of your state through a pointer and returns true when the user
 changed it.
 
+![Calendar, date and time inputs, color well and color picker.](../images/ui/dates-and-colors.png)
+
+*Calendar, date and time inputs, color well and color picker.*
+
 ## Dates
 
 `ui.Date` is a day of the proleptic Gregorian calendar: `year` (an `i32`),

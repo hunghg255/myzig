@@ -6,6 +6,10 @@
 
 Đối với một dòng văn bản, hãy sử dụng `ui.textField` ([Nhập văn bản](text-input.md)).
 
+![Ô soạn thảo nhiều dòng, kèm số byte và dòng chứa con trỏ.](../../images/ui/text-area.png)
+
+*Ô soạn thảo nhiều dòng, kèm số byte và dòng chứa con trỏ.*
+
 ```zig
 const Notes = struct {
     body: ui.TextArea,

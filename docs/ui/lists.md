@@ -17,6 +17,10 @@ returns what happened in this frame.
 For a layout of cells in rows and columns that holds every child (a form,
 a dashboard), use [`ui.grid`](grid.md) instead.
 
+![A virtual list of 10,000 rows; only the visible rows are built.](../images/ui/virtual-list.png)
+
+*A virtual list of 10,000 rows; only the visible rows are built.*
+
 ## Lists
 
 `ui.list(c, opts)` is a virtualized list, in the manner of GPUI's
@@ -101,6 +105,10 @@ the element `index`, without taking the click from the row, which goes on
 choosing (a table's cells read it too).
 
 ## Trees
+
+![A file tree beside an outline of folders.](../images/ui/tree.png)
+
+*A file tree beside an outline of folders.*
 
 `ui.tree(c, &chosen, opts)` is a tree whose items are built inside the
 item they belong to, their children showing while it is open. Items are
@@ -191,6 +199,10 @@ them. `ui.OutlineOptions` has `row_height` (26), `indent` (16), `width`
 and `height` (`.fill`) and `padding` (`.all(4)`).
 
 ## Tables
+
+![A file table with sortable Name, Kind and Size columns.](../images/ui/table.png)
+
+*A file table with sortable Name, Kind and Size columns.*
 
 `ui.table(c, &state, columns, count, opts)` shows `count` rows in
 `columns` under a header, built as they show. `next()` opens each row in
@@ -291,6 +303,10 @@ var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ 
 ```
 
 ## Grid views
+
+![A virtual grid of selectable photo tiles.](../images/ui/grid-view.png)
+
+*A virtual grid of selectable photo tiles.*
 
 `ui.gridView(c, &state, opts)` shows items in a wrapping grid, as Photos'
 library and Finder's icon view: as many columns as fit items at least

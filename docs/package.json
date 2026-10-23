@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "images:ui": "cd .. && zig build docs-ui -Doptimize=ReleaseFast -j1 && node docs/scripts/ui-images.mjs",
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview"

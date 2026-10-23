@@ -9,6 +9,10 @@ rounding, where no GPU draws: the CPU renderer and `ui.Tester`. So a shader
 works on every platform and in tests, and a mistake in it is a compile
 error of the app.
 
+![The waves shader from this guide, rendered by myzig's CPU twin.](../images/ui/shaders.png)
+
+*The waves shader from this guide, rendered by myzig's CPU twin.*
+
 ```zig
 const waves = ui.shader.compile("waves",
     \\uniform time: f32;

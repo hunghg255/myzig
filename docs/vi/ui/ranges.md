@@ -6,6 +6,10 @@
 
 <a id="sliders"></a>
 
+![Hai thanh trượt hiển thị giá trị và một thanh tiến trình.](../../images/ui/sliders.png)
+
+*Hai thanh trượt hiển thị giá trị và một thanh tiến trình.*
+
 ## Thanh trượt
 
 `ui.slider(c, &value, options)` đặt `f32` giữa các giới hạn bằng cách kéo núm hoặc nhấn vào rãnh của nó. Nó trả về true trong khi thay đổi giá trị:
@@ -31,6 +35,10 @@ Núm xoay lấy tiêu điểm bàn phím; trong khi lấy nét, Trái và Phải
 <a id="range-sliders"></a>
 
 ## Thanh trượt phạm vi
+
+![Khoảng giá, nút tăng giảm, ô nhập số, thước đo và chỉ báo đang tải.](../../images/ui/ranges.png)
+
+*Khoảng giá, nút tăng giảm, ô nhập số, thước đo và chỉ báo đang tải.*
 
 `ui.rangeSlider(c, &low, &high, options)` đặt hai `f64` với hai núm làm phạm vi giá. Mỗi núm lấy tiêu điểm bàn phím và các mũi tên, Home và End di chuyển nó; nhấn vào đường đua sẽ di chuyển núm gần nó nhất. Các núm không bao giờ vượt qua. Nó trả về true khi giá trị thay đổi:
 

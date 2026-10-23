@@ -16,6 +16,10 @@ Bộ sưu tập các mục: danh sách ảo hóa, cây cối, đường viền, 
 
 <a id="lists"></a>
 
+![Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.](../../images/ui/virtual-list.png)
+
+*Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.*
+
 ## Danh sách
 
 `ui.list(c, opts)` là một danh sách ảo hóa, theo cách GPUI's `uniform_list`: các hàng có một chiều cao, trong đó chỉ những hàng trong view mới được tạo. Nó cuộn; `next()` đưa ra chỉ mục của từng hàng cần xây dựng, sau đó `end()` đóng nó lại:
@@ -74,6 +78,10 @@ rows.end();
 <a id="trees"></a>
 
 ## Cây cối
+
+![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
+
+*Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
 
 `ui.tree(c, &chosen, opts)` là một cái cây có các vật phẩm được xây dựng bên trong vật phẩm mà chúng thuộc về, con của chúng hiển thị khi nó mở. Các mục được đặt tên theo khóa mà ứng dụng lưu giữ (đường dẫn, id); `chosen.*` là chìa khóa của mục được chọn.
 
@@ -140,6 +148,10 @@ Trong khi dàn bài có tiêu điểm, Lên, Xuống, Trang chủ, Kết thúc v
 
 ## Bàn
 
+![Bảng tệp với các cột Name, Kind và Size có thể sắp xếp.](../../images/ui/table.png)
+
+*Bảng tệp với các cột Name, Kind và Size có thể sắp xếp.*
+
 `ui.table(c, &state, columns, count, opts)` hiển thị `count` hàng trong `columns` dưới tiêu đề, được tạo khi chúng hiển thị. `next()` mở từng hàng trong view, `cell()` mỗi cột của nó, sau đó `end()`:
 
 ```zig
@@ -199,6 +211,10 @@ var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ 
 <a id="grid-views"></a>
 
 ## View lưới
+
+![Lưới ảo gồm các ô ảnh có thể chọn.](../../images/ui/grid-view.png)
+
+*Lưới ảo gồm các ô ảnh có thể chọn.*
 
 `ui.gridView(c, &state, opts)` hiển thị các mục trong lưới bao bọc, dưới dạng thư viện Ảnh và view biểu tượng của Finder: càng nhiều cột càng phù hợp với các mục có chiều rộng tối thiểu `min_item_width`, chia sẻ chiều rộng bên trái, theo hàng cao `row_height`. `next()` mở từng mục trong view, ô của nó đã sẵn sàng cho nội dung của nó:
 

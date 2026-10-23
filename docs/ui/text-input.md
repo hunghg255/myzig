@@ -5,6 +5,10 @@
 field of chips, a combobox and an autocomplete. For several lines, see the
 [text area](text-area.md); for code, the [code editor](code-editor.md).
 
+![The text field contains Ada; the view immediately shows the greeting.](../images/ui/text-field.png)
+
+*The text field contains Ada; the view immediately shows the greeting.*
+
 ## Text fields
 
 ```zig
@@ -110,6 +114,10 @@ browsers, a hidden text area takes the composition, which shows underlined.
 
 ## Search fields
 
+![A search field, avatars and a token field containing zig and ui.](../images/ui/fields.png)
+
+*A search field, avatars and a token field containing zig and ui.*
+
 `ui.searchField(c, &query, options)` is a field for searching: a magnifying
 glass, the text, and a button clearing it while it holds any, as Escape
 does then:
@@ -151,6 +159,10 @@ false if empty, already there, or too long for what is left) and
 `placeholder`, `width` (300 points) and `max_suggestions` (8).
 
 ## Comboboxes
+
+![A select, font combobox and city autocomplete field.](../images/ui/selects.png)
+
+*A select, font combobox and city autocomplete field.*
 
 `ui.combobox(c, &selected, options, &state, field_options)` chooses one of
 `options` (strings) into `selected` (a `?usize`). It shows the choice; a

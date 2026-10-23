@@ -9,6 +9,10 @@ the same parts.
 
 For one line of text, use `ui.textField` ([Text input](text-input.md)).
 
+![A multiline text area with its byte count and caret line.](../images/ui/text-area.png)
+
+*A multiline text area with its byte count and caret line.*
+
 ```zig
 const Notes = struct {
     body: ui.TextArea,

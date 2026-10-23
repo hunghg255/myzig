@@ -6,6 +6,10 @@ Nhóm này gồm hộp kiểm và công tắc cho một tùy chọn, nhóm hộp
 
 <a id="checkboxes"></a>
 
+![Công tắc, checkbox và segmented control trong Gallery.](../../images/ui/toggles.png)
+
+*Công tắc, checkbox và segmented control trong Gallery.*
+
 ## Hộp kiểm
 
 `ui.checkbox(c, title, &value)` vẽ hộp kiểm cùng nhãn và đảo giá trị `bool` khi nhấn chuột, hoặc nhấn Enter hay Space lúc có focus:
@@ -49,6 +53,10 @@ Khi bật, nút tròn trượt sang bên và phần nền chuyển sang màu suc
 <a id="radio-buttons"></a>
 
 ## Nút radio
+
+![Nhóm radio và mức đánh giá bốn sao.](../../images/ui/choices.png)
+
+*Nhóm radio và mức đánh giá bốn sao.*
 
 `ui.radio(c, &selected, value, title)` vẽ một nút radio. Nút được chọn khi `selected.*` bằng `value`; phép so sánh dùng `std.meta.eql`, nên có thể dùng số nguyên, enum, struct hoặc kiểu khác. Nhấn nút để đặt giá trị; hàm trả về true khi thao tác đó chọn nút:
 

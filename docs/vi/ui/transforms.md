@@ -6,6 +6,10 @@ Một hộp có thể được di chuyển, thu nhỏ, xoay và nghiêng khi nó
 
 <a id="transforms"></a>
 
+![Phép xoay, gradient, blur và nền kính mờ do myzig render.](../../images/ui/transforms.png)
+
+*Phép xoay, gradient, blur và nền kính mờ do myzig render.*
+
 ## Chuyển đổi
 
 `Style.transform` là `ui.Affine`, một bản đồ affine của mặt phẳng giống như CSS của `transform`. Nó hoạt động theo cách bố trí: chiếc hộp giữ nguyên vị trí và các anh chị em của nó không di chuyển. Nó di chuyển hộp và mọi thứ trong đó, khoảng `Style.transform_origin` (theo phân số của hộp; trung tâm của hộp theo mặc định, `.{ .x = 0, .y = 0 }` trên cùng bên trái).

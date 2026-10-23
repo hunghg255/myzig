@@ -8,6 +8,10 @@ Như trong Godot, tọa độ không được phản chiếu: x vẫn phát tri�
 
 <a id="the-direction"></a>
 
+![Cùng các điều khiển được bố trí từ trái sang phải và từ phải sang trái.](../../images/ui/right-to-left.png)
+
+*Cùng các điều khiển được bố trí từ trái sang phải và từ phải sang trái.*
+
 ## Hướng
 
 `ui.Direction` là `.ltr` hoặc `.rtl`. Một cửa sổ được chuyển từ trái sang phải cho đến khi view có nội dung khác, với `ui.direction.set` hoặc, từ ngôn ngữ của ứng dụng, `ui.direction.fromLocale`, chuyển từ phải sang trái cho tiếng Ả Rập, tiếng Do Thái, tiếng Ba Tư và tiếng Urdu (nó đọc `i18n.direction` của thẻ):

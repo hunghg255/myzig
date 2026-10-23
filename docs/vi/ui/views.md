@@ -4,6 +4,10 @@
 
 View là một chức năng từ trạng thái ứng dụng của bạn đến giao diện của nó. myzig gọi nó trên luồng chính để tạo khung sau khi nhập, thay đổi kích thước, trong khi nội dung nào đó hoạt ảnh và khi ứng dụng yêu cầu. Nó đưa một con trỏ tới trạng thái của bạn và `*ui.Context` của cửa sổ:
 
+![View dựng từ trạng thái ứng dụng: danh sách công việc đã xong và đang chờ.](../../images/ui/tasks.png)
+
+*View dựng từ trạng thái ứng dụng: danh sách công việc đã xong và đang chờ.*
+
 ```zig
 const Todos = struct {
     items: [32]Item = undefined,

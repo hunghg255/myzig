@@ -4,6 +4,10 @@
 
 `ui.markdown` hiển thị Markdown bằng phông chữ và màu sắc của cửa sổ: CommonMark với các bảng, danh sách tác vụ, gạch ngang và liên kết tự động của GitHub. Văn bản của nó có thể được lựa chọn, các liên kết báo cáo số lần nhấp chuột của chúng và các khối mã được đánh dấu bằng phông chữ đơn cách bằng nút Sao chép. Nó được tạo ra để phát trực tuyến các câu trả lời từ một mô hình: mã thông báo được gắn vào cuối một câu trả lời dài sẽ có giá bằng với giá của nó khi bắt đầu.
 
+![Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.](../../images/ui/markdown.png)
+
+*Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.*
+
 ```zig
 const Message = struct {
     text: []const u8,

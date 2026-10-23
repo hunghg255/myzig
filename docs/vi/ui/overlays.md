@@ -6,6 +6,10 @@ Lớp phủ là các hộp được vẽ trên mọi thứ khác trong cửa s�
 
 Lớp phủ được tạo ở vị trí thuộc về nó trong view, bên cạnh nội dung mở nó nhưng nó được bố trí trên cửa sổ (`Context.openOverlay`) và nó đưa con trỏ đến trước các hộp bên dưới nó. Liệu một hiển thị có phải là trạng thái của ứng dụng hay không: một `ui.OverlayState` được giữ trong cấu trúc của ứng dụng, ứng dụng này sẽ mở và widget sẽ đóng khi người dùng loại bỏ nó.
 
+![Popover đang mở, neo vào nút Edit name.](../../images/ui/popover.png)
+
+*Popover đang mở, neo vào nút Edit name.*
+
 ```zig
 const State = struct {
     pop: ui.OverlayState = .{},
@@ -95,6 +99,10 @@ if (ui.tooltipBase(c, info)) |box| {
 
 ## Hộp thoại
 
+![Hộp thoại Rename nằm trên view được làm tối.](../../images/ui/dialog.png)
+
+*Hộp thoại Rename nằm trên view được làm tối.*
+
 `ui.dialog(c, &state, opts)` hiển thị một bảng điều khiển được căn giữa trên cửa sổ bị mờ trong khi `state.open` và trả về `ui.Dialog` (null khi đóng), có con theo sau, sau đó là `end`:
 
 ```zig
@@ -145,6 +153,10 @@ switch (ui.alertDialog(c, &s.alert, "Delete “Groceries”?", "You can't undo t
 <a id="toasts"></a>
 
 ## Nâng cốc chúc mừng
+
+![Thông báo toast có thao tác Undo ở cuối view.](../../images/ui/toast.png)
+
+*Thông báo toast có thao tác Undo ở cuối view.*
 
 Lời chúc mừng là những tin nhắn ngắn ở gần cuối cửa sổ, kết quả của những gì người dùng vừa làm sẽ xuất hiện sau vài giây. Ứng dụng giữ một `ui.Toasts` trên mỗi cửa sổ và thêm vào nó từ bất kỳ đâu trong view:
 

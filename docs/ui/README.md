@@ -8,6 +8,15 @@ can, with Metal on macOS, Direct3D 11 on Windows, OpenGL on Linux and WebGL 2
 in browsers, and with its own CPU renderer (the same pixels) everywhere
 else; see [rendering](rendering.md).
 
+![Gallery running with the light theme: buttons, switches, sliders and a text field.](../images/ui/controls.png)
+
+*Gallery running with the light theme: buttons, switches, sliders and a text field.*
+
+The images throughout these guides are rendered from running Zig views with
+`ui.Tester`, at 2× scale. Most reuse the [Gallery example](../../examples/gallery/main.zig);
+layout, grid, direction and shader images run small examples of their own.
+See [regenerating the images](testing.md#documentation-images).
+
 ```zig
 const std = @import("std");
 const myzig = @import("myzig");

@@ -4,6 +4,15 @@
 
 Một cửa sổ có thể hiển thị frontend mà myzig tự vẽ thay vì một trang web. Bạn viết nó trong Zig chỉ với `myzig.ui`: không có HTML, không có JavaScript và không có bản dựng frontend, đồng thời cửa sổ không bắt đầu webview, vì vậy, nó mở ngay lập tức và sử dụng ít bộ nhớ. myzig vẽ nó trên GPU nếu có thể, với Metal trên macOS, Direct3D 11 trên Windows, OpenGL trên Linux và WebGL 2 trong trình duyệt và với bộ kết xuất CPU riêng (cùng pixel) ở mọi nơi khác; xem [kết xuất](rendering.md).
 
+![Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.](../../images/ui/controls.png)
+
+*Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.*
+
+Ảnh trong các hướng dẫn được render từ view Zig đang chạy bằng `ui.Tester`,
+ở tỉ lệ 2×. Phần lớn dùng lại [ví dụ Gallery](../../../examples/gallery/main.zig);
+ảnh bố cục, grid, hướng đọc và shader dùng các ví dụ nhỏ riêng.
+Xem [cách tạo lại ảnh](testing.md#documentation-images).
+
 ```zig
 const std = @import("std");
 const myzig = @import("myzig");

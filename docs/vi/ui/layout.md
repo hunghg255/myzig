@@ -8,6 +8,10 @@ Bố cục chạy mọi frame, theo hai lần: `measure` kích thước các h�
 
 <a id="containers"></a>
 
+![Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.](../../images/ui/layout.png)
+
+*Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.*
+
 ## Thùng chứa
 
 | chức năng | nó mở ra cái gì |

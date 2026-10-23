@@ -4,6 +4,10 @@
 
 `ui.chart` vẽ biểu đồ đường, vùng, thanh, phân tán và hình tròn bằng các trục, đường lưới, chú giải và chú giải công cụ về điểm gần con trỏ nhất. Chúng được vẽ trên canvas ([Bản vẽ](drawing.md)) và theo chủ đề. Các phần của nó (tỷ lệ, đường dẫn của đường, vùng và lát cắt, ngăn xếp, điểm gần nhất) cũng được công khai cho các biểu đồ của riêng bạn.
 
+![Biểu đồ đường và vùng xếp chồng có nhãn và chú giải.](../../images/ui/chart.png)
+
+*Biểu đồ đường và vùng xếp chồng có nhãn và chú giải.*
+
 ```zig
 const chart = ui.chart;
 const months = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun" };
@@ -20,6 +24,10 @@ Trang Biểu đồ của thư viện hiển thị mọi loại (`examples/galler
 <a id="lines-areas-and-bars"></a>
 
 ## Đường, vùng và thanh
+
+![Biểu đồ cột xếp chồng thể hiện ba nguồn truy cập.](../../images/ui/bars.png)
+
+*Biểu đồ cột xếp chồng thể hiện ba nguồn truy cập.*
 
 `chart.lineChart`, `chart.areaChart` và `chart.barChart` lấy `chart.Series` (một `name`, `values`, một cho mỗi điểm dọc theo x, NaN không có điểm nào ở đó và một `color` tùy chọn, nếu không thì bảng màu sẽ theo vị trí của nó) và `chart.Options`:
 

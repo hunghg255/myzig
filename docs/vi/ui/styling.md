@@ -4,6 +4,14 @@
 
 Hình thức của hộp là một phần của `ui.Style`, bên cạnh bố cục của nó: nền, đường viền, các góc tròn, bóng, độ mờ. Các widget lấy màu từ chủ đề của khung, `c.theme`, theo giao diện sáng hoặc tối của hệ thống trừ khi ứng dụng sửa lỗi đó.
 
+![Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.](../../images/ui/controls.png)
+
+*Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.*
+
+![Cùng các điều khiển Gallery với giao diện tối.](../../images/ui/controls-dark.png)
+
+*Cùng các điều khiển Gallery với giao diện tối.*
+
 ```zig
 ui.column(c, .{
     .padding = .all(16),

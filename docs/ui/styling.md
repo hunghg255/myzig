@@ -5,6 +5,14 @@ border, rounded corners, a shadow, opacity. Widgets take their colors from
 the frame's theme, `c.theme`, which follows the system's light or dark
 appearance unless the app fixes it.
 
+![The Gallery controls with the light theme.](../images/ui/controls.png)
+
+*The Gallery controls with the light theme.*
+
+![The same controls with the dark theme.](../images/ui/controls-dark.png)
+
+*The same controls with the dark theme.*
+
 ```zig
 ui.column(c, .{
     .padding = .all(16),

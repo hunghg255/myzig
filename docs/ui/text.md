@@ -3,6 +3,10 @@
 `ui.text` shows a string in a `ui.TextStyle`; `ui.textf` formats it first,
 into the frame's memory:
 
+![System-font headings, italic and monospaced text, rich spans and wrapped text.](../images/ui/text.png)
+
+*System-font headings, italic and monospaced text, rich spans and wrapped text.*
+
 ```zig
 ui.text(c, "Large Title", .{ .size = 30, .weight = .bold });
 ui.text(c, "Italic, for emphasis.", .{ .italic = true });

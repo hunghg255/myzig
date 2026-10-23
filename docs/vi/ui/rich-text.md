@@ -4,6 +4,10 @@
 
 `ui.richTextEditor` chỉnh sửa văn bản có định dạng, giống như Notes và Google Docs thực hiện: các đoạn văn có kiểu (tiêu đề, trích dẫn, mã, dấu đầu dòng, đánh số và danh sách nhiệm vụ được lồng theo cấp độ) của văn bản có dấu (in đậm, in nghiêng, gạch chân, gạch ngang, mã, liên kết, màu sắc và đánh dấu). Nó có tính năng hoàn tác, bảng nhớ tạm (bản sao đa dạng thức, văn bản thuần túy và Markdown của riêng nó), phương thức nhập, phím tắt Markdown khi bạn nhập và chỉ xây dựng các khối trong view. `ui.richTextToolbar` là một thanh công cụ có định dạng.
 
+![Trình soạn thảo rich text và thanh công cụ, gồm tiêu đề, định dạng, task và trích dẫn.](../../images/ui/rich-text.png)
+
+*Trình soạn thảo rich text và thanh công cụ, gồm tiêu đề, định dạng, task và trích dẫn.*
+
 ```zig
 const Note = struct {
     rt: ui.RichText,

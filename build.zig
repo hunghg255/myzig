@@ -38,6 +38,25 @@ pub fn build(b: *std.Build) void {
     }
     // Elsewhere GTK is loaded when the app starts (dlopen): nothing to link.
 
+    // Documentation images use the Gallery's real views, rendered offscreen.
+    const docs_images = b.addExecutable(.{
+        .name = "docs-ui",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/gallery/snapshots.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{.{ .name = "myzig", .module = myzig }},
+        }),
+    });
+    const render_docs = b.addRunArtifact(docs_images);
+    const image_dir = render_docs.addOutputDirectoryArg("ui");
+    const install_images = b.addInstallDirectory(.{
+        .source_dir = image_dir,
+        .install_dir = .prefix,
+        .install_subdir = "docs-ui",
+    });
+    b.step("docs-ui", "Render UI documentation images offscreen into zig-out/docs-ui").dependOn(&install_images.step);
+
     const test_pages = b.step("test-pages", "Run pages hidden: hello calling Zig, and the pages test (examples/pages)");
     const test_memory = b.step("test-page-memory", "Probe hidden WebView2 memory transitions and IPC recovery (Windows)");
     const test_ipc = b.step("test-page-ipc", "Check hidden IPC batches with ASCII, Unicode and large payloads");

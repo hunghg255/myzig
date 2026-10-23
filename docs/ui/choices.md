@@ -5,6 +5,10 @@ groups for several, radio buttons and segmented controls for one of a few,
 and ratings. Each edits a value of your state through a pointer and returns
 true when the user changed it, so you can act on the change.
 
+![Switches, a checkbox and a segmented control in the Gallery.](../images/ui/toggles.png)
+
+*Switches, a checkbox and a segmented control in the Gallery.*
+
 ## Checkboxes
 
 `ui.checkbox(c, title, &value)` draws a box and its label and flips the
@@ -53,6 +57,10 @@ Its knob slides and its track fills with the success color as it turns on.
 In a [form](forms.md), give it an empty title and let the field label it.
 
 ## Radio buttons
+
+![Radio groups and a four-star rating.](../images/ui/choices.png)
+
+*Radio groups and a four-star rating.*
 
 `ui.radio(c, &selected, value, title)` is one radio button: it is on while
 `selected.*` equals `value` (compared with `std.meta.eql`, so any type

@@ -11,6 +11,10 @@ the pointer before the boxes under it. Whether one shows is the app's
 state: an `ui.OverlayState` kept in the app's struct, which the app opens
 and the widget closes when the user dismisses it.
 
+![An open popover anchored to the Edit name button.](../images/ui/popover.png)
+
+*An open popover anchored to the Edit name button.*
+
 ```zig
 const State = struct {
     pop: ui.OverlayState = .{},
@@ -120,6 +124,10 @@ if (ui.tooltipBase(c, info)) |box| {
 
 ## Dialogs
 
+![The Rename dialog above a dimmed view.](../images/ui/dialog.png)
+
+*The Rename dialog above a dimmed view.*
+
 `ui.dialog(c, &state, opts)` shows a panel centered over the dimmed
 window while `state.open`, and returns a `ui.Dialog` (null while closed),
 whose children follow, then `end`:
@@ -178,6 +186,10 @@ For the system's own message boxes, which block until answered and are
 drawn by the operating system, see `myzig.dialog` in [System](../system.md).
 
 ## Toasts
+
+![A toast with an Undo action at the bottom of the view.](../images/ui/toast.png)
+
+*A toast with an Undo action at the bottom of the view.*
 
 Toasts are short messages near the bottom of the window, the outcome of
 what the user just did, which go after a few seconds. The app keeps one

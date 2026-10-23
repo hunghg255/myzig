@@ -7,6 +7,10 @@ column, fields in the other), dashboards and settings panes. A grid
 builds all its children; for many items built only as they show, use
 [`ui.gridView`](lists.md#grid-views).
 
+![A profile form laid out with fit and fractional tracks; the heading spans both columns.](../images/ui/grid.png)
+
+*A profile form laid out with fit and fractional tracks; the heading spans both columns.*
+
 ```zig
 var g = ui.grid(c, .{ .columns = &.{ .fit, .{ .fr = 1 } }, .gap_x = 16, .gap_y = 8 });
 g.cell(.{ .col_span = -1 }); // across every column

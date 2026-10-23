@@ -5,6 +5,10 @@ it on the main thread to build a frame after input, a resize, while
 something animates, and when the app asks. It takes a pointer to your
 state and the window's `*ui.Context`:
 
+![A view built from application state: a task list with completed and pending items.](../images/ui/tasks.png)
+
+*A view built from application state: a task list with completed and pending items.*
+
 ```zig
 const Todos = struct {
     items: [32]Item = undefined,

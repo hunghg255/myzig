@@ -6,6 +6,10 @@ Menu được vẽ trong cửa sổ bởi myzig: menu ngữ cảnh được mở
 
 <a id="a-menu-s-state-and-items"></a>
 
+![Menu Sort by đang mở, với Name được chọn.](../../images/ui/menu.png)
+
+*Menu Sort by đang mở, với Name được chọn.*
+
 ## Trạng thái và các mục của menu
 
 Trạng thái của menu là `ui.Menu` được ứng dụng lưu giữ, mỗi trạng thái một menu:
@@ -114,6 +118,10 @@ if (ui.menu(c, &s.palette)) |m| {
 <a id="selects"></a>
 
 ## Lựa chọn
+
+![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
+
+*Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.*
 
 `ui.select(c, &selected, options, &state, opts)` là trình đơn thả xuống chọn một trong `options` (chuỗi) thành `selected.*`, một chỉ mục. Trạng thái của nó là `ui.SelectState` được ứng dụng lưu giữ:
 

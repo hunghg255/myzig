@@ -8,6 +8,10 @@ also move smoothly where the layout puts them, and come and go
 (`c.time`, which `ui.Tester` advances), and frames are drawn only while
 something moves: an app at rest draws nothing.
 
+![A still frame of the motion demo: easing, springs, keyframes and transitions.](../images/ui/motion.png)
+
+*A still frame of the motion demo: easing, springs, keyframes and transitions.*
+
 ```zig
 const motion = myzig.ui.motion;
 

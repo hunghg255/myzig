@@ -6,6 +6,10 @@ Lịch, trường ngày và giờ trong ngày cũng như bộ chọn màu. Mỗi
 
 <a id="dates"></a>
 
+![Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.](../../images/ui/dates-and-colors.png)
+
+*Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.*
+
 ## Ngày
 
 `ui.Date` là một ngày trong lịch Gregorian tiên sinh: `year` (một `i32`), `month` (1 đến 12) và `day` (1 đến tháng cuối cùng). Nó không có múi giờ và không có thời gian trong ngày.

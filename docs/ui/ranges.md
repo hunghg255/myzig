@@ -4,6 +4,10 @@ Controls of a number: sliders and range sliders that set one, steppers and
 number inputs that step it, and meters, progress bars and spinners that
 show one (or show that work goes on).
 
+![Two sliders with numeric values and a progress bar.](../images/ui/sliders.png)
+
+*Two sliders with numeric values and a progress bar.*
+
 ## Sliders
 
 `ui.slider(c, &value, options)` sets an `f32` between bounds by dragging its
@@ -30,6 +34,10 @@ a twentieth of its range. Assistive technology reads it as a slider with
 its value and bounds, and can step it.
 
 ## Range sliders
+
+![A price range, stepper, number input, meter and loading spinner.](../images/ui/ranges.png)
+
+*A price range, stepper, number input, meter and loading spinner.*
 
 `ui.rangeSlider(c, &low, &high, options)` sets two `f64`s with two knobs, as
 a price range. Each knob takes the keyboard focus, and the arrows, Home

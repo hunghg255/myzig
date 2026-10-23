@@ -470,6 +470,7 @@ test {
     _ = @import("tests_baseline.zig");
     _ = @import("tests_form_baselines.zig");
     _ = @import("tests_layout_cache.zig");
+    _ = @import("tests_animation_cache.zig");
     _ = @import("tests_frame_strings.zig");
     _ = @import("tests_scroll_check.zig");
     _ = @import("tests_table_cells.zig");

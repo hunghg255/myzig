@@ -1,0 +1,349 @@
+{
+  "os": "windows",
+  "zig": "0.17.0",
+  "optimize": "ReleaseFast",
+  "baseline_commit": "8c0b69b",
+  "executables_sha256": {
+    "probe_before": "1F7CB59127DA515B009E7B7EA05742D54C9A6470E65DEA468431C3225FC32DEF",
+    "probe_after": "D593B52DC581F9332EC9190249D1FE3D149152BF9E80F89086FCDF04AEF52CBF",
+    "hillclimb_before": "1F8E3BFA08B7B450D3EAD0BCB2C1A243C71601C74D15C512FE314DF62412CF74",
+    "hillclimb_after": "84FABACF8C51A5784A9A11642FE9DA2DDB40AAEE552287AFE1414375E14796CB"
+  },
+  "memory_metric": "Live requested bytes through the Tester's allocator; excludes native API allocations, allocator overhead, GPU and process working set.",
+  "workload": {
+    "rows": 100000,
+    "rows_per_frame": 3,
+    "frames": 6000,
+    "width": 900,
+    "height": 640,
+    "scale": 2,
+    "render": false,
+    "labels_per_row": 2
+  },
+  "runs": [
+    {
+      "version": "before",
+      "samples": [
+        {
+          "frames": 600,
+          "nodes": 132,
+          "cache_entries": 1090,
+          "cache_capacity": 2048,
+          "live_bytes": 1039275
+        },
+        {
+          "frames": 1200,
+          "nodes": 132,
+          "cache_entries": 2130,
+          "cache_capacity": 4096,
+          "live_bytes": 1593326
+        },
+        {
+          "frames": 1800,
+          "nodes": 132,
+          "cache_entries": 3170,
+          "cache_capacity": 8192,
+          "live_bytes": 2543386
+        },
+        {
+          "frames": 2400,
+          "nodes": 132,
+          "cache_entries": 4210,
+          "cache_capacity": 8192,
+          "live_bytes": 2702635
+        },
+        {
+          "frames": 3000,
+          "nodes": 132,
+          "cache_entries": 5250,
+          "cache_capacity": 8192,
+          "live_bytes": 2862826
+        },
+        {
+          "frames": 3600,
+          "nodes": 132,
+          "cache_entries": 6290,
+          "cache_capacity": 8192,
+          "live_bytes": 3022092
+        },
+        {
+          "frames": 4200,
+          "nodes": 132,
+          "cache_entries": 7330,
+          "cache_capacity": 16384,
+          "live_bytes": 4765609
+        },
+        {
+          "frames": 4800,
+          "nodes": 132,
+          "cache_entries": 8370,
+          "cache_capacity": 16384,
+          "live_bytes": 4926727
+        },
+        {
+          "frames": 5400,
+          "nodes": 132,
+          "cache_entries": 9410,
+          "cache_capacity": 16384,
+          "live_bytes": 5086919
+        },
+        {
+          "frames": 6000,
+          "nodes": 132,
+          "cache_entries": 10450,
+          "cache_capacity": 16384,
+          "live_bytes": 5245731
+        }
+      ],
+      "timing": {
+        "median_ms": 0.0968,
+        "p95_ms": 0.3076,
+        "p99_ms": 0.4795,
+        "peak_frame_boundary_bytes": 5284531
+      }
+    },
+    {
+      "version": "after",
+      "samples": [
+        {
+          "frames": 600,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 1200,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 1800,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 2400,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 3000,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 3600,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 4200,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 4800,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 5400,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 6000,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        }
+      ],
+      "timing": {
+        "median_ms": 0.081,
+        "p95_ms": 0.1202,
+        "p99_ms": 0.1706,
+        "peak_frame_boundary_bytes": 756506
+      }
+    },
+    {
+      "version": "after",
+      "samples": [
+        {
+          "frames": 600,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 1200,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 1800,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 2400,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 3000,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 701474
+        },
+        {
+          "frames": 3600,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 4200,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 4800,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 5400,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        },
+        {
+          "frames": 6000,
+          "nodes": 132,
+          "cache_entries": 76,
+          "cache_capacity": 1024,
+          "live_bytes": 702008
+        }
+      ],
+      "timing": {
+        "median_ms": 0.0819,
+        "p95_ms": 0.1184,
+        "p99_ms": 0.1531,
+        "peak_frame_boundary_bytes": 756506
+      }
+    },
+    {
+      "version": "before",
+      "samples": [
+        {
+          "frames": 600,
+          "nodes": 132,
+          "cache_entries": 1090,
+          "cache_capacity": 2048,
+          "live_bytes": 1039275
+        },
+        {
+          "frames": 1200,
+          "nodes": 132,
+          "cache_entries": 2130,
+          "cache_capacity": 4096,
+          "live_bytes": 1593326
+        },
+        {
+          "frames": 1800,
+          "nodes": 132,
+          "cache_entries": 3170,
+          "cache_capacity": 8192,
+          "live_bytes": 2543386
+        },
+        {
+          "frames": 2400,
+          "nodes": 132,
+          "cache_entries": 4210,
+          "cache_capacity": 8192,
+          "live_bytes": 2702635
+        },
+        {
+          "frames": 3000,
+          "nodes": 132,
+          "cache_entries": 5250,
+          "cache_capacity": 8192,
+          "live_bytes": 2862826
+        },
+        {
+          "frames": 3600,
+          "nodes": 132,
+          "cache_entries": 6290,
+          "cache_capacity": 8192,
+          "live_bytes": 3022092
+        },
+        {
+          "frames": 4200,
+          "nodes": 132,
+          "cache_entries": 7330,
+          "cache_capacity": 16384,
+          "live_bytes": 4765609
+        },
+        {
+          "frames": 4800,
+          "nodes": 132,
+          "cache_entries": 8370,
+          "cache_capacity": 16384,
+          "live_bytes": 4926727
+        },
+        {
+          "frames": 5400,
+          "nodes": 132,
+          "cache_entries": 9410,
+          "cache_capacity": 16384,
+          "live_bytes": 5086919
+        },
+        {
+          "frames": 6000,
+          "nodes": 132,
+          "cache_entries": 10450,
+          "cache_capacity": 16384,
+          "live_bytes": 5245731
+        }
+      ],
+      "timing": {
+        "median_ms": 0.0985,
+        "p95_ms": 0.3195,
+        "p99_ms": 0.4778,
+        "peak_frame_boundary_bytes": 5284531
+      }
+    }
+  ]
+}

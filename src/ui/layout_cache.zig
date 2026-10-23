@@ -96,7 +96,11 @@ pub fn beginFrame(c: *Context) void {
         k.gen = gen;
     }
     if (c.frame % 60 == 0 and k.held.count() > 0) {
-        var gone: [256]u64 = undefined;
+        // Collect before removing: mutating the map invalidates its iterator.
+        // A scrolling list can expire more than a fixed batch per sweep.
+        // Keep the small batch as a fallback if frame scratch cannot grow.
+        var buf: [256]u64 = undefined;
+        const gone: []u64 = if (k.held.count() <= buf.len) &buf else c.alloc().alloc(u64, k.held.count()) catch &buf;
         var n: usize = 0;
         var it = k.held.iterator();
         while (it.next()) |e| {

@@ -5,9 +5,11 @@
 View là chế độ ngay lập tức: view chạy trên mọi frame và xây dựng lại toàn bộ cây. Điều đó rẻ vì một khung chỉ được xây dựng khi có điều gì đó xảy ra (đầu vào, thay đổi kích thước, hoạt ảnh, yêu cầu từ bên ngoài view) và bởi vì những gì đắt tiền sẽ được giữ trên các khung:
 
 - **Bố cục** giữ lại văn bản, chiều rộng và hai dòng bọc cuối cùng của mỗi hộp văn bản, được tìm thấy lại theo id của nó và so sánh (`layout_cache.zig`, sau bộ đệm bố cục của mygo): một hộp có văn bản vẫn như cũ, như hầu hết, không yêu cầu hệ thống văn bản gì và một hộp có văn bản thay đổi sẽ không phân bổ gì. Trong một khung, một chiếc hộp được đo lại theo chiều rộng mà nó được đo như cũ, vì vậy những cây sâu được đo một lần chứ không phải một lần cho mỗi tầng xung quanh chúng.
+  Cứ 60 frame, cache dọn toàn bộ mục không được dùng trong hơn hai frame, tránh tích tụ dữ liệu khi cuộn liên tục. Nếu không cấp phát được bộ nhớ tạm, cache vẫn dọn một nhóm nhỏ.
 - **Bố cục văn bản** được lưu vào bộ nhớ đệm theo chuỗi và kiểu của chúng, đồng thời các glyph được rasterized một lần vào atlas glyph; ASCII có thể in được có nhánh tối ưu chính xác trên macOS (`shaper.zig`, được kiểm tra để phù hợp với hình dạng của CoreText). Một phông chữ được giữ cho mỗi kích thước văn bản được hiển thị; qua 256 trong số chúng (kích thước thay đổi từng frame, như thanh trượt thu phóng cung cấp), một frame cho phép tất cả chúng đi và bắt đầu lại, sắp xếp lại các glyph của nó.
 - **Hình ảnh** được giải mã một lần và đóng gói vào atlas hình ảnh, bắt đầu ở kích thước 512 pixel một cạnh và tăng gấp đôi khi hình ảnh cần, lên tới 2048. Khi GPU vẽ (Metal, Direct3D 11), hình ảnh sẽ chuyển thẳng sang kết cấu của nó và không có bản sao nào của atlas lưu lại trong bộ nhớ.
 - **Bộ nhớ của khung** là một arena đặt lại từng frame: các chuỗi được tạo bằng `c.print` và `c.alloc()` tốn một con trỏ.
+- **Animation của widget** giữ giá trị theo id. Cứ 120 frame, cache dọn toàn bộ giá trị không được dùng trong hơn 120 frame, tránh tích tụ trạng thái hover và nhấn của các nút đã cuộn khỏi màn hình. Nếu không cấp phát được bộ nhớ tạm, cache vẫn dọn một nhóm nhỏ.
 - **Bản vẽ** là một bản vẽ tạm thời gọi một khung trên GPU (xem [Kết xuất](rendering.md)).
 
 <a id="writing-fast-views"></a>

@@ -289,8 +289,12 @@ pub const Context = struct {
         c.access.expand = 0;
         c.frame += 1;
         // Forget animations of widgets gone for a while.
-        if (c.frame % 120 == 0) {
-            var stale: [64]u64 = undefined;
+        if (c.frame % 120 == 0 and c.anims.count() > 0) {
+            // Collect before removing: mutating the map invalidates its iterator.
+            // Scrolling can expire more than one small batch per sweep.
+            // If scratch cannot grow, the stack batch still makes progress.
+            var buf: [64]u64 = undefined;
+            const stale: []u64 = if (c.anims.count() <= buf.len) &buf else c.alloc().alloc(u64, c.anims.count()) catch &buf;
             var n: usize = 0;
             var it = c.anims.iterator();
             while (it.next()) |e| {
@@ -301,6 +305,9 @@ pub const Context = struct {
                 }
             }
             for (stale[0..n]) |k| _ = c.anims.remove(k);
+            // Repeated scrolling must not fill the table with tombstones:
+            // otherwise new ids probe most of it even though few are live.
+            if (n > 0) c.anims.rehash(std.hash_map.AutoContext(u64){});
         }
     }
 

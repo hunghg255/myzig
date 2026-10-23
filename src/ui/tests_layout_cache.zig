@@ -110,3 +110,78 @@ test "layout cache: a text changing every frame keeps its buffers; unchanged one
     try testing.expectApproxEqAbs(@ceil(t.text.width("4444", .{})), t.findText("4444").?.w, 0.01);
     try testing.expect(t.findText("4444").?.w > w * 1.5);
 }
+
+const Scrolling = struct {
+    row: usize = 0,
+
+    fn view(s: *Scrolling, c: *ui.Context) void {
+        ui.column(c, .{ .width = .fill, .height = .fill });
+        defer ui.end(c);
+        ui.text(c, "kept across sweeps", .{ .wrap = true });
+        var rows = ui.list(c, .{ .count = 100_000, .row_height = 28, .scroll_to = @as(f32, @floatFromInt(s.row)) * 28 });
+        while (rows.next()) |i| {
+            ui.row(c, .{ .width = .fill, .height = .{ .px = 28 } });
+            ui.textf(c, .{}, "Row {d}", .{i});
+            ui.textf(c, .{}, "Value {d}", .{i * 7});
+            ui.end(c);
+        }
+        rows.end();
+    }
+};
+
+// Scroll far enough between sweeps to expire more than 256 texts. Expired
+// entries must all go, while live buffers and the uncached layout agree.
+test "layout cache: scrolling evicts every expired text and keeps live wraps" {
+    var s: Scrolling = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Scrolling.view), .{});
+    defer t.deinit();
+    var reference: ui.Tester = undefined;
+    try reference.init(testing.allocator, .init(&s, Scrolling.view), .{});
+    defer reference.deinit();
+    reference.ctx.layout_cache.off = true;
+    const id = t.ctx.nodes.items[2].id;
+    const kept = t.ctx.layout_cache.held.get(id).?;
+    try testing.expectEqualStrings("kept across sweeps", kept.str.items);
+    for (0..180) |f| {
+        s.row = f * 12;
+        const frame = t.ctx.frame;
+        t.frame();
+        reference.frame();
+        try testing.expectEqual(t.ctx.nodes.items.len, reference.ctx.nodes.items.len);
+        for (t.ctx.nodes.items, reference.ctx.nodes.items) |a, b| {
+            try testing.expectEqual(a.rect, b.rect);
+        }
+        const live = t.ctx.layout_cache.held.get(id).?;
+        try testing.expectEqual(kept.str.items.ptr, live.str.items.ptr);
+        try testing.expectEqual(kept.wraps[0].lines.items.ptr, live.wraps[0].lines.items.ptr);
+        if (frame % 60 == 0) {
+            var it = t.ctx.layout_cache.held.valueIterator();
+            while (it.next()) |entry| try testing.expect(entry.frame + 2 >= frame);
+        }
+    }
+}
+
+// Even without scratch memory, a sweep makes progress without discarding
+// the text still in view or leaking the entries it removes.
+test "layout cache: scratch allocation failure still evicts old texts" {
+    var failing: testing.FailingAllocator = .init(testing.allocator, .{ .fail_index = 0 });
+    var s: Scrolling = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Scrolling.view), .{});
+    defer t.deinit();
+    for (0..59) |f| {
+        s.row = f * 12;
+        t.frame();
+    }
+    const before = t.ctx.layout_cache.held.count();
+    try testing.expect(before > 256);
+    const id = t.ctx.nodes.items[2].id;
+    const kept = t.ctx.layout_cache.held.get(id).?.str.items;
+    t.ctx.arena.deinit();
+    t.ctx.arena = .init(failing.allocator());
+    @import("layout_cache.zig").beginFrame(&t.ctx);
+    try testing.expect(failing.has_induced_failure);
+    try testing.expect(t.ctx.layout_cache.held.count() < before);
+    try testing.expectEqual(kept.ptr, t.ctx.layout_cache.held.get(id).?.str.items.ptr);
+}

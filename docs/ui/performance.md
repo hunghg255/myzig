@@ -10,7 +10,10 @@ the view), and because what is expensive is kept across frames:
   cache): a box whose text is as it was, as most are, asks the text system
   nothing, and one whose text changed allocates nothing. Within a frame a
   box measured again at the width it was measured at is as it was, so deep
-  trees are measured once, not once per level around them.
+  trees are measured once, not once per level around them. Every 60 frames,
+  entries unused for more than two frames are discarded. The sweep drains
+  all expired entries, so continuous scrolling does not accumulate a
+  backlog; if scratch allocation fails, it still removes a small batch.
 - **Text layouts** are cached by their string and style, and glyphs are
   rasterized once into the glyph atlas; printable ASCII has an exact fast
   path on macOS (`shaper.zig`, tested to match CoreText's shaping).
@@ -23,6 +26,10 @@ the view), and because what is expensive is kept across frames:
   texture and no copy of the atlas stays in memory.
 - **The frame's memory** is an arena reset each frame: strings made with
   `c.print` and `c.alloc()` cost a bump of a pointer.
+- **Control animations** keep their values by widget id. Every 120 frames,
+  values unused for more than 120 frames are discarded in one sweep, so
+  scrolling past buttons does not accumulate old hover and press states.
+  If scratch allocation fails, the sweep still removes a small batch.
 - **Drawing** is one instanced draw call a frame on the GPU (see
   [Rendering](rendering.md)).
 

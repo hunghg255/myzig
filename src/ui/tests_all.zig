@@ -34,6 +34,8 @@ test {
     _ = @import("tests_controls_form.zig");
     _ = @import("structure.zig");
     _ = @import("tests_structures_panes.zig");
+    _ = @import("tests_tabs_memory.zig");
+    _ = @import("tests_tabs_edges.zig");
     _ = @import("tests_structures_nav.zig");
     _ = @import("tests_structures_lists.zig");
     _ = @import("tests_outline_keys.zig");

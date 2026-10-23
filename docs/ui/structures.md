@@ -34,6 +34,13 @@ A click chooses a tab, as do the arrows, Home and End while the tab bar
 has the keyboard focus, which a click gives it. `ui.TabsOptions` has
 `width` (`.fill`) and `size` (13, the font size).
 
+The bar takes one Tab stop; Shift+Tab leaves it in reverse order. An empty
+bar takes no keyboard focus and keeps the supplied selection unchanged.
+For a nonempty list, an out-of-range selection is clamped to its last tab
+and reports `changed`, including when tabs are removed. Left/Right follow
+the layout direction (reversed in RTL); modified keys remain available to
+the app's shortcuts.
+
 For pages that are places the user goes to, with a history and back and
 forward, use a [router](navigation.md#the-router).
 

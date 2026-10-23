@@ -2,7 +2,7 @@
 //! builds for it. A click chooses a tab, as do the arrows, Home and End
 //! while the tab bar has the keyboard focus, which a click gives it.
 //!
-//!     if (ui.tabs(c, &.{ "General", "Appearance", "Advanced" }, &s.tab).changed) save(s);
+//!     if (ui.tabs(c, &.{ "General", "Appearance", "Advanced" }, &s.tab, .{}).changed) save(s);
 //!     switch (s.tab) {
 //!         0 => general(s, c),
 //!         1 => appearance(s, c),
@@ -12,6 +12,7 @@ const std = @import("std");
 const types = @import("types.zig");
 const ctx_mod = @import("context.zig");
 const structure = @import("structure.zig");
+const direction = @import("direction.zig");
 const widgets = @import("widgets.zig");
 const Context = ctx_mod.Context;
 
@@ -21,7 +22,7 @@ pub const Options = struct {
 };
 
 pub const Result = struct {
-    /// A click or a key chose another tab.
+    /// A click or key chose another tab, or an invalid selection was clamped.
     changed: bool = false,
     focused: bool = false,
 };
@@ -31,15 +32,23 @@ pub fn tabs(c: *Context, labels: []const []const u8, selected: *usize, opts: Opt
     const bar = c.open(.{ .direction = .row, .width = opts.width, .gap = 4, .padding = .{ .left = 4, .right = 4 }, .control = true }, null);
     defer c.end();
     // The bar is one stop of the keyboard: it takes the focus, the tabs don't.
-    const bar_it = c.interact(bar, .{ .focusable = true });
+    if (labels.len == 0 and c.focus == c.node(bar).id) {
+        c.focus = 0;
+        c.changed = true;
+    }
+    const bar_it = c.interact(bar, .{ .focusable = labels.len > 0 });
     c.describe(bar_it.id, .{ .role = .tab_list });
     var result: Result = .{ .focused = c.focus == bar_it.id };
     if (labels.len == 0) return result;
-    if (selected.* >= labels.len) selected.* = labels.len - 1;
+    if (selected.* >= labels.len) {
+        selected.* = labels.len - 1;
+        result.changed = true;
+        c.changed = true;
+    }
 
-    if (result.focused) if (c.input.key) |k| {
-        if (structure.step(k, selected.*, labels.len, .left, .right, 1)) |to| {
-            _ = structure.takeKey(c);
+    if (result.focused) if (takeNavigation(c)) |k| {
+        const arrows = direction.arrows(c);
+        if (structure.step(k, selected.*, labels.len, arrows.back, arrows.forth, 1)) |to| {
             if (to != selected.*) {
                 selected.* = to;
                 result.changed = true;
@@ -85,4 +94,47 @@ pub fn tabs(c: *Context, labels: []const []const u8, selected: *usize, opts: Opt
         }, .none, "underline");
     }
     return result;
+}
+
+// Backends offer navigation as shortcuts, plain keys or text-system commands.
+// Take only unmodified navigation, leaving app shortcuts and editing alone.
+fn takeNavigation(c: *Context) ?ctx_mod.Key {
+    if (c.input.cmd or c.input.ctrl or c.input.shift) return null;
+    if (c.input.shortcut) |s| {
+        const key = s.plainKey() orelse return null;
+        if (!navigationKey(key)) return null;
+        c.input.shortcut = null;
+        c.input.key = null;
+        c.shortcut_taken = true;
+        return key;
+    }
+    if (c.input.key) |key| {
+        if (!navigationKey(key)) return null;
+        c.input.key = null;
+        return key;
+    }
+    for (c.input.ops, 0..) |op, i| if (op == .command) {
+        const key: ctx_mod.Key = switch (op.command) {
+            .move_left => .left,
+            .move_right => .right,
+            .move_doc_start => .home,
+            .move_doc_end => .end,
+            .move_page_up => .page_up,
+            .move_page_down => .page_down,
+            else => continue,
+        };
+        const rest = c.alloc().alloc(ctx_mod.TextOp, c.input.ops.len - 1) catch return null;
+        @memcpy(rest[0..i], c.input.ops[0..i]);
+        @memcpy(rest[i..], c.input.ops[i + 1 ..]);
+        c.input.ops = rest;
+        return key;
+    };
+    return null;
+}
+
+fn navigationKey(key: ctx_mod.Key) bool {
+    return switch (key) {
+        .left, .right, .home, .end, .page_up, .page_down => true,
+        else => false,
+    };
 }

@@ -27,6 +27,13 @@ switch (s.tab) {
 
 Một cú nhấp chuột sẽ chọn một tab, cũng như các mũi tên, Home và End trong khi thanh tab có tiêu điểm bàn phím mà một cú nhấp chuột mang lại cho nó. `ui.TabsOptions` có `width` (`.fill`) và `size` (13, cỡ chữ).
 
+Thanh tab chiếm một điểm dừng khi nhấn Tab; Shift+Tab di chuyển theo thứ tự
+ngược lại. Thanh tab rỗng không nhận tiêu điểm bàn phím và giữ nguyên giá trị
+chọn đã truyền vào. Với danh sách có tab, chỉ số chọn vượt giới hạn sẽ được
+đưa về tab cuối và trả về `changed`, kể cả khi xóa bớt tab. Phím trái/phải
+đi theo hướng bố cục (đảo chiều trong RTL); các tổ hợp có phím bổ trợ vẫn
+được dành cho phím tắt của ứng dụng.
+
 Đối với các trang là nơi người dùng truy cập, có lịch sử và chuyển tiếp qua lại, hãy sử dụng [bộ định tuyến](navigation.md#the-router).
 
 <a id="disclosures"></a>

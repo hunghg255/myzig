@@ -205,6 +205,7 @@ test {
             _ = @import("windows/page_memory_test.zig");
             _ = @import("windows/page_visibility.zig");
             _ = @import("windows/page_profile.zig");
+            _ = @import("windows/webview2.zig");
             _ = @import("windows/winrt.zig");
             _ = @import("windows/toast_xml.zig");
             _ = @import("windows/toast_test.zig");

@@ -110,6 +110,11 @@ pub const Options = struct {
     /// Windows) quit the app on the main thread, as `App.quit`; a second
     /// one exits at once.
     quit_on_signal: bool = true,
+    /// Origins of plain http servers ("http://192.168.1.10:8080") whose
+    /// pages are secure contexts, as https ones, so that they may ask for
+    /// the camera, the microphone, ... (WebView2; WebKit has no such
+    /// setting). Granting those stays the `permission` event's.
+    secure_origins: []const []const u8 = &.{},
 
     /// The id the system knows the app by.
     pub fn appId(o: Options) []const u8 {

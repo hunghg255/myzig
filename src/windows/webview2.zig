@@ -31,6 +31,54 @@ extern "kernel32" fn GetFileAttributesW(path: [*:0]const u16) callconv(.winapi) 
 extern "kernel32" fn LoadLibraryW(path: [*:0]const u16) callconv(.winapi) ?*anyopaque;
 extern "kernel32" fn GetProcAddress(module: *anyopaque, name: [*:0]const u8) callconv(.winapi) ?*anyopaque;
 extern "kernel32" fn GetModuleFileNameW(module: ?*anyopaque, buf: [*]u16, n: u32) callconv(.winapi) u32;
+extern "kernel32" fn SetEnvironmentVariableW(name: [*:0]const u16, value: ?[*:0]const u16) callconv(.winapi) i32;
+
+/// The browser's arguments, which the runtime reads from the environment
+/// when the environment is created (`ICoreWebView2EnvironmentOptions`'
+/// would need a COM object of myzig's).
+const arguments_variable = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
+
+/// `old` (the variable's own, kept) and the arguments that take `secure`
+/// origins for secure contexts.
+fn browserArguments(gpa: std.mem.Allocator, old: []const u8, secure: []const []const u8) ![]u8 {
+    var out: std.ArrayList(u8) = .empty;
+    errdefer out.deinit(gpa);
+    try out.appendSlice(gpa, old);
+    if (secure.len > 0) {
+        if (out.items.len > 0) try out.append(gpa, ' ');
+        try out.appendSlice(gpa, "--unsafely-treat-insecure-origin-as-secure=");
+        for (secure, 0..) |o, i| {
+            if (i > 0) try out.append(gpa, ',');
+            try out.appendSlice(gpa, std.mem.trimEnd(u8, o, "/"));
+        }
+    }
+    return out.toOwnedSlice(gpa);
+}
+
+/// Sets the variable for the environment about to be created.
+fn setArguments(gpa: std.mem.Allocator, environ: *const std.process.Environ.Map, secure: []const []const u8) !void {
+    if (secure.len == 0) return;
+    const args = try browserArguments(gpa, environ.get(arguments_variable) orelse "", secure);
+    defer gpa.free(args);
+    const name = try com.wide(gpa, arguments_variable);
+    defer gpa.free(name);
+    const value = try com.wide(gpa, args);
+    defer gpa.free(value);
+    if (SetEnvironmentVariableW(name.ptr, value.ptr) == 0) return error.Unexpected;
+}
+
+test "the browser's arguments keep the variable's and list the secure origins" {
+    const gpa = std.testing.allocator;
+    const none = try browserArguments(gpa, "--a", &.{});
+    defer gpa.free(none);
+    try std.testing.expectEqualStrings("--a", none);
+    const one = try browserArguments(gpa, "", &.{"http://10.0.0.2:3200/"});
+    defer gpa.free(one);
+    try std.testing.expectEqualStrings("--unsafely-treat-insecure-origin-as-secure=http://10.0.0.2:3200", one);
+    const two = try browserArguments(gpa, "--a", &.{ "http://10.0.0.2", "http://his.lan:8080" });
+    defer gpa.free(two);
+    try std.testing.expectEqualStrings("--a --unsafely-treat-insecure-origin-as-secure=http://10.0.0.2,http://his.lan:8080", two);
+}
 
 /// A string value of the 32-bit view of the registry, where EdgeUpdate
 /// records its clients, as UTF-16 in `buf`.
@@ -139,12 +187,14 @@ pub const Environment = struct {
     pub const Waiter = struct { ctx: *anyopaque, func: *const fn (ctx: *anyopaque, env: ?com.Object) void };
 
     /// Calls `w` with the environment (null if there is none), at once if
-    /// it exists, else once it is created; creating it if it was not.
-    pub fn get(e: *Environment, environ: *const std.process.Environ.Map, user_data: []const u8, w: Waiter) void {
+    /// it exists, else once it is created (`secure`: `App.Options.secure_origins`);
+    /// creating it if it was not.
+    pub fn get(e: *Environment, environ: *const std.process.Environ.Map, user_data: []const u8, secure: []const []const u8, w: Waiter) void {
         if (e.env != null or e.failed) return w.func(w.ctx, e.env);
         e.waiters.append(e.gpa, w) catch return w.func(w.ctx, null);
         if (e.started) return;
         e.started = true;
+        setArguments(e.gpa, environ, secure) catch |err| std.log.err("myzig: cannot pass secure_origins to WebView2: {t}", .{err});
         const hr = e.start(environ, user_data);
         if (com.failed(hr)) {
             std.log.err("myzig: cannot create the WebView2 environment (HRESULT 0x{x:0>8}); get the runtime from {s}", .{ @as(u32, @bitCast(hr)), download });

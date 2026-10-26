@@ -238,7 +238,10 @@ What happens without an answer:
   [trusted](#trust): the app's own pages get the camera, the microphone,
   the location and notifications (the system may still ask the user),
   and other pages don't. `kinds` lists what is asked together, as the
-  camera and the microphone of a call.
+  camera and the microphone of a call. A page of a plain http server
+  can't ask at all (it is no secure context) unless its origin is in the
+  app's `secure_origins` (WebView2). WebView2 keeps the answer in the
+  profile: an origin once denied isn't asked again.
 - **Downloads.** A download goes to the user's Downloads directory, under
   its suggested name (only its last part: never a directory), numbered as
   `name (2).ext` when a file has it. A listener may set `path` elsewhere

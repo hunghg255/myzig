@@ -186,7 +186,7 @@ Các loại nằm trong `myzig.page` (`myzig.page.Navigate`, ...). Chuỗi tồn
 Điều gì xảy ra mà không có câu trả lời:
 
 - **Cửa sổ mới.** Trừ khi người nghe đặt các URL `handled`, `http` và `https` mở trong trình duyệt của hệ thống; những người khác bị bỏ rơi. Bản thân trang này không bao giờ mở cửa sổ webview thứ hai.
-- **Quyền.** `allow` bắt đầu nếu trang yêu cầu là [đáng tin cậy](#trust): các trang của chính ứng dụng nhận được máy ảnh, micrô, vị trí và thông báo (hệ thống vẫn có thể hỏi người dùng) còn các trang khác thì không. `kinds` liệt kê những gì được yêu cầu cùng nhau, dưới dạng máy ảnh và micrô của cuộc gọi.
+- **Quyền.** `allow` bắt đầu nếu trang yêu cầu là [đáng tin cậy](#trust): các trang của chính ứng dụng nhận được máy ảnh, micrô, vị trí và thông báo (hệ thống vẫn có thể hỏi người dùng) còn các trang khác thì không. `kinds` liệt kê những gì được yêu cầu cùng nhau, dưới dạng máy ảnh và micrô của cuộc gọi. Trang của một server http thường không xin quyền được (không phải secure context), trừ khi origin của nó nằm trong `secure_origins` của ứng dụng (WebView2). WebView2 lưu câu trả lời trong profile: origin đã bị từ chối một lần sẽ không được hỏi lại.
 - **Tải xuống.** Tệp tải xuống sẽ chuyển đến thư mục Tải xuống của người dùng, dưới tên được đề xuất (chỉ phần cuối cùng: không bao giờ là thư mục), được đánh số là `name (2).ext` khi có tệp. Người nghe có thể đặt `path` ở nơi khác (chuỗi được sao chép khi sự kiện trả về) hoặc `cancel` nó.
 
 <a id="schemes-of-the-app"></a>

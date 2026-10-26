@@ -54,6 +54,7 @@ lock, and frees the app.
 | `quit_on_signal` | Ctrl+C and SIGTERM quit the app (default true) |
 | `url_schemes` | the schemes the app opens (`"notes"` for `notes://...`) |
 | `file_extensions` | the extensions of files it opens, lower case, without the dot (`"md"`) |
+| `secure_origins` | origins of plain http servers (`"http://192.168.1.10:8080"`) whose pages are secure contexts, as https ones, so they may ask for the camera or the microphone ([permissions](pages.md#page-events)); WebView2 only, WebKit has no such setting |
 | `on_open_url` | a URL of its schemes was opened |
 | `on_open_file` | a file of its types was opened |
 | `on_second_instance` | a later launch handed its command line over |

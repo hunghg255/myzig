@@ -122,7 +122,7 @@ pub const Page = struct {
         live.append(std.heap.page_allocator, self) catch {};
         self.load(options.url);
         self.waiting = true;
-        webview2.environment.get(window.app.environ, profile, .{ .ctx = self, .func = envReady });
+        webview2.environment.get(window.app.environ, profile, window.app.options.secure_origins, .{ .ctx = self, .func = envReady });
         return self;
     }
 

@@ -45,6 +45,7 @@ pub fn main(init: std.process.Init) !void {
 | `quit_on_signal` | Ctrl+C và SIGTERM thoát ứng dụng (mặc định true) |
 | `url_schemes` | các chương trình mà ứng dụng mở ra (`"notes"` cho `notes://...`) |
 | `file_extensions` | phần mở rộng của tập tin nó mở ra, chữ thường, không có dấu chấm (`"md"`) |
+| `secure_origins` | origin của các server http thường (`"http://192.168.1.10:8080"`) mà trang của chúng là secure context như https, để xin được camera hay micro ([quyền](pages.md)); chỉ WebView2, WebKit không có thiết lập này |
 | `on_open_url` | một URL của các chương trình của nó đã được mở |
 | `on_open_file` | một tập tin thuộc loại của nó đã được mở |
 | `on_second_instance` | lần ra mắt sau đó đã chuyển giao dòng lệnh của nó |

@@ -1,6 +1,6 @@
 .{
     .name = .myzig_loading,
-    .version = "0.1.9",
+    .version = "0.1.10",
     .fingerprint = 0xb03f88c72e7df2c5,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{ .myzig = .{ .path = "../.." } },

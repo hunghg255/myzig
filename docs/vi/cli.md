@@ -66,7 +66,7 @@ Tạo một ứng dụng trong một thư mục mới hoặc trống:
 | `--myzig PATH\|URL` | kiểm tra myzig hoặc những gì `zig fetch` tìm nạp |
 | `--skip-generate` | không xây dựng mẫu web để viết client của nó |
 
-Trong đó myzig đến từ: `--myzig`, khác `MYZIG_ROOT`, khác là kho lưu trữ myzig trên GitHub ở phiên bản CLI (`git+https://github.com/hunghg255/myzig#v0.1.10` cho CLI 0.1.10). Kiểm tra trở thành phần phụ thuộc đường dẫn (`.myzig = .{ .path = "../myzig" }`) khi có đường dẫn tương đối đến nó; một URL (hoặc bản checkout trên một ổ đĩa khác) được tìm nạp bằng `zig fetch --save=myzig`.
+Trong đó myzig đến từ: `--myzig`, khác `MYZIG_ROOT`, khác là kho lưu trữ myzig trên GitHub ở phiên bản CLI (`git+https://github.com/hunghg255/myzig#v0.1.11` cho CLI 0.1.11). Kiểm tra trở thành phần phụ thuộc đường dẫn (`.myzig = .{ .path = "../myzig" }`) khi có đường dẫn tương đối đến nó; một URL (hoặc bản checkout trên một ổ đĩa khác) được tìm nạp bằng `zig fetch --save=myzig`.
 
 Bản dựng của mẫu web nhúng frontend thông qua `myzig_assets.zig`, một mô-đun mà CLI ghi để liệt kê các tệp của frontend, mỗi tệp có `@embedFile`, dưới dạng `pub const files = [_]myzig.Asset{...}`. Ứng dụng nhập nó dưới dạng `assets` và phục vụ `&assets.files`. CLI ghi lại nó bất cứ khi nào các tệp thay đổi (`generate`, `dev`, `build`), vì vậy việc thêm một trang không cần Zig; nó loại bỏ client đã tạo, các tệp dấu chấm và `node_modules`.
 

@@ -216,7 +216,7 @@ ls -l zig-out/bin/counter zig-out/bin/hello
    or `myzig.zig`.
 6. **Build every platform**: `zig build`, `zig build
    -Dtarget=x86_64-linux-gnu`, `zig build -Dtarget=x86_64-windows-gnu`,
-   `zig build web`; run `zig build test` (and `-Dportable=true`), the
+   `zig build -Dtarget=x86-windows-gnu`, `zig build web`; run `zig build test` (and `-Dportable=true`), the
    Linux tests in the container, `zig build lines`.
 7. **No C**: `extern` declarations, `dlopen`/`dlsym`, COM vtables; no
    `@cImport`, `.c` or `.m` files.

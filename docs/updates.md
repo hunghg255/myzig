@@ -90,8 +90,8 @@ Publish the files where `updates` points to:
   directory. Upload the manifests last, so apps never see a manifest
   whose file is missing.
 
-Each platform and architecture, such as `macos-aarch64`, `macos-universal`
-or `windows-x86_64`, has its own manifest, and a build only looks at its
+Each platform and architecture, such as `macos-aarch64`, `macos-universal`,
+`windows-x86_64` or `windows-x86`, has its own manifest, and a build only looks at its
 own.
 
 ### Publishing to S3

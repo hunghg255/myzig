@@ -140,6 +140,7 @@ and says so; fix the error and save. Quitting the app ends `myzig dev`.
 ```sh
 myzig build [dir]
 myzig build --platform windows --arch x86_64
+myzig build --platform windows --arch x86
 myzig build --platform macos --arch universal
 myzig build --platform web
 ```
@@ -165,7 +166,7 @@ when declared.
 | flag | |
 |---|---|
 | `--platform macos\|windows\|linux\|web` | the system to build for (default: this one); `web` builds a static site for browsers in `<out>/web` (native UI only; see [Browsers](browsers.md)) |
-| `--arch x86_64\|aarch64\|universal` | the architecture (default: this one); `universal` is macOS's, both joined in one binary |
+| `--arch x86_64\|aarch64\|x86\|universal` | the architecture (default: this one); `x86` is 32-bit, for Windows and Linux (also `386`, `i386`); `universal` is macOS's, both joined in one binary |
 | `--optimize small\|fast\|safe` | ReleaseSmall (default), ReleaseFast or ReleaseSafe (`debug` too) |
 | `--out DIR` | the output directory (default: `out` of `myzig.zon`, `dist`) |
 | `--skip-build-command` | don't run `build_command` |

@@ -6,6 +6,7 @@ it from, for macOS, Windows, Linux and browsers:
 ```sh
 myzig build                                   # this machine's platform and architecture
 myzig build --platform windows --arch x86_64  # any platform, from any machine
+myzig build --platform windows --arch x86     # 32-bit Windows
 myzig build --platform macos --arch universal # Apple silicon and Intel in one binary
 myzig build --platform web                    # a static site (native UI only)
 ```
@@ -168,12 +169,20 @@ resources the CLI compiles and links (`-Dwin32-res`, which the template's
 
 - the icon, in the sizes Explorer and the taskbar use;
 - a manifest: per-monitor DPI awareness, common controls 6, Windows 10 and
-  11, UTF-8 as the code page;
+  11, UTF-8 as the code page, running as the user (`asInvoker`);
 - version information: `FileDescription`, `ProductName`, `FileVersion`,
   `LegalCopyright`, `OriginalFilename`.
 
 An app whose `build.zig` doesn't declare `-Dwin32-res` gets a warning and
 an executable without them.
+
+`--arch x86` makes a 32-bit release (`dist/windows-x86`, `x86-windows-gnu`)
+for 32-bit Windows, which 64-bit Windows runs too: the same executable,
+resources, zip and installer, the WebView2 of a 32-bit app. The manifest
+asks to run as the user who started the app (`asInvoker`); without that,
+Windows asks to elevate a 32-bit app whose name says "update", "setup" or
+"install". `--arch x86` also builds for 32-bit Linux (an `i386` `.deb`),
+which isn't tested yet; macOS has no 32-bit apps.
 
 ### The installer
 
@@ -272,6 +281,7 @@ jobs:
           for p in ${{ matrix.platforms }}; do
             for a in x86_64 aarch64; do ~/.local/bin/myzig build --platform $p --arch $a; done
           done
+          ~/.local/bin/myzig build --platform windows --arch x86   # 32-bit Windows
       - uses: actions/upload-artifact@v4
         with: { name: dist-${{ matrix.os }}, path: dist }
 ```

@@ -15,7 +15,7 @@ pub fn ftFace(e: *Engine, h: usize) ?*api.FaceRec {
     f.ft_tried = true;
     const lib = e.ft_lib orelse return null;
     var out: ?*api.FaceRec = null;
-    if (api.ft.FT_New_Face(lib, f.path.ptr, f.index, &out) != 0) return null;
+    if (api.ft.FT_New_Face(lib, f.path.ptr, @intCast(f.index), &out) != 0) return null;
     f.ft = out;
     return out;
 }

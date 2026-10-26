@@ -123,15 +123,22 @@ pub const Platform = enum {
 pub const Arch = enum {
     x86_64,
     aarch64,
+    /// 32-bit x86: Windows and Linux, not macOS.
+    x86,
 
     pub fn host() Arch {
-        return if (builtin.cpu.arch == .aarch64) .aarch64 else .x86_64;
+        return switch (builtin.cpu.arch) {
+            .aarch64 => .aarch64,
+            .x86 => .x86,
+            else => .x86_64,
+        };
     }
 
     /// Zig's, Go's and Debian's names.
     pub fn parse(s: []const u8) ?Arch {
         for ([_][]const u8{ "x86_64", "amd64", "x64" }) |n| if (std.mem.eql(u8, s, n)) return .x86_64;
         for ([_][]const u8{ "aarch64", "arm64" }) |n| if (std.mem.eql(u8, s, n)) return .aarch64;
+        for ([_][]const u8{ "x86", "386", "i386" }) |n| if (std.mem.eql(u8, s, n)) return .x86;
         return null;
     }
 
@@ -139,6 +146,7 @@ pub const Arch = enum {
         return switch (a) {
             .x86_64 => "amd64",
             .aarch64 => "arm64",
+            .x86 => "i386",
         };
     }
 
@@ -147,6 +155,7 @@ pub const Arch = enum {
         return switch (a) {
             .x86_64 => 0x8664,
             .aarch64 => 0xAA64,
+            .x86 => 0x014c,
         };
     }
 };
@@ -160,6 +169,10 @@ test triple {
     defer gpa.free(m);
     try std.testing.expectEqualStrings("aarch64-macos", m);
     try std.testing.expectEqual(Arch.aarch64, Arch.parse("arm64").?);
+    const w32 = try triple(gpa, .windows, Arch.parse("i386").?);
+    defer gpa.free(w32);
+    try std.testing.expectEqualStrings("x86-windows-gnu", w32);
+    try std.testing.expectEqualStrings("i386", Arch.x86.debian());
     try std.testing.expectEqual(Platform.macos, Platform.parse("darwin").?);
 }
 

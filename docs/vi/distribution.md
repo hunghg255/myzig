@@ -7,6 +7,7 @@
 ```sh
 myzig build                                   # this machine's platform and architecture
 myzig build --platform windows --arch x86_64  # any platform, from any machine
+myzig build --platform windows --arch x86     # 32-bit Windows
 myzig build --platform macos --arch universal # Apple silicon and Intel in one binary
 myzig build --platform web                    # a static site (native UI only)
 ```
@@ -114,10 +115,12 @@ Hồ sơ phải khớp với chứng chỉ ký, mã định danh gói và các q
 `<Name>.exe` là một ứng dụng GUI (không có cửa sổ bảng điều khiển) trong các bản phát hành và mang các tài nguyên mà CLI biên dịch và liên kết (`-Dwin32-res`, mà `build.zig` của mẫu khai báo):
 
 - biểu tượng, trong kích thước sử dụng Explorer và thanh tác vụ;
-- một bảng kê khai: nhận thức về CPI trên mỗi màn hình, các điều khiển chung 6, Windows 10 và 11, UTF-8 làm trang mã;
+- một bảng kê khai: nhận thức về DPI trên mỗi màn hình, các điều khiển chung 6, Windows 10 và 11, UTF-8 làm trang mã, chạy dưới quyền người dùng (`asInvoker`);
 - thông tin phiên bản: `FileDescription`, `ProductName`, `FileVersion`, `LegalCopyright`, `OriginalFilename`.
 
 Ứng dụng có `build.zig` không khai báo `-Dwin32-res` sẽ nhận được cảnh báo và có thể thực thi mà không có chúng.
+
+`--arch x86` tạo bản phát hành 32-bit (`dist/windows-x86`, `x86-windows-gnu`) cho Windows 32-bit, Windows 64-bit cũng chạy được: cùng tệp thực thi, tài nguyên, tệp zip và trình cài đặt, dùng WebView2 của ứng dụng 32-bit. Tệp kê khai yêu cầu chạy dưới quyền người đã mở ứng dụng (`asInvoker`); nếu không có, Windows sẽ đòi nâng quyền với ứng dụng 32-bit có tên chứa "update", "setup" hoặc "install". `--arch x86` cũng xây dựng cho Linux 32-bit (một `.deb` `i386`), nhưng chưa được kiểm thử; macOS không có ứng dụng 32-bit.
 
 <a id="the-installer"></a>
 
@@ -184,6 +187,7 @@ jobs:
           for p in ${{ matrix.platforms }}; do
             for a in x86_64 aarch64; do ~/.local/bin/myzig build --platform $p --arch $a; done
           done
+          ~/.local/bin/myzig build --platform windows --arch x86   # 32-bit Windows
       - uses: actions/upload-artifact@v4
         with: { name: dist-${{ matrix.os }}, path: dist }
 ```

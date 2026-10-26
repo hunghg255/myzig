@@ -79,6 +79,16 @@ test "init native, zig build, a headless snapshot, and myzig build for every pla
         const r = try package.run(ctx, .{ .dir = dir, .platform = p, .arch = .x86_64, .skip_dmg = true });
         try checkPackage(ctx, c, p, r);
     }
+
+    // 32-bit Windows: an i386 executable, with its resources and packages.
+    const r32 = try package.run(ctx, .{ .dir = dir, .platform = .windows, .arch = .x86, .skip_dmg = true });
+    const bin32 = try fsx.read(ctx, try ctx.join(&.{ r32.dir, "Hello Native", "Hello Native.exe" }));
+    const pe = std.mem.readInt(u32, bin32[0x3c..][0..4], .little);
+    try std.testing.expectEqual(proc.Arch.x86.coffMachine(), std.mem.readInt(u16, bin32[pe + 4 ..][0..2], .little));
+    try std.testing.expect(contains(bin32, "PerMonitorV2"));
+    try std.testing.expect(contains(bin32, "asInvoker"));
+    try expectFile(ctx, try ctx.join(&.{ r32.dir, "Hello Native Portable 0.1.0 x86.zip" }));
+    if (package.makensisPath(ctx) != null) try expectFile(ctx, try ctx.join(&.{ r32.dir, "Hello Native Setup 0.1.0 x86.exe" }));
 }
 
 fn checkPackage(ctx: Ctx, c: config.Config, p: proc.Platform, r: package.Result) !void {

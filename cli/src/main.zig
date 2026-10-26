@@ -54,7 +54,8 @@ const commands = [_]Command{
     .{ .name = "build", .args = "[dir]", .summary = "Builds the release (stripped) and packages it in <out>/<platform>-<arch>: a .app (and a .dmg\non a Mac), a Windows .exe with its icon and version resources and a .zip (and an installer\nwith NSIS), or a Linux directory, .tar.gz and .deb. <out> and .myzig/build are emptied first.", .flags =
     \\  --platform macos|windows|linux|web  the system to build for (default: this one); web: a
     \\                                  static site for browsers in <out>/web (native UI only)
-    \\  --arch x86_64|aarch64|universal  the architecture (default: this one; universal: macOS, both)
+    \\  --arch x86_64|aarch64|x86|universal  the architecture (default: this one); x86: 32-bit,
+    \\                                  Windows and Linux; universal: macOS, both
     \\  --optimize small|fast|safe      ReleaseSmall (default), ReleaseFast or ReleaseSafe
     \\  --out DIR                       the output directory (default: out of myzig.zon, dist)
     \\  --skip-build-command            don't run build_command
@@ -214,6 +215,10 @@ fn dispatch(ctx: Ctx, cmd: Command, args: *Args) !void {
         }
         if (o.universal and o.platform != .macos) {
             std.debug.print("error: --arch universal is for macOS\n", .{});
+            return error.Usage;
+        }
+        if (o.arch == .x86 and o.platform == .macos) {
+            std.debug.print("error: macOS has no 32-bit apps: --arch x86 is for Windows and Linux\n", .{});
             return error.Usage;
         }
         if (positional.items.len > 1) return error.Usage;

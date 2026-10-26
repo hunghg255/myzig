@@ -114,6 +114,7 @@ Xây dựng ứng dụng (Gỡ lỗi), ghi client khi ứng dụng có frontend,
 ```sh
 myzig build [dir]
 myzig build --platform windows --arch x86_64
+myzig build --platform windows --arch x86
 myzig build --platform macos --arch universal
 myzig build --platform web
 ```
@@ -125,7 +126,7 @@ Trước khi xây dựng, nó chạy `build_command` (bản dựng của fronten
 | cờ | |
 |---|---|
 | `--platform macos\|windows\|linux\|web` | hệ thống để xây dựng (mặc định: hệ thống này); `web` xây dựng một trang web tĩnh cho các trình duyệt trong `<out>/web` (chỉ giao diện native; xem [Trình duyệt](browsers.md)) |
-| `--arch x86_64\|aarch64\|universal` | kiến trúc (mặc định: cái này); `universal` là của macOS, cả hai đều được nối thành một nhị phân |
+| `--arch x86_64\|aarch64\|x86\|universal` | kiến trúc (mặc định: cái này); `x86` là 32-bit, cho Windows và Linux (cũng nhận `386`, `i386`); `universal` là của macOS, cả hai đều được nối thành một nhị phân |
 | `--optimize small\|fast\|safe` | ReleaseSmall (mặc định), ReleaseFast hoặc ReleaseSafe (`debug` cũng vậy) |
 | `--out DIR` | thư mục đầu ra (mặc định: `out` của `myzig.zon`, `dist`) |
 | `--skip-build-command` | đừng chạy `build_command` |

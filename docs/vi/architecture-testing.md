@@ -144,7 +144,7 @@ ls -l zig-out/bin/counter zig-out/bin/hello
 3. **Xuất nó** từ `src/myzig.zig` hoặc `src/ui/ui.zig`.
 4. **Tránh xa các ứng dụng không sử dụng nó** (ở trên).
 5. **Kiểm tra**: các widget thông qua `ui.Tester` trong `src/ui/tests_*.zig`; Ánh xạ loại IPC trong `tsgen.zig`; các trang trong `examples/pages` (được điều hành bởi `test-pages`); cửa sổ trong phần phụ trợ' `window_tests.zig`; bộ kết xuất chống lại CPU. Đăng ký tệp kiểm tra trong khối kiểm tra của `ui.zig` hoặc `myzig.zig`.
-6. **Xây dựng mọi nền tảng**: `zig build`, `zig build -Dtarget=x86_64-linux-gnu`, `zig build -Dtarget=x86_64-windows-gnu`, `zig build web`; chạy `zig build test` (và `-Dportable=true`), kiểm thử Linux trong vùng chứa, `zig build lines`.
+6. **Xây dựng mọi nền tảng**: `zig build`, `zig build -Dtarget=x86_64-linux-gnu`, `zig build -Dtarget=x86_64-windows-gnu`, `zig build -Dtarget=x86-windows-gnu`, `zig build web`; chạy `zig build test` (và `-Dportable=true`), kiểm thử Linux trong vùng chứa, `zig build lines`.
 7. **Không có C**: khai báo `extern`, `dlopen`/`dlsym`, COM vtables; không có tệp `@cImport`, `.c` hoặc `.m`.
 8. **Ghi lại tài liệu** trong `docs/` và thêm nó vào ví dụ khi nó hiển thị.
 9. **Leo lên dốc** nếu chạm vào khung: chạy `hillclimb` trước và sau.

@@ -62,7 +62,7 @@ Xuất bản các tệp trong đó `updates` trỏ tới:
 - **S3**: `myzig build --upload` tải chúng lên cùng với các gói vào nhóm `updates.s3`; xem [bên dưới](#publishing-to-s3).
 - **Máy chủ của bạn**: tải các tệp thực thi và tệp kê khai lên thư mục `url`. Tải tệp kê khai lên sau cùng để ứng dụng không bao giờ nhìn thấy tệp kê khai bị thiếu tệp.
 
-Mỗi nền tảng và kiến trúc, chẳng hạn như `macos-aarch64`, `macos-universal` hoặc `windows-x86_64`, đều có tệp kê khai riêng và bản dựng chỉ xem xét bản dựng riêng của nó.
+Mỗi nền tảng và kiến trúc, chẳng hạn như `macos-aarch64`, `macos-universal`, `windows-x86_64` hoặc `windows-x86`, đều có tệp kê khai riêng và bản dựng chỉ xem xét bản dựng riêng của nó.
 
 <a id="publishing-to-s3"></a>
 

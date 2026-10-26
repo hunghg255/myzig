@@ -150,7 +150,7 @@ fn pattern(el: *anyopaque, id: i32) !*anyopaque {
     return p orelse error.NoPattern;
 }
 
-const UiaPoint = extern struct { x: f64, y: f64 };
+const UiaPoint = @import("uia_text.zig").UiaPoint;
 
 test "the Text pattern's ranges through the provider: words, lines, boxes, points, selection" {
     if (builtin.os.tag != .windows) return error.SkipZigTest;

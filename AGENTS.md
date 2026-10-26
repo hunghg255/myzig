@@ -39,6 +39,7 @@ zig build web && zig build test-web    # native UI for browsers, tested headless
 zig build test-pages          # pages through the real webview, hidden
 zig build -Dtarget=x86_64-linux-gnu    # Linux and Windows build from any machine
 zig build -Dtarget=x86_64-windows-gnu
+zig build -Dtarget=x86-windows-gnu      # 32-bit Windows (its tests run on 64-bit Windows too)
 cd cli && zig build test      # the CLI (its own package); `zig build e2e` for apps made by `myzig init`
 cd plugins/<name> && zig build test    # each plugin is its own package
 cd hillclimb && zig build run -Doptimize=ReleaseFast -- --label "change"   # benchmarks against mygo

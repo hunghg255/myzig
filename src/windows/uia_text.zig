@@ -15,7 +15,7 @@ const Range = range_mod.Range;
 const HRESULT = api_mod.HRESULT;
 const S_OK = api_mod.S_OK;
 
-pub const UiaPoint = extern struct { x: f64, y: f64 };
+pub const UiaPoint = extern struct { x: f64 align(api_mod.by_value_align), y: f64 align(api_mod.by_value_align) };
 
 /// Whether the element has the Text pattern.
 pub fn supports(n: *const Node) bool {

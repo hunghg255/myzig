@@ -135,7 +135,7 @@ pub const Source = union(enum) {
             if (limit) |l| take = @min(take, l - pos);
             const got = switch (s.*) {
                 .sound => |*m| blk: {
-                    const from = m.pos * ch;
+                    const from: usize = @intCast(m.pos * ch);
                     const k = @min(take, m.sound.frames() - m.pos);
                     @memcpy(dst[n * ch ..][0 .. k * ch], m.sound.samples[from..][0 .. k * ch]);
                     m.pos += k;

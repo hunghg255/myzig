@@ -201,7 +201,7 @@ pub const Voice = struct {
     pub fn mix(v: *Voice, out: []f32, master: f32) bool {
         var at: usize = 0;
         while (v.fade_left > 0 and at < out.len) {
-            const n: u64 = @min(v.fade_left, ramp_frames, (out.len - at) / 2);
+            const n: usize = @intCast(@min(v.fade_left, ramp_frames, (out.len - at) / 2));
             v.fade_left -= n;
             const done: f32 = @floatCast(@as(f64, @floatFromInt(v.fade_frames - v.fade_left)) / @as(f64, @floatFromInt(v.fade_frames)));
             v.volume = v.fade_from + (v.fade_to - v.fade_from) * done;

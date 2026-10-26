@@ -163,8 +163,8 @@ fn same(a: VARIANT, b: VARIANT) bool {
         api_mod.VT_BOOL => (a.data[0] & 0xffff != 0) == (b.data[0] & 0xffff != 0),
         api_mod.VT_I4 => @as(u32, @truncate(a.data[0])) == @as(u32, @truncate(b.data[0])),
         api_mod.VT_BSTR => blk: {
-            const x: ?[*:0]const u16 = @ptrFromInt(a.data[0]);
-            const y: ?[*:0]const u16 = @ptrFromInt(b.data[0]);
+            const x: ?[*:0]const u16 = @ptrFromInt(@as(usize, @intCast(a.data[0])));
+            const y: ?[*:0]const u16 = @ptrFromInt(@as(usize, @intCast(b.data[0])));
             if (x == null or y == null) break :blk x == y;
             break :blk std.mem.eql(u16, std.mem.span(x.?), std.mem.span(y.?));
         },
@@ -205,7 +205,7 @@ fn getAttributeValue(this: *anyopaque, attr: i32, p: *VARIANT) callconv(.winapi)
     const a = api_mod.api() orelse return S_OK;
     var unk: ?*anyopaque = null;
     _ = a.UiaGetReservedNotSupportedValue(&unk);
-    p.* = .{ .vt = api_mod.VT_UNKNOWN, .data = .{ @intFromPtr(unk), 0 } };
+    p.* = .of(api_mod.VT_UNKNOWN, @intFromPtr(unk));
     return S_OK;
 }
 

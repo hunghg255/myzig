@@ -178,7 +178,7 @@ test "codecs: seeking decodes what decoding from the start does" {
                 got += k;
             }
             try std.testing.expectEqual(want, got);
-            for (buf[0 .. want * ch], all[target * ch ..][0 .. want * ch]) |a, b| try std.testing.expectApproxEqAbs(b, a, 1e-6);
+            for (buf[0 .. want * ch], all[@intCast(target * ch)..][0 .. want * ch]) |a, b| try std.testing.expectApproxEqAbs(b, a, 1e-6);
         }
         // At the end: nothing more.
         try d.seek(n);

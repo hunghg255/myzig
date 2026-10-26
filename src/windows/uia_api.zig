@@ -159,27 +159,40 @@ pub const VT_BSTR: u16 = 8;
 pub const VT_BOOL: u16 = 11;
 pub const VT_UNKNOWN: u16 = 13;
 
+/// The alignment of 8-byte fields in a struct passed by value. 32-bit
+/// Windows puts such a struct in 4-byte stack slots, which LLVM matches
+/// only when the struct is 4-aligned.
+pub const by_value_align = if (@sizeOf(usize) == 4) 4 else 8;
+
 pub const VARIANT = extern struct {
     vt: u16 = VT_EMPTY,
     reserved: [3]u16 = .{ 0, 0, 0 },
-    data: [2]u64 = .{ 0, 0 },
+    /// The union: 16 bytes on 64-bit Windows, 8 on 32-bit.
+    data: [@sizeOf(usize) / 4]u64 align(by_value_align) = @splat(0),
+
+    /// A VARIANT of type `vt` whose first eight bytes are `x`.
+    pub fn of(vt: u16, x: u64) VARIANT {
+        var v: VARIANT = .{ .vt = vt };
+        v.data[0] = x;
+        return v;
+    }
 
     pub fn int(v: i32) VARIANT {
-        return .{ .vt = VT_I4, .data = .{ @as(u32, @bitCast(v)), 0 } };
+        return .of(VT_I4, @as(u32, @bitCast(v)));
     }
 
     pub fn boolean(v: bool) VARIANT {
-        return .{ .vt = VT_BOOL, .data = .{ if (v) 0xFFFF else 0, 0 } };
+        return .of(VT_BOOL, if (v) 0xFFFF else 0);
     }
 
     pub fn double(v: f64) VARIANT {
-        return .{ .vt = VT_R8, .data = .{ @bitCast(v), 0 } };
+        return .of(VT_R8, @bitCast(v));
     }
 
     /// A BSTR of `s` (the receiver frees it); empty without the API.
     pub fn string(s: []const u8) VARIANT {
         const b = bstr(s) orelse return .{};
-        return .{ .vt = VT_BSTR, .data = .{ @intFromPtr(b), 0 } };
+        return .of(VT_BSTR, @intFromPtr(b));
     }
 };
 
@@ -271,7 +284,7 @@ test "control types and patterns" {
     try std.testing.expectEqual(@as(i32, 50004), controlType(.text_field));
     try std.testing.expectEqual(Iface.invoke, patternIface(10000).?);
     try std.testing.expect(patternIface(10030) == null);
-    try std.testing.expectEqual(@as(usize, 24), @sizeOf(VARIANT));
+    try std.testing.expectEqual(@as(usize, 8 + 2 * @sizeOf(usize)), @sizeOf(VARIANT));
 }
 
 /// A SAFEARRAY of doubles.

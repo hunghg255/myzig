@@ -96,8 +96,16 @@ pub extern "user32" fn GetClientRect(hwnd: HWND, rect: *RECT) callconv(.winapi) 
 pub extern "user32" fn GetWindowRect(hwnd: HWND, rect: *RECT) callconv(.winapi) BOOL;
 pub extern "user32" fn SetWindowPos(hwnd: HWND, after: ?HWND, x: i32, y: i32, w: i32, h: i32, flags: u32) callconv(.winapi) BOOL;
 pub extern "user32" fn SetWindowTextW(hwnd: HWND, text: [*:0]const u16) callconv(.winapi) BOOL;
-pub extern "user32" fn SetWindowLongPtrW(hwnd: HWND, index: i32, value: isize) callconv(.winapi) isize;
-pub extern "user32" fn GetWindowLongPtrW(hwnd: HWND, index: i32) callconv(.winapi) isize;
+// 32-bit user32 has no *LongPtr exports; its headers map them to *LongW.
+const long_ptr = @sizeOf(usize) == 8;
+pub const SetWindowLongPtrW = @extern(*const fn (hwnd: HWND, index: i32, value: isize) callconv(.winapi) isize, .{
+    .name = if (long_ptr) "SetWindowLongPtrW" else "SetWindowLongW",
+    .library_name = "user32",
+});
+pub const GetWindowLongPtrW = @extern(*const fn (hwnd: HWND, index: i32) callconv(.winapi) isize, .{
+    .name = if (long_ptr) "GetWindowLongPtrW" else "GetWindowLongW",
+    .library_name = "user32",
+});
 pub extern "user32" fn AdjustWindowRectEx(rect: *RECT, style: u32, menu: BOOL, ex: u32) callconv(.winapi) BOOL;
 pub extern "user32" fn GetSystemMetrics(index: i32) callconv(.winapi) i32;
 pub extern "user32" fn SetCapture(hwnd: HWND) callconv(.winapi) ?HWND;

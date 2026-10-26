@@ -3,7 +3,8 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const myzig = b.dependency("myzig", .{ .target = target, .optimize = optimize }).module("myzig");
+    const myzig_dep = b.dependency("myzig", .{ .target = target, .optimize = optimize });
+    const myzig = myzig_dep.module("myzig");
     const mainthread = b.dependency("mainthread", .{ .target = target, .optimize = optimize }).module("mainthread");
     const mod = b.addModule("updater", .{
         .root_source_file = b.path("src/updater.zig"),
@@ -40,6 +41,8 @@ pub fn build(b: *std.Build) void {
             .imports = &.{ .{ .name = "myzig", .module = myzig }, .{ .name = "updater", .module = mod }, .{ .name = "releases", .module = api } },
         }),
     });
+    // Without a manifest, Windows asks to elevate a 32-bit "updater".
+    if (target.result.os.tag == .windows) example.win32_manifest = myzig_dep.path("src/windows/myzig.manifest");
     b.installArtifact(example);
     const run = b.addRunArtifact(example);
     run.addPassthruArgs();

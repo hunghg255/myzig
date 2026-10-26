@@ -91,7 +91,7 @@ fn name(el: *anyopaque) ![]const u8 {
     try testing.expectEqual(com.S_OK, com.call(el, 5, .{ @as(i32, api_mod.Prop.name), &v }));
     defer _ = api_mod.api().?.VariantClear(&v);
     if (v.vt != api_mod.VT_BSTR) return "";
-    const p: [*:0]const u16 = @ptrFromInt(v.data[0]);
+    const p: [*:0]const u16 = @ptrFromInt(@as(usize, @intCast(v.data[0])));
     var buf: [256]u8 = undefined;
     const n = try std.unicode.utf16LeToUtf8(&buf, std.mem.span(p));
     return try testing.allocator.dupe(u8, buf[0..n]);

@@ -215,16 +215,16 @@ fn freeEntry(gpa: std.mem.Allocator, e: Entry) void {
     gpa.free(e.name);
 }
 
-var name_counter: std.atomic.Value(u64) = .init(0);
+var name_counter: std.atomic.Value(u32) = .init(0);
 
 /// A name no other session has: the clock and a counter, in base 36.
 pub fn randomName(io: std.Io, out: []u8) void {
     const now: u64 = @truncate(@as(u96, @bitCast(std.Io.Timestamp.now(io, .real).nanoseconds)));
-    var x = now ^ (name_counter.fetchAdd(1, .monotonic) *% 0x9e3779b97f4a7c15);
+    var x = now ^ (@as(u64, name_counter.fetchAdd(1, .monotonic)) *% 0x9e3779b97f4a7c15);
     x = std.hash.Wyhash.hash(x, std.mem.asBytes(&x));
     const digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     for (out) |*ch| {
-        ch.* = digits[x % 36];
+        ch.* = digits[@intCast(x % 36)];
         x = x / 36 ^ std.hash.Wyhash.hash(x, "n");
     }
 }

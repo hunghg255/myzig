@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!-- What myzig's apps tell Windows about themselves: they run on Windows 8
      and later, so they may have layered child windows (the caption buttons
-     of hidden title bars), and Windows reports its real version to them. -->
+     of hidden title bars), and Windows reports its real version to them.
+     They run as the user who started them: without that, Windows asks to
+     elevate a 32-bit app whose name says "update", "setup" or "install". -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>

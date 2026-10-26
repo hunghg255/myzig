@@ -215,7 +215,8 @@ zig build test-web     # counter and gallery built for browsers, under Node
 
 myzig loads what Linux and Windows have instead of linking it, so their
 apps build from any machine: `zig build -Dtarget=x86_64-linux-gnu` or
-`-Dtarget=x86_64-windows-gnu` makes a Linux or Windows binary. macOS apps
+`-Dtarget=x86_64-windows-gnu` makes a Linux or Windows binary
+(`x86-windows-gnu` for 32-bit Windows). macOS apps
 link Apple's frameworks, from the macOS SDK. Native UI also builds for
 browsers (`wasm32-wasi`, see [Browsers](docs/browsers.md)).
 

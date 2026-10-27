@@ -409,3 +409,43 @@ test "a disposed effect a read queued is not freed before the queue runs" {
     try expectEqual(1, S.a_runs);
     try expectEqual(3, S.b_runs);
 }
+
+test "an effect can dispose itself, which is its one dispose" {
+    begin();
+    defer end();
+    const S = struct {
+        var s = Signal(i32).init(0);
+        var self: ?*signals.Effect = null;
+        var runs: u32 = 0;
+        fn run() void {
+            runs += 1;
+            if (s.get() == 1) self.?.dispose();
+        }
+    };
+    const e = signals.effect(S.run);
+    S.self = e;
+    S.s.set(1); // the effect disposes itself
+    S.s.set(2);
+    try expectEqual(2, S.runs); // freed, as the leak check shows
+}
+
+test "a child effect the caller disposes first is not disposed again" {
+    begin();
+    defer end();
+    const S = struct {
+        var a = Signal(i32).init(0);
+        var child: ?*signals.Effect = null;
+        fn inner() void {
+            Log.push("inner:run");
+        }
+        fn outer() void {
+            _ = a.get();
+            child = signals.effect(inner);
+        }
+    };
+    const e = signals.effect(S.outer);
+    defer e.dispose();
+    S.child.?.dispose();
+    S.a.set(1); // the outer runs again, without the disposed child
+    try Log.expectLog(&.{ "inner:run", "inner:run" });
+}

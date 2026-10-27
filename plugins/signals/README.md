@@ -23,9 +23,10 @@ count.set(1); // prints 2
 e.dispose();
 ```
 
-`src/system.zig` is alien-signals' `system.ts` (the graph), `src/signals.zig`
-its `index.ts` (the API and the global state), and `src/tests.zig` its
-tests. The [documentation](../../docs/plugins/signals.md) covers the API;
+`src/system.zig` is alien-signals' `system.ts` (the graph); `src/values.zig`
+(signals, computeds) and `src/core.zig` (the global state that runs
+effects) are its `index.ts`, `src/signals.zig` the API, and `src/tests*.zig`
+its tests. The [documentation](../../docs/plugins/signals.md) covers the API;
 `example/` is native UI on a global store, with an effect that draws the
 window again when the store changes outside events.
 

@@ -37,6 +37,8 @@ pub fn build(b: *std.Build) void {
     const snap = b.addRunArtifact(example);
     _ = snap.addPrefixedOutputFileArg("--myzig-snapshot=", "signals.png");
     snap.addArg("--myzig-script=click:Add;click:Add");
+    // Kept, not shown: the build runner prints a step's stderr as if it failed.
+    _ = snap.captureStdErr(.{});
     b.step("snapshot", "Render the example offscreen (a PNG in the cache)").dependOn(&snap.step);
     test_step.dependOn(&snap.step);
 }

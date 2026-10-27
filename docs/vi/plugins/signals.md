@@ -43,6 +43,7 @@ e.dispose();
 - `effect(f)` (`fn () void`) hoặc `effectWith(ctx, f)` (`fn (@TypeOf(ctx)) void`) chạy `f` ngay và chạy lại sau mỗi thay đổi của những gì nó đã đọc. Trả về `*Effect`; `dispose()` dừng nó.
 - `onCleanup(f)` / `onCleanupWith(ctx, f)`, gọi trong hàm của effect, gán cho nó một cleanup chạy trước lần chạy kế tiếp và khi bị dispose (tương đương hàm mà effect của alien-signals trả về).
 - Effect và scope được tạo khi một effect đang chạy thuộc về effect đó: chúng bị dispose (trong cùng và mới nhất trước) khi nó chạy lại hoặc bị dispose. Đừng tự dispose chúng sau đó.
+- Mỗi effect và scope chỉ bị dispose một lần, bởi người gọi hoặc bởi chính hàm của nó (effect con còn có thể bởi effect cha, trừ khi người gọi đã dispose nó trước). Vì không có garbage collector, con trỏ của nó không được dùng sau đó, trong khi alien-signals cho phép gọi dispose lại.
 - `effectScope(f)` / `effectScopeWith(ctx, f)` chạy `f` một lần và gom các effect nó tạo; dispose scope sẽ dispose chúng.
 
 ## Batch, trigger, đọc không theo dõi

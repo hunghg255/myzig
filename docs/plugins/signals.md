@@ -68,6 +68,10 @@ e.dispose();
 - Effects and scopes made while an effect runs belong to it: they are
   disposed, innermost and latest first, when it runs again or is
   disposed. Don't dispose them yourself after that.
+- Each effect and scope is disposed once, by the caller or by its own
+  function (a child also by its parent, unless the caller disposed it
+  first). Without a garbage collector, its pointer is not to be used after
+  that, where alien-signals lets a dispose be called again.
 - `effectScope(f)` / `effectScopeWith(ctx, f)` runs `f` once and collects
   the effects it makes; disposing the scope disposes them.
 

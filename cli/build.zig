@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
     const web_site = b.createModule(.{ .root_source_file = myzig.path("src/web/site.zig") });
 
     const options = b.addOptions();
-    options.addOption([]const u8, "version", "0.1.12");
+    options.addOption([]const u8, "version", "0.1.13");
     const root = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,

@@ -71,7 +71,7 @@ Creates an app in a new or empty directory:
 
 Where myzig comes from: `--myzig`, else `MYZIG_ROOT`, else the myzig
 repository on GitHub at the CLI's version
-(`git+https://github.com/hunghg255/myzig#v0.1.12` for CLI 0.1.12). A
+(`git+https://github.com/hunghg255/myzig#v0.1.13` for CLI 0.1.13). A
 checkout becomes a path dependency (`.myzig = .{ .path = "../myzig" }`)
 when a relative path reaches it; a URL (or a checkout on another drive) is
 fetched with `zig fetch --save=myzig`.

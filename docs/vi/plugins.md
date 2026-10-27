@@ -21,6 +21,7 @@ Mọi plugin chính thức đều tồn tại trong `plugins/<name>` của kho l
 - [terminal](plugins/terminal.md): view terminal cho giao diện native, chạy shell trong terminal giả với trình mô phỏng Ghostty, libghostty-vt, được tải trong thời gian chạy.
 - [glass](plugins/glass.md): Kính lỏng và hiệu ứng làm mờ phông nền cho giao diện native, được vẽ bởi mọi bộ kết xuất có CPU đôi.
 - [game](plugins/game.md): vòng lặp trò chơi theo các bước cố định, máy ảnh và tay cầm chơi game cho giao diện native.
+- [signals](plugins/signals.md): state toàn cục bằng signal, computed và effect, bản port của alien-signals.
 - [mainthread](plugins/mainthread.md): công việc được giao cho luồng chính từ bất kỳ ai khác; các plugin khác được xây dựng trên đó.
 
 | phần bổ trợ | mô-đun | trang | native UI | Zig chỉ |
@@ -33,7 +34,8 @@ Mọi plugin chính thức đều tồn tại trong `plugins/<name>` của kho l
 | terminal | `terminal` | | vâng | |
 | kính | `glass` | | vâng | |
 | trò chơi | `game`, `gamepad` | | vâng | `gamepad` |
-| chủ đề chính | `mainthread` | | | vâng |
+| signals | `signals` | | vâng | vâng |
+| mainthread | `mainthread` | | | vâng |
 
 <a id="using-a-plugin"></a>
 

@@ -36,6 +36,8 @@ in `src/`, an `example/` app and its tests.
   native UI, drawn by every renderer with a CPU twin.
 - [game](plugins/game.md): a game loop in fixed steps, a camera, and
   gamepads, for native UI.
+- [signals](plugins/signals.md): global state in signals, computeds and
+  effects, a port of alien-signals.
 - [mainthread](plugins/mainthread.md): work handed to the main thread from
   any other; the other plugins build on it.
 
@@ -49,6 +51,7 @@ in `src/`, an `example/` app and its tests.
 | terminal | `terminal` | | yes | |
 | glass | `glass` | | yes | |
 | game | `game`, `gamepad` | | yes | `gamepad` |
+| signals | `signals` | | yes | yes |
 | mainthread | `mainthread` | | | yes |
 
 ## Using a plugin

@@ -97,7 +97,7 @@ Native UI:
 Mọi thứ khác:
 
 - [Ngôn ngữ](i18n.md): danh mục tin nhắn, số nhiều, số và ngày, từ phải sang trái, chuỗi riêng của myzig, các trang đã dịch.
-- [Plugin](plugins.md): sử dụng và ghi các plugin cũng như các plugin chính thức: [fetch](plugins/fetch.md), [websocket](plugins/websocket.md), [sqlite](plugins/sqlite.md), [watch](plugins/watch.md), [updater](plugins/updater.md), [terminal](plugins/terminal.md), [glass](plugins/glass.md), [game](plugins/game.md) và [mainthread](plugins/mainthread.md).
+- [Plugin](plugins.md): sử dụng và ghi các plugin cũng như các plugin chính thức: [fetch](plugins/fetch.md), [websocket](plugins/websocket.md), [sqlite](plugins/sqlite.md), [watch](plugins/watch.md), [updater](plugins/updater.md), [terminal](plugins/terminal.md), [glass](plugins/glass.md), [game](plugins/game.md), [signals](plugins/signals.md) và [mainthread](plugins/mainthread.md).
 - [myzig CLI](cli.md): `init`, `dev`, `build`, `generate`, `icon`, `keygen`, `doctor`, `version` và cờ `--myzig-*` của ứng dụng.
 - [Cấu hình](configuration.md): mọi trường của `myzig.zon`.
 - [Xây dựng và phân phối](distribution.md): những gì `myzig build` tạo ra trên mỗi nền tảng (`.app` và `.dmg`, `.exe`, `.zip` và trình cài đặt NSIS, `.tar.gz` và `.deb`), ký kết, xây dựng chéo.

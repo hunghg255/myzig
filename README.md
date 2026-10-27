@@ -318,7 +318,7 @@ Rules for working here, by hand or with an agent, are in
 How myzig is built, from its layers to the IPC wire protocol and the
 renderers, is in [the architecture guide](docs/architecture.md). Official
 plugins live in [`plugins/`](docs/plugins.md): fetch, websocket, sqlite,
-watch, updater, terminal, glass, game, mainthread and loading. Bound methods run on
+watch, updater, terminal, glass, game, signals, mainthread and loading. Bound methods run on
 the main thread.
 
 ## License

@@ -132,8 +132,8 @@ Everything else:
   [fetch](plugins/fetch.md), [websocket](plugins/websocket.md),
   [sqlite](plugins/sqlite.md), [watch](plugins/watch.md),
   [updater](plugins/updater.md), [terminal](plugins/terminal.md),
-  [glass](plugins/glass.md), [game](plugins/game.md) and
-  [mainthread](plugins/mainthread.md).
+  [glass](plugins/glass.md), [game](plugins/game.md),
+  [signals](plugins/signals.md) and [mainthread](plugins/mainthread.md).
 - [The myzig CLI](cli.md): `init`, `dev`, `build`, `generate`, `icon`,
   `keygen`, `doctor`, `version`, and the apps' `--myzig-*` flags.
 - [Configuration](configuration.md): every field of `myzig.zon`.

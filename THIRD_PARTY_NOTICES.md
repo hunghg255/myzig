@@ -52,6 +52,15 @@ The rest of the MP3 and Ogg Vorbis decoders is written from the
 specifications (the Vorbis I specification gives the inverse dB table in
 `src/audio/vorbis_floor.zig`).
 
+## alien-signals
+
+The signals plugin (`plugins/signals`) ports
+[alien-signals](https://github.com/stackblitz/alien-signals) 3.2.1 (commit
+`c00e639`), Copyright (c) 2024-present Johnson Chu, to Zig: its reactive
+system (`src/system.zig`), its API (`src/signals.zig`) and its tests
+(`src/tests.zig`). Its MIT license is kept verbatim in
+[`third_party/licenses/alien-signals-MIT.txt`](third_party/licenses/alien-signals-MIT.txt).
+
 ## The terminal plugin
 
 `plugins/terminal` loads, at run time, builds of

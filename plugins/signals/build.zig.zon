@@ -1,0 +1,16 @@
+.{
+    .name = .myzig_signals,
+    .version = "0.1.12",
+    .fingerprint = 0x31f2757e806f4a5f,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .myzig = .{ .path = "../.." },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "example",
+        "README.md",
+    },
+}

@@ -126,7 +126,7 @@ const plugins = [
     text: 'Plugins',
     items: [
       page('Using and writing plugins', '/plugins'),
-      ...['fetch', 'websocket', 'sqlite', 'watch', 'updater', 'terminal', 'glass', 'game', 'mainthread', 'loading'].map((name) =>
+      ...['fetch', 'websocket', 'sqlite', 'watch', 'updater', 'terminal', 'glass', 'game', 'signals', 'mainthread', 'loading'].map((name) =>
         page(name, `/plugins/${name}`),
       ),
     ],

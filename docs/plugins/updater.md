@@ -51,7 +51,8 @@ if (try u.check(arena)) |update| { // update.version, .notes, .size
 - `download` takes an optional `updater.Progress` (`ctx`, and
   `func(ctx, done, total)`, with `total` null when the server didn't say).
 - `install` replaces the executable (`exe_path`, the running one when
-  null). Windows lets a running executable be renamed but not replaced, so
+  null). Windows lets a running executable be renamed (`MoveFileExW`;
+  `Io.Dir.rename` refuses it) but not replaced, so
   it moves aside to `<exe>.old` first (and back if moving the new one in
   fails), which `cleanup` removes at the next start; on macOS and Linux the
   rename replaces it at once. The running app goes on as it was.

@@ -27,6 +27,21 @@ pub const Window = @import("window.zig").Window;
 pub const WindowOptions = @import("window.zig").Options;
 pub const WindowView = @import("window_view.zig").View;
 
+extern "kernel32" fn MoveFileExW(from: [*:0]const u16, to: [*:0]const u16, flags: u32) callconv(.winapi) i32;
+
+test "a running executable moves aside on Windows" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const gpa = std.testing.allocator;
+    var buf: [std.fs.max_path_bytes]u8 = undefined;
+    const exe = buf[0..try std.process.executablePath(std.testing.io, &buf)];
+    const moved = try std.fmt.allocPrint(gpa, "{s}.moved", .{exe});
+    defer gpa.free(moved);
+    // This test's own executable, running: `install` moves the app's so.
+    try std.testing.expectError(error.FileBusy, Io.Dir.cwd().rename(exe, Io.Dir.cwd(), moved, std.testing.io));
+    try Updater.moveFile(gpa, exe, moved);
+    try Updater.moveFile(gpa, moved, exe);
+}
+
 /// The manifest, as JSON: `{"version": "1.2.0", "url": "https://…/app",
 /// "sha256": "<64 hex digits>", "notes": "Markdown", "size": 1234}`, and
 /// as `myzig build` writes it, `"signature"`: the Ed25519 signature of the
@@ -136,15 +151,26 @@ pub const Updater = struct {
             var old_buf: [std.fs.max_path_bytes]u8 = undefined;
             const old = try std.fmt.bufPrint(&old_buf, "{s}.old", .{exe});
             cwd.deleteFile(u.io, old) catch {};
-            try cwd.rename(exe, cwd, old, u.io);
-            cwd.rename(staged, cwd, exe, u.io) catch |err| {
+            try moveFile(u.gpa, exe, old);
+            moveFile(u.gpa, staged, exe) catch |err| {
                 // Put it back.
-                cwd.rename(old, cwd, exe, u.io) catch {};
+                moveFile(u.gpa, old, exe) catch {};
                 return err;
             };
         } else {
             try cwd.rename(staged, cwd, exe, u.io);
         }
+    }
+
+    /// Moves `from` to `to`, replacing it, on Windows: MoveFileExW renames
+    /// the running executable, which `Io.Dir.rename` refuses (FileBusy).
+    fn moveFile(gpa: std.mem.Allocator, from: []const u8, to: []const u8) !void {
+        const f = try std.unicode.wtf8ToWtf16LeAllocZ(gpa, from);
+        defer gpa.free(f);
+        const t = try std.unicode.wtf8ToWtf16LeAllocZ(gpa, to);
+        defer gpa.free(t);
+        const replace_existing = 0x1;
+        if (MoveFileExW(f, t, replace_existing) == 0) return error.RenameFailed;
     }
 
     /// Removes what an update left: the executable moved aside, a download

@@ -56,6 +56,10 @@ in `src/`, an `example/` app and its tests.
 
 ## Using a plugin
 
+myzig's own package exports `updater` and `mainthread` (its release ships
+their sources), so an app that depends on a release takes them from it:
+`b.dependency("myzig", ...).module("updater")`. Other plugins:
+
 A plugin is a dependency of the app's package. Add it next to myzig in
 `build.zig.zon`, as a path into a checkout of myzig (the plugins depend on
 the myzig two directories up, `../..`, so the app and the plugin share one

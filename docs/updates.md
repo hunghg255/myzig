@@ -1,7 +1,7 @@
 # Updates
 
 Apps built with myzig update themselves from signed releases, published on
-GitHub, in an S3 bucket or on any HTTPS server, after mygo's
+GitHub, in an S3 bucket or on any web server, after mygo's
 [auto-updates](../../mygo/docs/updates.md). `myzig build` signs each
 platform's update with your key, and the [updater plugin](plugins/updater.md)
 in the app downloads a newer version, checks its signature against the
@@ -34,7 +34,10 @@ Add the public key to `myzig.zon`, with where releases are published:
 `github` is a public repository whose releases, tagged `v1.2.0` and so on
 (`tag_prefix`), hold the updates; apps read the manifests of its latest
 release. For your own server or an [S3 bucket](#publishing-to-s3), set
-`url` instead, an HTTPS URL of a directory.
+`url` instead, the URL of a directory: https, or http on an intranet,
+as the signature, not the transport, is what apps trust. Its manifests
+name the executable relative to themselves, so the app's `manifest_url`
+chooses the directory (one per environment, say), whatever `url` says.
 
 Give the app the same public key and the URL of its platform's manifest,
 which `myzig build` prints (`updater.Service`'s `public_key` and

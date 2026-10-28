@@ -10,5 +10,8 @@
         "src",
         // build.zig imports its steps (`zig build check-msl`).
         "tools/msl",
+        // build.zig's `mainthread` and `updater` modules.
+        "plugins/mainthread/src",
+        "plugins/updater/src",
     },
 }

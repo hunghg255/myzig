@@ -32,6 +32,22 @@ pub fn build(b: *std.Build) void {
     // The name it had before (nanoui), for apps that still import it.
     b.modules.put(b.graph.arena, "nanoui", myzig) catch @panic("OOM");
     const os = target.result.os.tag;
+    // Plugins that apps depending on myzig's release take from it, as its
+    // `mainthread` and `updater` modules: the package ships their sources.
+    const mainthread = b.addModule("mainthread", .{
+        .root_source_file = b.path("plugins/mainthread/src/mainthread.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    if (os == .macos) mainthread.linkFramework("CoreFoundation", .{});
+    _ = b.addModule("updater", .{
+        .root_source_file = b.path("plugins/updater/src/updater.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .imports = &.{ .{ .name = "myzig", .module = myzig }, .{ .name = "mainthread", .module = mainthread } },
+    });
     if (os == .macos) {
         for (frameworks) |f| myzig.linkFramework(f, .{});
         myzig.linkSystemLibrary("objc", .{});

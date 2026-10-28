@@ -81,7 +81,8 @@ test "the updates of the configuration" {
         .{ .{ .public_key = "nope", .github = "a/b" }, "updates.public_key: invalid update public key" },
         .{ .{ .public_key = pub_text }, "updates needs either github (owner/name) or url" },
         .{ .{ .public_key = pub_text, .github = "app" }, "updates.github \"app\" is not owner/name" },
-        .{ .{ .public_key = pub_text, .url = "http://dl.example.com" }, "updates.url \"http://dl.example.com\" is not an https URL" },
+        .{ .{ .public_key = pub_text, .url = "ftp://dl.example.com" }, "updates.url \"ftp://dl.example.com\" is not an http(s) URL" },
+        .{ .{ .public_key = pub_text, .url = "http://" }, "updates.url \"http://\" is not an http(s) URL" },
         .{ .{ .public_key = pub_text, .github = "a/b", .s3 = .{ .bucket = "b" } }, "updates.s3 needs url, the HTTPS URL that serves the files of the bucket, in place of github" },
         .{ .{ .public_key = pub_text, .url = "https://x", .s3 = .{ .bucket = "b", .endpoint = "https://r2.example.com/bucket" } }, "updates.s3.endpoint \"https://r2.example.com/bucket\" has a path: the endpoint is the service's, and bucket names the bucket" },
     };
@@ -176,6 +177,13 @@ test "a build writes the signed update and its manifest" {
     try std.testing.expectEqualStrings(files[1], list.manifests[0]);
     try std.testing.expectEqualStrings("Cache-Control", publish.uploadHeaders("update-linux-x86_64.json")[1].name);
     try std.testing.expectEqual(@as(usize, 1), publish.uploadHeaders("app.dmg").len);
+
+    // From a server of url: the executable beside the manifest, relative.
+    c.updates.?.github = "";
+    c.updates.?.url = "http://192.168.7.10/my-app";
+    const served = try updates.writeUpdate(ctx, c, root, "windows-x86", exe);
+    const sm = try std.json.parseFromSliceLeaky(M, ctx.gpa, try fsx.read(ctx, served[1]), .{});
+    try std.testing.expectEqualStrings("my-app-2.0.0-windows-x86.exe", sm.url);
 
     // A changelog without the version's notes stops it.
     c.version = "3.0.0";

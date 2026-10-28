@@ -82,8 +82,12 @@ pub fn validate(gpa: std.mem.Allocator, u: Updates) LoadError!void {
     if (parsePublicKey(u.public_key) == null) return config.invalid(gpa, "updates.public_key: invalid update public key", .{});
     if ((u.github.len == 0) == (u.url.len == 0)) return config.invalid(gpa, "updates needs either github (owner/name) or url", .{});
     if (u.github.len > 0 and std.mem.count(u8, u.github, "/") != 1) return config.invalid(gpa, "updates.github \"{s}\" is not owner/name", .{u.github});
-    if (u.url.len > 0 and (!std.mem.startsWith(u8, u.url, "https://") or u.url.len == "https://".len))
-        return config.invalid(gpa, "updates.url \"{s}\" is not an https URL", .{u.url});
+    // http too (an intranet's server): the signature, not the transport,
+    // is what installed apps trust, and public_key is required.
+    if (u.url.len > 0) {
+        const rest = if (std.mem.startsWith(u8, u.url, "https://")) u.url["https://".len..] else if (std.mem.startsWith(u8, u.url, "http://")) u.url["http://".len..] else "";
+        if (rest.len == 0) return config.invalid(gpa, "updates.url \"{s}\" is not an http(s) URL", .{u.url});
+    }
     if (u.s3) |s| {
         if (u.url.len == 0) return config.invalid(gpa, "updates.s3 needs url, the HTTPS URL that serves the files of the bucket, in place of github", .{});
         if (s.bucket.len == 0) return config.invalid(gpa, "updates.s3 needs a bucket", .{});
@@ -270,7 +274,10 @@ pub fn writeUpdate(ctx: Ctx, c: Config, dir: []const u8, target: []const u8, exe
     Sha256.hash(bytes, &digest, .{});
     const m: Manifest = .{
         .version = c.version,
-        .url = try fileUrl(ctx, c, name, false),
+        // Beside the manifest on a server of `url`, relative: the app's
+        // manifest URL decides, so builds (dev, production) can check
+        // directories of their own.
+        .url = if (c.updates.?.github.len == 0) name else try fileUrl(ctx, c, name, false),
         .sha256 = &std.fmt.bytesToHex(digest, .lower),
         .signature = try sign(ctx.gpa, kp, digest),
         .notes = notes,

@@ -25,6 +25,7 @@ pub fn Signal(comptime T: type) type {
 
         /// The value, making the effect or computed reading it depend on it.
         pub fn get(s: *Self) T {
+            core.checkThread();
             if (s.node.flags & flags.dirty != 0) {
                 if (updateSignal(s)) {
                     if (s.node.subs) |subs| sys.shallowPropagate(subs);
@@ -44,6 +45,7 @@ pub fn Signal(comptime T: type) type {
         /// Changes the value: effects that read it run again now, or when
         /// the outermost batch ends.
         pub fn set(s: *Self, value: T) void {
+            core.checkThread();
             if (std.meta.eql(s.pending, value)) return;
             s.pending = value;
             s.node.flags = flags.mutable | flags.dirty;
@@ -96,8 +98,36 @@ pub fn Computed(comptime T: type) type {
         has_value: bool = false,
         ctx: *anyopaque,
         getter: *const fn (*anyopaque, ?T) T,
+        eql: *const fn (T, T) bool = &metaEql,
+        free: ?*const fn (T) void = null,
 
         const Self = @This();
+
+        pub const Options = struct {
+            /// Whether a new value is the same as the previous one, so that
+            /// what reads it doesn't run again: `std.meta.eql` (slices by
+            /// address) unless given; compare slices with `std.mem.eql`.
+            eql: *const fn (T, T) bool = &metaEql,
+            /// Frees a value the computed owns once it is replaced (by
+            /// anything but itself) or the computed `deinit`s, and only when
+            /// no signal call is under way and no batch is open: a value read
+            /// stays valid until the write that changes it has returned. The
+            /// getter must not free its previous value itself.
+            free: ?*const fn (T) void = null,
+        };
+
+        /// The same computed with `options`:
+        /// `Computed([]u8).init(format).withOptions(.{ .free = freeText })`.
+        pub fn withOptions(c: Self, options: Options) Self {
+            var o = c;
+            o.eql = options.eql;
+            o.free = options.free;
+            return o;
+        }
+
+        fn metaEql(a: T, b: T) bool {
+            return std.meta.eql(a, b);
+        }
 
         pub fn init(comptime getter: fn (?T) T) Self {
             return .{ .ctx = &core.Callback.no_ctx, .getter = &struct {
@@ -151,13 +181,18 @@ pub fn Computed(comptime T: type) type {
 
         /// Lets go of what it read. A computed read by effects lets go
         /// when they stop; one read outside effects keeps its links until
-        /// this (it is computed again if read after). What reads it must
-        /// let go first.
+        /// this (it is computed again if read after), and frees its value
+        /// if it owns one. What reads it must let go first.
         pub fn deinit(c: *Self) void {
             core.enter();
             defer core.leave();
             std.debug.assert(c.node.subs == null);
             core.Hooks.unwatched(&c.node);
+            if (c.free) |f| if (c.has_value) {
+                core.retire(T, c.value, f);
+                c.has_value = false;
+                c.node.flags = flags.none;
+            };
         }
 
         fn clearPending(n: *Node, fl: u8) bool {
@@ -178,7 +213,9 @@ pub fn Computed(comptime T: type) type {
             core.active_sub = prev;
             n.flags &= ~flags.recursed_check;
             core.purgeDeps(n);
-            return if (old) |o| !std.meta.eql(o, c.value) else true;
+            const o = old orelse return true;
+            if (c.free) |f| if (!std.meta.eql(o, c.value)) core.retire(T, o, f);
+            return !c.eql(o, c.value);
         }
 
         fn update(n: *Node) bool {

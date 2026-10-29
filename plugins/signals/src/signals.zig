@@ -15,10 +15,12 @@
 //!     e.dispose();
 //!
 //! The graph is global, as alien-signals' is, and belongs to one thread
-//! (the main thread, in an app). Signals and computeds are the caller's
-//! values, which must stay put while anything reads them (globals, or
-//! fields of state that outlives its effects); effects, scopes and the
-//! links between nodes come from `allocator`. A read can't fail, so
+//! (the main thread, in an app; safe builds panic on a call from another).
+//! Signals and computeds are the caller's values, which must stay put
+//! while anything reads them (globals, or fields of state that outlives
+//! its effects); effects, scopes and the links between nodes come from
+//! `allocator`. A computed can own its value (text it allocates) and free
+//! it once replaced (`Computed.withOptions`). A read can't fail, so
 //! running out of memory panics.
 //!
 //! `system.zig` is alien-signals' `system.ts` (the graph); `values.zig`
@@ -83,6 +85,7 @@ pub fn triggerWith(ctx: anytype, comptime f: fn (@TypeOf(ctx)) void) void {
 /// Holds effects back until the matching `endBatch`, so that several
 /// writes run them once.
 pub fn startBatch() void {
+    core.checkThread();
     core.batch_depth += 1;
 }
 
@@ -116,4 +119,5 @@ pub fn deinit() void {
 
 test {
     _ = @import("tests.zig");
+    _ = @import("tests_owned.zig");
 }

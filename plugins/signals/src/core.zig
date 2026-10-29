@@ -2,6 +2,7 @@
 //! `index.ts` less its values (`values.zig`), with the freeing that its
 //! garbage collector does for it.
 const std = @import("std");
+const builtin = @import("builtin");
 const api = @import("signals.zig");
 const system = @import("system.zig");
 
@@ -27,6 +28,48 @@ var queued: std.ArrayList(?*Node) = .empty;
 var calls: u32 = 0;
 var free_links: ?*Link = null;
 var free_effects: ?*Effect = null;
+var retired: ?*Retired = null;
+
+// The thread that first used the graph, checked in safe builds.
+const check_thread = std.debug.runtime_safety and !builtin.single_threaded;
+var owned = false;
+threadlocal var owner = false;
+
+/// Panics (in safe builds) when called from another thread than the one
+/// that first used the graph.
+pub inline fn checkThread() void {
+    if (!check_thread or owner) return;
+    if (owned) @panic("signals: used from a thread other than the one that first used it");
+    owned = true;
+    owner = true;
+}
+
+/// A value a computed no longer holds, freed with what was disposed.
+const Retired = struct {
+    next: ?*Retired,
+    free: *const fn (*Retired) void,
+};
+
+/// Frees `value` with `free` once no signal call is under way and no batch
+/// is open: what ran in the same write may still hold it.
+pub fn retire(comptime T: type, value: T, free: *const fn (T) void) void {
+    const Old = struct {
+        base: Retired,
+        value: T,
+        free: *const fn (T) void,
+
+        fn run(r: *Retired) void {
+            const o: *@This() = @fieldParentPtr("base", r);
+            const v = o.value;
+            const f = o.free;
+            api.allocator.destroy(o);
+            f(v);
+        }
+    };
+    const o = api.allocator.create(Old) catch oom();
+    o.* = .{ .base = .{ .next = retired, .free = &Old.run }, .value = value, .free = free };
+    retired = &o.base;
+}
 
 pub const Hooks = struct {
     pub fn update(n: *Node) bool {
@@ -96,6 +139,7 @@ pub fn oom() noreturn {
 }
 
 pub fn enter() void {
+    checkThread();
     calls += 1;
 }
 
@@ -118,9 +162,14 @@ fn collect() void {
         free_links = l.next_free;
         api.allocator.destroy(l);
     }
+    while (retired) |r| {
+        retired = r.next;
+        r.free(r);
+    }
 }
 
 pub fn deinit() void {
+    checkThread();
     std.debug.assert(calls == 0 and batch_depth == 0);
     @memset(queued.items, null);
     notify_index = 0;
@@ -128,6 +177,8 @@ pub fn deinit() void {
     collect();
     queued.deinit(api.allocator);
     queued = .empty;
+    owned = false;
+    owner = false;
 }
 
 /// A function and its context, called with no arguments.

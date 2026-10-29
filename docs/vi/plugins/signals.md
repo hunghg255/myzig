@@ -37,6 +37,25 @@ e.dispose();
 - `Computed(T).init(getter)` nhận `fn (previous: ?T) T` (null ở lần đầu); `Computed(T).initWith(ctx, getter)` nhận `fn (@TypeOf(ctx), ?T) T` với `ctx` là con trỏ.
 - `get()` cập nhật giá trị và lưu cache: getter chỉ chạy khi thứ nó đọc đã thay đổi, và chỉ khi được đọc. `peek()` đọc mà không tạo phụ thuộc.
 - Computed được effect đọc sẽ buông các phụ thuộc khi các effect đó dừng; computed được đọc ngoài effect giữ link cho đến khi gọi `deinit()`.
+- `withOptions(.{ .eql = ..., .free = ... })` cho computed sở hữu giá trị của nó, ví dụ chuỗi nó cấp phát. `eql` quyết định giá trị mới có giống giá trị trước không, để thứ đọc nó không chạy lại (mặc định là `std.meta.eql`, so slice theo địa chỉ). `free` giải phóng mỗi giá trị khi bị thay (bằng bất cứ thứ gì trừ chính giá trị trước), và giá trị cuối khi gọi `deinit()`. Getter không được tự giải phóng giá trị trước.
+
+```zig
+fn sameText(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
+
+fn freeText(s: []const u8) void {
+    signals.allocator.free(s);
+}
+
+var label = signals.Computed([]const u8).init(struct {
+    fn get(_: ?[]const u8) []const u8 {
+        return std.fmt.allocPrint(signals.allocator, "Count: {d}", .{count.get()}) catch @panic("OOM");
+    }
+}.get).withOptions(.{ .eql = sameText, .free = freeText });
+```
+
+- Giá trị bị thay chỉ được giải phóng khi không còn lời gọi signal nào đang chạy và không có batch nào mở, nên giá trị đã đọc vẫn dùng được cho đến khi lần ghi thay đổi nó trả về: một effect đang giữ giá trị trong khi chính lần ghi của nó làm effect khác tính giá trị mới vẫn đọc được giá trị cũ. Cần giữ lâu hơn thì copy ra. View hiển thị trực tiếp được: giao diện native copy chữ vào bộ nhớ của frame.
 
 ## Effect và scope
 
@@ -54,7 +73,7 @@ e.dispose();
 
 ## Bộ nhớ và luồng
 
-Đồ thị là toàn cục, như của alien-signals, và thuộc về một luồng: trong ứng dụng là luồng chính (công việc từ luồng khác đến đó qua [mainthread](mainthread.md)). Effect, scope và link giữa các node lấy từ `signals.allocator` (allocator SMP, hoặc allocator WebAssembly); hãy đặt nó trước lần đọc đầu tiên. Một lần đọc không thể thất bại, nên hết bộ nhớ sẽ panic. Những gì bị dispose hoặc unlink được giải phóng khi không còn lời gọi signal nào đang chạy và không có batch nào mở (effect đã dispose còn chờ đến khi hàng đợi không còn effect nào chờ chạy); `signals.deinit()` bỏ hàng đợi và giải phóng phần còn lại, dùng để kiểm tra rò rỉ trong test.
+Đồ thị là toàn cục, như của alien-signals, và thuộc về một luồng: trong ứng dụng là luồng chính (công việc từ luồng khác đến đó qua [mainthread](mainthread.md)). Ở bản Debug và ReleaseSafe, lời gọi từ luồng khác với luồng dùng nó đầu tiên sẽ panic; `signals.deinit()` bỏ ràng buộc với luồng đó. Effect, scope và link giữa các node lấy từ `signals.allocator` (allocator SMP, hoặc allocator WebAssembly); hãy đặt nó trước lần đọc đầu tiên. Một lần đọc không thể thất bại, nên hết bộ nhớ sẽ panic. Những gì bị dispose, unlink, hoặc bị thay trong computed sở hữu giá trị, được giải phóng khi không còn lời gọi signal nào đang chạy và không có batch nào mở (effect đã dispose còn chờ đến khi hàng đợi không còn effect nào chờ chạy); `signals.deinit()` bỏ hàng đợi và giải phóng phần còn lại, dùng để kiểm tra rò rỉ trong test.
 
 ## Với giao diện native
 

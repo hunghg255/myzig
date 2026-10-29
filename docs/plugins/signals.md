@@ -56,6 +56,36 @@ e.dispose();
   without depending on it.
 - A computed read by effects lets go of what it read when they stop; one
   read outside any effect keeps its links until `deinit()`.
+- `withOptions(.{ .eql = ..., .free = ... })` makes a computed own its
+  value, such as text it allocates. `eql` decides whether a new value is
+  the same as the previous one, so what reads it doesn't run again
+  (`std.meta.eql`, slices by address, unless given). `free` frees each
+  value once it is replaced (by anything but the previous value itself)
+  and the last one at `deinit()`. The getter must not free its previous
+  value.
+
+```zig
+fn sameText(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
+
+fn freeText(s: []const u8) void {
+    signals.allocator.free(s);
+}
+
+var label = signals.Computed([]const u8).init(struct {
+    fn get(_: ?[]const u8) []const u8 {
+        return std.fmt.allocPrint(signals.allocator, "Count: {d}", .{count.get()}) catch @panic("OOM");
+    }
+}.get).withOptions(.{ .eql = sameText, .free = freeText });
+```
+
+- A replaced value is freed only once no signal call is under way and no
+  batch is open, so a value read stays valid until the write that changes
+  it has returned: an effect holding it while its own write makes another
+  effect compute the next value still reads the old one. Keep it past that
+  and copy it. A view can show it as it is: native UI copies a text into
+  the frame's memory.
 
 ## Effects and scopes
 
@@ -88,13 +118,16 @@ e.dispose();
 
 The graph is global, as alien-signals' is, and belongs to one thread: in
 an app, the main thread (work from other threads reaches it through
-[mainthread](mainthread.md)). Effects, scopes and the links between nodes
-come from `signals.allocator` (the SMP allocator, or the WebAssembly one);
-set it before the first read. A read can't fail, so running out of memory
-panics. What is disposed or unlinked is freed once no signal call is under
-way and no batch is open (a disposed effect also waits until no effect is
-queued to run); `signals.deinit()` drops the queue and frees the rest, for
-leak checks in tests.
+[mainthread](mainthread.md)). In Debug and ReleaseSafe builds, a call from
+another thread than the one that first used it panics; `signals.deinit()`
+lets go of that thread. Effects, scopes and the links between nodes come
+from `signals.allocator` (the SMP allocator, or the WebAssembly one); set
+it before the first read. A read can't fail, so running out of memory
+panics. What is disposed, unlinked or replaced in a computed that owns its
+value is freed once no signal call is under way and no batch is open (a
+disposed effect also waits until no effect is queued to run);
+`signals.deinit()` drops the queue and frees the rest, for leak checks in
+tests.
 
 ## With native UI
 

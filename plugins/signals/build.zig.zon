@@ -1,6 +1,6 @@
 .{
     .name = .myzig_signals,
-    .version = "0.1.13",
+    .version = "0.1.14",
     .fingerprint = 0x31f2757e806f4a5f,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{

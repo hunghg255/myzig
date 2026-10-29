@@ -1,6 +1,6 @@
 .{
     .name = .myzig_mainthread,
-    .version = "0.1.13",
+    .version = "0.1.14",
     .fingerprint = 0x51e2276a91b4066a,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{},

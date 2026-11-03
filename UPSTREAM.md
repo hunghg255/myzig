@@ -186,7 +186,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `ceab6416` | 2026-10-28 | ui: add DecodeImage and ImageSize (#868) | todo-S | DecodeImage and ImageSize for SVG too |
 | `f9456cc3` | 2026-10-28 | showcase: add Godwit, an AI-native email client (#869) | skip |  |
 | `3d9d668c` | 2026-10-28 | page: run the preload script in iframes with PreloadAllFrames (#871) | ported | UserScript.all_frames |
-| `e5547238` | 2026-10-28 | ui: center the calendar's month chevrons (#874) | todo-S | calendar chevrons drawn centered |
+| `e5547238` | 2026-10-28 | ui: center the calendar's month chevrons (#874) | ported | calendar chevrons drawn centered |
 | `aa753d22` | 2026-10-29 | linux: defer a window's Hide asked for within its own frame (#877) | n/a | views do not run inside GL render |
 | `ac4e0ff0` | 2026-10-29 | editor: continue deletion bars' stripes across lines (#880) | n/a | diff view has no striped bars |
 | `a43cfed3` | 2026-10-28 | Release 0.7.2 | skip |  |
@@ -201,7 +201,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `85fd4bba` | 2026-10-29 | ui: open a drawn menu at the pointer on an element scrolled partly out of view (#896) | present | context menus open at the pointer (menu.zig) |
 | `2de039ab` | 2026-10-29 | linux: let linux.command name several commands (#900) | ported | cli: linux.command lists several |
 | `4712173a` | 2026-10-29 | idlemem: end a Windows app's processes before the next run, and show why an app exited (#901) | skip |  |
-| `b7e6bdd3` | 2026-10-29 | ui: let a Calendar page through months without choosing, with Browse (#903) | todo-S | calendar browse |
+| `b7e6bdd3` | 2026-10-29 | ui: let a Calendar page through months without choosing, with Browse (#903) | ported | calendar browse |
 | `c18c0df0` | 2026-10-29 | cli: add mygo build -skip-installer, which makes no Windows installer nor downloads NSIS (#902) | ported | cli: --skip-installer |
 | `813ee465` | 2026-10-29 | ui: size a grid child's percentages by its cell, not the grid (#909) | present | grid children sized by cell (grid_layout.zig) |
 | `fed2cc29` | 2026-10-29 | ui/editor: hatch a diff's fillers with the stripes in sight, as diagonals (#911) | n/a | diff has no filler rows |

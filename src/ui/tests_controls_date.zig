@@ -48,6 +48,20 @@ fn cellOf(t: *ui.Tester, label: []const u8) ?ui.Rect {
     return found;
 }
 
+/// The box of the icon `name`, as the month buttons' chevrons.
+fn iconOf(t: *ui.Tester, name: []const u8) ?ui.Rect {
+    for (t.ctx.nodes.items) |n| switch (n.content) {
+        .icon => |ic| if (std.mem.eql(u8, ic.name, name)) return n.rect,
+        else => {},
+    };
+    return null;
+}
+
+fn clickIcon(t: *ui.Tester, name: []const u8) !void {
+    const r = iconOf(t, name) orelse return error.NoIcon;
+    t.click(r.x + r.w / 2, r.y + r.h / 2);
+}
+
 test "a calendar shows six weeks of its month, and a click chooses a day" {
     var s: Due = .{};
     var t: ui.Tester = undefined;
@@ -68,15 +82,61 @@ test "a calendar shows six weeks of its month, and a click chooses a day" {
     try testing.expectEqual(@as(u32, 2), s.changes);
 }
 
+test "the month buttons' chevrons sit in the middle of the title's row" {
+    var s: Due = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Due.view), .{ .height = 420 });
+    defer t.deinit();
+    const title = t.findText("January 2026").?;
+    for ([_][]const u8{ "chevron.left", "chevron.right" }) |name| {
+        const r = iconOf(&t, name).?;
+        try testing.expectApproxEqAbs(title.y + title.h / 2, r.y + r.h / 2, 1);
+    }
+}
+
+const Browsing = struct {
+    day: Date = .{ .year = 2026, .month = 1, .day = 14 },
+    changes: u32 = 0,
+    fn view(s: *Browsing, c: *ui.Context) void {
+        ui.column(c, .{ .padding = .all(20), .gap = 12 });
+        defer ui.end(c);
+        if (date.calendar(c, &s.day, .{ .browse = true })) s.changes += 1;
+    }
+};
+
+test "a browsing calendar pages and moves without choosing, until a click or Enter" {
+    var s: Browsing = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Browsing.view), .{ .height = 420 });
+    defer t.deinit();
+    try clickIcon(&t, "chevron.right");
+    try testing.expect(t.hasText("February 2026"));
+    try testing.expect(s.day.eql(.{ .year = 2026, .month = 1, .day = 14 }));
+    t.key(.right);
+    t.key(.page_down);
+    try testing.expect(t.hasText("March 2026"));
+    try testing.expectEqual(@as(u32, 0), s.changes);
+    t.key(.enter);
+    try testing.expect(s.day.eql(.{ .year = 2026, .month = 3, .day = 15 }));
+    try testing.expectEqual(@as(u32, 1), s.changes);
+    // A click chooses; a date the app sets takes the cursor back.
+    try t.clickText("20");
+    try testing.expect(s.day.eql(.{ .year = 2026, .month = 3, .day = 20 }));
+    s.day = .{ .year = 2025, .month = 7, .day = 4 };
+    t.frame();
+    try testing.expect(t.hasText("July 2025"));
+    try testing.expectEqual(@as(u32, 2), s.changes);
+}
+
 test "a calendar's buttons and keys move by days, weeks and months" {
     var s: Due = .{};
     var t: ui.Tester = undefined;
     try t.init(testing.allocator, .init(&s, Due.view), .{ .height = 420 });
     defer t.deinit();
-    try t.clickText("›");
+    try clickIcon(&t, "chevron.right");
     try testing.expect(s.day.eql(.{ .year = 2026, .month = 2, .day = 14 }));
-    try t.clickText("‹");
-    try t.clickText("‹");
+    try clickIcon(&t, "chevron.left");
+    try clickIcon(&t, "chevron.left");
     try testing.expect(s.day.eql(.{ .year = 2025, .month = 12, .day = 14 }));
     try testing.expect(t.hasText("December 2025"));
     // The buttons gave it the focus: the keys move the day.

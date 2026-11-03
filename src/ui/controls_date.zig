@@ -105,6 +105,13 @@ pub const CalendarOptions = struct {
     disabled: ?*const fn (Date) bool = null,
     /// Inclusive range shading for a range picker.
     range: ?DateRange = null,
+    /// `calendar` moves about without choosing: its buttons, Page Up and
+    /// Page Down only show other months, and the arrows, Home and End only
+    /// move among the days, until a click, Enter or Space chooses one, as
+    /// in a date input's calendar; it returns true only for a day chosen,
+    /// as a calendar in a popover that closes on a choice needs. It goes
+    /// back to `date` as the app sets another.
+    browse: bool = false,
 
     pub fn allows(opts: CalendarOptions, date: Date) bool {
         if (opts.min) |d| if (date.toDays() < d.toDays()) return false;
@@ -147,11 +154,11 @@ pub fn grid(c: *Context, selected: Date, cursor: Date, keyboard: bool, opts: Cal
 
     // The header: the month's buttons round its title.
     _ = c.open(.{ .direction = .row, .width = .fill, .align_items = .center, .gap = 4 }, null);
-    if (monthButton(c, "‹")) res.moved = cursor.addMonths(-1);
+    if (monthButton(c, true)) res.moved = cursor.addMonths(-1);
     _ = c.open(.{ .grow = 1, .align_items = .center }, null);
     widgets.text(c, c.print("{s} {d}", .{ month_names[cursor.month - 1], cursor.year }), .{ .weight = .semibold });
     c.end();
-    if (monthButton(c, "›")) res.moved = cursor.addMonths(1);
+    if (monthButton(c, false)) res.moved = cursor.addMonths(1);
     c.end();
 
     const cell_w: f32 = 32;
@@ -197,13 +204,17 @@ pub fn grid(c: *Context, selected: Date, cursor: Date, keyboard: bool, opts: Cal
     return res;
 }
 
-fn monthButton(c: *Context, glyph: []const u8) bool {
+/// The button to the month before (`back`) or after: a chevron drawn in
+/// its middle, where the text's ‹ and › sat low, mirrored right to left.
+fn monthButton(c: *Context, back: bool) bool {
     const th = c.theme;
     const i = c.open(.{ .width = .{ .px = 28 }, .height = .{ .px = 24 }, .radius = 6, .align_items = .center, .justify = .center, .control = true }, null);
     defer c.end();
     const it = c.interact(i, .{});
     if (it.hovered) c.node(i).style.background = th.surface_hover;
-    widgets.text(c, glyph, .{ .size = 18, .weight = .medium, .color = th.text });
+    const left = back != @import("direction.zig").isRtl(c);
+    widgets.icon(c, if (left) "chevron.left" else "chevron.right", .{ .size = 13, .frame = 16, .weight = .semibold, .color = th.text });
+    c.describe(it.id, .{ .role = .button, .label = if (back) "Previous month" else "Next month" });
     return it.clicked;
 }
 
@@ -217,9 +228,30 @@ pub fn calendar(c: *Context, date: *Date, opts: CalendarOptions) bool {
     defer c.end();
     const it = c.interact(i, .{ .focusable = true });
     const focused = it.focused and c.focus == it.id;
-    const r = grid(c, date.*, date.*, focused, opts);
+    // Browsing, the cursor is the calendar's own, until the app sets
+    // another date than the one it followed.
+    var cursor = date.*;
+    const days: f32 = @floatFromInt(date.toDays());
+    if (opts.browse and state.get(c, it.id, salt_followed, days) == days)
+        cursor = Date.fromDays(@intFromFloat(state.get(c, it.id, salt_cursor, days)));
+    const r = grid(c, date.*, cursor, focused, opts);
     if (r.moved != null or r.chosen != null) c.focus = it.id;
     state.focusRing(c, i, c.focus == it.id);
+    if (opts.browse) {
+        if (r.moved) |m| if (r.chosen == null) {
+            cursor = m;
+            c.changed = true;
+        };
+        const chosen = if (r.chosen) |d| opts.allows(d) and !d.eql(date.*) else false;
+        if (chosen) {
+            date.* = r.chosen.?;
+            cursor = date.*;
+            c.changed = true;
+        }
+        state.put(c, it.id, salt_cursor, @floatFromInt(cursor.toDays()));
+        state.put(c, it.id, salt_followed, @floatFromInt(date.toDays()));
+        return chosen;
+    }
     const next = r.chosen orelse r.moved orelse return false;
     if (!opts.allows(next) or next.eql(date.*)) return false;
     date.* = next;
@@ -251,6 +283,8 @@ pub const DateInputOptions = struct {
 
 const salt_open = 0;
 const salt_cursor = 1;
+/// The date a browsing calendar's cursor followed last.
+const salt_followed = 2;
 
 /// A field showing `date` in numbers, which a calendar below it changes:
 /// a click, Enter or Space opens the calendar, where a click chooses a

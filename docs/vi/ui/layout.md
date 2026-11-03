@@ -82,7 +82,7 @@ defer ui.end(c);
 
 ## Cuộn
 
-Một hộp có `scroll = true` (như `ui.scroll` tạo ra) kẹp các phần tử con của nó và cuộn chúng theo chiều dọc bằng bánh xe và bàn di chuột; một thanh cuộn mỏng hiển thị ở bên phải trong khi nội dung của nó tràn ra. Một khía của bánh xe chuột lướt qua đó một cách dễ dàng trong một thời gian ngắn, khi các trình duyệt cuộn nó, các khía liên tiếp cộng lại và một hộp ở cuối của nó để chúng vào hộp xung quanh nó; bàn di chuột di chuyển theo các ngón tay và với ít chuyển động hơn, một notch sẽ cuộn cùng một lúc. Hộp cuộn chiếm không gian được cung cấp, chứ không phải chiều cao nội dung của nó (như CSS's `min-height: 0`), vì vậy hãy đặt kích thước cho nó hoặc để nó phát triển:
+Một hộp có `scroll = true` (như `ui.scroll` tạo ra) kẹp các phần tử con của nó và cuộn chúng theo chiều dọc bằng bánh xe và bàn di chuột; một thanh cuộn mỏng hiển thị ở bên phải trong khi nội dung của nó tràn ra (`scrollbar = false` cuộn mà không có thanh). Một khía của bánh xe chuột lướt qua đó một cách dễ dàng trong một thời gian ngắn, khi các trình duyệt cuộn nó, các khía liên tiếp cộng lại và một hộp ở cuối của nó để chúng vào hộp xung quanh nó; bàn di chuột di chuyển theo các ngón tay và với ít chuyển động hơn, một notch sẽ cuộn cùng một lúc. Hộp cuộn chiếm không gian được cung cấp, chứ không phải chiều cao nội dung của nó (như CSS's `min-height: 0`), vì vậy hãy đặt kích thước cho nó hoặc để nó phát triển:
 
 ```zig
 ui.scroll(c, .{ .grow = 1, .width = .fill, .padding = .all(16), .gap = 8 });

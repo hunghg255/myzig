@@ -4,11 +4,45 @@
 const std = @import("std");
 
 /// Whether an autolink may start at `s[i]`: at the start, or after a
-/// space, `*`, `_`, `~` or `(`.
+/// space, `*`, `_`, `~` or `(`, and beyond ASCII after a space or
+/// punctuation, such as “ or （.
 pub fn boundary(s: []const u8, i: usize) bool {
     if (i == 0) return true;
     return switch (s[i - 1]) {
         ' ', '\t', '\n', '\r', '*', '_', '~', '(' => true,
+        0x80...0xff => {
+            var k = i - 1;
+            while (k > 0 and s[k] & 0xc0 == 0x80) k -= 1;
+            const cp = std.unicode.utf8Decode(s[k..i]) catch return false;
+            return endsLink(cp);
+        },
+        else => false,
+    };
+}
+
+/// The length of the character at `s[j]`, beyond ASCII, when it ends a
+/// link: a space, or punctuation but dashes and connectors (which paths
+/// such as Wikipedia's use), as the CJK ， and 。 or curly quotes that text
+/// written without spaces puts right after a link. Null for others:
+/// letters beyond ASCII, as in IDN hosts and paths, go on.
+fn ending(s: []const u8, j: usize) ?usize {
+    if (s[j] < 0x80) return null;
+    const n = std.unicode.utf8ByteSequenceLength(s[j]) catch return null;
+    if (j + n > s.len) return null;
+    const cp = std.unicode.utf8Decode(s[j..][0..n]) catch return null;
+    return if (endsLink(cp)) n else null;
+}
+
+/// Unicode's spaces (Zs, line and paragraph separators) and punctuation
+/// (P*) but Pd and Pc, in the blocks text puts beside links.
+fn endsLink(cp: u21) bool {
+    return switch (cp) {
+        0x85, 0xa0, 0x1680, 0x2000...0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000 => true,
+        0xa1, 0xa7, 0xab, 0xb6, 0xb7, 0xbb, 0xbf => true,
+        0x2016...0x2027, 0x2030...0x203e, 0x2041...0x2043, 0x2045...0x2051, 0x2053, 0x2055...0x205e => true,
+        0x3001...0x3003, 0x3008...0x3011, 0x3014...0x301b, 0x301d...0x301f, 0x303d, 0x30fb => true,
+        0xff01...0xff03, 0xff05...0xff0a, 0xff0c, 0xff0e, 0xff0f, 0xff1a, 0xff1b, 0xff1f, 0xff20 => true,
+        0xff3b...0xff3d, 0xff5b, 0xff5d, 0xff5f...0xff65 => true,
         else => false,
     };
 }
@@ -33,7 +67,7 @@ fn domain(s: []const u8, i: usize, need_dot: bool) ?usize {
             underscore_last = .{ underscore_last[1], false };
             j += 1;
             label_start = j;
-        } else if (domainChar(c)) {
+        } else if (domainChar(c) and ending(s, j) == null) {
             if (c == '_') underscore_last[1] = true;
             j += 1;
         } else break;
@@ -61,7 +95,7 @@ pub fn url(s: []const u8, i: usize) ?usize {
         need_dot = false;
     } else return null;
     var j = domain(s, at, need_dot) orelse return null;
-    while (j < s.len and !std.ascii.isWhitespace(s[j]) and s[j] != '<') j += 1;
+    while (j < s.len and !std.ascii.isWhitespace(s[j]) and s[j] != '<' and ending(s, j) == null) j += 1;
     return trimEnd(s, i, j);
 }
 
@@ -126,4 +160,15 @@ test "autolinks" {
     try std.testing.expectEqual(@as(?usize, 22), url("Visit https://a.b/c(d)).", 6));
     try std.testing.expect(url("www.a_b.c_d", 0) == null);
     try std.testing.expectEqual(@as(?usize, 11), email("foo@bar.baz.", 3, 3));
+}
+
+test "autolinks end at punctuation beyond ASCII, not at letters" {
+    const cjk = "见https://a.cn/x，然后";
+    try std.testing.expectEqualStrings("https://a.cn/x", cjk[3..url(cjk, 3).?]);
+    const quoted = "“www.a.org/b”";
+    try std.testing.expectEqualStrings("www.a.org/b", quoted[3..url(quoted, 3).?]);
+    try std.testing.expect(boundary(quoted, 3));
+    try std.testing.expect(!boundary("见www.a.org", 3));
+    const idn = "https://例子.cn/路径—二 x";
+    try std.testing.expectEqualStrings("https://例子.cn/路径—二", idn[0..url(idn, 0).?]);
 }

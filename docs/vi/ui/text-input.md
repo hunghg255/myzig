@@ -41,6 +41,7 @@ Một trường lấy tiêu điểm bàn phím khi được nhấp vào (hoặc 
 | `password` | false | dấu đầu dòng thay vì văn bản và văn bản được giữ ngoài bảng nhớ tạm |
 | `suggestion` | `""` | văn bản được vẽ mờ sau những gì được gõ, như sự tự gợi ý của shell; → hoặc End ở cuối văn bản lấy nó |
 | `bare` | false | không có hộp riêng (viền, tô màu, vòng tiêu điểm), dành cho trường bên trong khung lớn hơn, với tư cách là người soạn thảo trò chuyện |
+| `caret_width` | 1.5 | độ rộng con trỏ tính bằng point, ít nhất một pixel thiết bị; 0 ẩn nó, trường vẫn sửa được (vùng văn bản cũng nhận tùy chọn này) |
 | `label` | `""` | đặt tên nó theo công nghệ hỗ trợ (một [trường của biểu mẫu](forms.md) đặt tên riêng cho nó) |
 
 Nó trả về một kết quả:

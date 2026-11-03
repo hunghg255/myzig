@@ -114,6 +114,9 @@ pub const Options = struct {
     label: []const u8 = "",
     /// Dims the field and removes it from keyboard and pointer editing.
     disabled: bool = false,
+    /// The caret's width in points, at least a device pixel; 0 hides it
+    /// (the field stays editable, and input methods still find it).
+    caret_width: f32 = 1.5,
 };
 
 pub const Result = struct {
@@ -236,6 +239,11 @@ fn apply(buffer: *TextBuffer, e: *EditState, op: ctx_mod.TextOp, opts: Options, 
 }
 
 const bullets = "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••";
+
+/// A caret `w` points wide, at least a device pixel.
+pub fn caretWidth(c: *const Context, w: f32) f32 {
+    return @max(w, 1 / @max(c.scale, 1));
+}
 
 pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
     const th = c.theme;
@@ -388,8 +396,8 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
         const x1 = c.text.caretX(shown, style, shownIndex(s, opts.password, m[1]));
         _ = c.leaf(.{ .absolute = true, .width = .{ .px = x1 - x0 }, .height = .{ .px = 1.5 }, .background = th.text, .offset = .{ .x = x0 - e.scroll_x, .y = lh - 1 } }, .none, null);
     };
-    if (focused and hi == lo) {
-        _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1.5 }, .height = .{ .px = lh }, .background = th.accent, .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
+    if (focused and hi == lo and opts.caret_width > 0) {
+        _ = c.leaf(.{ .absolute = true, .width = .{ .px = caretWidth(c, opts.caret_width) }, .height = .{ .px = lh }, .background = th.accent, .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
     }
     // Its value, but a password's; never its children's texts as its name.
     if (c.access.enabled) {

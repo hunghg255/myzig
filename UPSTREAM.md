@@ -56,7 +56,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `818f07e2` | 2026-10-24 | terminal: mirror the modes the keys' encoding takes (#689) | n/a | terminal has no Mirror |
 | `a39f5439` | 2026-10-24 | linux: destroy a window closed in its own frame after the frame (#674) | todo-S | Linux: destroy a window closed in its own frame after it |
 | `53c7746d` | 2026-10-24 | raster: give a frame its own VirtualAlloc on Windows (#691) | n/a | Zig allocators map large frames |
-| `165bc985` | 2026-10-24 | l10n: translate MyGo's own strings to Japanese (#692) | todo-S | Japanese strings (l10n) |
+| `165bc985` | 2026-10-24 | l10n: translate MyGo's own strings to Japanese (#692) | ported | Japanese strings (l10n) |
 | `150f5bb2` | 2026-10-24 | terminal: draw Powerline's rounded caps to the cell's height (#694) | n/a | terminal uses the font's Powerline glyphs |
 | `3032f26b` | 2026-10-24 | linux: shape a drawing area's window so web views show through it (#695) | n/a | web views above the drawing area in an overlay |
 | `7a93a9c7` | 2026-10-24 | terminal: show images through Unicode placeholders (Kitty graphics) (#696) | n/a | terminal refuses Kitty graphics |
@@ -129,7 +129,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `1bb35e26` | 2026-10-26 | Scroll a terminal three rows a wheel notch on Windows, not seven (#784) | present | terminal wheel notch about 3 rows (view.zig) |
 | `07ebe19a` | 2026-10-26 | Tell a window-open handler whether a user's gesture opened the window (#785) | ported | NewWindow.user_gesture |
 | `2311f8c2` | 2026-10-26 | Size a flyout or a window to its page's content (#787) | todo-L | size a window or flyout to its page's content |
-| `b8a5225d` | 2026-10-26 | editor: highlight Dart, GraphQL, R and Scala (#788) (#791) | todo-S | highlight Dart, GraphQL, R, Scala |
+| `b8a5225d` | 2026-10-26 | editor: highlight Dart, GraphQL, R and Scala (#788) (#791) | present | Dart, GraphQL, R, Scala in highlight_langs.zig, shared by the editor |
 | `558e4981` | 2026-10-26 | Delete a Mirror's images by their ids when it starts the other terminal over (#792) | n/a | terminal has no Mirror |
 | `8006903c` | 2026-10-26 | ui: let a field's box give AutoFocus and Focus to its input (#793) | present | field box focuses its input (controls_fields.zig) |
 | `4dcc873e` | 2026-10-26 | Fold clips that only translate, rather than mask them each frame (#795) | present | translating clips fold into instances (paint_xf.zig) |
@@ -239,7 +239,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `430a0914` | 2026-10-31 | e2e: remove the WebView2 variables test's data folder once the browser lets go (#970) | skip |  |
 | `58f0248e` | 2026-10-31 | notifications: let ShowContext cancel the permission wait (#952) | n/a | notify does not wait for permission |
 | `f69ccfc7` | 2026-10-31 | ui: enable the Edit menu's roles only while the focus can act on them (#971) | todo-L | Edit menu roles enabled by the focus |
-| `a91e9bcb` | 2026-11-01 | ui: CaretWidth and Scrollbars(false), with docs (#972) | todo-S | caretWidth and scrollbars(false) |
+| `a91e9bcb` | 2026-11-01 | ui: CaretWidth and Scrollbars(false), with docs (#972) | ported | caretWidth and scrollbars(false) |
 | `0d4deffd` | 2026-11-01 | e2e: wheel over ScrollToContainer's pages once they have drawn (#974) | skip |  |
 | `7d3f04ca` | 2026-11-01 | windows: set a forced appearance with WebView2's PreferredColorScheme (#975) | ported | WebView2 PreferredColorScheme for a forced appearance |
 | `0b9ed5b6` | 2026-11-01 | mygo: document CancelButton's fallback and -1 (#976) | n/a | docs only |
@@ -247,7 +247,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `b0604652` | 2026-11-01 | fix(editor): autoscroll drags past side edges (#735) | todo-S | textarea drag autoscroll past side edges |
 | `9bd34e1e` | 2026-11-01 | Release 0.7.4 | skip |  |
 | `7d6ed580` | 2026-11-01 | showcase: add Tomoru, live bilingual subtitles for anything you watch (#979) | skip |  |
-| `5dbc9d40` | 2026-11-01 | markdown: end extended autolinks at CJK punctuation (#985) | todo-S | markdown autolinks end at CJK punctuation |
+| `5dbc9d40` | 2026-11-01 | markdown: end extended autolinks at CJK punctuation (#985) | ported | markdown autolinks end at CJK punctuation |
 | `c523feea` | 2026-11-01 | Draw the icons of file types without a file (#984) | todo-M | Shell type icons without a file |
 | `84a03a50` | 2026-11-01 | docs: Shell.TypeIcon (#991) | n/a | docs only |
 | `a0cd2f9f` | 2026-11-01 | text: keep a font's native font until nothing draws with it (#990) | n/a | Go GC font lifetimes |

@@ -12,14 +12,16 @@ const Writer = std.Io.Writer;
 pub const namespace = "myzig";
 
 /// The languages myzig is translated to, besides English.
-pub const translations = [_][]const u8{ "zh-Hans", "zh-Hant" };
+pub const translations = [_][]const u8{ "zh-Hans", "zh-Hant", "ja" };
 
 pub const translation_files = [_][2][]const u8{
     .{ "zh-Hans", @embedFile("zh-Hans.json") },
     .{ "zh-Hant", @embedFile("zh-Hant.json") },
+    .{ "ja", @embedFile("ja.json") },
 };
 
 fn wanted(comptime App: ?type, comptime extra: []const []const u8, comptime lang: []const u8) bool {
+    @setEvalBranchQuota(1_000_000);
     for (extra) |l| if (std.mem.eql(u8, l, lang)) return true;
     if (App) |A| for (A.languages) |l| {
         if (i18n.matchOne(l, &translations)) |i| if (std.mem.eql(u8, translations[i], lang)) return true;

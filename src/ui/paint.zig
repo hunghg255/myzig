@@ -168,7 +168,7 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
         roundClip(out.items[first..], xf.toInstance(&p.sp, r), xf.toInstance(&p.sp, visible), st.radius * s, st.corners == .continuous);
     }
 
-    if (st.scroll) {
+    if (st.scroll and st.scrollbar) {
         const before = out.items.len;
         paintScrollbar(c, out, n, visible, opacity);
         placeFrom(p, before);

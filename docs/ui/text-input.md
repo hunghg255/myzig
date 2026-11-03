@@ -47,6 +47,7 @@ box renaming a file chooses its name without its extension.
 | `password` | false | bullets instead of the text, and the text kept off the clipboard |
 | `suggestion` | `""` | text drawn faintly after what is typed, as a shell's autosuggestion; → or End at the end of the text takes it |
 | `bare` | false | no box of its own (border, fill, focus ring), for a field inside a larger frame, as a chat composer |
+| `caret_width` | 1.5 | the caret's width in points, at least a device pixel; 0 hides it, the field staying editable (text areas take it too) |
 | `label` | `""` | names it for assistive technology (a [form's field](forms.md) names its own) |
 
 It returns a result:

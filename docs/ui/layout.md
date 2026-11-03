@@ -110,7 +110,8 @@ defer ui.end(c);
 
 A box with `scroll = true` (as `ui.scroll` makes) clips its children and
 scrolls them vertically with the wheel and the trackpad; a thin scroll
-bar shows at its right while its content overflows. A notch of a mouse
+bar shows at its right while its content overflows (`scrollbar = false`
+scrolls it without one). A notch of a mouse
 wheel glides there over a short ease out, as browsers scroll it, notches
 in a row adding up, and a box at its end leaves them to the box around it;
 a touchpad follows the fingers, and with less motion a notch scrolls at

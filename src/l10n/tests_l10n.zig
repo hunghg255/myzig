@@ -28,6 +28,15 @@ test "languages an app names itself" {
     try std.testing.expectEqualStrings("移除Ada", w.buffered());
 }
 
+test "myzig's own strings in Japanese" {
+    const l10n = @import("l10n.zig").For(null, &.{"ja"});
+    try std.testing.expectEqualStrings("取り消す", l10n.textIn("ja-JP", .undo));
+    var buf: [64]u8 = undefined;
+    var w: std.Io.Writer = .fixed(&buf);
+    try l10n.printIn(&w, "ja", .removeToken, .{ .token = "Ada" });
+    try std.testing.expectEqualStrings("Adaを削除", w.buffered());
+}
+
 test "without translations, English, and nothing negotiated" {
     const l10n = @import("l10n.zig").For(null, &.{});
     try std.testing.expectEqual(@as(usize, 1), l10n.languages.len);

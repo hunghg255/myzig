@@ -81,6 +81,8 @@ pub const Config = struct {
     apply: keys.ApplyOptions = .{},
     /// Another part (a find bar) has the keyboard: no caret, no input.
     passive: bool = false,
+    /// The caret's width in points, at least a device pixel; 0 hides it.
+    caret_width: f32 = 1.5,
 };
 
 pub const Result = struct {
@@ -387,8 +389,8 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
             if (line == caret_pos.line and sub == caret_pos.sub) {
                 const xc = x0 + caret_pos.x;
                 caret_rect = .{ .x = view_rect.x + gutter_w + xc, .y = view_rect.y + y - f.scroll, .w = 1.5, .h = row_h };
-                if (focused and !cfg.read_only and ta.sel.empty())
-                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1.5 }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
+                if (focused and !cfg.read_only and ta.sel.empty() and cfg.caret_width > 0)
+                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
             }
         }
         // What the view adds after the line's end.
@@ -517,6 +519,8 @@ pub const Options = struct {
     tab: bool = false,
     /// No box of its own (border, fill, focus ring).
     bare: bool = false,
+    /// The caret's width in points, at least a device pixel; 0 hides it.
+    caret_width: f32 = 1.5,
 };
 
 /// A multi-line text field editing `ta`: wrapped (or scrolled sideways),
@@ -544,6 +548,7 @@ pub fn textArea(c: *Context, ta: *TextArea, opts: Options) Result {
         .wrap = opts.wrap,
         .read_only = opts.read_only,
         .placeholder = opts.placeholder,
+        .caret_width = opts.caret_width,
         .padding = pad,
         .tab = opts.tab,
     });

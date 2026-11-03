@@ -147,3 +147,27 @@ test "a scrolling row is as wide as it is given and scrolls sideways" {
     const last = t.findText("Tab 19").?;
     try testing.expectApproxEqAbs(@as(f32, 200), last.x + last.w, 1);
 }
+
+const Barless = struct {
+    bar: bool = true,
+    id: u64 = 0,
+    fn view(s: *Barless, c: *ui.Context) void {
+        s.id = c.peekId(null);
+        _ = c.open(.{ .width = .fill, .height = .fill, .scroll = true, .scrollbar = s.bar }, null);
+        for (0..40) |_| _ = c.leaf(.{ .width = .fill, .height = .{ .px = 30 }, .background = .white }, .none, null);
+        c.end();
+    }
+};
+
+test "a scrolling box without its scroll bar paints none, and still scrolls" {
+    var s: Barless = .{};
+    var t: ui.Tester = undefined;
+    try tester(&t, &s);
+    defer t.deinit();
+    const with = t.instances.items.len;
+    s.bar = false;
+    t.frame();
+    try testing.expectEqual(with - 1, t.instances.items.len);
+    t.scroll(100, 100, -60);
+    try testing.expect(offset(&t, s.id) > 0);
+}

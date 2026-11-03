@@ -254,3 +254,42 @@ test "an avatar is a circle of initials, and falls back to them without a pictur
     try testing.expectApproxEqAbs(circle.?.x + 20, r.x + r.w / 2, 0.6);
     try testing.expectApproxEqAbs(circle.?.y + 20, r.y + r.h / 2, 0.6);
 }
+
+const Caret = struct {
+    text: ui.TextBuffer = .{},
+    width: f32 = 1.5,
+    fn view(s: *Caret, c: *ui.Context) void {
+        ui.column(c, .{ .padding = .all(20) });
+        defer ui.end(c);
+        _ = ui.textField(c, &s.text, .{ .placeholder = "Name", .caret_width = s.width });
+    }
+};
+
+/// The width of the caret a focused field draws, null without one.
+fn caretWidth(t: *ui.Tester) ?f32 {
+    for (t.ctx.nodes.items) |n| if (n.style.absolute) if (n.style.background) |b| if (std.meta.eql(b, t.ctx.theme.accent)) switch (n.style.width) {
+        .px => |w| return w,
+        else => {},
+    };
+    return null;
+}
+
+test "a field's caret takes the width asked, at least a pixel, and none for 0" {
+    var s: Caret = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Caret.view), .{});
+    defer t.deinit();
+    try t.clickText("Name");
+    try testing.expectApproxEqAbs(@as(f32, 1.5), caretWidth(&t).?, 0.001);
+    s.width = 4;
+    t.frame();
+    try testing.expectApproxEqAbs(@as(f32, 4), caretWidth(&t).?, 0.001);
+    s.width = 0.1;
+    t.frame();
+    try testing.expectApproxEqAbs(1 / t.ctx.scale, caretWidth(&t).?, 0.001);
+    s.width = 0;
+    t.frame();
+    try testing.expect(caretWidth(&t) == null);
+    t.typeText("A");
+    try testing.expectEqualStrings("A", s.text.text());
+}

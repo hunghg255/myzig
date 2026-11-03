@@ -1,7 +1,8 @@
 //! myzig's own strings: what its controls and menus say ("Undo", "Next
 //! month", "Quit Notes", the names assistive technology reads), in the
 //! language the app shows, from mygo's catalog of its own strings and its
-//! translations (en.json, the source, and zh-Hans.json, zh-Hant.json).
+//! translations (en.json, the source, and zh-Hans.json, zh-Hant.json,
+//! ja.json).
 //!
 //! English is always there. A translation is compiled in only for an app
 //! that ships its language, so an app carries none it does not show: the

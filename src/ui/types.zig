@@ -200,6 +200,9 @@ pub const Style = struct {
     /// Children are clipped to the box and scroll along it: a column
     /// vertically, a row sideways (the wheel scrolls it too).
     scroll: bool = false,
+    /// A scrolling box shows its scroll bar; false scrolls it without one
+    /// (a carousel, a box the app draws its own bar for).
+    scrollbar: bool = true,
     /// Overall opacity of the box and its content.
     opacity: f32 = 1,
     /// Moves the box after layout, without moving its siblings.

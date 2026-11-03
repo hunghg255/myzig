@@ -162,6 +162,48 @@ test "a tooltip shows once the pointer rests, above the element, and goes as it 
     try testing.expect(!t.hasText("Print it"));
 }
 
+test "the theme's tooltip delay: shorter, at once, and for part of the window" {
+    const Delayed = struct {
+        delay: f32 = 0.2,
+        fn view(s: *@This(), c: *ui.Context) void {
+            ui.row(c, .{ .width = .fill, .padding = .{ .left = 4, .top = 100 }, .gap = 8 });
+            defer ui.end(c);
+            const keep = c.theme;
+            c.theme.tooltip_delay = s.delay;
+            const a = ui.button(c, "Share", .{});
+            popover.tooltip(c, a, "Share with others");
+            c.theme = keep;
+            const b = ui.button(c, "Print", .{});
+            popover.tooltip(c, b, "Print it");
+        }
+    };
+    var s: Delayed = .{};
+    var t: ui.Tester = undefined;
+    try tester(&t, &s, .{});
+    defer t.deinit();
+    const share = t.findText("Share").?;
+    const print = t.findText("Print").?;
+    t.moveTo(share.x + 2, share.y + 2);
+    try testing.expect(!t.hasText("Share with others"));
+    t.advance(0.25);
+    try testing.expect(t.hasText("Share with others"));
+    // Away for longer than the warm time of the next tip, built with the
+    // default theme (0.4 s): it waits its 0.6 seconds.
+    t.moveTo(400, 300);
+    t.advance(0.5);
+    t.moveTo(print.x + 2, print.y + 2);
+    t.advance(0.3);
+    try testing.expect(!t.hasText("Print it"));
+    t.advance(0.35);
+    try testing.expect(t.hasText("Print it"));
+    // A negative delay shows the tip at once.
+    t.moveTo(400, 300);
+    t.advance(1);
+    s.delay = -1;
+    t.moveTo(share.x + 2, share.y + 2);
+    try testing.expect(t.hasText("Share with others"));
+}
+
 test "a press on the element hides its tip until the pointer comes back" {
     var s: Tips = .{};
     var t: ui.Tester = undefined;

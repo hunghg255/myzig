@@ -29,7 +29,9 @@ canceled navigation (#712), LoadHTML at an about: base URL (#1031), the
 accent color off captionless windows (#804), materials of frameless and
 maximized windows (#721, #993), maximizing windows without a maximize box
 into the work area (#723), `WEBVIEW2_USER_DATA_FOLDER` without the loader
-(#657), and a quit that AppKit's event loop outlives (#805).
+(#657), and a quit that AppKit's event loop outlives (#805). It is
+reviewed through upstream `afff19d9`, adding the theme's tooltip delay
+(#1062) and CJK-aware Markdown emphasis (#1057, #1066).
 [`UPSTREAM.md`](UPSTREAM.md) lists each mygo commit since `976f17c` and
 what the port did with it.
 Its loading.dev shapes, path data and timing functions retain Jakub

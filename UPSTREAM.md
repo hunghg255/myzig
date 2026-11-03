@@ -3,11 +3,11 @@
 myzig ports [mygo](https://github.com/egoist/mygo). This page records how far
 it follows it, so the next review starts where this one ended.
 
-**Reviewed through mygo `982590ef` (2026-11-03).** Every mygo commit up to it
+**Reviewed through mygo `afff19d9` (2026-11-03).** Every mygo commit up to it
 is listed below with what myzig did with it. The next review starts from:
 
 ```sh
-cd ../mygo && git fetch && git log --reverse --oneline 982590ef..origin/main
+cd ../mygo && git fetch && git log --reverse --oneline afff19d9..origin/main
 ```
 
 When a review is done, move the commit above to the newest one reviewed, add
@@ -283,3 +283,27 @@ Commits before `976f17c9` are covered by the baseline in
 | `9e30453d` | 2026-11-03 | webview: give the native UI the keys a web view's page leaves unhandled (#1040) | todo-L | keys an embedded page leaves unhandled go to native UI |
 | `5b33c407` | 2026-11-03 | fix(linux): announce tooltip changes with NewToolTip (#1043) | ported | Linux tray tooltip NewToolTip |
 | `982590ef` | 2026-11-03 | darwin: draw a resize's frame after one presented with the transaction at the next tick (#1045) | n/a | no updateLayer deferral on resize |
+| `9ebb17d9` | 2026-11-03 | editor: highlight each hunk of a patch from the start of its first line (#1048) | n/a | myzig's editor has no patch (diff) highlighting |
+| `48da1ba5` | 2026-11-03 | Paste every clipboard format from Windows menus (#837) | todo-M | Windows menu bar's Paste does not reach pages (mygo pastes through DevTools' Input.dispatchKeyEvent) |
+| `85009efc` | 2026-11-03 | ui, backends: cut web views to their corners and scale them as pictures (#1034) | todo-L | ui.webView: cut pages to their box's corners, scale them as pictures |
+| `64d9abeb` | 2026-11-03 | macOS: close a tray's popover on a press on its icon (#1059) | todo-S | macOS: a press on the tray icon closes its popover (popover_mac.zig; needs a Mac) |
+| `0042535d` | 2026-11-03 | ui: make the tooltip delay configurable with Theme.TooltipDelay (#1062) | ported | Theme.tooltip_delay |
+| `dd641444` | 2026-11-03 | cmd/mygo: leave Go sources and resourcesExclude out of resources (#1063) | todo-M | cli: resources_exclude patterns (with **) for copied resource folders |
+| `b1a5987b` | 2026-11-03 | Fail Eval when its window closes or the app quits (#1065) | n/a | Window.eval returns nothing in myzig |
+| `5e08fdc9` | 2026-11-03 | ui: let a toast keep its time running while the window is in the background (#1064) | n/a | myzig's toasts never stop for a window in the background (their time always runs) |
+| `c7f4ab8b` | 2026-11-03 | ui/markdown: open and close * and ~ emphasis next to CJK text (#1057) | ported | markdown: * and ~~ emphasis next to CJK text |
+| `069f89ad` | 2026-11-03 | ui, text: underline links whole on hover, through descenders (#1058) | present | myzig's underlines never skip ink (paint.zig draws them whole) |
+| `e9f0d6a5` | 2026-11-03 | website: add Meiro to the showcase (#1061) | skip | website |
+| `7afa6e4c` | 2026-11-03 | ui/markdown, ui: follow-ups to #1057 and #1058 (#1066) | ported | markdown part; link part present |
+| `bf357ded` | 2026-11-03 | window: show a native UI window after NewWindow returns (#1068) | todo-M | show a native UI window after newWindow returns, not inside it (windows/window.zig create) |
+| `5f263ab5` | 2026-11-03 | flyouts: open a window modal to a flyout, over it (#1067) | todo-L | a window modal to a flyout, shown over it (every backend) |
+| `aa54e0e7` | 2026-11-03 | terminal: opt-in zsh shell integration (#1077) | todo-M | terminal: opt-in zsh shell integration (OSC 133, ZDOTDIR shim) |
+| `0f8a8dc4` | 2026-11-03 | mygo: document that SetContentSize takes the window's DIPs, whatever the zoom (#1078) | n/a | myzig's zoom scales text only; setSize takes points |
+| `22363f12` | 2026-11-03 | mygo: point Window.Update to RunOnMain for polls that rarely change (#1079) | n/a | Go API docs (Window.Update) |
+| `c49af2e6` | 2026-11-03 | mygo: document that SetOpenAtLogin starts the app unelevated on Windows (#1080) | ported | docs: Run entry starts the app unelevated |
+| `2b98a934` | 2026-11-03 | macOS: keep a frame asked for after one drawn while drawSoon's waited (#1087) | todo-S | macOS: keep a frame asked for while a queued one waits (needs a Mac) |
+| `911a5904` | 2026-11-03 | flyout: size native UI to its content with FitContent (#1069) | todo-L | FitContent for flyouts of native UI |
+| `64a5bf53` | 2026-11-03 | ui: document how AnimatePose comes in from a pose on an element's first frame (#1081) | present | motion.pose starts at its pose on a box's first frame (motion.zig move) |
+| `6850c8ab` | 2026-11-03 | lists: drag rows out with ListState.DragRows, for targets elsewhere to take (#1089) | todo-M | lists drag their rows out (ListState.DragRows); rows can use DragDrop.draggable today |
+| `62222a32` | 2026-11-03 | terminal, macOS: keep CJK punctuation in its cells by turning kerning off (#1084) | todo-S | terminal on macOS: kerning off unless features name kern (needs a Mac) |
+| `afff19d9` | 2026-11-03 | ui: draw large paths as tiles when the atlas has no room for their masks (#1090) | n/a | canvas paths render into the canvas's own image, not atlas masks |

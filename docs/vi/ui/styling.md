@@ -107,6 +107,7 @@ Di chuột theo tổ tiên, như `:hover` của CSS thực hiện: một hàng �
 | `danger`, `success` | hành động phá hoại và sai sót; xong và tiếp tục |
 | `shadow` | màu sắc của bóng tối |
 | `font`, `mono_font` | họ phông chữ, null cho ([text](text.md)) của hệ thống |
+| `tooltip_delay` | số giây con trỏ dừng trước khi tooltip hiện; 0 là 0.6, âm là hiện ngay ([overlays](overlays.md#tooltips)) |
 
 `ui.Theme.light` và `ui.Theme.dark_theme` là của myzig, sau màu của macOS. Một cửa sổ sử dụng cái này hoặc cái kia làm giao diện của hệ thống, chuyển đổi khi nó thay đổi. Để sửa màu của cửa sổ, hãy đặt chủ đề cho cửa sổ:
 

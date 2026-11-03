@@ -161,6 +161,8 @@ if (myzig.system.wasOpenedAtLogin(app)) {
 
 Ứng dụng sẽ mở khi đăng nhập với mục Chạy trên Windows, mục tự khởi động XDG trên Linux và mục đăng nhập trên macOS 13 trở lên (đối với các ứng dụng đi kèm). `wasOpenedAtLogin` phân biệt lần khởi chạy như vậy trên Windows và Linux, trong đó mục nhập vượt qua `--myzig-login`.
 
+Trên Windows, mục Run khởi động ứng dụng với token thường (không nâng quyền) của người dùng, kể cả khi người dùng là quản trị viên: ứng dụng không tạo được card mạng, không đổi được proxy của hệ thống và không ghi được vào thư mục được bảo vệ. Ứng dụng cần quyền quản trị thì đăng ký một tác vụ khi đăng nhập trong Task Scheduler với mức chạy `HighestAvailable` (`schtasks /Create /SC ONLOGON /RL HIGHEST`), tác vụ này khởi động nó với quyền cao mà không hỏi, và không gọi `setOpenAtLogin`. Tạo tác vụ cũng cần quyền quản trị, nên ứng dụng xin quyền một lần, khi người dùng bật cài đặt. `wasOpenedAtLogin` không phân biệt được lần khởi chạy đó: hãy cho lệnh của tác vụ một đối số riêng của ứng dụng.
+
 <a id="url-schemes-and-file-types"></a>
 
 ## Lược đồ URL và loại tệp

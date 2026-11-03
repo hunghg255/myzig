@@ -111,7 +111,10 @@ fn exe(app: anytype) ![]u8 {
 
 /// Opens the app when the user logs in (a Run entry on Windows, an XDG
 /// autostart entry on Linux, a login item on macOS 13 and later for
-/// bundled apps). `wasOpenedAtLogin` tells such a launch apart.
+/// bundled apps). `wasOpenedAtLogin` tells such a launch apart. On Windows
+/// the Run entry starts the app unelevated, even for an administrator; an
+/// app that needs administrator rights registers a logon task with the
+/// run level HighestAvailable instead (docs/system.md).
 pub fn setOpenAtLogin(app: anytype, on: bool) !void {
     switch (os) {
         .macos => return impl.setOpenAtLogin(on),

@@ -111,6 +111,8 @@ _ = ui.markdown(c, src, .{ .state = &s.md, .highlighter = .{ .func = highlight }
 
 Trình phân tích cú pháp chuyển các ví dụ về đặc tả CommonMark 0.31.2 và các phần mở rộng của GitHub, mỗi phần được phân tích cú pháp toàn bộ, nối thêm một byte mỗi lần và theo khối (`src/ui/markdown/tests_spec_*.zig`).
 
+Một quy tắc được nới cho tiếng Trung, Nhật và Hàn, vốn không đặt khoảng trắng quanh phần nhấn mạnh: cạnh một chữ CJK, dấu câu toàn độ rộng hoặc dấu ngoặc kép cong, `*` và `~~` mở và đóng cả ở chỗ dấu câu sẽ chặn chúng trong CommonMark, nên `**结论。**后文` là chữ đậm. `_` và một `~` đơn giữ quy tắc của CommonMark. Không ví dụ nào của đặc tả có chữ CJK ở đó, nên tất cả vẫn pass.
+
 <a id="the-document"></a>
 
 ## Tài liệu

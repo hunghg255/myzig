@@ -32,6 +32,31 @@ pub fn isUnicodePunct(cp: u21) bool {
     };
 }
 
+/// A Chinese, Japanese or Korean character, the full-width punctuation
+/// written with them, or a curly quote (used in CJK text): next to one,
+/// `*` and `~~` open and close where punctuation would stop them.
+pub fn isCjk(cp: u21) bool {
+    return switch (cp) {
+        0x2018...0x201f, // curly quotes
+        0x1100...0x11ff, // Hangul Jamo
+        0x2e80...0x2fdf, // CJK and Kangxi radicals
+        0x3000...0x303f, // CJK symbols and punctuation
+        0x3041...0x30ff, // Hiragana, Katakana
+        0x3130...0x318f, // Hangul compatibility Jamo
+        0x31f0...0x31ff, // Katakana phonetic extensions
+        0x3400...0x4dbf, // CJK extension A
+        0x4e00...0x9fff, // CJK unified ideographs
+        0xa960...0xa97f, // Hangul Jamo extended A
+        0xac00...0xd7ff, // Hangul syllables, Jamo extended B
+        0xf900...0xfaff, // CJK compatibility ideographs
+        0xff00...0xffef, // full-width forms
+        0x1b000...0x1b16f, // Kana supplement and extended
+        0x20000...0x3134f, // CJK extensions B to G
+        => true,
+        else => false,
+    };
+}
+
 /// The code point before byte `i` of `s` (a newline at the start).
 pub fn cpBefore(s: []const u8, i: usize) u21 {
     if (i == 0) return '\n';

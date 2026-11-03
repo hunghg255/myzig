@@ -121,6 +121,7 @@ hover keeps them while the pointer goes to them.
 | `danger`, `success` | destructive actions and errors; done and on |
 | `shadow` | the color of shadows |
 | `font`, `mono_font` | font families, null for the system's ([text](text.md)) |
+| `tooltip_delay` | seconds the pointer rests before a tooltip shows; 0 is 0.6, negative at once ([overlays](overlays.md#tooltips)) |
 
 `ui.Theme.light` and `ui.Theme.dark_theme` are myzig's, after macOS's
 colors. A window uses one or the other as the system's appearance is,

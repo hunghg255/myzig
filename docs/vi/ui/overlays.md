@@ -73,7 +73,7 @@ if (ui.popover(c, &s.pop, more, .{ .bare = true })) |p| {
 
 ## Chú giải công cụ
 
-`ui.tooltip(c, anchor, tip)` hiển thị `tip` phía trên phần tử `anchor` (bên dưới phần tử không có khoảng trống phía trên), được căn giữa khi con trỏ đã nằm trên phần tử đó trong `0.6` giây hoặc ngay lập tức khi nó tập trung vào bàn phím hoặc một mẹo khác hoạt động ít hơn `0.4` giây trước, do đó, việc di chuyển dọc theo thanh công cụ sẽ hiển thị từng mẹo cùng một lúc. Nó đi khi con trỏ rời đi; nhấn vào phần tử hoặc Escape sẽ ẩn nó cho đến khi con trỏ rời đi và quay lại. Con trỏ đi qua nó.
+`ui.tooltip(c, anchor, tip)` hiển thị `tip` phía trên phần tử `anchor` (bên dưới phần tử không có khoảng trống phía trên), được căn giữa khi con trỏ đã nằm trên phần tử đó trong `0.6` giây hoặc ngay lập tức khi nó tập trung vào bàn phím hoặc một mẹo khác hoạt động ít hơn `0.4` giây trước, do đó, việc di chuyển dọc theo thanh công cụ sẽ hiển thị từng mẹo cùng một lúc. Nó đi khi con trỏ rời đi; nhấn vào phần tử hoặc Escape sẽ ẩn nó cho đến khi con trỏ rời đi và quay lại. Con trỏ đi qua nó. `tooltip_delay` (giây) của theme đổi thời gian chờ: 0 giữ 0.6 giây, một giá trị âm hiện mẹo ngay lập tức, và thời gian "ấm" theo nó ở mức hai phần ba. Đặt nó trên `c.theme` quanh một phần của view, như một thanh công cụ, thì mẹo của các phần tử đó chờ theo nó.
 
 ```zig
 const share = ui.button(c, "Share", .{});

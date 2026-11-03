@@ -97,9 +97,17 @@ pub fn popover(c: *Context, state: *OverlayState, anchor: Interaction, opts: Pop
 }
 
 /// How long the pointer rests on an element before its tip shows, and how
-/// soon after a tip goes the next one shows at once.
+/// soon after a tip goes the next one shows at once: Base UI's, which a
+/// theme's `tooltip_delay` changes.
 pub const tooltip_delay: f32 = 0.6;
 pub const tooltip_warm: f32 = 0.4;
+
+/// The delay and the warm time of a theme's `tooltip_delay`.
+fn tipDelays(d: f32) [2]f32 {
+    if (d == 0) return .{ tooltip_delay, tooltip_warm };
+    if (d < 0) return .{ 0, 0 };
+    return .{ d, d * 2 / 3 };
+}
 
 const salt_start = 0x7101;
 const salt_blocked = 0x7102;
@@ -110,7 +118,8 @@ const all_tips: u64 = 0x746f6f6c74697073;
 
 /// Shows `tip` above the element `anchor` (below it where there is no room
 /// above), centered, once the pointer has rested on it for 0.6 seconds, or
-/// at once when it has the focus or a tip went less than 0.4 seconds ago.
+/// at once when it has the focus or a tip went less than 0.4 seconds ago
+/// (the theme's `tooltip_delay` changes both).
 /// It goes as the pointer leaves; a press on the element or Escape hides it
 /// until the pointer leaves and comes back. The pointer goes through it.
 pub fn tooltip(c: *Context, anchor: Interaction, tip: []const u8) void {
@@ -143,9 +152,11 @@ pub fn tooltipBase(c: *Context, anchor: Interaction) ?u32 {
         const start = base.memo(c, id, salt_start, -1);
         if (start.* < 0) start.* = now;
         const rested = now - start.*;
-        if (was_showing or focused or now - hidden_at < tooltip_warm or rested >= tooltip_delay) break :blk true;
+        // The theme this element is built with says how long it waits.
+        const delay, const warm = tipDelays(c.theme.tooltip_delay);
+        if (was_showing or focused or now - hidden_at < warm or rested >= delay) break :blk true;
         // Wakes when the delay is over: nothing polls.
-        c.frameIn(tooltip_delay - rested);
+        c.frameIn(delay - rested);
         break :blk false;
     };
     if (was_showing and !showing) {

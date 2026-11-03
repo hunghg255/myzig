@@ -96,7 +96,10 @@ rested on it for `0.6` seconds, or at once when it has the keyboard focus
 or another tip went less than `0.4` seconds ago, so moving along a
 toolbar shows each tip at once. It goes as the pointer leaves; a press on
 the element or Escape hides it until the pointer leaves and comes back.
-The pointer goes through it.
+The pointer goes through it. The theme's `tooltip_delay` (seconds) changes
+the wait: 0 keeps 0.6 seconds, a negative delay shows tips at once, and the
+warm time follows at two thirds of it. Set it on `c.theme` around part of
+the view, as a toolbar, and those elements' tips wait as it says.
 
 ```zig
 const share = ui.button(c, "Share", .{});

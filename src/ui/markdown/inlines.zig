@@ -332,8 +332,16 @@ pub const Parser = struct {
         const after_p = scan.isUnicodePunct(after);
         const before_ws = scan.isUnicodeSpace(before);
         const before_p = scan.isUnicodePunct(before);
-        const left = !after_ws and (!after_p or before_ws or before_p);
-        const right = !before_ws and (!before_p or after_ws or after_p);
+        var left = !after_ws and (!after_p or before_ws or before_p);
+        var right = !before_ws and (!before_p or after_ws or after_p);
+        // Next to CJK text, punctuation such as 。 or “ doesn't stop * or
+        // ~~ from opening or closing: Chinese writes **结论。**后文 with no
+        // space. `_` keeps the rule (snake_case), and so does a single ~,
+        // more often a range there (第1章~“附录”) than strikethrough.
+        if ((c == '*' or c == '~' and count > 1) and (scan.isCjk(before) or scan.isCjk(after))) {
+            left = !after_ws;
+            right = !before_ws;
+        }
         const can_open = if (c == '_') left and (!right or before_p) else left;
         const can_close = if (c == '_') right and (!left or after_p) else right;
         if (!can_open and !can_close) return;

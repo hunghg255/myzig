@@ -25,6 +25,13 @@ pub const Theme = struct {
     /// Pro and SF Mono). A family that is not installed falls back.
     font: ?[]const u8 = null,
     mono_font: ?[]const u8 = null,
+    /// How long, in seconds, the pointer rests on an element before its
+    /// tooltip shows (`tooltip`, `tooltipBase`): 0 is 0.6 seconds, and a
+    /// negative delay shows it at once. Within two thirds of it after
+    /// another tip goes, as the pointer moves along a toolbar, the next
+    /// one shows at once: 0.4 seconds by default. A view that sets it for
+    /// part of the window gives those elements' tips a delay of their own.
+    tooltip_delay: f32 = 0,
 
     pub const light: Theme = .{
         .dark = false,

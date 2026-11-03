@@ -24,6 +24,14 @@ and indicator designs from mygo commit
 loading update; the rest of the port keeps the baseline above. Native UI
 also follows mygo's hidden window controls (#553) and pinch input (#601),
 reviewed through upstream `976f17c9391fb86f9afeba7a2d3b27b54e6d671a`.
+From upstream `982590ef`, it also ports the fixes of the WebView2 status of a
+canceled navigation (#712), LoadHTML at an about: base URL (#1031), the
+accent color off captionless windows (#804), materials of frameless and
+maximized windows (#721, #993), maximizing windows without a maximize box
+into the work area (#723), `WEBVIEW2_USER_DATA_FOLDER` without the loader
+(#657), and a quit that AppKit's event loop outlives (#805).
+[`UPSTREAM.md`](UPSTREAM.md) lists each mygo commit since `976f17c` and
+what the port did with it.
 Its loading.dev shapes, path data and timing functions retain Jakub
 Krehel's MIT notice in [plugins/loading/NOTICE.md](plugins/loading/NOTICE.md).
 

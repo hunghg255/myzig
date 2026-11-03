@@ -54,6 +54,7 @@ pub const Window = struct {
     on_close: ?Callback = null,
     closed: bool = false,
     full_screen: bool = false,
+    material: window_types.Material = .none,
     view: ?ui.View = null,
     width: f64 = 0,
     height: f64 = 0,
@@ -127,7 +128,10 @@ pub const Window = struct {
         const hwnd = w.CreateWindowExW(ex, class_name, w.wide(&title, options.title), style, w.CW_USEDEFAULT, w.CW_USEDEFAULT, 100, 100, owner, bar, inst, null) orelse return error.CreateWindow;
         self.hwnd = hwnd;
         _ = w.SetWindowLongPtrW(hwnd, w.GWLP_USERDATA, @bitCast(@intFromPtr(self)));
-        if (self.captionless()) _ = w.SetWindowPos(hwnd, null, 0, 0, 0, 0, gdi.SWP_NOMOVE | gdi.SWP_NOSIZE | gdi.SWP_NOZORDER | gdi.SWP_FRAMECHANGED | gdi.SWP_NOACTIVATE);
+        if (self.captionless()) {
+            extras.plainCaption(hwnd);
+            _ = w.SetWindowPos(hwnd, null, 0, 0, 0, 0, gdi.SWP_NOMOVE | gdi.SWP_NOSIZE | gdi.SWP_NOZORDER | gdi.SWP_FRAMECHANGED | gdi.SWP_NOACTIVATE);
+        }
         if (options.title_bar == .hidden and !options.hide_window_buttons and options.flyout == null) self.caption = caption_mod.Caption.create(app.gpa, .{
             .ctx = self,
             .hwnd = hwnd,
@@ -145,7 +149,8 @@ pub const Window = struct {
             if (options.x != null and options.y != null) self.setPosition(options.x.?, options.y.?) else self.center();
         }
         if (options.on_drop != null) extras.acceptDrops(hwnd);
-        if (options.material != .none) _ = extras.setMaterial(hwnd, options.material);
+        self.material = options.material;
+        if (options.material != .none) _ = extras.setMaterial(hwnd, options.material, events.glassFromBottom(self));
         if (app.dark) extras.setDarkTitleBar(hwnd, true);
         if (page_options) |p| self.page = try Page.create(self, p);
         if (self.caption) |c| c.layout();
@@ -297,7 +302,8 @@ pub const Window = struct {
     /// Shows Windows 11's material behind the window; false on Windows 10.
     pub fn setMaterial(self: *Window, material: window_types.Material) bool {
         const h = self.hwnd orelse return false;
-        return extras.setMaterial(h, material);
+        self.material = material;
+        return extras.setMaterial(h, material, events.glassFromBottom(self));
     }
 
     fn of(hwnd: w.HWND) ?*Window {

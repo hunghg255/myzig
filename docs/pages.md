@@ -13,7 +13,9 @@ Nothing is linked: WebKitGTK is loaded when the first page opens (an app
 whose windows only show native UI never loads it), and WebView2 is found
 the way `WebView2Loader.dll` finds it (a fixed version named by
 `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, else the installed channels, the most
-stable first). A Linux machine without WebKitGTK logs that pages need it.
+stable first), and takes `WEBVIEW2_USER_DATA_FOLDER` as the loader does (a
+relative folder is relative to the executable's). A Linux machine without
+WebKitGTK logs that pages need it.
 
 On Windows, pages whose host is hidden or minimized, and embedded pages
 clipped out of native UI, request WebView2's low memory target after the

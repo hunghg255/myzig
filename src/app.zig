@@ -20,6 +20,9 @@ const relaunch_mod = @import("relaunch.zig");
 
 pub const Options = app_types.Options;
 
+/// The app whose quit waits for its event loop to stop (`App.forceStop`).
+var quitting: ?*App = null;
+
 pub const App = struct {
     gpa: std.mem.Allocator,
     io: std.Io,
@@ -141,6 +144,7 @@ pub const App = struct {
     }
 
     pub fn destroy(self: *App) void {
+        if (quitting == self) quitting = null;
         const io = self.io;
         defer @import("headless.zig").end(io);
         while (self.windows.items.len > 0) {
@@ -210,10 +214,18 @@ pub const App = struct {
     }
 
     /// Stops the event loop; `run` returns once the current event is handled.
+    /// AppKit's loop has been seen to go on after `stop:` (a relaunch asked
+    /// for while a daemon reconnected), which left an app with no windows
+    /// that no quit would end: a later quit asks again, and after 3 seconds
+    /// the app closes its windows and exits without the loop.
     pub fn quit(self: *App) void {
-        if (self.stopping) return;
+        const again = self.stopping;
         self.stopping = true;
         if (!self.running) return;
+        if (!again) {
+            quitting = self;
+            after(3000, null, forceStop);
+        }
         objc.msg(void, self.nsapp, "stop:", .{@as(?objc.Object, null)});
         // `stop:` takes effect after the next event: post one.
         const ev = objc.msg(objc.Object, objc.class("NSEvent"), "otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:", .{
@@ -229,9 +241,20 @@ pub const App = struct {
     /// Hidden and headless runs only quit. Under `myzig dev` the build
     /// exits and `myzig dev` starts it again.
     pub fn relaunch(self: *App) void {
-        if (self.stopping) return;
         if (!self.flags.hidden) self.restart = relaunch_mod.start;
         self.quit();
+    }
+
+    /// Ends an app whose event loop went on 3 seconds after `quit`: its
+    /// windows close (their states saved), its lock goes, and it starts
+    /// again if it relaunches.
+    fn forceStop(_: ?*anyopaque) callconv(.c) void {
+        const self = quitting orelse return;
+        if (!self.running) return;
+        while (self.windows.items.len > 0) self.windows.items[self.windows.items.len - 1].close();
+        if (self.lock) |*l| l.release();
+        if (self.restart) |f| f(self.gpa, self.io, self.launch);
+        std.process.exit(0);
     }
 
     /// The generated JavaScript client, served to pages at `/myzig.js`.

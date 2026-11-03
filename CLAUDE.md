@@ -132,4 +132,7 @@ image built from `tools/linux.Dockerfile`, with the repository mounted at
   `src/bridge.js`, `cli/build.zig(.zon)` and every `plugins/*/build.zig.zon`;
   apps made by the CLI default to their own `0.1.0`.
 - `THIRD_PARTY_NOTICES.md` records which mygo commit the port is current
-  with; update it when porting more of mygo.
+  with; update it when porting more of mygo. `UPSTREAM.md` lists every
+  mygo commit since that baseline with its status (ported, n/a, todo, ...)
+  and the commit the last review reached: start the next review from it,
+  and update a row when its commit is ported.

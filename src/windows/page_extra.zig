@@ -394,3 +394,20 @@ pub fn clearCookies(page: *Page, cb: types.DoneCallback) void {
     if (com.failed(com.call(m, cm_delete_all, .{}))) return cb.func(cb.ctx, "DeleteAllCookies failed");
     settle(page, cb, "", "", "", null, false, true);
 }
+
+/// The base URL `loadHtml` serves its document at, answering the
+/// navigation's request; null for none. WebView2 requests no about: URL,
+/// about:blank among them, so such a document goes through
+/// NavigateToString, which shows it at about:blank.
+pub fn servedAtBase(base_url: ?[]const u8) ?[]const u8 {
+    const b = base_url orelse return null;
+    if (b.len == 0 or std.ascii.startsWithIgnoreCase(b, "about:")) return null;
+    return b;
+}
+
+test "loadHtml serves no about: base URL" {
+    try std.testing.expect(servedAtBase(null) == null);
+    try std.testing.expect(servedAtBase("") == null);
+    try std.testing.expect(servedAtBase("ABOUT:blank") == null);
+    try std.testing.expectEqualStrings("https://a.test/", servedAtBase("https://a.test/").?);
+}

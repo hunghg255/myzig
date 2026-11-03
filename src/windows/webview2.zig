@@ -176,6 +176,42 @@ fn loaderProc() ?CreateWithOptions {
     return @ptrCast(@alignCast(GetProcAddress(lib, "CreateCoreWebView2EnvironmentWithOptions") orelse return null));
 }
 
+/// The user data folder: WEBVIEW2_USER_DATA_FOLDER's (`variable`), relative
+/// to the executable's directory `exe_dir`, as Microsoft's loader takes it,
+/// else `default` (owned).
+fn userDataFolder(gpa: std.mem.Allocator, variable: ?[]const u8, exe_dir: []const u8, default: []const u8) ![]u8 {
+    const v = variable orelse return gpa.dupe(u8, default);
+    if (v.len == 0) return gpa.dupe(u8, default);
+    if (std.fs.path.isAbsoluteWindows(v) or exe_dir.len == 0) return gpa.dupe(u8, v);
+    return std.fs.path.join(gpa, &.{ exe_dir, v });
+}
+
+/// The directory of the executable, in `buf`; empty when unknown.
+fn exeDir(buf: []u8) []const u8 {
+    var path: [1024]u16 = undefined;
+    var n: usize = GetModuleFileNameW(null, &path, path.len);
+    if (n == 0 or n >= path.len) return "";
+    while (n > 0 and path[n - 1] != '\\') n -= 1;
+    if (n > 0) n -= 1;
+    const len = std.unicode.utf16LeToUtf8(buf, path[0..n]) catch return "";
+    return buf[0..len];
+}
+
+test "WEBVIEW2_USER_DATA_FOLDER replaces the user data folder, relative to the executable" {
+    const gpa = std.testing.allocator;
+    const cases = [_]struct { ?[]const u8, []const u8 }{
+        .{ null, "D:\\data" },
+        .{ "", "D:\\data" },
+        .{ "C:\\wv", "C:\\wv" },
+        .{ "wv", "C:\\app" ++ std.fs.path.sep_str ++ "wv" },
+    };
+    for (cases) |c| {
+        const got = try userDataFolder(gpa, c[0], "C:\\app", "D:\\data");
+        defer gpa.free(got);
+        try std.testing.expectEqualStrings(c[1], got);
+    }
+}
+
 /// The environment, once created, and those waiting for it.
 pub const Environment = struct {
     env: ?com.Object = null,
@@ -203,9 +239,18 @@ pub const Environment = struct {
     }
 
     fn start(e: *Environment, environ: *const std.process.Environ.Map, user_data: []const u8) com.HRESULT {
-        const dir = com.wide(e.gpa, user_data) catch return com.E_FAIL;
+        if (loaderProc()) |create| {
+            const dir = com.wide(e.gpa, user_data) catch return com.E_FAIL;
+            defer e.gpa.free(dir);
+            return com.withHandler(e, completed, create, .{ null, dir.ptr, null });
+        }
+        // The loader reads WEBVIEW2_USER_DATA_FOLDER itself; the runtime's
+        // client library does not.
+        var exe: [1024]u8 = undefined;
+        const folder = userDataFolder(e.gpa, environ.get("WEBVIEW2_USER_DATA_FOLDER"), exeDir(&exe), user_data) catch return com.E_FAIL;
+        defer e.gpa.free(folder);
+        const dir = com.wide(e.gpa, folder) catch return com.E_FAIL;
         defer e.gpa.free(dir);
-        if (loaderProc()) |create| return com.withHandler(e, completed, create, .{ null, dir.ptr, null });
         var buf: [1024]u16 = undefined;
         const found = find(environ, &buf) orelse return com.E_FAIL;
         const lib = LoadLibraryW(found.dll) orelse return com.E_FAIL;

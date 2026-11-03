@@ -277,7 +277,7 @@ pub const Page = struct {
     pub fn loadHtml(self: *Page, html: []const u8, base_url: ?[]const u8) void {
         const gpa = self.gpa;
         self.dropHtml();
-        if (base_url) |b| {
+        if (extra.servedAtBase(base_url)) |b| {
             var web: [2048]u8 = undefined;
             const target = gpa.dupe(u8, serve.webUrl(&web, self.options, b)) catch return;
             const source = gpa.dupe(u8, html) catch return gpa.free(target);

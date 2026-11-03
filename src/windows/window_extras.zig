@@ -78,19 +78,47 @@ pub fn state(hwnd: w.HWND, style: u32, has_menu: bool, scale: f64) window_types.
 
 /// Shows Windows 11's material behind the window (DWMWA_SYSTEMBACKDROP_TYPE);
 /// false where the system has none (Windows 10). Content drawn opaque
-/// covers it.
-pub fn setMaterial(hwnd: w.HWND, material: window_types.Material) bool {
+/// covers it. `from_bottom` as `extendGlass`.
+pub fn setMaterial(hwnd: w.HWND, material: window_types.Material, from_bottom: bool) bool {
     const kind: u32 = switch (material) {
         .none => 1, // DWMSBT_NONE
         .sidebar => 2, // DWMSBT_MAINWINDOW (Mica)
         .under_window => 4, // DWMSBT_TABBEDWINDOW (Mica Alt)
         .popover => 3, // DWMSBT_TRANSIENTWINDOW (Acrylic)
     };
-    if (material != .none) {
-        const margins: [4]i32 = .{ -1, -1, -1, -1 };
-        _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
-    }
+    if (material != .none) extendGlass(hwnd, from_bottom);
     return DwmSetWindowAttribute(hwnd, 38, &kind, 4) >= 0;
+}
+
+/// Extends the frame over the client area, for the material to show
+/// through it. DWM draws the caption buttons of the window's styles in the
+/// frame at the top: a frameless window (which keeps WS_CAPTION, for
+/// snapping and the window menu) and a maximized one, whose buttons DWM
+/// would draw as tall as a restored window's, past its title bar, extend it
+/// from the bottom instead, over the whole client area, which leaves the
+/// frame's top only what lies above the client area: too short for buttons,
+/// or the system's own title bar.
+pub fn extendGlass(hwnd: w.HWND, from_bottom: bool) void {
+    var r: w.RECT = .{};
+    _ = w.GetClientRect(hwnd, &r);
+    const margins = glassMargins(from_bottom, r.bottom - r.top);
+    _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
+}
+
+/// MARGINS: left, right, top, bottom; -1 all over.
+pub fn glassMargins(from_bottom: bool, height: i32) [4]i32 {
+    return if (from_bottom) .{ 0, 0, 0, @max(height, 1) } else .{ -1, -1, -1, -1 };
+}
+
+/// Keeps the accent color off the top of a window without a caption. With
+/// "Show accent color on title bars and window borders" on, Windows 11
+/// paints the caption in the accent, and the pixel of it frame.zig keeps
+/// shows as a strip over the content (DWMWA_CAPTION_COLOR, DWMWA_COLOR_NONE).
+/// Windows 10 knows no caption color.
+pub fn plainCaption(hwnd: w.HWND) void {
+    if (!@import("gdi.zig").windows11()) return;
+    const none: u32 = 0xFFFFFFFE;
+    _ = DwmSetWindowAttribute(hwnd, 35, &none, 4);
 }
 
 /// Asks DWM for a dark title bar (DWMWA_USE_IMMERSIVE_DARK_MODE).
@@ -103,4 +131,10 @@ test "the primary monitor's origin is on screen, far away is not" {
     try std.testing.expect(onScreen(0, 0));
     try std.testing.expect(!onScreen(-100000, -100000));
     try std.testing.expectEqual(@as(usize, 44), @sizeOf(WINDOWPLACEMENT));
+}
+
+test "a frameless or maximized window's material extends from the bottom" {
+    try std.testing.expectEqual([4]i32{ -1, -1, -1, -1 }, glassMargins(false, 600));
+    try std.testing.expectEqual([4]i32{ 0, 0, 0, 600 }, glassMargins(true, 600));
+    try std.testing.expectEqual([4]i32{ 0, 0, 0, 1 }, glassMargins(true, 0));
 }

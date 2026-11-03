@@ -10,7 +10,7 @@ Một cửa sổ có thể hiển thị một trang web thay vì giao diện nat
 | frontend của ứng dụng | `myzig://localhost/` | `myzig://localhost/` | `http://myzig.localhost/` |
 | thanh tra web | Thanh tra web | Thanh tra của WebKit | Edge DevCông cụ |
 
-Không có gì được liên kết: WebKitGTK được tải khi trang đầu tiên mở ra (một ứng dụng có cửa sổ chỉ hiển thị giao diện native không bao giờ tải nó) và WebView2 được tìm thấy theo cách `WebView2Loader.dll` tìm thấy nó (một phiên bản cố định được đặt tên bởi `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, nếu không thì các kênh đã cài đặt, phiên bản ổn định nhất trước tiên). Máy Linux không có WebKitGTK ghi nhật ký mà các trang cần.
+Không có gì được liên kết: WebKitGTK được tải khi trang đầu tiên mở ra (một ứng dụng có cửa sổ chỉ hiển thị giao diện native không bao giờ tải nó) và WebView2 được tìm thấy theo cách `WebView2Loader.dll` tìm thấy nó (một phiên bản cố định được đặt tên bởi `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, nếu không thì các kênh đã cài đặt, phiên bản ổn định nhất trước tiên), và nhận `WEBVIEW2_USER_DATA_FOLDER` như loader (thư mục tương đối được tính từ thư mục của tệp thực thi). Máy Linux không có WebKitGTK ghi nhật ký mà các trang cần.
 
 Các tiến trình của WebView2 là gì, và một cửa sổ trang web tốn bao nhiêu so với mygo và Electron, xem ở [Benchmark](benchmarks.md).
 

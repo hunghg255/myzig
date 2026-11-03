@@ -8,6 +8,7 @@ const w = @import("win32.zig");
 const gdi = @import("gdi.zig");
 const frame = @import("frame.zig");
 const caption = @import("caption.zig");
+const maximize = @import("maximize.zig");
 const flyout = @import("flyout.zig");
 const titlebar = @import("../titlebar.zig");
 const window_types = @import("../window_types.zig");
@@ -91,6 +92,8 @@ pub fn handle(self: *Window, hwnd: w.HWND, msg: u32, wp: w.WPARAM, lp: w.LPARAM)
         },
         w.WM_SIZE => {
             if (self.caption) |c| if (wp != 1) c.layout();
+            if (wp == 2) maximize.maximized(hwnd, self.full_screen); // SIZE_MAXIMIZED
+            if (self.material != .none) @import("window_extras.zig").extendGlass(hwnd, glassFromBottom(self));
             var r: w.RECT = .{};
             _ = w.GetClientRect(hwnd, &r);
             const s = self.dpiScale();
@@ -101,6 +104,7 @@ pub fn handle(self: *Window, hwnd: w.HWND, msg: u32, wp: w.WPARAM, lp: w.LPARAM)
         w.WM_DPICHANGED => if (self.caption) |c| c.layout(),
         // Shown, hidden or moved: a caption that is a popup follows.
         WM_WINDOWPOSCHANGED => if (self.caption) |c| if (c.popup) c.layout(),
+        maximize.WM_WINDOWPOSCHANGING => maximize.changing(hwnd, lp, self.full_screen),
         frame.WM_NCCALCSIZE => if (captionless(self) and wp != 0 and !self.full_screen)
             return frame.calcSize(hwnd, wp, lp, self.title_bar == .hidden, self.flyout != null),
         caption.WM_NCHITTEST => if (captionless(self) and !self.full_screen) {
@@ -147,3 +151,13 @@ pub fn handle(self: *Window, hwnd: w.HWND, msg: u32, wp: w.WPARAM, lp: w.LPARAM)
 
 const WM_WINDOWPOSCHANGED = 0x0047;
 extern "user32" fn GetWindow(hwnd: w.HWND, cmd: u32) callconv(.winapi) ?w.HWND;
+
+/// Whether the window's material extends from the bottom
+/// (`window_extras.extendGlass`): a frameless window's, flyouts aside (popups
+/// DWM draws no buttons in), and a maximized one's.
+pub fn glassFromBottom(self: *Window) bool {
+    if (self.flyout != null) return false;
+    if (self.title_bar == .frameless) return true;
+    const h = self.hwnd orelse return false;
+    return !self.full_screen and w.IsZoomed(h) != 0;
+}

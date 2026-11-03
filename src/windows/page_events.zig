@@ -179,7 +179,7 @@ fn navigationCompleted(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {
     if (ok != 0) return page.core.fire(.{ .load_finished = url });
     var status: i32 = 0;
     _ = com.call(args, done_get_status, .{&status});
-    if (status == 13) return; // canceled: another navigation
+    if (status == 14) return; // COREWEBVIEW2_WEB_ERROR_STATUS_OPERATION_CANCELED: another navigation
     page.core.fire(.{ .load_failed = .{ .url = url, .code = status, .description = "navigation failed (COREWEBVIEW2_WEB_ERROR_STATUS)" } });
 }
 

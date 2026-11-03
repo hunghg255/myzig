@@ -74,9 +74,8 @@ pub fn writeBundle(ctx: Ctx, c: Config, dir: []const u8, bin: []const u8, resour
     try fsx.makeDir(ctx.io, res_dir);
     try fsx.writeExecutable(ctx.io, try ctx.join(&.{ contents, "MacOS", name }), try fsx.read(ctx, bin));
     var icon_file: []const u8 = "";
-    if (c.icon.len > 0) {
-        const src = try fsx.read(ctx, try c.path(ctx.gpa, c.icon));
-        try fsx.write(ctx.io, try ctx.join(&.{ res_dir, bundle_icon }), try icon.icns(ctx.gpa, src));
+    if (try bundleIcns(ctx, c)) |data| {
+        try fsx.write(ctx.io, try ctx.join(&.{ res_dir, bundle_icon }), data);
         icon_file = bundle_icon;
     }
     for (resources) |r| try fsx.copyTree(ctx, r, try ctx.join(&.{ res_dir, std.fs.path.basename(r) }));
@@ -84,6 +83,24 @@ pub fn writeBundle(ctx: Ctx, c: Config, dir: []const u8, bin: []const u8, resour
     try fsx.write(ctx.io, try ctx.join(&.{ contents, "Info.plist" }), try infoPlist(ctx.gpa, c, name, icon_file));
     try fsx.write(ctx.io, try ctx.join(&.{ contents, "PkgInfo" }), "APPL????");
     return app;
+}
+
+/// The bundle's .icns: `macos.icon` as it is, or rendered from `icon`, or
+/// null without either.
+fn bundleIcns(ctx: Ctx, c: Config) !?[]const u8 {
+    if (c.macos.icon.len > 0) {
+        const data = fsx.read(ctx, try c.path(ctx.gpa, c.macos.icon)) catch |e| {
+            if (!ctx.quiet) std.debug.print("error: macos.icon {s}: {t}\n", .{ c.macos.icon, e });
+            return error.MissingResource;
+        };
+        if (!std.mem.startsWith(u8, data, "icns")) {
+            if (!ctx.quiet) std.debug.print("error: macos.icon {s}: not an .icns file\n", .{c.macos.icon});
+            return error.MissingResource;
+        }
+        return data;
+    }
+    if (c.icon.len == 0) return null;
+    return try icon.icns(ctx.gpa, try fsx.read(ctx, try c.path(ctx.gpa, c.icon)));
 }
 
 /// Copies `macos.provisioning_profile` into the bundle, where codesign
@@ -154,9 +171,11 @@ pub fn codesign(ctx: Ctx, c: Config, app: []const u8) !void {
     try proc.check(ctx, args.items, null);
 }
 
-/// "<Name> <Version> <arch>.dmg".
+/// "<slug>-<version>-<arch>.dmg", as "my-app-1.2.0-aarch64.dmg": the
+/// slug of the executable keeps the name whole where it is uploaded, as
+/// GitHub drops what is not ASCII from the names of a release's files.
 pub fn dmgName(ctx: Ctx, c: Config, arch: []const u8) ![]u8 {
-    return ctx.fmt("{s} {s} {s}.dmg", .{ try fsx.fsName(ctx.gpa, c.name), try fsx.fsName(ctx.gpa, c.version), arch });
+    return ctx.fmt("{s}-{s}-{s}.dmg", .{ try @import("config.zig").slug(ctx.gpa, c.executable, '-'), try fsx.fsName(ctx.gpa, c.version), arch });
 }
 
 /// Packages the bundle into a compressed, read-only disk image in `dir`:
@@ -188,7 +207,13 @@ pub fn diskImage(ctx: Ctx, c: Config, app: []const u8, dir: []const u8, arch: []
         try proc.check(ctx, &.{ "hdiutil", "detach", mnt }, null);
         try flagged;
     }
-    try proc.check(ctx, &.{ "hdiutil", "convert", rw, "-format", "ULMO", "-ov", "-o", file }, null);
+    // macOS 27 fails "hdiutil convert" ("Resource temporarily
+    // unavailable") and asks for "diskutil image create from", which
+    // overwrites as -ov does; older diskutils have no image verb.
+    const has_image = if (proc.capture(ctx, &.{ "diskutil", "image", "create", "from", "-h" }, null)) |r| r.ok else |_| false;
+    if (has_image) {
+        try proc.check(ctx, &.{ "diskutil", "image", "create", "from", "--format", "ULMO", rw, file }, null);
+    } else try proc.check(ctx, &.{ "hdiutil", "convert", rw, "-format", "ULMO", "-ov", "-o", file }, null);
     if (!std.mem.eql(u8, c.macos.signing_identity, "-"))
         try proc.check(ctx, &.{ "codesign", "--force", "--timestamp", "--sign", c.macos.signing_identity, file }, null);
     return file;
@@ -270,6 +295,25 @@ test writeBundle {
     const info = try fsx.read(ctx, try ctx.join(&.{ app, "Contents", "Info.plist" }));
     try std.testing.expect(std.mem.indexOf(u8, info, "<key>CFBundleIconFile</key>\n\t<string>icon.icns</string>") != null);
     if (std.Io.File.Permissions.has_executable_bit) try std.testing.expect(fsx.isExecutable(ctx.io, try ctx.join(&.{ app, "Contents", "MacOS", "My App" })));
+}
+
+test "macos.icon is the bundle's .icns in place of the rendered one" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const ctx: Ctx = .{ .gpa = arena.allocator(), .io = std.testing.io, .env = undefined, .quiet = true };
+    const root = try fsx.absolute(ctx, try ctx.join(&.{ ".zig-cache", "tmp", &tmp.sub_path }));
+    const bin = try ctx.join(&.{ root, "app-bin" });
+    try fsx.write(ctx.io, bin, "\xcf\xfa\xed\xfe fake");
+    try fsx.write(ctx.io, try ctx.join(&.{ root, "icon.png" }), try @import("png.zig").testIcon(ctx.gpa, 64, .{ 9, 9, 9 }));
+    try fsx.write(ctx.io, try ctx.join(&.{ root, "App.icns" }), "icns\x00\x00\x00\x08");
+    var c: Config = .{ .root = root, .name = "My App", .identifier = "com.example.myapp", .version = "1.0.0", .icon = "icon.png" };
+    c.macos.icon = "App.icns";
+    const app = try writeBundle(ctx, c, try ctx.join(&.{ root, "out" }), bin, &.{});
+    try std.testing.expectEqualStrings("icns\x00\x00\x00\x08", try fsx.read(ctx, try ctx.join(&.{ app, "Contents", "Resources", bundle_icon })));
+    try fsx.write(ctx.io, try ctx.join(&.{ root, "App.icns" }), "not one");
+    try std.testing.expectError(error.MissingResource, writeBundle(ctx, c, try ctx.join(&.{ root, "out" }), bin, &.{}));
 }
 
 test "provisioning profiles are embedded before signing" {

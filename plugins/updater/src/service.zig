@@ -52,7 +52,18 @@ pub const State = struct {
 
 pub const StateEvent = myzig.Event("myzig-updater", State);
 
-const Msg = struct { svc: *Service, arena: std.heap.ArenaAllocator, state: State };
+/// What a message does to `Service.available`: nothing, empties it, or
+/// sets it to its state's version.
+const Avail = enum { keep, clear, set };
+
+const Msg = struct { svc: *Service, arena: std.heap.ArenaAllocator, state: State, avail: Avail = .keep };
+
+/// The version a check that found `found` (or nothing) leaves available:
+/// none for a version a background check skips.
+fn availableAfter(found: ?[]const u8, bg: bool, offers: bool) ?[]const u8 {
+    const v = found orelse return null;
+    return if (bg and !offers) null else v;
+}
 
 pub const Service = struct {
     pub const myzig_name = "Updater";
@@ -76,6 +87,8 @@ pub const Service = struct {
     /// Set once a check began since launch: until then the next background
     /// check is soon, however recent the last check of an earlier launch.
     launch_checked: bool = false,
+    /// `availableVersion` (owned by `gpa`).
+    available: []u8 = &.{},
 
     /// Main thread. Removes what an earlier update left (`cleanup`).
     pub fn init(gpa: std.mem.Allocator, app: *myzig.App, options: Options) !Service {
@@ -105,6 +118,7 @@ pub const Service = struct {
         s.gpa.free(s.prefs_path);
         s.prefs_arena.deinit();
         s.found_arena.deinit();
+        s.gpa.free(s.available);
     }
 
     fn updater(s: *Service) core.Updater {
@@ -126,7 +140,23 @@ pub const Service = struct {
     pub fn skip(s: *Service) !void {
         const f = s.found orelse return;
         s.prefs.skippedVersion = try s.prefs_arena.allocator().dupe(u8, f.version);
+        if (std.mem.eql(u8, s.available, f.version)) s.setAvailable("");
         try s.prefs.save(s.app.io, s.prefs_path);
+    }
+
+    /// The newer version the last check found, or "": before a check,
+    /// after a failed one, and for a version skipped. One downloaded keeps
+    /// its version until the app relaunches. Pages read it again on the
+    /// `myzig-updater` events of a check.
+    pub fn availableVersion(s: *Service) []const u8 {
+        return s.available;
+    }
+
+    fn setAvailable(s: *Service, v: []const u8) void {
+        if (std.mem.eql(u8, s.available, v)) return;
+        const copy = s.gpa.dupe(u8, v) catch return;
+        s.gpa.free(s.available);
+        s.available = copy;
     }
 
     /// Starts the installed version and quits.
@@ -192,9 +222,10 @@ pub const Service = struct {
         switch (job) {
             .check => {
                 if (!bg) s.post(.{ .kind = .checking });
-                const found = u.check(a) catch |err| return s.post(.{ .kind = .failed, .message = @errorName(err), .background = bg });
+                const found = u.check(a) catch |err| return s.postAvail(.{ .kind = .failed, .message = @errorName(err), .background = bg }, .clear);
                 const now = Io.Clock.real.now(s.app.io).toSeconds();
-                s.post(.{ .kind = .upToDate, .done = @intCast(now), .background = true, .message = "checked" });
+                const avail = availableAfter(if (found) |f| f.version else null, bg, if (found) |f| s.prefs.offers(f.version) else true);
+                s.postAvail(.{ .kind = .upToDate, .done = @intCast(now), .background = true, .message = "checked", .version = avail orelse "" }, if (avail != null) .set else .clear);
                 const update = found orelse return if (!bg) s.post(.{ .kind = .upToDate });
                 if (bg and !s.prefs.offers(update.version)) return;
                 const fa = s.found_arena.allocator();
@@ -221,9 +252,13 @@ pub const Service = struct {
 
     /// Hands a state to the main thread, which tells every page.
     fn post(s: *Service, state: State) void {
+        s.postAvail(state, .keep);
+    }
+
+    fn postAvail(s: *Service, state: State, avail: Avail) void {
         if (s.stopping.load(.acquire)) return;
         const msg = s.gpa.create(Msg) catch return;
-        msg.* = .{ .svc = s, .arena = .init(s.gpa), .state = state };
+        msg.* = .{ .svc = s, .arena = .init(s.gpa), .state = state, .avail = avail };
         const a = msg.arena.allocator();
         msg.state.version = a.dupe(u8, state.version) catch "";
         msg.state.notes = a.dupe(u8, state.notes) catch "";
@@ -241,6 +276,11 @@ pub const Service = struct {
             msg.arena.deinit();
             s.gpa.destroy(msg);
         }
+        switch (msg.avail) {
+            .keep => {},
+            .clear => s.setAvailable(""),
+            .set => s.setAvailable(msg.state.version),
+        }
         // "checked": the time of a check, kept, not shown.
         if (std.mem.eql(u8, msg.state.message, "checked")) {
             s.prefs.lastCheck = @intCast(msg.state.done);
@@ -254,4 +294,11 @@ pub const Service = struct {
 
 test {
     std.testing.refAllDecls(Service);
+}
+
+test availableAfter {
+    try std.testing.expectEqualStrings("2.0.0", availableAfter("2.0.0", true, true).?);
+    try std.testing.expect(availableAfter("2.0.0", true, false) == null); // skipped
+    try std.testing.expectEqualStrings("2.0.0", availableAfter("2.0.0", false, false).?); // the user asked
+    try std.testing.expect(availableAfter(null, false, true) == null);
 }

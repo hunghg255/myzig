@@ -16,10 +16,14 @@ Bản phát hành được xây dựng bằng ReleaseSmall và loại bỏ (`--o
 
 | nền tảng | `myzig build` làm ra cái gì |
 |---|---|
-| macOS | `<Name>.app`; trên máy Mac, được ký (đặc biệt theo mặc định) bằng `<Name> <version> <arch>.dmg`; ở nơi khác `<Name>-<version>-macos-<arch>.zip` của gói |
-| Windows | có hai cách để vận chuyển nó: `<Name> Portable <version> <arch>.zip`, chạy khi được giải nén và không cài đặt gì (`<Name>/<Name>.exe` với các tài nguyên biểu tượng, tệp kê khai và phiên bản cũng như các tài nguyên bên cạnh nó, cũng được giải nén) và `<Name> Setup <version> <arch>.exe`, trình cài đặt NSIS, khi `makensis` được cài đặt (không có nó, một cảnh báo sẽ cho biết cách cài đặt nó) |
+| macOS | `<Name>.app`; trên máy Mac, được ký (đặc biệt theo mặc định) bằng `<slug>-<version>-<arch>.dmg`; ở nơi khác `<Name>-<version>-macos-<arch>.zip` của gói |
+| Windows | có hai cách để vận chuyển nó: `<slug>-portable-<version>-<arch>.zip`, chạy khi được giải nén và không cài đặt gì (`<Name>/<Name>.exe` với các tài nguyên biểu tượng, tệp kê khai và phiên bản cũng như các tài nguyên bên cạnh nó, cũng được giải nén) và `<slug>-setup-<version>-<arch>.exe`, trình cài đặt NSIS, khi `makensis` được cài đặt (không có nó, một cảnh báo sẽ cho biết cách cài đặt nó) |
 | Linux | `<executable>/` (tệp thực thi, mục nhập và biểu tượng trên màn hình của nó, tài nguyên); `<executable>-<version>-linux-<arch>.tar.gz`; `<package>_<version>_<arch>.deb` |
 | trình duyệt | `dist/web`: `index.html`, tập lệnh của máy chủ, `app.wasm` và phông chữ (xem [Trình duyệt](browsers.md)) |
+
+`<slug>` là tên tệp thực thi viết thường, nối bằng gạch ngang, như
+`my-app` của `my_app`: ảnh đĩa và các gói Windows được đặt theo nó, vì
+GitHub bỏ những ký tự không phải ASCII khỏi tên tệp của một bản phát hành.
 
 <a id="platforms"></a>
 
@@ -82,8 +86,8 @@ Trên máy Mac, gói được ký bằng `codesign --force --deep --sign <macos.
 Việc công chứng vẫn chưa được CLI thực hiện. Sau `myzig build`, gửi ảnh đĩa và ghim phiếu:
 
 ```sh
-xcrun notarytool submit "dist/macos-aarch64/My App 1.0.0 aarch64.dmg" --keychain-profile notary --wait
-xcrun stapler staple "dist/macos-aarch64/My App 1.0.0 aarch64.dmg"
+xcrun notarytool submit dist/macos-aarch64/my-app-1.0.0-aarch64.dmg --keychain-profile notary --wait
+xcrun stapler staple dist/macos-aarch64/my-app-1.0.0-aarch64.dmg
 ```
 
 <a id="provisioning-profiles"></a>
@@ -106,7 +110,7 @@ Hồ sơ phải khớp với chứng chỉ ký, mã định danh gói và các q
 
 ### Hình ảnh đĩa
 
-`<Name> <version> <arch>.dmg` là hình ảnh nén, chỉ đọc (`ULMO`) có tiêu đề `macos.dmg_title`. Mở nó sẽ hiển thị ứng dụng bên cạnh liên kết đến `/Applications` trong cửa sổ Finder được trình bày bởi `.DS_Store` CLI ghi, với biểu tượng của ứng dụng là âm lượng. `--skip-dmg` bỏ nó đi.
+`<slug>-<version>-<arch>.dmg` là hình ảnh nén, chỉ đọc (`ULMO`) có tiêu đề `macos.dmg_title`. Mở nó sẽ hiển thị ứng dụng bên cạnh liên kết đến `/Applications` trong cửa sổ Finder được trình bày bởi `.DS_Store` CLI ghi, với biểu tượng của ứng dụng là âm lượng. `--skip-dmg` bỏ nó đi. Khi `diskutil` có lệnh `image` (macOS 27, nơi `hdiutil convert` lỗi), CLI nén nó bằng `diskutil image create from`.
 
 <a id="windows"></a>
 
@@ -126,7 +130,7 @@ Hồ sơ phải khớp với chứng chỉ ký, mã định danh gói và các q
 
 ### Trình cài đặt
 
-Với `windows.installer` (mặc định), CLI ghi `installer.nsi` và biên dịch nó khi [NSIS](https://nsis.sourceforge.io) được cài đặt (`makensis` trên `PATH` hoặc trong `Program Files\NSIS`): `<Name> Setup <version> <arch>.exe`. Nó cài đặt cho người dùng mà không có quyền quản trị viên:
+Với `windows.installer` (mặc định), CLI ghi `installer.nsi` và biên dịch nó khi [NSIS](https://nsis.sourceforge.io) được cài đặt (`makensis` trên `PATH` hoặc trong `Program Files\NSIS`): `<slug>-setup-<version>-<arch>.exe`. Nó cài đặt cho người dùng mà không có quyền quản trị viên:
 
 - vào `%LOCALAPPDATA%\Programs\<Name>`, với lối tắt menu Bắt đầu và lối tắt trên màn hình mà trang kết thúc cung cấp;
 - các liên kết tệp và URL scheme của `myzig.zon`, trong `HKCU\Software\Classes`;

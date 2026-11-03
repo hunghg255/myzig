@@ -105,6 +105,7 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 | `entitlements` | không có | tệp quyền lợi cho `codesign` |
 | `provisioning_profile` | không có | một hồ sơ được nhúng dưới dạng `Contents/embedded.provisionprofile` trước khi ký; nó phải khớp với mã nhận dạng, quyền lợi và danh tính ký của ứng dụng và không thể được sử dụng với chức năng ký đặc biệt. Xem [hồ sơ cung cấp](distribution.md#provisioning-profiles) |
 | `dmg_title` | cái tên | tên ổ đĩa của ảnh đĩa |
+| `icon` | không có | một `.icns` (tạo bằng `iconutil` từ một `.iconset`) mà gói dùng thay cho cái được vẽ từ `icon`, cho biểu tượng vẽ riêng từng kích thước; `myzig dev` hiện PNG |
 | `info_plist` | không có | các khóa được thêm vào `Info.plist`, thay thế các khóa của myzig |
 
 ```zig
@@ -149,6 +150,7 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 | `uninstall_run` | không có | đối số mà trình gỡ cài đặt chạy ứng dụng và chờ đợi trước khi lấy đi các tệp của nó: để ứng dụng hoàn tác những gì nó tự thiết lập (một lệnh trên `PATH`, menu của File Explorer) |
 | `uninstall_data` | không có | các thư mục chứa dữ liệu của ứng dụng, dưới dạng đường dẫn NSIS (`$APPDATA\\MyApp`), trình gỡ cài đặt cũng đề nghị xóa, hãy hỏi trước; việc gỡ cài đặt im lặng sẽ giữ chúng |
 | `install_dir_name` | tên ứng dụng | thư mục trong `%LOCALAPPDATA%\Programs` mà trình cài đặt đặt ứng dụng vào, ví dụ `ZhiLian` (ASCII) cho ứng dụng tên `智链`; lối tắt và Settings › Apps giữ tên, và ứng dụng đã cài được cập nhật tại chỗ |
+| `installer_include` | không có | một script NSIS của ứng dụng mà trình cài đặt include, như `resources/installer.nsh`, sau `MUI2.nsh` và các ngôn ngữ: các macro nó định nghĩa trong số `customInit`, `customInstall` và `customUnInstall` chạy khi trình cài đặt bắt đầu (`.onInit`), cuối bước cài đặt khi các tệp đã ở `$INSTDIR`, và trong bước gỡ cài đặt trước khi thư mục ứng dụng bị xoá; cài đặt im lặng cũng chạy chúng |
 
 ## linux
 

@@ -50,6 +50,10 @@ pub const MacOS = struct {
     /// signing identity; ad-hoc signing cannot use one.
     provisioning_profile: []const u8 = "",
     dmg_title: []const u8 = "",
+    /// An .icns (made with iconutil from an .iconset) the bundle gets in
+    /// place of the one rendered from `icon`: for an icon drawn per size,
+    /// such as a closer crop at 16 and 32 points. `myzig dev` shows `icon`.
+    icon: []const u8 = "",
     /// Keys added to Info.plist, replacing myzig's.
     info_plist: ?zon.Value = null,
 };
@@ -71,6 +75,11 @@ pub const Windows = struct {
     /// paths. The shortcuts, the entry in Settings › Apps and the
     /// installer keep the name. An installed app is updated in its folder.
     install_dir_name: []const u8 = "",
+    /// An NSIS script of the app's own the installer includes, as
+    /// "resources/installer.nsh": its macros customInit, customInstall and
+    /// customUnInstall run as the installer starts, at the end of the
+    /// install, and in the uninstall before the app's folder is removed.
+    installer_include: []const u8 = "",
 };
 
 pub const Linux = struct {
@@ -228,18 +237,19 @@ fn decode(gpa: std.mem.Allocator, c: *Config, v: zon.Value) LoadError!void {
         c.file_associations = out;
     }
     if (v.get("macos")) |m| {
-        try checkKeys(gpa, m, "macos", &.{ "minimum_system_version", "signing_identity", "entitlements", "provisioning_profile", "dmg_title", "info_plist" });
-        inline for (.{ "minimum_system_version", "signing_identity", "entitlements", "provisioning_profile", "dmg_title" }) |k| try str(gpa, m, k, &@field(c.macos, k));
+        try checkKeys(gpa, m, "macos", &.{ "minimum_system_version", "signing_identity", "entitlements", "provisioning_profile", "dmg_title", "icon", "info_plist" });
+        inline for (.{ "minimum_system_version", "signing_identity", "entitlements", "provisioning_profile", "dmg_title", "icon" }) |k| try str(gpa, m, k, &@field(c.macos, k));
         if (m.get("info_plist")) |p| {
             if (p != .object) return invalid(gpa, "macos.info_plist is a struct of keys", .{});
             c.macos.info_plist = p;
         }
     }
     if (v.get("windows")) |w| {
-        try checkKeys(gpa, w, "windows", &.{ "installer", "uninstall_run", "uninstall_data", "install_dir_name" });
+        try checkKeys(gpa, w, "windows", &.{ "installer", "uninstall_run", "uninstall_data", "install_dir_name", "installer_include" });
         try boolean(gpa, w, "installer", &c.windows.installer);
         try str(gpa, w, "uninstall_run", &c.windows.uninstall_run);
         try str(gpa, w, "install_dir_name", &c.windows.install_dir_name);
+        try str(gpa, w, "installer_include", &c.windows.installer_include);
         try strList(gpa, w, "uninstall_data", &c.windows.uninstall_data);
     }
     if (v.get("updates")) |u| c.updates = try updates.decode(gpa, u);
@@ -334,6 +344,8 @@ pub fn validate(gpa: std.mem.Allocator, c: Config) LoadError!void {
     }
     if (!validName(c.identifier, "", ".-")) return invalid(gpa, "identifier \"{s}\" is not a reverse DNS name, as com.example.myapp", .{c.identifier});
     if (c.updates) |u| try updates.validate(gpa, u);
+    if (c.macos.icon.len > 0 and !std.ascii.endsWithIgnoreCase(c.macos.icon, ".icns"))
+        return invalid(gpa, "macos.icon {s} is an .icns", .{c.macos.icon});
     if (c.windows.install_dir_name.len > 0) if (folderNameError(c.windows.install_dir_name)) |why|
         return invalid(gpa, "windows.install_dir_name \"{s}\" is the name of the app's folder, which {s}", .{ c.windows.install_dir_name, why });
 }
@@ -380,7 +392,8 @@ test "defaults and fields" {
         \\    .version = "1.2.0",
         \\    .url_schemes = .{"notes"},
         \\    .file_associations = .{ .{ .ext = .{ "md", "markdown" }, .name = "Markdown" } },
-        \\    .macos = .{ .info_plist = .{ .NSCameraUsageDescription = "Scan" } },
+        \\    .macos = .{ .icon = "resources/Notes.icns", .info_plist = .{ .NSCameraUsageDescription = "Scan" } },
+        \\    .windows = .{ .installer_include = "resources/installer.nsh" },
         \\    .linux = .{ .categories = .{ "Office", "Utility" }, .command = "notes" },
         \\}
     , false, zon_file);
@@ -390,6 +403,8 @@ test "defaults and fields" {
     try std.testing.expectEqualStrings("Editor", c.file_associations[0].role);
     try std.testing.expectEqualStrings("Office", c.linux.categories[0]);
     try std.testing.expect(c.macos.info_plist.?.get("NSCameraUsageDescription") != null);
+    try std.testing.expectEqualStrings("resources/Notes.icns", c.macos.icon);
+    try std.testing.expectEqualStrings("resources/installer.nsh", c.windows.installer_include);
     c.name = "My Notes";
     c.executable = "my_notes";
     c.identifier = "com.myzig.mynotes";
@@ -417,6 +432,8 @@ test "mistakes are named" {
     c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .dev_url = "localhost:5173" };
     try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
     c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .file_associations = &.{.{ .ext = &.{".md"} }} };
+    try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
+    c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .macos = .{ .icon = "icon.png" } };
     try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
 }
 

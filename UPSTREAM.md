@@ -114,7 +114,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `477eae5f` | 2026-10-26 | Keep a macOS tray title's width steady as its digits change (#766) | ported | macOS tray title monospaced digits |
 | `56beb962` | 2026-10-26 | Don't wait twice on a frame latency object that timed out (#767) | present | no double wait on a timed-out frame latency (surface_present.zig) |
 | `304f1c5f` | 2026-10-26 | Let apps choose the slug that names their files, and read CJK names into slugs (#768) | todo-M | cli: slug option, CJK names into slugs |
-| `ee77c770` | 2026-10-26 | Name disk images and Windows installers after the slug (#769) | todo-S | cli: name dmg and installer after the slug |
+| `ee77c770` | 2026-10-26 | Name disk images and Windows installers after the slug (#769) | ported | cli: name dmg and installer after the slug |
 | `e112e5ef` | 2026-10-26 | Paint a window whole after another window moved the glyphs it draws (#770) | n/a | follow-up of paint-only frames |
 | `b343bbf7` | 2026-10-26 | Paint a window whole after it drew masks for its frame alone (#771) | n/a | follow-up of paint-only frames |
 | `9b0de235` | 2026-10-26 | Add Element.Hidden, which hides an element and takes its room away (#772) | todo-M | Element.hidden (display none) |
@@ -148,7 +148,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `da3657e7` | 2026-10-27 | macOS: leave a drag region's window to the window server once it begins (#811) | todo-S | macOS drag region: leave the move to the window server (with b0a8b3f7) |
 | `76dd068b` | 2026-10-27 | Release 0.7.1 | skip |  |
 | `834d3b0d` | 2026-10-27 | macOS: take a Control-click on a tray icon for a right-click (#818) | n/a | tray has no right-click callback |
-| `5a374d9c` | 2026-10-27 | cli: hooks for the Windows installer (#819) | todo-S | cli: Windows installer hooks (.nsh include) |
+| `5a374d9c` | 2026-10-27 | cli: hooks for the Windows installer (#819) | ported | cli: Windows installer hooks (.nsh include) |
 | `4426e328` | 2026-10-27 | ci: keep the Linux packages in the Actions cache, and cancel superseded runs on main (#812) | skip |  |
 | `e8cf6079` | 2026-10-27 | updater: get updates from a source the app supplies (#820) | todo-M | updater: app-supplied update source |
 | `c637faed` | 2026-10-27 | windows: show what is behind transparent windows of native UI (#660) | n/a | no transparent windows option |
@@ -157,7 +157,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `d20c33a9` | 2026-10-27 | netproxy: follow the system's proxy settings in Go's requests (#799) | skip |  |
 | `a9b1c1a6` | 2026-10-27 | mygo: let apps show someone else's pages as untrusted (#829) | todo-M | untrusted pages option |
 | `8f71c8e6` | 2026-10-27 | windows: hide embedded web views while their window is hidden (#831) | n/a | embedded pages are child HWNDs |
-| `8820ebbe` | 2026-10-27 | cli: let macos.icon be an .icns, for an icon drawn per size (#833) | todo-S | cli: macos.icon as .icns |
+| `8820ebbe` | 2026-10-27 | cli: let macos.icon be an .icns, for an icon drawn per size (#833) | ported | cli: macos.icon as .icns |
 | `b553a90a` | 2026-10-27 | cli: describe the .icns of macos.icon in the config types (#835) | n/a | TypeScript config typings only |
 | `41ec785c` | 2026-10-27 | ui: play videos in native UI, starting with animated GIFs (#839) | todo-L | GIF/video in native UI |
 | `ccb2aef8` | 2026-10-27 | linux: render the GL area only when the content asks (#841) | todo-S | Linux GL area: render only when asked (gl_gtk.zig) |
@@ -214,7 +214,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `e5137a83` | 2026-10-29 | showcase: add Lumilo (#919) | skip |  |
 | `64575a41` | 2026-10-30 | windows: keep the items of drawn menus from clipping their labels (#923) | n/a | no owner-drawn menus |
 | `003c212e` | 2026-10-30 | terminal: draw block sextants to fix Expo QR code rendering (#920) | todo-S | terminal block sextants |
-| `58c3edc2` | 2026-10-30 | Convert disk images with diskutil where hdiutil convert fails (#925) | todo-S | cli: diskutil when hdiutil convert fails |
+| `58c3edc2` | 2026-10-30 | Convert disk images with diskutil where hdiutil convert fails (#925) | ported | cli: diskutil when hdiutil convert fails |
 | `d40aa879` | 2026-10-30 | ui: let an element ignore the pointer and the keyboard, still pressed by assistive technology (#927) | todo-M | ignore_input style |
 | `2b66322a` | 2026-10-30 | macOS: count the run loop's passes only after a frame, so an idle window stops waking Go (#928) | n/a | no repeating run loop observer |
 | `afdd70df` | 2026-10-31 | ui: let a subtree use another theme with Themed (#932) | todo-S | themed subtree |
@@ -233,7 +233,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `1caad878` | 2026-10-31 | ui: draw every scroll bar as a scroll container's, with ui.Scrollbar (#949) | todo-M | shared scroll bar helper |
 | `1fa27134` | 2026-10-31 | macOS: give a page the first click in a window that is not key (#950) | ported | macOS: page takes the first click (acceptsFirstMouse) |
 | `21ae57f9` | 2026-10-31 | windows: retry a package's final rename while a scanner holds its files (#953) | n/a | cli renames no final package |
-| `dcf169d9` | 2026-10-31 | plugins/updater: report a pending update with AvailableVersion (#960) | todo-S | updater availableVersion |
+| `dcf169d9` | 2026-10-31 | plugins/updater: report a pending update with AvailableVersion (#960) | ported | updater availableVersion |
 | `7baaf4db` | 2026-10-31 | ui: placeholder color, dotted underline, Context.Instant, markdown Anchor and LinkWeight (#969) | todo-M | placeholder color, dotted underline, Context.instant, markdown anchor, link weight |
 | `49cb9a5f` | 2026-10-31 | ui: let assistive technology edit a custom text client (#967) | present | assistive technology edits text fields (access.zig) |
 | `430a0914` | 2026-10-31 | e2e: remove the WebView2 variables test's data folder once the browser lets go (#970) | skip |  |

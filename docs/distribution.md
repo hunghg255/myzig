@@ -19,10 +19,15 @@ first. The flags are in
 
 | platform | what `myzig build` makes |
 |---|---|
-| macOS | `<Name>.app`; on a Mac, signed (ad hoc by default) with `<Name> <version> <arch>.dmg`; elsewhere `<Name>-<version>-macos-<arch>.zip` of the bundle |
-| Windows | two ways to ship it: `<Name> Portable <version> <arch>.zip`, which runs where it is unpacked and installs nothing (`<Name>/<Name>.exe` with its icon, manifest and version resources, and the resources beside it, also left unzipped), and `<Name> Setup <version> <arch>.exe`, the NSIS installer, when `makensis` is installed (without it, a warning says how to install it) |
+| macOS | `<Name>.app`; on a Mac, signed (ad hoc by default) with `<slug>-<version>-<arch>.dmg`; elsewhere `<Name>-<version>-macos-<arch>.zip` of the bundle |
+| Windows | two ways to ship it: `<slug>-portable-<version>-<arch>.zip`, which runs where it is unpacked and installs nothing (`<Name>/<Name>.exe` with its icon, manifest and version resources, and the resources beside it, also left unzipped), and `<slug>-setup-<version>-<arch>.exe`, the NSIS installer, when `makensis` is installed (without it, a warning says how to install it) |
 | Linux | `<executable>/` (the executable, its desktop entry and icon, the resources); `<executable>-<version>-linux-<arch>.tar.gz`; `<package>_<version>_<arch>.deb` |
 | browsers | `dist/web`: `index.html`, the host's scripts, `app.wasm` and the fonts (see [Browsers](browsers.md)) |
+
+`<slug>` is the executable's name in lower case with hyphens, as
+`my-app` of `my_app`: the disk images and the Windows packages are named
+after it, because GitHub drops what is not ASCII from the names of a
+release's files.
 
 ## Platforms
 
@@ -123,8 +128,8 @@ Notarization is not done by the CLI yet. After `myzig build`, submit the
 disk image and staple the ticket:
 
 ```sh
-xcrun notarytool submit "dist/macos-aarch64/My App 1.0.0 aarch64.dmg" --keychain-profile notary --wait
-xcrun stapler staple "dist/macos-aarch64/My App 1.0.0 aarch64.dmg"
+xcrun notarytool submit dist/macos-aarch64/my-app-1.0.0-aarch64.dmg --keychain-profile notary --wait
+xcrun stapler staple dist/macos-aarch64/my-app-1.0.0-aarch64.dmg
 ```
 
 ### Provisioning profiles
@@ -156,10 +161,12 @@ Apple's
 
 ### The disk image
 
-`<Name> <version> <arch>.dmg` is a compressed, read-only image (`ULMO`)
+`<slug>-<version>-<arch>.dmg` is a compressed, read-only image (`ULMO`)
 titled `macos.dmg_title`. Opening it shows the app beside a link to
 `/Applications` in a Finder window laid out by a `.DS_Store` the CLI
 writes, with the app's icon as the volume's. `--skip-dmg` leaves it out.
+Where `diskutil` has the `image` verb (macOS 27, whose `hdiutil convert`
+fails), the CLI compresses it with `diskutil image create from`.
 
 ## Windows
 
@@ -189,7 +196,7 @@ which isn't tested yet; macOS has no 32-bit apps.
 With `windows.installer` (the default), the CLI writes `installer.nsi`, and
 compiles it when [NSIS](https://nsis.sourceforge.io) is installed
 (`makensis` on the `PATH`, or in `Program Files\NSIS`):
-`<Name> Setup <version> <arch>.exe`. It installs for the user,
+`<slug>-setup-<version>-<arch>.exe`. It installs for the user,
 without administrator rights:
 
 - into `%LOCALAPPDATA%\Programs\<Name>`, with a Start menu shortcut, and a

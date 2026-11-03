@@ -149,7 +149,7 @@ Builds the release (ReleaseSmall and stripped by default) and packages it
 in `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...): a `.app` and, on
 a Mac, a `.dmg`; a Windows `.exe` with its icon, manifest and version
 resources, in a portable `.zip` that runs unpacked, and an installer with
-NSIS (`<Name> Setup <version> <arch>.exe`); a Linux directory, a
+NSIS (`<slug>-setup-<version>-<arch>.exe`); a Linux directory, a
 `.tar.gz` and a `.deb`. Linux and Windows releases build from any machine,
 as Zig cross-compiles and myzig links nothing of theirs; macOS releases
 need the macOS SDK, and the `.dmg` and code signing a Mac. See

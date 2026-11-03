@@ -33,11 +33,14 @@ pub const Files = struct {
     /// The installer's file, its icon (an .ico) or "".
     out: []const u8,
     ico: []const u8 = "",
+    /// `windows.installer_include`'s path, or "".
+    include: []const u8 = "",
 };
 
-/// "<Name> Setup <version> <arch>.exe".
-pub fn installerName(gpa: std.mem.Allocator, name: []const u8, version: []const u8, arch: []const u8) ![]u8 {
-    return std.fmt.allocPrint(gpa, "{s} Setup {s} {s}.exe", .{ name, version, arch });
+/// "<slug>-setup-<version>-<arch>.exe", as "my-app-setup-1.2.0-x86_64.exe"
+/// (see macos.dmgName).
+pub fn installerName(gpa: std.mem.Allocator, slug: []const u8, version: []const u8, arch: []const u8) ![]u8 {
+    return std.fmt.allocPrint(gpa, "{s}-setup-{s}-{s}.exe", .{ slug, version, arch });
 }
 
 pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files, dirs: []const bool) ![]u8 {
@@ -79,6 +82,15 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
         \\!insertmacro MUI_UNPAGE_INSTFILES
         \\!insertmacro MUI_LANGUAGE "English"
         \\
+    );
+    // The app's own script, after MUI2.nsh and the languages, which its
+    // macros may use; customInit runs as the installer starts.
+    if (f.include.len > 0) {
+        try w.writeAll("!include ");
+        try quoted(w, f.include);
+        try w.writeAll("\n!ifmacrodef customInit\nFunction .onInit\n  !insertmacro customInit\nFunctionEnd\n!endif\n");
+    }
+    try w.writeAll(
         \\Section
         \\  SetOutPath "$INSTDIR"
         \\  Call CloseRunning
@@ -130,6 +142,7 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     var unreg: std.Io.Writer.Allocating = .init(gpa);
     defer unreg.deinit();
     try associations(gpa, c, f.exe, w, &unreg.writer);
+    if (f.include.len > 0) try w.writeAll(hook("customInstall"));
     try w.writeAll("SectionEnd\n\n; The finish page offers it, so silent installs (/S) make none.\nFunction CreateDesktopShortcut\n  SetOutPath \"$INSTDIR\"\n  CreateShortCut \"$DESKTOP\\");
     try escape(w, dir_name);
     try w.writeAll(".lnk\" \"$INSTDIR\\");
@@ -154,6 +167,7 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     try quoted(w, key);
     try w.writeByte('\n');
     try w.writeAll(unreg.written());
+    if (f.include.len > 0) try w.writeAll(hook("customUnInstall"));
     try w.writeAll("  RMDir /r \"$INSTDIR\"\n");
     // The data too, once asked; a silent uninstall keeps it.
     if (c.windows.uninstall_data.len > 0) {
@@ -171,6 +185,11 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     }
     try w.writeAll("SectionEnd\n");
     return out.toOwnedSlice();
+}
+
+/// Runs the macro `name` of `windows.installer_include` where it defines it.
+fn hook(comptime name: []const u8) []const u8 {
+    return "  !ifmacrodef " ++ name ++ "\n    !insertmacro " ++ name ++ "\n  !endif\n";
 }
 
 /// The file name of `path`, a path of the machine building.
@@ -335,6 +354,24 @@ test "the installer and the uninstaller close the app and its console host first
     // Neither data nor a directory is checked.
     try std.testing.expect(std.mem.indexOf(u8, s, "app.json\" a") == null);
     try std.testing.expect(std.mem.indexOf(u8, s, "natives.exe\" a") == null);
+}
+
+test "installer hooks: the app's script and its macros, only with installer_include" {
+    const gpa = std.testing.allocator;
+    const c: Config = .{ .root = "/x", .name = "My App", .identifier = "com.example.my-app", .version = "1.0.0" };
+    const s = try script(gpa, c, "My App", .{ .paths = &.{}, .exe = "My App.exe", .out = "setup.exe", .include = "C:\\a\\installer.nsh" }, &.{});
+    defer gpa.free(s);
+    for ([_][]const u8{
+        "!insertmacro MUI_LANGUAGE \"English\"\n!include \"C:\\a\\installer.nsh\"\n!ifmacrodef customInit\nFunction .onInit\n  !insertmacro customInit\nFunctionEnd\n!endif\n",
+        "  !ifmacrodef customInstall\n    !insertmacro customInstall\n  !endif\nSectionEnd\n",
+        "  !ifmacrodef customUnInstall\n    !insertmacro customUnInstall\n  !endif\n  RMDir /r \"$INSTDIR\"\n",
+    }) |want| if (std.mem.indexOf(u8, s, want) == null) {
+        std.debug.print("missing:\n{s}\nin:\n{s}\n", .{ want, s });
+        return error.TestUnexpectedResult;
+    };
+    const plain = try script(gpa, c, "My App", .{ .paths = &.{}, .exe = "My App.exe", .out = "setup.exe" }, &.{});
+    defer gpa.free(plain);
+    try std.testing.expect(std.mem.indexOf(u8, plain, "ifmacrodef") == null);
 }
 
 test "the uninstaller runs the app, and offers to delete its data" {

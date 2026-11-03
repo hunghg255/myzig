@@ -106,6 +106,7 @@ myzig.on("myzig-updater", (s) => {
 await myzig.call("Updater.check");   // as the user asked: skipped versions too
 await myzig.call("Updater.install"); // what the check found
 await myzig.call("Updater.skip");    // background checks won't offer it again
+await myzig.call("Updater.availableVersion"); // phiên bản lần kiểm tra cuối tìm thấy, "" nếu không có (huy hiệu, dòng cài đặt)
 await myzig.call("Updater.relaunch");
 await myzig.call("Updater.setAutomaticChecks", false); // also setAutomaticDownloads, preferences()
 ```

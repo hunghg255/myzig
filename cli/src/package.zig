@@ -213,7 +213,8 @@ fn packageWindows(ctx: Ctx, c: Config, o: Options, dir: []const u8, work: []cons
     try entries.append(ctx.gpa, .{ .path = name, .kind = .dir, .mode = 0o755 });
     try archive.collect(ctx, &entries, stage, name, &.{exe_name});
     // Runs where it is unpacked, installing nothing: beside the installer.
-    const zip = try ctx.join(&.{ dir, try ctx.fmt("{s} Portable {s} {s}.zip", .{ name, try fsx.fsName(ctx.gpa, c.version), arch }) });
+    const slug = try config.slug(ctx.gpa, c.executable, '-');
+    const zip = try ctx.join(&.{ dir, try ctx.fmt("{s}-portable-{s}-{s}.zip", .{ slug, try fsx.fsName(ctx.gpa, c.version), arch }) });
     try fsx.write(ctx.io, zip, try archive.zip(ctx.gpa, entries.items, fsx.epoch(ctx)));
     try files.append(ctx.gpa, zip);
 
@@ -223,8 +224,16 @@ fn packageWindows(ctx: Ctx, c: Config, o: Options, dir: []const u8, work: []cons
         ico = try ctx.join(&.{ work, "installer.ico" });
         try fsx.write(ctx.io, ico, try icon.ico(ctx.gpa, try fsx.read(ctx, try c.path(ctx.gpa, c.icon))));
     }
-    const setup = try ctx.join(&.{ dir, try nsis.installerName(ctx.gpa, name, try fsx.fsName(ctx.gpa, c.version), arch) });
-    const script = try nsis.script(ctx.gpa, c, name, .{ .paths = installed.items, .exe = exe_name, .out = setup, .ico = ico }, is_dir.items);
+    const setup = try ctx.join(&.{ dir, try nsis.installerName(ctx.gpa, slug, try fsx.fsName(ctx.gpa, c.version), arch) });
+    var include: []const u8 = "";
+    if (c.windows.installer_include.len > 0) {
+        include = try fsx.absolute(ctx, try c.path(ctx.gpa, c.windows.installer_include));
+        if (!fsx.isFile(ctx.io, include)) {
+            if (!ctx.quiet) std.debug.print("error: windows.installer_include: {s} is not a file (the path is relative to the project's directory)\n", .{include});
+            return error.MissingResource;
+        }
+    }
+    const script = try nsis.script(ctx.gpa, c, name, .{ .paths = installed.items, .exe = exe_name, .out = setup, .ico = ico, .include = include }, is_dir.items);
     const nsi = try ctx.join(&.{ work, "installer.nsi" });
     try fsx.write(ctx.io, nsi, script);
     const makensis = makensisPath(ctx) orelse {

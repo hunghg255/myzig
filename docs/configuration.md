@@ -117,6 +117,7 @@ names them in its own options, `AppOptions.url_schemes` and
 | `entitlements` | none | an entitlements file for `codesign` |
 | `provisioning_profile` | none | a profile embedded as `Contents/embedded.provisionprofile` before signing; it must match the app's identifier, entitlements and signing identity, and cannot be used with ad-hoc signing. See [provisioning profiles](distribution.md#provisioning-profiles) |
 | `dmg_title` | the name | the disk image's volume name |
+| `icon` | none | an `.icns` (made with `iconutil` from an `.iconset`) the bundle gets in place of the one rendered from `icon`, for an icon drawn per size; `myzig dev` shows the PNG |
 | `info_plist` | none | keys added to `Info.plist`, replacing myzig's |
 
 ```zig
@@ -158,6 +159,7 @@ are required.
 | `uninstall_run` | none | arguments the uninstaller runs the app with, and waits for, before taking its files away: for the app to undo what it set up itself (a command on the `PATH`, File Explorer's menus) |
 | `uninstall_data` | none | folders of the app's data, as NSIS paths (`$APPDATA\\MyApp`), the uninstaller offers to delete too, asking first; a silent uninstall keeps them |
 | `install_dir_name` | the name | the folder in `%LOCALAPPDATA%\Programs` the installer puts the app in, e.g. an ASCII `ZhiLian` for an app named `智链`; the shortcuts and Settings › Apps keep the name, and an installed app is updated where it is |
+| `installer_include` | none | an NSIS script of the app's own the installer includes, as `resources/installer.nsh`, after `MUI2.nsh` and the languages: the macros it defines among `customInit`, `customInstall` and `customUnInstall` run as the installer starts (`.onInit`), at the end of the install, once the files are in `$INSTDIR`, and in the uninstall before the app's folder is removed; silent installs run them too |
 
 ## linux
 

@@ -44,6 +44,10 @@ pub const LoadError = struct {
 
 pub const NewWindow = struct {
     url: []const u8,
+    /// A user's gesture opened it (a click on a link, or a click whose
+    /// handler calls `window.open`), not a script on its own: a popup
+    /// blocker lets only these through.
+    user_gesture: bool = false,
     handled: bool = false,
 };
 
@@ -102,6 +106,9 @@ pub const UserScript = struct {
     source: []const u8,
     /// After the document's DOM is ready rather than before its scripts.
     at_document_end: bool = false,
+    /// In every frame of the document, its iframes too, rather than in
+    /// its top frame only.
+    all_frames: bool = false,
 };
 
 /// The result of `evalResult`: the value as JSON, or the error's message.

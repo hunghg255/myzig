@@ -27,6 +27,7 @@ const done_get_success = 3;
 const done_get_status = 4;
 const newwin_get_uri = 3;
 const newwin_put_handled = 6;
+const newwin_get_is_user_initiated = 8;
 const perm_get_uri = 3;
 const perm_get_kind = 4;
 const perm_put_state = 7;
@@ -199,7 +200,9 @@ fn newWindowRequested(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {
     _ = com.call(args, newwin_put_handled, .{@as(i32, 1)});
     const url = uriOf(page, args, newwin_get_uri) orelse return;
     defer gpa.free(url);
-    page.core.newWindow(url);
+    var user: i32 = 0;
+    _ = com.call(args, newwin_get_is_user_initiated, .{&user});
+    page.core.newWindow(url, user != 0);
 }
 
 fn permissionRequested(ctx: ?*anyopaque, _: usize, args_ptr: usize) void {

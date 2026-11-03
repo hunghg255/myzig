@@ -122,7 +122,7 @@ pub const Page = struct {
 
     fn addScripts(self: *Page) void {
         self.addBridge();
-        for (self.core.scripts.items) |s| self.addScript(s.source);
+        for (self.core.scripts.items) |s| self.addScript(s.source, s.all_frames);
     }
 
     /// The bridge, its messages marked with the page's token: only the
@@ -130,14 +130,15 @@ pub const Page = struct {
     fn addBridge(self: *Page) void {
         const source = std.mem.concat(self.gpa, u8, &.{ bridge_js[0..frame_at], "const frame = \"", &self.core.token, "\";", bridge_js[frame_at + frame_placeholder.len ..] }) catch return;
         defer self.gpa.free(source);
-        self.addScript(source);
+        self.addScript(source, false);
     }
 
-    fn addScript(self: *Page, source: []const u8) void {
+    fn addScript(self: *Page, source: []const u8, all_frames: bool) void {
         const k = &webkit.api;
         const z = webkit.dupeZ(self.gpa, source) catch return;
         defer self.gpa.free(z);
-        const script = k.webkit_user_script_new(z, 1, 0, null, null); // top frame, at document start
+        // WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES or _TOP_FRAME, at document start.
+        const script = k.webkit_user_script_new(z, if (all_frames) 0 else 1, 0, null, null);
         k.webkit_user_content_manager_add_script(self.ucm, script);
         k.webkit_user_script_unref(script);
     }
@@ -202,6 +203,11 @@ pub const Page = struct {
         return webkit.api.webkit_web_view_is_loading(self.webview) != 0;
     }
 
+    /// Null: WebKitGTK has no public API for a view's web process.
+    pub fn processId(_: *Page) ?u32 {
+        return null;
+    }
+
     /// The document's URL.
     pub fn currentUrl(self: *Page, gpa: std.mem.Allocator) ![]u8 {
         return gpa.dupe(u8, webkit.span(webkit.api.webkit_web_view_get_uri(self.webview)));
@@ -219,7 +225,7 @@ pub const Page = struct {
     pub fn addUserScript(self: *Page, script: types.UserScript) !u32 {
         const entry = try self.core.addScript(script);
         const id = entry.id;
-        self.addScript(entry.source);
+        self.addScript(entry.source, entry.all_frames);
         return id;
     }
 

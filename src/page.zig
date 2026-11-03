@@ -57,6 +57,10 @@ pub const Page = struct {
             .superclass = "WKWebView",
             .methods = &.{
                 .{ .name = "mouseDown:", .imp = &webViewMouseDown, .types = "v@:@" },
+                // The first click in a window that is not key is the
+                // page's, as it is native UI's: WKWebView answers no, which
+                // spends the click on making the window key.
+                .{ .name = "acceptsFirstMouse:", .imp = &acceptsFirstMouse, .types = "c@:@" },
             },
         });
 
@@ -131,15 +135,15 @@ pub const Page = struct {
     fn addScripts(self: *Page) void {
         const ucm = objc.msg(objc.Object, objc.msg(objc.Object, self.webview, "configuration", .{}), "userContentController", .{});
         objc.msg(void, ucm, "removeAllUserScripts", .{});
-        self.addScript(ucm, bridge_js);
-        for (self.core.scripts.items) |s| self.addScript(ucm, s.source);
+        self.addScript(ucm, bridge_js, false);
+        for (self.core.scripts.items) |s| self.addScript(ucm, s.source, s.all_frames);
     }
 
-    fn addScript(_: *Page, ucm: objc.Object, source: []const u8) void {
+    fn addScript(_: *Page, ucm: objc.Object, source: []const u8, all_frames: bool) void {
         const pool = objc.Pool.push();
         defer pool.pop();
         const script = objc.msg(objc.Object, objc.alloc("WKUserScript"), "initWithSource:injectionTime:forMainFrameOnly:", .{
-            objc.nsString(source), @as(objc.NSInteger, 0), objc.YES,
+            objc.nsString(source), @as(objc.NSInteger, 0), if (all_frames) objc.NO else objc.YES,
         });
         defer objc.release(script);
         objc.msg(void, ucm, "addUserScript:", .{script});
@@ -209,6 +213,19 @@ pub const Page = struct {
 
     pub fn isLoading(self: *Page) bool {
         return objc.msg(objc.BOOL, self.webview, "isLoading", .{});
+    }
+
+    /// The ID of the process that runs the page, null when unknown. On
+    /// macOS its web content process, from WebKit's private
+    /// `-[WKWebView _webProcessIdentifier]`: WebKit may give the page
+    /// another as it navigates to another site, so ask again rather than
+    /// keep it. On Windows the browser process every page shares; on Linux
+    /// null, as WebKitGTK tells none.
+    pub fn processId(self: *Page) ?u32 {
+        const sel = objc.sel("_webProcessIdentifier");
+        if (!objc.msg(objc.BOOL, self.webview, "respondsToSelector:", .{sel})) return null;
+        const pid = objc.msg(i32, self.webview, "_webProcessIdentifier", .{});
+        return if (pid > 0) @intCast(pid) else null;
     }
 
     /// The document's URL.
@@ -421,6 +438,10 @@ fn flushJob(ctx: ?*anyopaque) callconv(.c) void {
         return;
     }
     self.flush();
+}
+
+fn acceptsFirstMouse(_: objc.Object, _: objc.SEL, _: ?objc.Object) callconv(.c) objc.BOOL {
+    return objc.YES;
 }
 
 fn webViewMouseDown(self_obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.c) void {

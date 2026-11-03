@@ -141,6 +141,7 @@ and the page itself has the rest, the same on every platform:
 | `reload()`, `stop()` | |
 | `goBack()`, `goForward()`, `canGoBack()`, `canGoForward()` | the page's history |
 | `isLoading()` | |
+| `processId()` | the process that runs the page: its web content process on macOS, the browser process on Windows; null on Linux and when unknown |
 | `currentUrl(gpa)` (also `url`), `title(gpa)` | owned copies |
 | `addUserScript(script)` → id, `removeUserScript(id)` | scripts later documents run |
 | `setZoom(factor)`, `zoom()` | |
@@ -157,7 +158,8 @@ already run.
 A `myzig.page.UserScript` has its `source` and `at_document_end`: false
 (the default) runs it before the document's own scripts, true once its
 DOM is ready. Scripts run in the main frame, after the bridge, so they can
-use `window.myzig`.
+use `window.myzig`; with `all_frames` a script runs in every iframe too,
+where the bridge is not.
 
 ## Evaluating scripts
 
@@ -222,7 +224,7 @@ _ = try app.newWindow(.{ .content = .{ .page = .{ .url = "/", .assets = &assets,
 | `load_failed` | `LoadError`: `url`, `code`, `description` | |
 | `title_changed` | the title | |
 | `dom_ready` | | the bridge is in the page and its DOM is ready |
-| `new_window` | `*NewWindow`: `url`, `handled` | `window.open`, `target=_blank` |
+| `new_window` | `*NewWindow`: `url`, `user_gesture`, `handled` | `window.open`, `target=_blank` |
 | `permission` | `*PermissionRequest`: `kinds`, `origin`, `allow` | camera, microphone, geolocation, notifications |
 | `download_started` | `*DownloadStart`: `url`, `suggested_name`, `path`, `cancel` | |
 | `download_progress` | `DownloadProgress`: `url`, `received`, `total` (0 when unknown) | |

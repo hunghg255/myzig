@@ -11,13 +11,15 @@ const wv_remove_script = 28;
 
 /// The bridge, then the user scripts.
 pub fn addAll(page: *Page) void {
-    add(page, bridge_js);
-    for (page.core.scripts.items) |s| add(page, s.source);
+    add(page, bridge_js, false);
+    for (page.core.scripts.items) |s| add(page, s.source, s.all_frames);
 }
 
-pub fn add(page: *Page, source: []const u8) void {
+/// WebView2 runs a script in every frame: one for the top frame only
+/// checks that it is in it.
+pub fn add(page: *Page, source: []const u8, all_frames: bool) void {
     const wv = page.webview orelse return;
-    const wrapped = std.fmt.allocPrint(page.gpa, "if(window===window.top){{\n{s}\n}}", .{source}) catch return;
+    const wrapped = if (all_frames) page.gpa.dupe(u8, source) catch return else std.fmt.allocPrint(page.gpa, "if(window===window.top){{\n{s}\n}}", .{source}) catch return;
     defer page.gpa.free(wrapped);
     const script = com.wide(page.gpa, wrapped) catch return;
     defer page.gpa.free(script);

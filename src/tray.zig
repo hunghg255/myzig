@@ -128,6 +128,13 @@ pub const Tray = struct {
         const pool = objc.Pool.push();
         defer pool.pop();
         const button = objc.msg(objc.Object, self.item, "button", .{});
+        // Digits at one width, so a changing number (a rate, a timer)
+        // doesn't resize the item and shift the icons beside it: the menu
+        // bar's font at its size.
+        const bar = objc.msg(objc.Object, objc.class("NSFont"), "menuBarFontOfSize:", .{@as(objc.CGFloat, 0)});
+        const size = objc.msg(objc.CGFloat, bar, "pointSize", .{});
+        const font = objc.msg(?objc.Object, objc.class("NSFont"), "monospacedDigitSystemFontOfSize:weight:", .{ size, @as(objc.CGFloat, 0) });
+        if (font) |f| objc.msg(void, button, "setFont:", .{f});
         objc.msg(void, button, "setTitle:", .{objc.nsString(title)});
     }
 

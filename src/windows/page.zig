@@ -222,6 +222,7 @@ pub const Page = struct {
         events.register(self);
         scheme.register(self);
         memory.refresh(self);
+        if (@import("../appearance.zig").chosen != .system) @import("page_profile.zig").applyColorScheme(wv);
         if (self.core.zoom != 1) _ = com.call(self.controller.?, ctl_put_zoom, .{self.core.zoom});
         if (self.embed) |e| e.setUp(self) else self.resize();
         self.navigate();
@@ -341,6 +342,14 @@ pub const Page = struct {
         return self.loading;
     }
 
+    /// The browser process every page of the app shares
+    /// (ICoreWebView2::get_BrowserProcessId); null before the web view is made.
+    pub fn processId(self: *Page) ?u32 {
+        var pid: u32 = 0;
+        if (com.failed(com.call(self.webview orelse return null, 37, .{&pid})) or pid == 0) return null;
+        return pid;
+    }
+
     /// The document's URL as the web view has it (`http://myzig.localhost/...`).
     pub fn currentUrl(self: *Page, gpa: std.mem.Allocator) ![]u8 {
         const wv = self.webview orelse return gpa.dupe(u8, self.url_next);
@@ -370,7 +379,7 @@ pub const Page = struct {
     pub fn addUserScript(self: *Page, script: types.UserScript) !u32 {
         const entry = try self.core.addScript(script);
         const id = entry.id;
-        scripts.add(self, entry.source);
+        scripts.add(self, entry.source, entry.all_frames);
         return id;
     }
 

@@ -46,7 +46,7 @@ pub const Core = struct {
 
     pub const PendingEval = struct { id: u32, cb: types.EvalCallback };
     /// A user script, as the page runs it (wrapped for `at_document_end`).
-    pub const Script = struct { id: u32, source: []u8, native: usize = 0 };
+    pub const Script = struct { id: u32, source: []u8, native: usize = 0, all_frames: bool = false };
 
     pub fn init(gpa: std.mem.Allocator, window: *anyopaque, app: anytype, options: PageOptions) Core {
         var raw: [8]u8 = undefined;
@@ -171,7 +171,7 @@ pub const Core = struct {
         else
             try c.gpa.dupe(u8, s.source);
         errdefer c.gpa.free(source);
-        try c.scripts.append(c.gpa, .{ .id = c.next_script, .source = source });
+        try c.scripts.append(c.gpa, .{ .id = c.next_script, .source = source, .all_frames = s.all_frames });
         c.next_script += 1;
         return &c.scripts.items[c.scripts.items.len - 1];
     }
@@ -198,8 +198,8 @@ pub const Core = struct {
 
     /// The page opens a window: the listener's, else the system browser's
     /// for web URLs.
-    pub fn newWindow(c: *Core, url: []const u8) void {
-        var req: types.NewWindow = .{ .url = url };
+    pub fn newWindow(c: *Core, url: []const u8, user_gesture: bool) void {
+        var req: types.NewWindow = .{ .url = url, .user_gesture = user_gesture };
         c.fire(.{ .new_window = &req });
         if (req.handled) return;
         if (std.ascii.startsWithIgnoreCase(url, "http://") or std.ascii.startsWithIgnoreCase(url, "https://"))

@@ -71,7 +71,7 @@ fn decidePolicy(_: *anyopaque, decision: *anyopaque, kind: c_int, data: ?*anyopa
     const url = webkit.span(k.webkit_uri_request_get_uri(k.webkit_navigation_action_get_request(action)));
     if (kind == 1) { // WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION
         k.webkit_policy_decision_ignore(decision);
-        page.core.newWindow(url);
+        page.core.newWindow(url, k.webkit_navigation_action_is_user_gesture(action) != 0);
         return 1;
     }
     if (page.core.willNavigate(url, k.webkit_navigation_action_is_user_gesture(action) != 0))
@@ -183,6 +183,6 @@ fn downloadFinished(_: *anyopaque, data: ?*anyopaque) callconv(.c) void {
 fn create(_: *anyopaque, action: *anyopaque, data: ?*anyopaque) callconv(.c) ?*anyopaque {
     const page = Page.alive(data) orelse return null;
     const k = &webkit.api;
-    page.core.newWindow(webkit.span(k.webkit_uri_request_get_uri(k.webkit_navigation_action_get_request(action))));
+    page.core.newWindow(webkit.span(k.webkit_uri_request_get_uri(k.webkit_navigation_action_get_request(action))), k.webkit_navigation_action_is_user_gesture(action) != 0);
     return null;
 }

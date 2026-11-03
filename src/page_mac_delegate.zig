@@ -121,7 +121,7 @@ fn decideAction(self_obj: objc.Object, _: objc.SEL, _: objc.Object, action: objc
     if (!main) return callBlock(handler, policy_allow);
     const request = objc.msg(objc.Object, action, "request", .{});
     const url = urlString(objc.msg(?objc.Object, request, "URL", .{}));
-    const user = objc.msg(objc.NSInteger, action, "navigationType", .{}) == 0; // a link activated
+    const user = userInitiated(action);
     callBlock(handler, if (page.core.willNavigate(url, user)) policy_allow else policy_cancel);
 }
 
@@ -136,8 +136,19 @@ fn createWebView(self_obj: objc.Object, _: objc.SEL, _: objc.Object, _: objc.Obj
     const pool = objc.Pool.push();
     defer pool.pop();
     const request = objc.msg(objc.Object, action, "request", .{});
-    page.core.newWindow(urlString(objc.msg(?objc.Object, request, "URL", .{})));
+    page.core.newWindow(urlString(objc.msg(?objc.Object, request, "URL", .{})), userInitiated(action));
     return null;
+}
+
+/// Whether a user's gesture started a navigation action: WebKit's private
+/// `-[WKNavigationAction _isUserInitiated]` knows, a click whose handler
+/// navigates or calls `window.open` included; without it, the action's
+/// WKNavigationType says (a link, a form), which misses those.
+fn userInitiated(action: objc.Object) bool {
+    if (objc.msg(objc.BOOL, action, "respondsToSelector:", .{objc.sel("_isUserInitiated")}))
+        return objc.msg(objc.BOOL, action, "_isUserInitiated", .{});
+    const t = objc.msg(objc.NSInteger, action, "navigationType", .{});
+    return t == 0 or t == 1; // WKNavigationTypeLinkActivated, FormSubmitted
 }
 
 /// Camera and microphone (macOS 12+); WKWebView has no geolocation or

@@ -95,6 +95,7 @@ pub const App = struct {
         if (flags.headless()) @import("headless.zig").request();
 
         const nsapp = objc.msg(objc.Object, objc.class("NSApplication"), "sharedApplication", .{});
+        noAutoFill();
         const delegate_class = objc.defineClass(.{
             .name = "MyZigAppDelegate",
             .protocols = &.{"NSApplicationDelegate"},
@@ -360,6 +361,23 @@ fn didFinishLaunching(self_obj: objc.Object, _: objc.SEL, _: objc.Object) callco
     if (objc.getZig(App, self_obj)) |app| if (app.flags.hidden) return;
     const nsapp = objc.msg(objc.Object, objc.class("NSApplication"), "sharedApplication", .{});
     objc.msg(void, nsapp, "activateIgnoringOtherApps:", .{objc.YES});
+}
+
+/// AppKit's AutoFill heuristics watch every text input client for contact
+/// and password fields, in a helper process and with sync calls that cost
+/// CPU and stall scrolling. myzig draws its own text fields, which never
+/// take those suggestions: off, as Ghostty, Zed and Chromium do. macOS 26
+/// reads NSAutoFillHeuristicControllerEnabled, macOS 27 only
+/// NSAutoFillHeuristicsEnabled.
+fn noAutoFill() void {
+    const pool = objc.Pool.push();
+    defer pool.pop();
+    const defaults = objc.msg(objc.Object, objc.class("NSUserDefaults"), "standardUserDefaults", .{});
+    const no = objc.msg(objc.Object, objc.class("NSNumber"), "numberWithBool:", .{objc.NO});
+    for ([_][:0]const u8{ "NSAutoFillHeuristicControllerEnabled", "NSAutoFillHeuristicsEnabled" }) |key| {
+        const d = objc.msg(objc.Object, objc.class("NSDictionary"), "dictionaryWithObject:forKey:", .{ no, objc.nsString(key) });
+        objc.msg(void, defaults, "registerDefaults:", .{d});
+    }
 }
 
 fn shouldTerminate(self_obj: objc.Object, _: objc.SEL, _: objc.Object) callconv(.c) objc.NSUInteger {

@@ -60,9 +60,9 @@ Commits before `976f17c9` are covered by the baseline in
 | `150f5bb2` | 2026-10-24 | terminal: draw Powerline's rounded caps to the cell's height (#694) | n/a | terminal uses the font's Powerline glyphs |
 | `3032f26b` | 2026-10-24 | linux: shape a drawing area's window so web views show through it (#695) | n/a | web views above the drawing area in an overlay |
 | `7a93a9c7` | 2026-10-24 | terminal: show images through Unicode placeholders (Kitty graphics) (#696) | n/a | terminal refuses Kitty graphics |
-| `23ac61d8` | 2026-10-24 | darwin: turn off AppKit's AutoFill heuristics (#699) | todo-S | macOS: AutoFill heuristics off |
+| `23ac61d8` | 2026-10-24 | darwin: turn off AppKit's AutoFill heuristics (#699) | ported | macOS: AutoFill heuristics off |
 | `044b7c85` | 2026-10-24 | cli: take a package.json for a frontend only when it depends on mygo-runtime (#700) | n/a | cli picks the frontend by directory |
-| `2317b809` | 2026-10-24 | darwin: turn off AutoFill heuristics on macOS 27 too (#701) | todo-S | macOS 27: AutoFill heuristics off |
+| `2317b809` | 2026-10-24 | darwin: turn off AutoFill heuristics on macOS 27 too (#701) | ported | macOS 27: AutoFill heuristics off |
 | `189c8b3a` | 2026-10-24 | Define the unregistered MIME types an app names for its files on Linux (#634) | todo-S | cli: define unregistered x- MIME types |
 | `ce9ff87a` | 2026-10-24 | Add linker flags to builds with MYGO_LDFLAGS (#642) | skip |  |
 | `d70ef8ec` | 2026-10-24 | windows: fit a line in the width it measured (#661) | n/a | DirectWrite lays out unwrapped |
@@ -73,7 +73,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `156c6af6` | 2026-10-24 | Fix terminal links for bare filenames (#646) | todo-S | terminal links for bare filenames |
 | `80499935` | 2026-10-24 | Fix edge scrolling during native data drags (#607) | n/a | drag and drop has no edge scrolling |
 | `d1a2caf7` | 2026-10-25 | editor: shape bold and italic tokens in their faces (#707) | todo-M | editor bold/italic tokens in their faces |
-| `d2907627` | 2026-10-25 | linux: answer the panel's activation with Tray.OnClick (#706) | todo-S | Linux tray activate signal |
+| `d2907627` | 2026-10-25 | linux: answer the panel's activation with Tray.OnClick (#706) | ported | Linux tray activate signal |
 | `9c69cf82` | 2026-10-25 | fix(terminal): ignore momentum scrolling for zoom (#709) | n/a | terminal has no zoom |
 | `d4067ac1` | 2026-10-25 | editor: fold a run of imports, per language (#711) | n/a | editor has no folding |
 | `4b236c48` | 2026-10-25 | windows: treat web error status 14 as a canceled navigation (#712) | ported |  |
@@ -111,7 +111,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `74f2eedb` | 2026-10-26 | updater: let apps offer prereleases to users who chose a beta (#761) | todo-M | updater: prereleases for beta users |
 | `f09d7d2f` | 2026-10-26 | Draw a window's buttons light or dark whatever the app's appearance (#763) | todo-S | window buttons light/dark override (Windows caption) |
 | `5780de5c` | 2026-10-26 | Test that bordered cards draw their straight edges as the CPU renderer does (#531) (#762) | skip |  |
-| `477eae5f` | 2026-10-26 | Keep a macOS tray title's width steady as its digits change (#766) | todo-S | macOS tray title monospaced digits |
+| `477eae5f` | 2026-10-26 | Keep a macOS tray title's width steady as its digits change (#766) | ported | macOS tray title monospaced digits |
 | `56beb962` | 2026-10-26 | Don't wait twice on a frame latency object that timed out (#767) | present | no double wait on a timed-out frame latency (surface_present.zig) |
 | `304f1c5f` | 2026-10-26 | Let apps choose the slug that names their files, and read CJK names into slugs (#768) | todo-M | cli: slug option, CJK names into slugs |
 | `ee77c770` | 2026-10-26 | Name disk images and Windows installers after the slug (#769) | todo-S | cli: name dmg and installer after the slug |
@@ -122,12 +122,12 @@ Commits before `976f17c9` are covered by the baseline in
 | `d9d45f41` | 2026-10-26 | Stroke paths with butt and square caps, miter and bevel joins, and dashes (#774) | present | stroke caps, joins, dashes (path_stroke.zig) |
 | `be164835` | 2026-10-26 | Show the update window of a background check as Sparkle does (#775) | todo-M | updater: background check window as Sparkle |
 | `6a95d8f8` | 2026-10-26 | Show icons on menu items, tray menus included (#776) | todo-L | menu item icons |
-| `15cb4a34` | 2026-10-26 | Add Page.ProcessID, the ID of the process that runs a page (#777) | todo-S | Page.processId |
+| `15cb4a34` | 2026-10-26 | Add Page.ProcessID, the ID of the process that runs a page (#777) | ported | Page.processId |
 | `9bf2ce49` | 2026-10-26 | Add Page.ThemeColor and OnThemeColorChanged (#778) | todo-M | Page.themeColor and its change event |
 | `37f56f6b` | 2026-10-26 | Add Page.IsAudible, OnAudibleChanged and SetAudioMuted (#781) | todo-M | Page.isAudible, audible event, setAudioMuted |
 | `aa76a3d7` | 2026-10-26 | Let Windows show the app by another name than its executable's (#782) | todo-M | cli: windows.display_name |
 | `1bb35e26` | 2026-10-26 | Scroll a terminal three rows a wheel notch on Windows, not seven (#784) | present | terminal wheel notch about 3 rows (view.zig) |
-| `07ebe19a` | 2026-10-26 | Tell a window-open handler whether a user's gesture opened the window (#785) | todo-S | NewWindow.user_gesture |
+| `07ebe19a` | 2026-10-26 | Tell a window-open handler whether a user's gesture opened the window (#785) | ported | NewWindow.user_gesture |
 | `2311f8c2` | 2026-10-26 | Size a flyout or a window to its page's content (#787) | todo-L | size a window or flyout to its page's content |
 | `b8a5225d` | 2026-10-26 | editor: highlight Dart, GraphQL, R and Scala (#788) (#791) | todo-S | highlight Dart, GraphQL, R, Scala |
 | `558e4981` | 2026-10-26 | Delete a Mirror's images by their ids when it starts the other terminal over (#792) | n/a | terminal has no Mirror |
@@ -185,7 +185,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `642005fd` | 2026-10-28 | linux: keep a frame asked for within the GL area's render signal (#866) | n/a | frames are not built inside the GL render signal |
 | `ceab6416` | 2026-10-28 | ui: add DecodeImage and ImageSize (#868) | todo-S | DecodeImage and ImageSize for SVG too |
 | `f9456cc3` | 2026-10-28 | showcase: add Godwit, an AI-native email client (#869) | skip |  |
-| `3d9d668c` | 2026-10-28 | page: run the preload script in iframes with PreloadAllFrames (#871) | todo-S | UserScript.all_frames |
+| `3d9d668c` | 2026-10-28 | page: run the preload script in iframes with PreloadAllFrames (#871) | ported | UserScript.all_frames |
 | `e5547238` | 2026-10-28 | ui: center the calendar's month chevrons (#874) | todo-S | calendar chevrons drawn centered |
 | `aa753d22` | 2026-10-29 | linux: defer a window's Hide asked for within its own frame (#877) | n/a | views do not run inside GL render |
 | `ac4e0ff0` | 2026-10-29 | editor: continue deletion bars' stripes across lines (#880) | n/a | diff view has no striped bars |
@@ -231,7 +231,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `5e6b2964` | 2026-10-31 | ui/editor: draw no track under the scroll bar's thumb (#945) | present | no track under thumbs (paint.zig) |
 | `76e33e7d` | 2026-10-31 | ui/editor: show the horizontal scroll bar of a diff as high as its lines (#947) | n/a | diff has no horizontal bar per side |
 | `1caad878` | 2026-10-31 | ui: draw every scroll bar as a scroll container's, with ui.Scrollbar (#949) | todo-M | shared scroll bar helper |
-| `1fa27134` | 2026-10-31 | macOS: give a page the first click in a window that is not key (#950) | todo-S | macOS: page takes the first click (acceptsFirstMouse) |
+| `1fa27134` | 2026-10-31 | macOS: give a page the first click in a window that is not key (#950) | ported | macOS: page takes the first click (acceptsFirstMouse) |
 | `21ae57f9` | 2026-10-31 | windows: retry a package's final rename while a scanner holds its files (#953) | n/a | cli renames no final package |
 | `dcf169d9` | 2026-10-31 | plugins/updater: report a pending update with AvailableVersion (#960) | todo-S | updater availableVersion |
 | `7baaf4db` | 2026-10-31 | ui: placeholder color, dotted underline, Context.Instant, markdown Anchor and LinkWeight (#969) | todo-M | placeholder color, dotted underline, Context.instant, markdown anchor, link weight |
@@ -241,7 +241,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `f69ccfc7` | 2026-10-31 | ui: enable the Edit menu's roles only while the focus can act on them (#971) | todo-L | Edit menu roles enabled by the focus |
 | `a91e9bcb` | 2026-11-01 | ui: CaretWidth and Scrollbars(false), with docs (#972) | todo-S | caretWidth and scrollbars(false) |
 | `0d4deffd` | 2026-11-01 | e2e: wheel over ScrollToContainer's pages once they have drawn (#974) | skip |  |
-| `7d3f04ca` | 2026-11-01 | windows: set a forced appearance with WebView2's PreferredColorScheme (#975) | todo-S | WebView2 PreferredColorScheme for a forced appearance |
+| `7d3f04ca` | 2026-11-01 | windows: set a forced appearance with WebView2's PreferredColorScheme (#975) | ported | WebView2 PreferredColorScheme for a forced appearance |
 | `0b9ed5b6` | 2026-11-01 | mygo: document CancelButton's fallback and -1 (#976) | n/a | docs only |
 | `33f16102` | 2026-11-01 | watchdriver: run Remove before the test's failure in TestWatch (#977) | skip |  |
 | `b0604652` | 2026-11-01 | fix(editor): autoscroll drags past side edges (#735) | todo-S | textarea drag autoscroll past side edges |
@@ -256,11 +256,11 @@ Commits before `976f17c9` are covered by the baseline in
 | `6bc9ca2c` | 2026-11-01 | Windows: keep maximized caption buttons off a material window's page (#993) | ported |  |
 | `c2e47583` | 2026-11-01 | cli: keep delta bases when GitHub releases omit a platform (#995) | n/a | no delta updates |
 | `c971c903` | 2026-11-01 | migrate-ui: decide element nil checks from package ui's signatures (#996) | skip |  |
-| `06bc6551` | 2026-11-01 | macOS: take a press with the secondary button's number for a secondary click (#997) | todo-S | macOS secondary button press as right click |
+| `06bc6551` | 2026-11-01 | macOS: take a press with the secondary button's number for a secondary click (#997) | ported | macOS secondary button press as right click |
 | `3689f548` | 2026-11-01 | ui, editor: keep scroll bars showing, and read a diff's scroll position (#999) | todo-M | keep scroll bars showing; diff scroll position |
 | `1ee84625` | 2026-11-02 | ui: release a press whose element is gone before its release (#1003) | n/a | immediate mode press state |
 | `143d61df` | 2026-11-02 | gpu: cut clips around content only moved in the shader, not with masks (#1005) | n/a | no clip masks |
-| `b0b627e3` | 2026-11-02 | windows: advertise the server-side UIA provider (#1007) | todo-S | UIA ServerSideProvider option (uia.zig) |
+| `b0b627e3` | 2026-11-02 | windows: advertise the server-side UIA provider (#1007) | ported | UIA ServerSideProvider option (uia.zig) |
 | `1b8a2186` | 2026-11-02 | terminal, macOS: drop what Option-E types after Esc e with OptionAsAlt (#1004) | n/a | terminal has no OptionAsAlt |
 | `9de76198` | 2026-11-02 | ui: report a drag's last moves before its release (#1008) | n/a | every drag event runs its own frame |
 | `54cb0efd` | 2026-11-02 | notifications: show an image with a notification (Image) (#1011) | todo-M | notification image |
@@ -281,5 +281,5 @@ Commits before `976f17c9` are covered by the baseline in
 | `5d5e2ea8` | 2026-11-03 | windows: keep windows where they were on displays of different scales (#1038) | n/a | myzig is system-DPI-aware |
 | `cb49ab95` | 2026-11-03 | windows: place windows on displays of different scales where their DIPs say (#1042) | n/a | myzig is system-DPI-aware |
 | `9e30453d` | 2026-11-03 | webview: give the native UI the keys a web view's page leaves unhandled (#1040) | todo-L | keys an embedded page leaves unhandled go to native UI |
-| `5b33c407` | 2026-11-03 | fix(linux): announce tooltip changes with NewToolTip (#1043) | todo-S | Linux tray tooltip NewToolTip |
+| `5b33c407` | 2026-11-03 | fix(linux): announce tooltip changes with NewToolTip (#1043) | ported | Linux tray tooltip NewToolTip |
 | `982590ef` | 2026-11-03 | darwin: draw a resize's frame after one presented with the transaction at the next tick (#1045) | n/a | no updateLayer deferral on resize |

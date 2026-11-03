@@ -103,6 +103,7 @@ và trang này có phần còn lại, giống nhau trên mọi nền tảng:
 | `reload()`, `stop()` | |
 | `goBack()`, `goForward()`, `canGoBack()`, `canGoForward()` | lịch sử của trang |
 | `isLoading()` | |
+| `processId()` | tiến trình chạy trang: tiến trình web content trên macOS, tiến trình trình duyệt trên Windows; null trên Linux và khi chưa biết |
 | `currentUrl(gpa)` (cũng là `url`), `title(gpa)` | bản sao sở hữu |
 | `addUserScript(script)` → id, `removeUserScript(id)` | tập lệnh tài liệu sau này chạy |
 | `setZoom(factor)`, `zoom()` | |
@@ -115,7 +116,7 @@ và trang này có phần còn lại, giống nhau trên mọi nền tảng:
 
 Các phương thức trang chạy trên luồng chính, nơi các phương thức và trình nghe bị ràng buộc đã chạy.
 
-`myzig.page.UserScript` có `source` và `at_document_end`: false (mặc định) chạy nó trước các tập lệnh riêng của tài liệu, true khi DOM của nó đã sẵn sàng. Các tập lệnh chạy trong khung chính, sau cầu nối, vì vậy chúng có thể sử dụng `window.myzig`.
+`myzig.page.UserScript` có `source` và `at_document_end`: false (mặc định) chạy nó trước các tập lệnh riêng của tài liệu, true khi DOM của nó đã sẵn sàng. Các tập lệnh chạy trong khung chính, sau cầu nối, vì vậy chúng có thể sử dụng `window.myzig`; với `all_frames`, tập lệnh chạy cả trong mọi iframe, nơi không có cầu nối.
 
 <a id="evaluating-scripts"></a>
 
@@ -175,7 +176,7 @@ _ = try app.newWindow(.{ .content = .{ .page = .{ .url = "/", .assets = &assets,
 | `load_failed` | `LoadError`: `url`, `code`, `description` | |
 | `title_changed` | tiêu đề | |
 | `dom_ready` | | cây cầu đã có trong trang và DOM của nó đã sẵn sàng |
-| `new_window` | `*NewWindow`: `url`, `handled` | `window.open`, `target=_blank` |
+| `new_window` | `*NewWindow`: `url`, `user_gesture`, `handled` | `window.open`, `target=_blank` |
 | `permission` | `*PermissionRequest`: `kinds`, `origin`, `allow` | máy ảnh, micrô, định vị địa lý, thông báo |
 | `download_started` | `*DownloadStart`: `url`, `suggested_name`, `path`, `cancel` | |
 | `download_progress` | `DownloadProgress`: `url`, `received`, `total` (0 khi không xác định) | |

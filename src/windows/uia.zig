@@ -296,7 +296,7 @@ fn releaseImpl(this: *anyopaque) callconv(.winapi) u32 {
 }
 
 fn providerOptions(_: *anyopaque, p: *i32) callconv(.winapi) HRESULT {
-    p.* = 0x1 | 0x20; // ServerSideProvider, UseComThreading
+    p.* = 0x2 | 0x20; // ProviderOptions_ServerSideProvider, UseComThreading
     return S_OK;
 }
 

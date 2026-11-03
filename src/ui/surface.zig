@@ -358,8 +358,11 @@ fn rightMouseDown(obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.c
 
 fn mouseDown(obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.c) void {
     const s = surfaceOf(obj) orelse return;
-    // Control-click is a right click on a Mac.
-    if (objc.msg(objc.NSUInteger, event, "modifierFlags", .{}) & (1 << 18) != 0) return rightMouseDown(obj, undefined, event);
+    // Control-click is a right click on a Mac, as is a press that keeps the
+    // secondary button's number: data loss prevention agents tap the
+    // secondary button's events and post them again as the primary's.
+    if (objc.msg(objc.NSUInteger, event, "modifierFlags", .{}) & (1 << 18) != 0 or objc.msg(objc.NSInteger, event, "buttonNumber", .{}) == 1)
+        return rightMouseDown(obj, undefined, event);
     _ = objc.msg(objc.BOOL, s.window.nswindow, "makeFirstResponder:", .{obj});
     s.setMouse(event);
     s.ctx.updateHot();

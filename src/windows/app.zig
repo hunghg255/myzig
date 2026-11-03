@@ -108,11 +108,16 @@ pub const App = struct {
     }
 
     /// Shows the app light or dark whatever the system shows, or as the
-    /// system again (`.system`): native UI's theme and the title bars.
+    /// system again (`.system`): native UI's theme, the title bars, and
+    /// the pages' prefers-color-scheme.
     pub fn setAppearance(self: *App, a: @import("../appearance.zig").Appearance) void {
         @import("../appearance.zig").chosen = a;
         const dark = desktop.isDark();
-        for (self.windows.items) |win| if (win.hwnd) |h| @import("window_extras.zig").setDarkTitleBar(h, dark);
+        for (self.windows.items) |win| {
+            if (win.hwnd) |h| @import("window_extras.zig").setDarkTitleBar(h, dark);
+            if (win.page) |p| @import("page_profile.zig").applyColorScheme(p.webview);
+            for (win.web_views.items) |p| @import("page_profile.zig").applyColorScheme(p.webview);
+        }
         appearanceChanged(self);
     }
 

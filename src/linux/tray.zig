@@ -23,6 +23,9 @@ const Indicator = struct {
 
 var indicator: Indicator = undefined;
 var indicator_state: enum { unknown, present, missing } = .unknown;
+/// Newer libraries' (ayatana 0.5.3 and later); null without.
+var set_tooltip_full: ?*const fn (ind: *anyopaque, icon: ?[*:0]const u8, title: [*:0]const u8, body: ?[*:0]const u8) callconv(.c) void = null;
+var signal_lookup: ?*const fn (name: [*:0]const u8, typ: usize) callconv(.c) c_uint = null;
 
 fn loadIndicator() bool {
     if (indicator_state == .unknown) {
@@ -33,9 +36,19 @@ fn loadIndicator() bool {
             const sym = std.c.dlsym(lib, name) orelse return false;
             @field(indicator, name) = @ptrCast(@alignCast(sym));
         }
+        if (std.c.dlsym(lib, "app_indicator_set_tooltip_full")) |f| set_tooltip_full = @ptrCast(@alignCast(f));
+        if (std.c.dlsym(lib, "g_signal_lookup")) |f| signal_lookup = @ptrCast(@alignCast(f));
         indicator_state = .present;
     }
     return indicator_state == .present;
+}
+
+/// Whether the indicator's class has the "activate" signal: its type is the
+/// first field of its class, the first field of the instance.
+fn activates(ind: *anyopaque) bool {
+    const lookup = signal_lookup orelse return false;
+    const class: *const *const usize = @ptrCast(@alignCast(ind));
+    return lookup("activate", class.*.*) != 0;
 }
 
 /// `s` with a NUL, truncated to fit `buf`.
@@ -71,6 +84,11 @@ pub const Tray = struct {
             const ind = indicator.app_indicator_new(z(&idb, app_id), "application-x-executable", 0);
             indicator.app_indicator_set_status(ind, 1);
             self.* = .{ .gpa = gpa, .io = io, .handle = ind, .is_indicator = true, .on_click = opts.on_click };
+            // A panel that tells a double click from a click activates the
+            // icon (GNOME's AppIndicator extension, on a double click), which
+            // the library reports as "activate" while a handler is
+            // connected; older libraries have no such signal.
+            if (opts.on_click != null and activates(ind)) gtk.connect(ind, "activate", @ptrCast(&onIndicatorActivate), self);
         } else {
             const icon = gtkmenu.api.gtk_status_icon_new_from_icon_name("application-x-executable");
             gtk.connect(icon, "activate", @ptrCast(&onActivate), self);
@@ -105,6 +123,11 @@ pub const Tray = struct {
         if (self.on_click) |c| c.func(c.ctx, self) else self.popUpMenu();
     }
 
+    fn onIndicatorActivate(_: *anyopaque, _: c_int, _: c_int, data: ?*anyopaque) callconv(.c) void {
+        const self: *Tray = @ptrCast(@alignCast(data));
+        if (self.on_click) |c| c.func(c.ctx, self);
+    }
+
     fn onPopup(_: *anyopaque, _: c_uint, _: c_uint, data: ?*anyopaque) callconv(.c) void {
         const self: *Tray = @ptrCast(@alignCast(data));
         self.popUpMenu();
@@ -134,7 +157,12 @@ pub const Tray = struct {
     pub fn setTooltip(self: *Tray, tip: []const u8) void {
         var buf: [256]u8 = undefined;
         const t = z(&buf, tip);
-        if (self.is_indicator) indicator.app_indicator_set_title(self.handle, t) else gtkmenu.api.gtk_status_icon_set_tooltip_text(self.handle, t);
+        if (!self.is_indicator) return gtkmenu.api.gtk_status_icon_set_tooltip_text(self.handle, t);
+        // The title alone announces NewTitle: a host that caches the
+        // ToolTip property (quickshell) would go on showing the old text.
+        // Setting the tooltip too announces NewToolTip.
+        indicator.app_indicator_set_title(self.handle, t);
+        if (set_tooltip_full) |f| f(self.handle, null, t, null);
     }
 
     /// SF Symbols are macOS's; on Linux it names an icon of the theme.

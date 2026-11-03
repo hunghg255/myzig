@@ -243,6 +243,7 @@ pub const Tester = struct {
             t.frame();
         } else if (t.ctx.wants_wheel) {
             t.ctx.input.scroll = .{ .y = dy };
+            t.ctx.input.scroll_notch = notch;
             t.frame();
         }
         t.ctx.updateHot();

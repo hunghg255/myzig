@@ -19,6 +19,7 @@ pub fn scrollWheel(obj: objc.Object, _: objc.SEL, event: objc.Object) callconv(.
         s.ctx.updateHot();
     } else if (s.ctx.wants_wheel) {
         s.ctx.input.scroll = .{ .y = dy };
+        s.ctx.input.scroll_notch = notch;
         s.frame();
     }
 }

@@ -259,6 +259,16 @@ pub const Vt = struct {
         _ = g.api.ghostty_terminal_set(t.h, .selection, s);
     }
 
+    /// Moves the selection's end to `ref`, keeping where it started (also
+    /// for a selection made backwards); false without a selection.
+    pub fn extendSelection(t: Vt, to: GridRef) bool {
+        var s: Selection = .{};
+        if (g.api.ghostty_terminal_get(t.h, .selection, &s) != g.success) return false;
+        s.end = to;
+        s.rectangle = false;
+        return g.api.ghostty_terminal_set(t.h, .selection, &s) == g.success;
+    }
+
     /// The selection's text, with soft-wrapped lines joined and trailing
     /// spaces trimmed, as Ghostty copies it; null without a selection.
     pub fn selectionText(t: Vt, gpa: std.mem.Allocator) ?[]u8 {

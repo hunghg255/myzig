@@ -61,9 +61,27 @@ pub const Options = struct {
     /// Copies what a drag or a double or triple click selects as the pointer
     /// lets go.
     copy_on_select: bool = false,
+    /// How far the wheel and the touchpad scroll, as Ghostty's
+    /// mouse-scroll-multiplier; `opts` may change while the terminal shows.
+    scroll_multiplier: ScrollMultiplier = .{},
     /// Reads the clipboard's text for a paste: the system's when null.
     read_clipboard: ?*const fn (ctx: ?*anyopaque, gpa: std.mem.Allocator) ?[]u8 = null,
     read_clipboard_ctx: ?*anyopaque = null,
+};
+
+/// Scales scrolling (`Options.scroll_multiplier`), as Ghostty's
+/// mouse-scroll-multiplier = precision:…,discrete:….
+pub const ScrollMultiplier = struct {
+    /// Scales a touchpad's scrolling, and other scrolling by distance.
+    precision: f32 = 1,
+    /// About how many rows a notch of a mouse wheel scrolls: 3 is the
+    /// system's notch, which the others scale.
+    discrete: f32 = 3,
+
+    /// What scrolling `notch`es (or not) multiplies the distance by.
+    pub fn factor(m: ScrollMultiplier, notch: bool) f32 {
+        return if (notch) @max(m.discrete, 0) / 3 else @max(m.precision, 0);
+    }
 };
 
 pub const Terminal = struct {

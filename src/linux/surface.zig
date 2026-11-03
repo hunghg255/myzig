@@ -391,6 +391,7 @@ fn onScroll(_: *gtk.Widget, e: *gtk.Event, data: ?*anyopaque) callconv(.c) c_int
         s.ctx.updateHot();
     } else if (s.ctx.wants_wheel) {
         s.ctx.input.scroll = .{ .y = delta };
+        s.ctx.input.scroll_notch = notch;
         s.frame();
     }
     return 1;

@@ -85,6 +85,7 @@ pub fn main(init: std.process.Init) !void {
 | `on_event` | null | `.{ .ctx, .func }`: `.output` (redraw), `.title`, `.bell`, `.exit`, and `.notify` (a desktop notification a program asked for with OSC 9 or OSC 777; `t.notification()` is its title and body), on the main thread |
 | `open_link` | null | opens a link Ctrl+click chose (a hyperlink, a URL, a file path); otherwise the system opens URLs |
 | `copy_on_select` | false | copies what a drag, a double or a triple click selects as the pointer lets go |
+| `scroll_multiplier` | `.{ .precision = 1, .discrete = 3 }` | scales scrolling, as Ghostty's `mouse-scroll-multiplier`: `precision` a touchpad's distance, `discrete` about the rows a wheel's notch scrolls (3 is the system's notch); `term.opts.scroll_multiplier` may change while it shows |
 | `read_clipboard` | null | reads the clipboard's text for a paste; the system's when null |
 
 A `Terminal` also has `send(bytes)` (type into the program), `paste(data)`,
@@ -117,7 +118,8 @@ text), `snapshot(gpa)` (escape sequences that restore the screen),
 - **The pointer**: reports (X10, normal, button, any-motion; SGR and the
   other encodings) to programs that take the mouse, Shift selecting
   instead; a drag selects cells, a double click words, a triple click
-  lines; the wheel scrolls the scrollback, or sends arrows on a full-screen
+  lines, and a Shift-click extends or shrinks a selection from where it
+  started, across lines too; the wheel scrolls the scrollback, or sends arrows on a full-screen
   program's screen (alternate scroll), or wheel reports.
 - **Pastes** are bracketed when the program asks (mode 2004), and focus
   reports (mode 1004) are sent.
@@ -125,7 +127,8 @@ text), `snapshot(gpa)` (escape sequences that restore the screen),
 - **Links**: Ctrl+click (Command+click on macOS) opens a hyperlink
   (OSC 8), a URL printed as text, or a file path through `open_link`
   (absolute ones with the system without it): `/abs/path`, `~/notes.md`,
-  `./a.go`, `src/app.go:12:3`, `main.go:250`, and on Windows
+  `./a.go`, `src/app.go:12:3`, `main.go:250`, `notes.md` (a file name
+  with an extension, not a number such as 1.2.3), and on Windows
   `C:\dir\file`, `C:/dir/file`, `dir\file` and `.\file`.
 - **Themes**: VS Code's palettes on myzig's window colors, following the
   window's appearance; the 617 themes Ghostty ships, by name

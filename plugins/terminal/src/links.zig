@@ -1,6 +1,6 @@
 //! Links printed as text, which Ctrl+click (Command+click on macOS) opens
 //! as it does hyperlinks (OSC 8): URLs, and file paths, absolute, from ~,
-//! ./ or ../, with a slash, or a file name with a :line, each may end in
+//! ./ or ../, with a slash, or a file name with an extension, each may end in
 //! :line or :line:col. On Windows also those with a drive (C:\dir\file,
 //! C:/dir/file) or with backslashes (dir\file, .\file), as mygo finds
 //! them. Matching is leftmost-first over a row's codepoints, as mygo's
@@ -118,18 +118,21 @@ fn segments(s: []const u21, i: usize, sep: u21) ?usize {
     return lineSuffix(s, e);
 }
 
-/// `[\w@+-][\w.@+-]*\.\w+:\d+(?::\d+)?` at `i`: a file name with a line.
-fn fileLine(s: []const u21, i: usize) ?usize {
+/// `[\w@+-][\w.@+-]*\.\w+(?::\d+(?::\d+)?)?` at `i`: a file name with an
+/// extension, as `notes.md` or `main.go:12`.
+fn fileName(s: []const u21, i: usize) ?usize {
     if (i >= s.len or !(word(s[i]) or s[i] == '@' or s[i] == '+' or s[i] == '-')) return null;
     var e = i + 1;
     while (e < s.len and seg(s[e])) e += 1;
-    // The extension is the last dot's: \w+ up to the ':' that follows.
-    var d = e;
-    while (d > i + 1 and s[d - 1] != '.') d -= 1;
-    if (d <= i + 1 or d == e) return null;
-    for (s[d..e]) |c| if (!word(c)) return null;
-    if (e + 1 >= s.len or s[e] != ':' or !digit(s[e + 1])) return null;
-    return lineSuffix(s, e);
+    // As the expression backtracks: the longest name that ends in a dot
+    // and a word, so that "notes.md." is notes.md.
+    while (e > i + 1) : (e -= 1) {
+        if (!word(s[e - 1])) continue;
+        var d = e - 1;
+        while (d > i + 1 and word(s[d - 1])) d -= 1;
+        if (d > i + 1 and s[d - 1] == '.') return lineSuffix(s, e);
+    }
+    return null;
 }
 
 /// A drive's path, `[A-Za-z]:[\\/]name line`.
@@ -150,7 +153,7 @@ fn path(s: []const u21, i: usize, windows: bool) ?usize {
     }
     if (rooted(s, i, '/', false)) |e| return e;
     if (segments(s, i, '/')) |e| return e;
-    return fileLine(s, i);
+    return fileName(s, i);
 }
 
 /// `[start, end)` without what likely ends the sentence around it.
@@ -207,7 +210,12 @@ pub fn urlAt(text: []const u21, cols: []const u16, col: u16) ?Range {
 /// The file path at column `col`, as `urlAt`; with Windows' paths when
 /// `windows` is set (`native` is this platform's).
 pub fn pathAt(text: []const u21, cols: []const u16, col: u16, windows: bool) ?Range {
-    return matchAt(text, cols, col, .path, windows);
+    const r = matchAt(text, cols, col, .path, windows) orelse return null;
+    // A dotted number, as version 1.2.3, is no file.
+    for (text[r[0]..r[1]]) |c| {
+        if (c == '/' or c == ':' or (windows and c == '\\') or c >= 0x80 or (c < 0x80 and std.ascii.isAlphabetic(@intCast(c)))) return r;
+    }
+    return null;
 }
 
 pub const native = builtin.os.tag == .windows;
@@ -250,6 +258,10 @@ test "file paths printed as text" {
     try expectAt("open ~/Downloads/clip.mp4", 10, "~/Downloads/clip.mp4", .path, false);
     try expectAt("main.go:250:3: undefined: x", 2, "main.go:250:3", .path, false);
     try expectAt("(src/a.go)", 3, "src/a.go", .path, false);
+    try expectAt("write(notes.md)", 8, "notes.md", .path, false);
+    try expectAt("notes.md (new file +2)", 2, "notes.md", .path, false);
+    try expectAt("See notes.md.", 7, "notes.md", .path, false);
+    try expectAt("notes.md:2:3", 2, "notes.md:2:3", .path, false);
     try expectAt("just words here", 5, "", .path, false);
     try expectAt("version 1.2.3 ok", 9, "", .path, false);
 }

@@ -70,7 +70,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `95fc6466` | 2026-10-24 | Keep the release that comes while its press is handled (#633) | todo-S | Linux: keep a release that comes during its press's frame |
 | `7e132cfb` | 2026-10-24 | Find a long line's visual caret stops in linear time (#584) | n/a | no visual caret-stop sweep |
 | `1549ce9b` | 2026-10-24 | Show the colors of an element that comes back with a route change at once (#697) | present | route pages keyed by history entry (router_view.zig) |
-| `156c6af6` | 2026-10-24 | Fix terminal links for bare filenames (#646) | todo-S | terminal links for bare filenames |
+| `156c6af6` | 2026-10-24 | Fix terminal links for bare filenames (#646) | ported | terminal links for bare filenames |
 | `80499935` | 2026-10-24 | Fix edge scrolling during native data drags (#607) | n/a | drag and drop has no edge scrolling |
 | `d1a2caf7` | 2026-10-25 | editor: shape bold and italic tokens in their faces (#707) | todo-M | editor bold/italic tokens in their faces |
 | `d2907627` | 2026-10-25 | linux: answer the panel's activation with Tray.OnClick (#706) | ported | Linux tray activate signal |
@@ -133,7 +133,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `558e4981` | 2026-10-26 | Delete a Mirror's images by their ids when it starts the other terminal over (#792) | n/a | terminal has no Mirror |
 | `8006903c` | 2026-10-26 | ui: let a field's box give AutoFocus and Focus to its input (#793) | present | field box focuses its input (controls_fields.zig) |
 | `4dcc873e` | 2026-10-26 | Fold clips that only translate, rather than mask them each frame (#795) | present | translating clips fold into instances (paint_xf.zig) |
-| `3407c872` | 2026-10-26 | Let Shift-click extend terminal selections (#590) | todo-S | terminal: Shift-click extends the selection (view.zig, select.zig) |
+| `3407c872` | 2026-10-26 | Let Shift-click extend terminal selections (#590) | ported | terminal: Shift-click extends the selection (view.zig, select.zig) |
 | `43199d0b` | 2026-10-27 | linux: scroll, pinch and tap with a touchscreen in native UI (#800) | todo-M | Linux touchscreen scroll/pinch/tap (linux/surface.zig) |
 | `b0a8b3f7` | 2026-10-27 | macOS: move the window with a drag region's quick press and drag (#765) | todo-M | macOS drag region quick press-and-drag fallback |
 | `2a6c4c59` | 2026-10-27 | Keep child windows above their parent without pinning them to its display on macOS (#764) | n/a | no child windows |
@@ -194,7 +194,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `bca8cf33` | 2026-10-29 | macOS: show dialogs opened from a click in native UI (#885) | n/a | click frames run in mouse handlers |
 | `d7282567` | 2026-10-29 | ui: draw a menu button's menu in the window with PopoverMenuButton (#886) | present | menuButton draws its menu in the window (menu.zig) |
 | `4aca72f1` | 2026-10-29 | ui: run a window's Cmd+V from the Edit menu's Paste on macOS (#889) | present | paste: sends Cmd+V to the view (ui/surface.zig) |
-| `cbee0b21` | 2026-10-29 | terminal: scale scrolling with Options.ScrollMultiplier, as Ghostty's mouse-scroll-multiplier (#891) | todo-S | terminal scroll multiplier |
+| `cbee0b21` | 2026-10-29 | terminal: scale scrolling with Options.ScrollMultiplier, as Ghostty's mouse-scroll-multiplier (#891) | ported | terminal scroll multiplier |
 | `c1467c1a` | 2026-10-29 | windows: stop magnifying a native UI window's frames while it resizes (#893) | deferred | needs a visual check on a real machine |
 | `6f28d7bb` | 2026-10-29 | Release 0.7.3 | skip |  |
 | `23bef6cc` | 2026-10-29 | windows: show the background, not black, where a native UI window shrinks (#895) | deferred | needs a visual check on a real machine |
@@ -213,7 +213,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `fb326e4e` | 2026-10-29 | showcase: add Video-Downloader app to showcase (#917) | skip |  |
 | `e5137a83` | 2026-10-29 | showcase: add Lumilo (#919) | skip |  |
 | `64575a41` | 2026-10-30 | windows: keep the items of drawn menus from clipping their labels (#923) | n/a | no owner-drawn menus |
-| `003c212e` | 2026-10-30 | terminal: draw block sextants to fix Expo QR code rendering (#920) | todo-S | terminal block sextants |
+| `003c212e` | 2026-10-30 | terminal: draw block sextants to fix Expo QR code rendering (#920) | todo-M | terminal: block sextants; myzig draws no box characters yet (mygo box.go not ported) |
 | `58c3edc2` | 2026-10-30 | Convert disk images with diskutil where hdiutil convert fails (#925) | ported | cli: diskutil when hdiutil convert fails |
 | `d40aa879` | 2026-10-30 | ui: let an element ignore the pointer and the keyboard, still pressed by assistive technology (#927) | todo-M | ignore_input style |
 | `2b66322a` | 2026-10-30 | macOS: count the run loop's passes only after a frame, so an idle window stops waking Go (#928) | n/a | no repeating run loop observer |

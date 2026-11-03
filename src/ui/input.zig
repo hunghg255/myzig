@@ -183,6 +183,8 @@ pub const Input = struct {
     released: bool = false,
     click_count: u32 = 0,
     scroll: types.Point = .{},
+    /// `scroll` came from a mouse wheel's notches, not a touchpad.
+    scroll_notch: bool = false,
     key: ?Key = null,
     /// A key went down (not a repeat) or up in this event, when the view
     /// asked (`Context.wants_keys`): characters lowercase, other keys as
@@ -216,6 +218,7 @@ pub const Input = struct {
         i.middle_pressed = false;
         i.released = false;
         i.scroll = .{};
+        i.scroll_notch = false;
         i.key = null;
         i.key_down = null;
         i.key_up = null;

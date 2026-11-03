@@ -45,6 +45,7 @@ pub fn wheel(self: *Surface, h: w.HWND, wp: w.WPARAM, lp: w.LPARAM, horizontal: 
         self.ctx.updateHot();
     } else if (self.ctx.wants_wheel) {
         self.ctx.input.scroll = .{ .y = delta };
+        self.ctx.input.scroll_notch = !ev.precise;
         self.frame();
     }
 }

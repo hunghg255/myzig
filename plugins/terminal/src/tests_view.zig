@@ -124,6 +124,25 @@ test "the pointer is reported to programs that ask, and the wheel scrolls back" 
     try testing.expectEqualStrings("\x1b[<0;3;4M\x1b[<0;3;4m", f.sent(&buf));
 }
 
+test "the scroll multiplier scales a touchpad's distance and a wheel's notches" {
+    var f: Fixture = .{};
+    try f.init();
+    defer f.deinit();
+    for (0..60) |i| {
+        var line: [16]u8 = undefined;
+        f.t.feed(try std.fmt.bufPrint(&line, "row {d}\r\n", .{i}));
+    }
+    f.tester.frame();
+    f.tester.moveTo(100, 100);
+    const ch = f.t.view_state.grid.cell_h;
+    f.t.opts.scroll_multiplier = .{ .precision = 0.1, .discrete = 6 };
+    f.tester.scroll(100, 100, 3 * ch); // 0.3 rows
+    try testing.expect(f.t.vt.atBottom());
+    f.tester.wheel(100, 100, 0.5 * ch); // twice the notch: a row
+    try testing.expect(!f.t.vt.atBottom());
+    try testing.expectEqual(@as(f32, 1), (@import("terminal").ScrollMultiplier{}).factor(true));
+}
+
 test "a drag selects text, which copies" {
     var f: Fixture = .{};
     try f.init();
@@ -138,6 +157,41 @@ test "a drag selects text, which copies" {
     f.tester.doubleClick(g.pad + 8.5 * g.cell_w, g.pad + 1.5 * g.cell_h);
     try testing.expect(f.tester.shortcut(.{ .key = 'c', .ctrl = true, .shift = true }));
     try testing.expectEqualStrings("words", f.tester.clipboard.items);
+}
+
+test "Shift-click extends the selection from where it started" {
+    var f: Fixture = .{};
+    try f.init();
+    defer f.deinit();
+    f.t.feed("first line\r\nsecond words here");
+    f.tester.frame();
+    const g = f.t.view_state.grid;
+    const Sel = struct {
+        fn expect(t: *terminal.Terminal, want: ?[]const u8) !void {
+            const got = t.vt.selectionText(testing.allocator);
+            defer if (got) |s| testing.allocator.free(s);
+            if (want) |w| try testing.expectEqualStrings(w, got orelse "(none)") else try testing.expect(got == null or got.?.len == 0);
+        }
+    };
+    const shiftClick = struct {
+        fn at(fx: *Fixture, x: f32, y: f32) void {
+            fx.tester.ctx.input.shift = true;
+            fx.tester.click(x, y);
+            fx.tester.ctx.input.shift = false;
+        }
+    }.at;
+    f.tester.drag(g.pad + 0.5 * g.cell_w, g.pad + 1.5 * g.cell_h, g.pad + 5.5 * g.cell_w, g.pad + 1.5 * g.cell_h);
+    shiftClick(&f, g.pad + 10.5 * g.cell_w, g.pad + 1.5 * g.cell_h);
+    try Sel.expect(f.t, "second word");
+    // It shrinks, and goes back across lines, from the same start.
+    shiftClick(&f, g.pad + 2.5 * g.cell_w, g.pad + 1.5 * g.cell_h);
+    try Sel.expect(f.t, "sec");
+    shiftClick(&f, g.pad + 6.5 * g.cell_w, g.pad + 0.5 * g.cell_h);
+    try Sel.expect(f.t, "line\ns");
+    // Without a selection, a Shift-click is a click.
+    f.tester.click(g.pad + 2.5 * g.cell_w, g.pad + 0.5 * g.cell_h);
+    shiftClick(&f, g.pad + 8.5 * g.cell_w, g.pad + 0.5 * g.cell_h);
+    try Sel.expect(f.t, null);
 }
 
 

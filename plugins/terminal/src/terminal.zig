@@ -22,6 +22,7 @@ const view_mod = @import("view.zig");
 
 pub const Terminal = session.Terminal;
 pub const Options = session.Options;
+pub const ScrollMultiplier = session.ScrollMultiplier;
 pub const Event = session.Event;
 pub const EventHandler = session.EventHandler;
 pub const Theme = theme_mod.Theme;

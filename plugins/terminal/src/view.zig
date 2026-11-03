@@ -38,6 +38,9 @@ pub const State = struct {
     focused: bool = false,
     wheel: f32 = 0,
     drag: ?select.Drag = null,
+    /// A Shift-click extends the selection there, from where it started;
+    /// a drag goes on extending it.
+    extending: bool = false,
     /// The button a program was told went down.
     reported: encode.Button = .none,
     last_cell: [2]u16 = .{ 0xFFFF, 0xFFFF },
@@ -326,7 +329,7 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
     // The wheel: to the program, as arrows on a full-screen program's
     // screen, else through the scrollback; a row per cell of travel.
     if (over and in.scroll.y != 0) {
-        s.wheel += in.scroll.y;
+        s.wheel += in.scroll.y * t.opts.scroll_multiplier.factor(in.scroll_notch);
         const rows: i64 = @intFromFloat(@trunc(s.wheel / g.cell_h));
         if (rows != 0) {
             s.wheel -= @as(f32, @floatFromInt(rows)) * g.cell_h;
@@ -357,6 +360,8 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
         } else if (report) {
             s.reported = .left;
             mouseReport(c, t, rect, .press, .left, mods);
+        } else if (in.shift and extendTo(t, cell)) {
+            s.extending = true;
         } else {
             const unit: select.Unit = if (in.click_count >= 3) .line else if (in.click_count == 2) .word else .cell;
             t.lock.lockUncancelable(t.io);
@@ -368,6 +373,8 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
     } else if (it.pressed and !in.pressed) {
         if (s.reported != .none) {
             if (cell[0] != s.last_cell[0] or cell[1] != s.last_cell[1]) mouseReport(c, t, rect, .motion, s.reported, mods);
+        } else if (s.extending) {
+            if (cell[0] != s.last_cell[0] or cell[1] != s.last_cell[1]) _ = extendTo(t, cell);
         } else if (s.drag) |d| {
             t.lock.lockUncancelable(t.io);
             if (d.unit != .cell or cell[0] != d.x or select.screenRow(t.vt, cell[1]) != d.y) select.extend(t.vt, d, cell[0], cell[1], g.cols);
@@ -383,12 +390,21 @@ fn pointer(c: *ui.Context, t: *Terminal, it: ui.Interaction, rect: ui.Rect) void
         if (s.drag != null and t.opts.copy_on_select) copySelection(c, t);
         s.reported = .none;
         s.drag = null;
+        s.extending = false;
     }
     if (it.hovered and in.right_pressed and report) {
         mouseReport(c, t, rect, .press, .right, mods);
         mouseReport(c, t, rect, .release, .right, mods);
     }
     s.last_cell = cell;
+}
+
+/// Extends the selection to `cell` of the viewport; false without one.
+fn extendTo(t: *Terminal, cell: [2]u16) bool {
+    t.lock.lockUncancelable(t.io);
+    defer t.lock.unlock(t.io);
+    const ref = t.vt.cellAt(cell[0], cell[1]) orelse return false;
+    return t.vt.extendSelection(ref);
 }
 
 fn mouseReport(c: *ui.Context, t: *Terminal, rect: ui.Rect, action: encode.MouseAction, button: encode.Button, mods: encode.Mods) void {

@@ -227,6 +227,7 @@ pub const Data = enum(c_int) {
     mouse_tracking = 11,
     title = 12,
     pwd = 13,
+    selection = 31,
     viewport_active = 32,
     mode = 37,
 };

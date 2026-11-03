@@ -51,8 +51,12 @@ pub fn script(gpa: std.mem.Allocator, c: Config, dir_name: []const u8, f: Files,
     try w.writeAll("\nOutFile ");
     try quoted(w, f.out);
     try w.writeAll("\nInstallDir \"$LOCALAPPDATA\\Programs\\");
-    try escape(w, dir_name);
-    try w.writeAll("\"\nRequestExecutionLevel user\nBrandingText \" \"\n");
+    try escape(w, @import("config.zig").installDirName(c, dir_name));
+    // An installed app is updated in its folder: the one the user chose, or
+    // the one of a version with another windows.install_dir_name.
+    try w.writeAll("\"\nInstallDirRegKey HKCU ");
+    try quoted(w, key);
+    try w.writeAll(" \"InstallLocation\"\nRequestExecutionLevel user\nBrandingText \" \"\n");
     if (f.ico.len > 0) {
         try w.writeAll("!define MUI_ICON ");
         try quoted(w, f.ico);
@@ -289,7 +293,7 @@ test script {
     for ([_][]const u8{
         "Name \"My $\\\"App$\\\" $$1\"\n",
         "OutFile \"C:\\b\\My App Setup 1.2.0 x86_64.exe\"\n",
-        "InstallDir \"$LOCALAPPDATA\\Programs\\My App\"\n",
+        "InstallDir \"$LOCALAPPDATA\\Programs\\My App\"\nInstallDirRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\com.example.my-app\" \"InstallLocation\"\n",
         "!define MUI_ICON \"C:\\w\\i.ico\"\n",
         "  File \"C:\\b\\my_app.exe\"\n  File /r \"C:\\b\\data\"\n",
         "CreateShortCut \"$SMPROGRAMS\\My App.lnk\" \"$INSTDIR\\my_app.exe\"\n",

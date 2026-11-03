@@ -157,6 +157,7 @@ are required.
 | `installer` | true | write the NSIS installer's script, and make the installer when `makensis` is installed |
 | `uninstall_run` | none | arguments the uninstaller runs the app with, and waits for, before taking its files away: for the app to undo what it set up itself (a command on the `PATH`, File Explorer's menus) |
 | `uninstall_data` | none | folders of the app's data, as NSIS paths (`$APPDATA\\MyApp`), the uninstaller offers to delete too, asking first; a silent uninstall keeps them |
+| `install_dir_name` | the name | the folder in `%LOCALAPPDATA%\Programs` the installer puts the app in, e.g. an ASCII `ZhiLian` for an app named `智链`; the shortcuts and Settings › Apps keep the name, and an installed app is updated where it is |
 
 ## linux
 
@@ -166,7 +167,7 @@ are required.
 | `comment` | none | the desktop entry's `Comment` |
 | `categories` | `Utility` | the desktop entry's `Categories` |
 | `depends` | none | more Debian dependencies, after GTK 3 and WebKitGTK |
-| `command` | none | a command in `/usr/bin` that runs the app (letters, digits, `.`, `_`, `+`, `-`) |
+| `command` | none | a command in `/usr/bin` that runs the app (letters, digits, `.`, `_`, `+`, `-`), or a list of them |
 
 ## myzig.json
 

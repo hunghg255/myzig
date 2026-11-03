@@ -65,6 +65,12 @@ pub const Windows = struct {
     /// uninstaller offers to delete too, asking first; silent
     /// uninstalls keep them.
     uninstall_data: []const []const u8 = &.{},
+    /// The folder the installer puts the app in, in
+    /// `%LOCALAPPDATA%\Programs`, when it is not the name: an ASCII
+    /// "ZhiLian" for an app named "智链", for tools that handle only ASCII
+    /// paths. The shortcuts, the entry in Settings › Apps and the
+    /// installer keep the name. An installed app is updated in its folder.
+    install_dir_name: []const u8 = "",
 };
 
 pub const Linux = struct {
@@ -72,7 +78,9 @@ pub const Linux = struct {
     comment: []const u8 = "",
     categories: []const []const u8 = &.{"Utility"},
     depends: []const []const u8 = &.{},
-    command: []const u8 = "",
+    /// Commands on the PATH that start the app (`/usr/bin/<command>`):
+    /// `.command = "my-app"`, or a list of them, `.{ "my-app", "ma" }`.
+    commands: []const []const u8 = &.{},
 };
 
 pub const Config = struct {
@@ -108,9 +116,14 @@ pub const Config = struct {
         return std.fs.path.join(gpa, &.{ c.root, p });
     }
 
-    /// The MIME type of an association, and whether the app defines it.
+    /// The MIME type of an association, and whether the app defines it: the
+    /// one it makes without `mime_type`, and a named one whose subtype
+    /// starts with x-, which no registry holds (application/x-sketchbook).
     pub fn mimeType(c: Config, gpa: std.mem.Allocator, fa: FileAssociation) !struct { []const u8, bool } {
-        if (fa.mime_type.len > 0) return .{ fa.mime_type, false };
+        if (fa.mime_type.len > 0) {
+            const slash = std.mem.indexOfScalar(u8, fa.mime_type, '/') orelse return .{ fa.mime_type, false };
+            return .{ fa.mime_type, std.ascii.startsWithIgnoreCase(fa.mime_type[slash + 1 ..], "x-") };
+        }
         const ext = try std.ascii.allocLowerString(gpa, fa.ext[0]);
         return .{ try std.fmt.allocPrint(gpa, "application/x-{s}-{s}", .{ try slug(gpa, c.executable, '-'), ext }), true };
     }
@@ -223,15 +236,19 @@ fn decode(gpa: std.mem.Allocator, c: *Config, v: zon.Value) LoadError!void {
         }
     }
     if (v.get("windows")) |w| {
-        try checkKeys(gpa, w, "windows", &.{ "installer", "uninstall_run", "uninstall_data" });
+        try checkKeys(gpa, w, "windows", &.{ "installer", "uninstall_run", "uninstall_data", "install_dir_name" });
         try boolean(gpa, w, "installer", &c.windows.installer);
         try str(gpa, w, "uninstall_run", &c.windows.uninstall_run);
+        try str(gpa, w, "install_dir_name", &c.windows.install_dir_name);
         try strList(gpa, w, "uninstall_data", &c.windows.uninstall_data);
     }
     if (v.get("updates")) |u| c.updates = try updates.decode(gpa, u);
     if (v.get("linux")) |l| {
         try checkKeys(gpa, l, "linux", &.{ "maintainer", "comment", "categories", "depends", "command" });
-        inline for (.{ "maintainer", "comment", "command" }) |k| try str(gpa, l, k, &@field(c.linux, k));
+        inline for (.{ "maintainer", "comment" }) |k| try str(gpa, l, k, &@field(c.linux, k));
+        if (l.get("command")) |cmd| {
+            if (cmd == .string) c.linux.commands = try gpa.dupe([]const u8, &.{cmd.string}) else try strList(gpa, l, "command", &c.linux.commands);
+        }
         try strList(gpa, l, "categories", &c.linux.categories);
         try strList(gpa, l, "depends", &c.linux.depends);
     }
@@ -303,8 +320,10 @@ pub fn validate(gpa: std.mem.Allocator, c: Config) LoadError!void {
     }
     for (c.url_schemes) |s| if (!validName(s, "", "+.-"))
         return invalid(gpa, "url_schemes: \"{s}\" is not a URL scheme (a letter, then letters, digits, +, - or .)", .{s});
-    if (c.linux.command.len > 0 and !validName(c.linux.command, "0123456789", "._+-"))
-        return invalid(gpa, "linux.command \"{s}\" is not a command name", .{c.linux.command});
+    for (c.linux.commands, 0..) |cmd, i| {
+        if (!validName(cmd, "0123456789", "._+-")) return invalid(gpa, "linux.command \"{s}\" is not a command name", .{cmd});
+        for (c.linux.commands[0..i]) |prev| if (std.mem.eql(u8, prev, cmd)) return invalid(gpa, "linux.command names \"{s}\" twice", .{cmd});
+    }
     if (c.dev_url.len > 0) {
         const ok = (std.mem.startsWith(u8, c.dev_url, "http://") and c.dev_url.len > 7) or
             (std.mem.startsWith(u8, c.dev_url, "https://") and c.dev_url.len > 8);
@@ -315,6 +334,40 @@ pub fn validate(gpa: std.mem.Allocator, c: Config) LoadError!void {
     }
     if (!validName(c.identifier, "", ".-")) return invalid(gpa, "identifier \"{s}\" is not a reverse DNS name, as com.example.myapp", .{c.identifier});
     if (c.updates) |u| try updates.validate(gpa, u);
+    if (c.windows.install_dir_name.len > 0) if (folderNameError(c.windows.install_dir_name)) |why|
+        return invalid(gpa, "windows.install_dir_name \"{s}\" is the name of the app's folder, which {s}", .{ c.windows.install_dir_name, why });
+}
+
+/// Why `name`, trimmed, cannot name a folder on Windows, or null: it is
+/// empty, holds a path separator, a control character or :*?"<>|, ends
+/// with a dot (which Windows drops; "." and ".." too), or is a device's name.
+pub fn folderNameError(name_: []const u8) ?[]const u8 {
+    const name = std.mem.trim(u8, name_, " \t");
+    if (name.len == 0) return "is empty";
+    for (name) |ch| if (ch < ' ' or ch == 0x7f or std.mem.indexOfScalar(u8, "/\\:*?\"<>|", ch) != null)
+        return "cannot hold control characters, path separators or :*?\"<>|";
+    if (name[name.len - 1] == '.') return "cannot be . or .., or end with a dot";
+    const stem = name[0 .. std.mem.indexOfScalar(u8, name, '.') orelse name.len];
+    for ([_][]const u8{ "con", "prn", "aux", "nul" }) |d| if (std.ascii.eqlIgnoreCase(stem, d)) return "is the name of a device on Windows";
+    if (stem.len == 4 and (std.ascii.startsWithIgnoreCase(stem, "com") or std.ascii.startsWithIgnoreCase(stem, "lpt")) and std.ascii.isDigit(stem[3]))
+        return "is the name of a device on Windows";
+    return null;
+}
+
+/// The folder the Windows installer puts the app in.
+pub fn installDirName(c: Config, default: []const u8) []const u8 {
+    const n = std.mem.trim(u8, c.windows.install_dir_name, " \t");
+    return if (n.len > 0) n else default;
+}
+
+test "a Windows install folder's name" {
+    try std.testing.expect(folderNameError("ZhiLian") == null);
+    try std.testing.expect(folderNameError("My App 2") == null);
+    for ([_][]const u8{ "", " ", "a/b", "a\\b", "a:b", "x.", "..", "CON", "nul.txt", "com1", "LPT9" }) |bad|
+        try std.testing.expect(folderNameError(bad) != null);
+    const c: Config = .{ .root = "/a", .windows = .{ .install_dir_name = " ZhiLian " } };
+    try std.testing.expectEqualStrings("ZhiLian", installDirName(c, "智链"));
+    try std.testing.expectEqualStrings("智链", installDirName(.{ .root = "/a" }, "智链"));
 }
 
 test "defaults and fields" {
@@ -344,6 +397,9 @@ test "defaults and fields" {
     const mt = try c.mimeType(gpa, c.file_associations[0]);
     try std.testing.expectEqualStrings("application/x-my-notes-md", mt[0]);
     try std.testing.expect(mt[1]);
+    // A named type no registry holds is the app's to define too.
+    try std.testing.expect((try c.mimeType(gpa, .{ .ext = &.{"sk"}, .mime_type = "application/x-sketchbook" }))[1]);
+    try std.testing.expect(!(try c.mimeType(gpa, .{ .ext = &.{"md"}, .mime_type = "text/markdown" }))[1]);
 }
 
 test "mistakes are named" {

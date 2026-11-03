@@ -60,6 +60,7 @@ const commands = [_]Command{
     \\  --out DIR                       the output directory (default: out of myzig.zon, dist)
     \\  --skip-build-command            don't run build_command
     \\  --skip-dmg                      don't make the macOS disk image
+    \\  --skip-installer                don't make the Windows installer, nor look for NSIS
     \\  --upload                        upload the packages and signed updates where updates points
     \\                                  (updates.s3, else a draft release of updates.github)
     },
@@ -209,6 +210,8 @@ fn dispatch(ctx: Ctx, cmd: Command, args: *Args) !void {
                 o.skip_build_command = true;
             } else if (std.mem.eql(u8, a, "--skip-dmg")) {
                 o.skip_dmg = true;
+            } else if (std.mem.eql(u8, a, "--skip-installer")) {
+                o.skip_installer = true;
             } else if (std.mem.eql(u8, a, "--upload")) {
                 o.upload = true;
             } else if (std.mem.startsWith(u8, a, "-")) return unknown(a) else try positional.append(ctx.gpa, a);

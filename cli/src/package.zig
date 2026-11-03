@@ -39,6 +39,8 @@ pub const Options = struct {
     out: []const u8 = "",
     skip_build_command: bool = false,
     skip_dmg: bool = false,
+    /// No Windows installer, whatever `windows.installer` says.
+    skip_installer: bool = false,
     /// Upload the packages and signed updates where `updates` points.
     upload: bool = false,
 };
@@ -117,7 +119,7 @@ pub fn run(ctx: Ctx, o: Options) !Result {
     var files: std.ArrayList([]const u8) = .empty;
     switch (o.platform) {
         .macos => try packageMac(ctx, c, o, dir, exe, resources, arch_name, &files),
-        .windows => try packageWindows(ctx, c, dir, work, exe, resources, arch_name, &files),
+        .windows => try packageWindows(ctx, c, o, dir, work, exe, resources, arch_name, &files),
         .linux => try packageLinux(ctx, c, dir, exe, resources, arch, &files),
     }
     if (c.updates != null) {
@@ -191,7 +193,7 @@ fn packageMac(ctx: Ctx, c: Config, o: Options, dir: []const u8, exe: []const u8,
     ctx.warn("made no .dmg: disk images are made on macOS (hdiutil)", .{});
 }
 
-fn packageWindows(ctx: Ctx, c: Config, dir: []const u8, work: []const u8, exe: []const u8, resources: []const []const u8, arch: []const u8, files: *std.ArrayList([]const u8)) !void {
+fn packageWindows(ctx: Ctx, c: Config, o: Options, dir: []const u8, work: []const u8, exe: []const u8, resources: []const []const u8, arch: []const u8, files: *std.ArrayList([]const u8)) !void {
     const name = try fsx.fsName(ctx.gpa, c.name);
     const stage = try ctx.join(&.{ dir, name });
     const exe_name = try ctx.fmt("{s}.exe", .{name});
@@ -215,7 +217,7 @@ fn packageWindows(ctx: Ctx, c: Config, dir: []const u8, work: []const u8, exe: [
     try fsx.write(ctx.io, zip, try archive.zip(ctx.gpa, entries.items, fsx.epoch(ctx)));
     try files.append(ctx.gpa, zip);
 
-    if (!c.windows.installer) return;
+    if (!c.windows.installer or o.skip_installer) return;
     var ico: []const u8 = "";
     if (c.icon.len > 0) {
         ico = try ctx.join(&.{ work, "installer.ico" });

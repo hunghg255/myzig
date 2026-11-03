@@ -171,6 +171,7 @@ when declared.
 | `--out DIR` | the output directory (default: `out` of `myzig.zon`, `dist`) |
 | `--skip-build-command` | don't run `build_command` |
 | `--skip-dmg` | don't make the macOS disk image |
+| `--skip-installer` | don't make the Windows installer, nor look for NSIS |
 | `--upload` | upload the packages and the signed update where `updates` points: the bucket of `updates.s3`, else a draft GitHub release of the version (see [Updates](updates.md)) |
 
 With `updates` in `myzig.zon` and the signing key

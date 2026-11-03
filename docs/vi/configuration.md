@@ -148,6 +148,7 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 | `installer` | true | viết tập lệnh của trình cài đặt NSIS và tạo trình cài đặt khi `makensis` được cài đặt |
 | `uninstall_run` | không có | đối số mà trình gỡ cài đặt chạy ứng dụng và chờ đợi trước khi lấy đi các tệp của nó: để ứng dụng hoàn tác những gì nó tự thiết lập (một lệnh trên `PATH`, menu của File Explorer) |
 | `uninstall_data` | không có | các thư mục chứa dữ liệu của ứng dụng, dưới dạng đường dẫn NSIS (`$APPDATA\\MyApp`), trình gỡ cài đặt cũng đề nghị xóa, hãy hỏi trước; việc gỡ cài đặt im lặng sẽ giữ chúng |
+| `install_dir_name` | tên ứng dụng | thư mục trong `%LOCALAPPDATA%\Programs` mà trình cài đặt đặt ứng dụng vào, ví dụ `ZhiLian` (ASCII) cho ứng dụng tên `智链`; lối tắt và Settings › Apps giữ tên, và ứng dụng đã cài được cập nhật tại chỗ |
 
 ## linux
 
@@ -157,7 +158,7 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 | `comment` | không có | mục nhập trên máy tính để bàn của `Comment` |
 | `categories` | `Utility` | mục nhập trên máy tính để bàn của `Categories` |
 | `depends` | không có | nhiều phần phụ thuộc Debian hơn, sau GTK 3 và WebKitGTK |
-| `command` | không có | một lệnh trong `/usr/bin` chạy ứng dụng (chữ cái, chữ số, `.`, `_`, `+`, `-`) |
+| `command` | không có | một lệnh trong `/usr/bin` chạy ứng dụng (chữ cái, chữ số, `.`, `_`, `+`, `-`), hoặc một danh sách lệnh |
 
 ## myzig.json
 

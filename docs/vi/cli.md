@@ -131,6 +131,7 @@ Trước khi xây dựng, nó chạy `build_command` (bản dựng của fronten
 | `--out DIR` | thư mục đầu ra (mặc định: `out` của `myzig.zon`, `dist`) |
 | `--skip-build-command` | đừng chạy `build_command` |
 | `--skip-dmg` | đừng tạo ảnh đĩa macOS |
+| `--skip-installer` | đừng tạo trình cài đặt Windows, cũng không tìm NSIS |
 | `--upload` | tải lên các gói và bản cập nhật đã ký trong đó `updates` chỉ ra: nhóm `updates.s3`, nếu không thì bản phát hành GitHub nháp của phiên bản (xem [Cập nhật](updates.md)) |
 
 Với `updates` trong `myzig.zon` và khóa ký (`MYZIG_UPDATER_PRIVATE_KEY` hoặc `updates.private_key`), nó cũng ghi bản cập nhật đã ký của nền tảng bên cạnh các gói: tệp thực thi, dưới dạng `<name>-<version>-<platform>-<arch>` và tệp kê khai của nó, `update-<platform>-<arch>.json`. Nếu không có khóa, nó sẽ không cảnh báo và ghi gì cả, và `--upload` dừng trước khi xây dựng: bản phát hành không có bảng kê khai là bản phát hành mà các ứng dụng đã cài đặt không thể cập nhật. Quá trình xây dựng macOS cũng dừng trước khi xây dựng khi `macos.provisioning_profile` được đặt và ứng dụng được ký đặc biệt.

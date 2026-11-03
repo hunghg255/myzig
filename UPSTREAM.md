@@ -63,7 +63,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `23ac61d8` | 2026-10-24 | darwin: turn off AppKit's AutoFill heuristics (#699) | ported | macOS: AutoFill heuristics off |
 | `044b7c85` | 2026-10-24 | cli: take a package.json for a frontend only when it depends on mygo-runtime (#700) | n/a | cli picks the frontend by directory |
 | `2317b809` | 2026-10-24 | darwin: turn off AutoFill heuristics on macOS 27 too (#701) | ported | macOS 27: AutoFill heuristics off |
-| `189c8b3a` | 2026-10-24 | Define the unregistered MIME types an app names for its files on Linux (#634) | todo-S | cli: define unregistered x- MIME types |
+| `189c8b3a` | 2026-10-24 | Define the unregistered MIME types an app names for its files on Linux (#634) | ported | cli: define unregistered x- MIME types |
 | `ce9ff87a` | 2026-10-24 | Add linker flags to builds with MYGO_LDFLAGS (#642) | skip |  |
 | `d70ef8ec` | 2026-10-24 | windows: fit a line in the width it measured (#661) | n/a | DirectWrite lays out unwrapped |
 | `b77083b7` | 2026-10-24 | chore(security): update Go toolchain to 1.27.3 (#616) | skip |  |
@@ -173,7 +173,7 @@ Commits before `976f17c9` are covered by the baseline in
 | `fe62eb8c` | 2026-10-28 | Add plugins/automation: drive a running app from another process (#851) | todo-L | plugins/automation |
 | `34c735c3` | 2026-10-28 | ui: draw context menus in the window with PopoverMenu (#852) | present | context menus drawn in the window (ui/menu.zig) |
 | `a8f25edb` | 2026-10-28 | ui: lines of a TextLayout, justified and indented paragraphs, soft hyphens, baseline shift (#853) | todo-L | TextLayout lines, justify, indent, soft hyphens, baseline shift |
-| `39a5ebbc` | 2026-10-28 | cli: name the Windows install folder with windows.installDirName (#854) | todo-S | cli: windows.install_dir_name |
+| `39a5ebbc` | 2026-10-28 | cli: name the Windows install folder with windows.installDirName (#854) | ported | cli: windows.install_dir_name |
 | `519631ea` | 2026-10-28 | windows: show the content's background, not black, where a window grows (#855) | deferred | needs a visual check on a real machine |
 | `03ac0702` | 2026-10-28 | page: let a window's page play audible media without a user gesture (#856) | todo-M | pages play audible media without a gesture |
 | `06d3a311` | 2026-10-28 | raster: make the pixels of an image with a transform again (#858) | present | image with transform after pixels released (raster_xf.zig) |
@@ -199,10 +199,10 @@ Commits before `976f17c9` are covered by the baseline in
 | `6f28d7bb` | 2026-10-29 | Release 0.7.3 | skip |  |
 | `23bef6cc` | 2026-10-29 | windows: show the background, not black, where a native UI window shrinks (#895) | deferred | needs a visual check on a real machine |
 | `85fd4bba` | 2026-10-29 | ui: open a drawn menu at the pointer on an element scrolled partly out of view (#896) | present | context menus open at the pointer (menu.zig) |
-| `2de039ab` | 2026-10-29 | linux: let linux.command name several commands (#900) | todo-S | cli: linux.command lists several |
+| `2de039ab` | 2026-10-29 | linux: let linux.command name several commands (#900) | ported | cli: linux.command lists several |
 | `4712173a` | 2026-10-29 | idlemem: end a Windows app's processes before the next run, and show why an app exited (#901) | skip |  |
 | `b7e6bdd3` | 2026-10-29 | ui: let a Calendar page through months without choosing, with Browse (#903) | todo-S | calendar browse |
-| `c18c0df0` | 2026-10-29 | cli: add mygo build -skip-installer, which makes no Windows installer nor downloads NSIS (#902) | todo-S | cli: --skip-installer |
+| `c18c0df0` | 2026-10-29 | cli: add mygo build -skip-installer, which makes no Windows installer nor downloads NSIS (#902) | ported | cli: --skip-installer |
 | `813ee465` | 2026-10-29 | ui: size a grid child's percentages by its cell, not the grid (#909) | present | grid children sized by cell (grid_layout.zig) |
 | `fed2cc29` | 2026-10-29 | ui/editor: hatch a diff's fillers with the stripes in sight, as diagonals (#911) | n/a | diff has no filler rows |
 | `34d88970` | 2026-10-29 | windows: read the clipboard's other representations when one can't be read (#912) | n/a | clipboard reads each format alone |

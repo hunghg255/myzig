@@ -124,8 +124,8 @@ pub fn deb(gpa: std.mem.Allocator, c: Config, arch: Arch, exe: []const u8, app: 
         if (x.kind == .dir) try S.dir(gpa, &data, &dirs, x.path) else try S.file(gpa, &data, &dirs, &md5sums.writer, &size, x);
     }
     const exe_path = try std.fmt.allocPrint(gpa, "/{s}/{s}", .{ opt, exe });
-    if (c.linux.command.len > 0) try S.file(gpa, &data, &dirs, &md5sums.writer, &size, .{
-        .path = try std.fmt.allocPrint(gpa, "usr/bin/{s}", .{c.linux.command}),
+    for (c.linux.commands) |command| try S.file(gpa, &data, &dirs, &md5sums.writer, &size, .{
+        .path = try std.fmt.allocPrint(gpa, "usr/bin/{s}", .{command}),
         .kind = .symlink,
         .link = try std.fmt.allocPrint(gpa, "../..{s}", .{exe_path}),
         .mode = 0o777,
@@ -211,7 +211,7 @@ test deb {
     const c: Config = .{
         .root = "/a", .name = "My App", .identifier = "com.example.myapp", .version = "1.0.0-rc1", .executable = "my_app",
         .file_associations = &.{.{ .ext = &.{"note"}, .name = "Note & Co" }},
-        .linux = .{ .maintainer = "Jane <j@example.com>", .command = "my-app", .depends = &.{"libfoo1"} },
+        .linux = .{ .maintainer = "Jane <j@example.com>", .commands = &.{ "my-app", "ma" }, .depends = &.{"libfoo1"} },
     };
     const icon = try png.testIcon(gpa, 32, .{ 1, 2, 3 });
     const bytes, const name = try deb(gpa, c, .x86_64, "my_app", &.{
@@ -233,7 +233,7 @@ test deb {
         try std.testing.expect(std.mem.indexOf(u8, text, want) != null);
     const data = try compress.inflate(gpa, members[2][1], .gzip);
     const names = try tarNames(gpa, data);
-    for ([_][]const u8{ "./opt/", "./opt/my_app/", "./opt/my_app/my_app", "./opt/my_app/data/a.txt", "./usr/bin/my-app", "./usr/share/mime/packages/my_app.xml", "./usr/share/applications/my_app.desktop", "./usr/share/icons/hicolor/512x512/apps/my_app.png" }) |want| {
+    for ([_][]const u8{ "./opt/", "./opt/my_app/", "./opt/my_app/my_app", "./opt/my_app/data/a.txt", "./usr/bin/my-app", "./usr/bin/ma", "./usr/share/mime/packages/my_app.xml", "./usr/share/applications/my_app.desktop", "./usr/share/icons/hicolor/512x512/apps/my_app.png" }) |want| {
         for (names) |n| {
             if (std.mem.eql(u8, n, want)) break;
         } else {

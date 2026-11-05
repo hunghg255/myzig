@@ -123,6 +123,7 @@ fn apply(c: *Context, rt: *RichText, g: Geo, cmd: tkeys.Cmd, cfg: Config) void {
         },
         .undo => if (!ro) rt.undo(),
         .redo => if (!ro) rt.redo(),
+        .add_caret, .add_next => {},
     }
 }
 

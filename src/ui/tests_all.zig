@@ -54,6 +54,7 @@ test {
     _ = @import("tests_editor_bounds.zig");
     _ = @import("tests_select_long.zig");
     _ = @import("tests_wheel.zig");
+    _ = @import("tests_scrollbar.zig");
     _ = @import("tests_layout_css.zig");
     _ = @import("tests_baseline.zig");
     _ = @import("tests_form_baselines.zig");

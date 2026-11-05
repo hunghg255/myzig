@@ -4,6 +4,7 @@
 //! space (`paint_xf.zig`); gradients, blurs and effects add rows of data
 //! after the instances (`gpu.Frame`).
 const std = @import("std");
+const scrollbar = @import("scrollbar.zig");
 const types = @import("types.zig");
 const metal = @import("gpu.zig");
 const text_mod = @import("text.zig");
@@ -170,7 +171,7 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
 
     if (st.scroll and st.scrollbar) {
         const before = out.items.len;
-        paintScrollbar(c, out, n, visible, opacity);
+        paintScrollbar(p, c, out, n, visible, opacity);
         placeFrom(p, before);
     }
     if (layer) {
@@ -388,40 +389,52 @@ fn roundClip(items: []metal.Instance, box: types.Rect, visible: types.Rect, radi
     }
 }
 
-fn paintScrollbar(c: *Context, out: *std.ArrayList(metal.Instance), n: *const ctx_mod.Node, visible: types.Rect, opacity: f32) void {
+fn paintScrollbar(p: anytype, c: *Context, out: *std.ArrayList(metal.Instance), n: *const ctx_mod.Node, visible: types.Rect, opacity: f32) void {
     const offset = c.scroll.get(n.id) orelse 0;
-    // The content's height: from the first child's top to the last child's bottom.
+    // The content's size: from the first child's start to the last child's end.
     if (n.first_child == none) return;
     const first = c.node(n.first_child).rect;
     const last = c.node(n.last_child).rect;
-    if (n.style.direction == .row) {
-        // A row's, thin along its bottom.
-        const content_w = last.x + last.w - first.x + n.style.padding.horizontal();
-        const view_w = n.rect.w;
-        if (content_w <= view_w + 0.5) return;
-        const bar_w = @max(24, view_w * view_w / content_w);
-        const tx = offset / (content_w - view_w);
-        const x = n.rect.x + (view_w - bar_w) * std.math.clamp(tx, 0, 1);
-        push(c, out, .{
-            .rect = .{ x + 2, n.rect.y + n.rect.h - 4, bar_w - 4, 3 },
-            .color = metal.color4(c.theme.muted.alpha(0.45 * opacity)),
-            .radius = 1.5,
-            .clip = metal.clip4(visible),
-        });
-        return;
-    }
-    const content_h = last.y + last.h - first.y + n.style.padding.vertical();
-    const view_h = n.rect.h;
-    if (content_h <= view_h + 0.5) return;
-    const bar_h = @max(24, view_h * view_h / content_h);
-    const t = offset / (content_h - view_h);
-    const y = n.rect.y + (view_h - bar_h) * std.math.clamp(t, 0, 1);
+    const horizontal = n.style.direction == .row;
+    // At the edge that can be seen: a box wider than the window around it
+    // keeps its bar in view.
+    // What layout found it can scroll says how much there is: its children
+    // can be absolute (a text editor's rows), and say nothing of it.
+    const limit = c.scroll_limit.get(n.id);
+    const g = (if (horizontal)
+        scrollbar.geometry(true, n.rect.x, n.rect.w, if (limit) |l| n.rect.w + l else last.x + last.w - first.x + n.style.padding.horizontal(), offset, @min(n.rect.y + n.rect.h, visible.y + visible.h))
+    else
+        scrollbar.geometry(false, n.rect.y, n.rect.h, if (limit) |l| n.rect.h + l else last.y + last.h - first.y + n.style.padding.vertical(), offset, @min(n.rect.x + n.rect.w, visible.x + visible.w))) orelse return;
+    const dragged = if (c.bar_drag) |d| d.id == n.id else false;
     push(c, out, .{
-        .rect = .{ n.rect.x + n.rect.w - 7, y + 2, 4, bar_h - 4 },
-        .color = metal.color4(c.theme.muted.alpha(0.5 * opacity)),
-        .radius = 2,
+        .rect = .{ g.thumb.x, g.thumb.y, g.thumb.w, g.thumb.h },
+        .color = metal.color4(c.theme.muted.alpha((if (dragged) @as(f32, 0.85) else 0.55) * opacity)),
+        .radius = scrollbar.thickness / 2,
         .clip = metal.clip4(visible),
     });
+    // A press finds it only where it can be seen, and drawn as laid out.
+    if (p.sp.mode != .plain) return;
+    const x0 = @max(g.grip.x, visible.x);
+    const y0 = @max(g.grip.y, visible.y);
+    const x1 = @min(g.grip.x + g.grip.w, visible.x + visible.w);
+    const y1 = @min(g.grip.y + g.grip.h, visible.y + visible.h);
+    if (x1 <= x0 or y1 <= y0) return;
+    const tx0 = @max(g.track.x, visible.x);
+    const ty0 = @max(g.track.y, visible.y);
+    const tx1 = @min(g.track.x + g.track.w, visible.x + visible.w);
+    const ty1 = @min(g.track.y + g.track.h, visible.y + visible.h);
+    c.next_bars.append(c.gpa, .{
+        .id = n.id,
+        .horizontal = horizontal,
+        .grip = .{ .x = x0, .y = y0, .w = x1 - x0, .h = y1 - y0 },
+        .track = .{ .x = tx0, .y = ty0, .w = @max(0, tx1 - tx0), .h = @max(0, ty1 - ty0) },
+        .thumb_len = if (horizontal) g.grip.w else g.grip.h,
+        .thumb_start = g.thumb_start,
+        .track_start = g.track_start,
+        .span = g.span,
+        .max = g.max,
+        .hits_below = c.next_hits.items.len,
+    }) catch {};
 }
 
 /// The atlas coordinates of the part `source` (x, y, w, h in the picture's

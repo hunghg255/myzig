@@ -406,3 +406,31 @@ test "the selection and the caret are drawn" {
     try testing.expect(px[0] > px[2]);
     try testing.expect(@as(i32, px[0]) - px[2] > @as(i32, pe[0]) - pe[2]);
 }
+
+test "more carets: a line below, the next match" {
+    var s: Notes = undefined;
+    var t: ui.Tester = undefined;
+    try setup(&t, &s, "ab\ncd\nab");
+    defer t.deinit();
+    defer s.ta.deinit();
+    s.ta.collapse(0);
+    // A caret a line below, then typing at both.
+    try testing.expect(t.shortcut(.{ .key = S.down, .ctrl = builtin.os.tag != .macos, .cmd = builtin.os.tag == .macos, .alt = true }));
+    try testing.expectEqual(@as(usize, 1), s.ta.extra.items.len);
+    t.typeText("X");
+    try expectText(&s, "Xab\nXcd\nab");
+    // Backspace at both, as one step of undo.
+    t.key(.backspace);
+    try expectText(&s, "ab\ncd\nab");
+    t.key(.escape);
+    try testing.expectEqual(@as(usize, 0), s.ta.extra.items.len);
+    // The word at the caret, then its next match; typing replaces both.
+    s.ta.collapse(1);
+    try testing.expect(t.shortcut(primary('d', false)));
+    try testing.expect(t.shortcut(primary('d', false)));
+    try testing.expectEqual(@as(usize, 1), s.ta.extra.items.len);
+    t.typeText("z");
+    try expectText(&s, "z\ncd\nz");
+    try testing.expect(t.shortcut(primary('z', false)));
+    try expectText(&s, "ab\ncd\nab");
+}

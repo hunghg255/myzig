@@ -32,6 +32,7 @@ pub fn run(c: *Context, view: View, ts: *text.TextSystem, instances: *std.ArrayL
     const t0 = now();
     // Notches of a wheel glide on, to this frame's time.
     @import("wheel.zig").glide(c);
+    @import("scrollbar.zig").input(c);
     if (c.input.pressed) c.selection.pressed = true;
     c.copy_done = false;
     c.copy_requested = false;

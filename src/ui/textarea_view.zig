@@ -11,6 +11,7 @@ const ctx_mod = @import("context.zig");
 const Context = ctx_mod.Context;
 const TextArea = @import("textarea.zig").TextArea;
 const keys = @import("textarea_keys.zig");
+const multi = @import("textarea_multi.zig");
 const layout = @import("textlayout.zig");
 const Geo = layout.Geo;
 const access = @import("access.zig");
@@ -139,6 +140,14 @@ fn pointer(c: *Context, ta: *TextArea, g: Geo, f: Frame, it: ctx_mod.Interaction
         ta.drag_unit = if (in_gutter or c.input.click_count >= 3) .line else if (c.input.click_count == 2) .word else .char;
         if (in_gutter) ta.gutter_press = ta.doc.lineOf(at);
         ta.drag_from = unitAt(ta, ta.drag_unit, at);
+        if (c.input.adding() and !in_gutter and ta.drag_unit == .char) {
+            // Ctrl (Cmd) and a click: another caret there.
+            multi.add(ta, .at(at));
+            ta.marked = null;
+            c.changed = true;
+            return;
+        }
+        if (!c.input.shift) multi.clear(ta);
         if (c.input.shift and ta.drag_unit == .char) {
             // Extends the selection from its anchor, dragging on from there.
             ta.drag_from = .{ ta.sel.anchor, ta.sel.anchor };
@@ -252,6 +261,12 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
         pointer(c, ta, g, f, it);
         const cmds = keys.collect(c, cfg.tab);
         for (cmds) |cmd| {
+            if (multi.handles(ta, cmd)) {
+                var mopts = cfg.apply;
+                mopts.read_only = cfg.read_only;
+                multi.apply(c, ta, g, cmd, mopts);
+                continue;
+            }
             if (cfg.hook) |h| if (h.run(h.ctx, c, ta, g, cmd)) {
                 c.changed = true;
                 continue;
@@ -341,18 +356,28 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
             for (marks) |mk| if (mk.end == Mark.whole) {
                 _ = c.leaf(.{ .absolute = true, .width = .{ .px = text_w }, .height = .{ .px = row_h }, .background = mk.color, .offset = .{ .x = 0, .y = y } }, .none, null);
             };
-            // The selection, and what the view marks, under the text.
-            const lo = ta.sel.lo();
-            const hi = ta.sel.hi();
-            if (hi > lo and hi > a_abs and lo <= b_abs and !(lo == b_abs and sub + 1 < lr.rows.len)) {
-                const a = @max(lo, a_abs) - lr.start;
-                const b = @min(hi, b_abs) - lr.start;
-                const xa = lr.xIn(sub, a);
-                var xb = lr.xIn(sub, b);
-                if (hi > b_abs and sub + 1 == lr.rows.len) xb += space_w;
-                if (xb > xa) _ = c.leaf(.{ .absolute = true, .width = .{ .px = xb - xa }, .height = .{ .px = row_h }, .background = sel_color, .offset = .{ .x = x0 + xa, .y = y } }, .none, null);
-                if (cfg.whitespace) |wc| decor.selectedWhitespace(c, lr, sub, a, b, x0, y, row_h, wc);
+            // The selections, and what the view marks, under the text.
+            for (0..ta.extra.items.len + 1) |sel_i| {
+                const s = if (sel_i == 0) ta.sel else ta.extra.items[sel_i - 1];
+                const lo = s.lo();
+                const hi = s.hi();
+                if (hi > lo and hi > a_abs and lo <= b_abs and !(lo == b_abs and sub + 1 < lr.rows.len)) {
+                    const a = @max(lo, a_abs) - lr.start;
+                    const b = @min(hi, b_abs) - lr.start;
+                    const xa = lr.xIn(sub, a);
+                    var xb = lr.xIn(sub, b);
+                    if (hi > b_abs and sub + 1 == lr.rows.len) xb += space_w;
+                    if (xb > xa) _ = c.leaf(.{ .absolute = true, .width = .{ .px = xb - xa }, .height = .{ .px = row_h }, .background = sel_color, .offset = .{ .x = x0 + xa, .y = y } }, .none, null);
+                    if (cfg.whitespace) |wc| decor.selectedWhitespace(c, lr, sub, a, b, x0, y, row_h, wc);
+                }
             }
+            // The other carets.
+            if (focused and !cfg.read_only and cfg.caret_width > 0) for (ta.extra.items) |e| {
+                if (!e.empty() or e.caret < a_abs or e.caret > b_abs) continue;
+                if (e.caret == b_abs and sub + 1 < lr.rows.len) continue;
+                const xc = x0 + lr.xIn(sub, e.caret - lr.start);
+                _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
+            };
             for (marks) |mk| {
                 if (mk.end == Mark.whole) continue;
                 const a = @max(mk.start, r[0]);

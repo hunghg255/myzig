@@ -17,6 +17,8 @@ pub fn addHit(c: *Context, id: u64, index: u32, rect: types.Rect, scroll: bool) 
 /// Swaps in the boxes of the frame just painted.
 pub fn commitHits(c: *Context) void {
     std.mem.swap(std.ArrayList(Hit), &c.hits, &c.next_hits);
+    std.mem.swap(@TypeOf(c.bars), &c.bars, &c.next_bars);
+    c.next_bars.clearRetainingCapacity();
     c.updateHot();
 }
 

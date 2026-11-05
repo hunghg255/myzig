@@ -79,6 +79,25 @@ test "a set of rows: Cmd-clicks add and take out, Shift extends, Cmd+A chooses a
     try testing.expectEqual(@as(usize, 30), sel.count());
 }
 
+test "reveal scrolls a row into view once" {
+    var s: Sheet = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Sheet.view), .{ .width = 480, .height = 300 });
+    defer t.deinit();
+    try testing.expect(t.findText("r29c1") == null);
+    s.state.reveal = 29;
+    t.frame();
+    t.frame();
+    try testing.expect(s.state.reveal == null);
+    const r = t.findText("r29c1") orelse return error.TestUnexpectedResult;
+    try testing.expect(r.y + r.h <= 300);
+    try testing.expect(t.findText("r0c1") == null);
+    // A row past the end is ignored.
+    s.state.reveal = 99;
+    t.frame();
+    try testing.expect(s.state.reveal == null);
+}
+
 test "a right-click outside the choice chooses what it is on before the menu opens" {
     var sel: ui.Selection = .init(testing.allocator);
     defer sel.deinit();

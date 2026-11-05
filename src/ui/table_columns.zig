@@ -11,6 +11,8 @@ pub const Alignment = enum { start, center, end };
 
 pub const Column = struct {
     title: []const u8,
+    /// Shown over a sortable header on hover, when set.
+    tooltip: []const u8 = "",
     /// Points, or 0 to share the room left with the other such columns.
     width: f32 = 0,
     alignment: Alignment = .start,
@@ -67,6 +69,7 @@ pub fn header(c: *Context, state: anytype, columns: []const Column, count: usize
         } else if (col.sortable) {
             const it = c.interact(box, .{ .focusable = true, .keys = true });
             widgets.focusRing(c, box, it);
+            if (col.tooltip.len > 0) @import("popover.zig").tooltip(c, it, col.tooltip);
             if (it.clicked) {
                 state.sort = if (sorted_by) .{ .column = i, .descending = !state.sort.?.descending } else .{ .column = i };
                 result.sorted = true;

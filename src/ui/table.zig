@@ -71,6 +71,10 @@ pub const TableState = struct {
     key: ?set.Key = null,
     /// A right-click leaves the choice as it is.
     menu_keeps_selection: bool = false,
+    /// A row the app wants shown: the next frame scrolls it into view
+    /// (as little as it takes), then clears it. For a row the app just
+    /// added past the end, or one it chose from elsewhere.
+    reveal: ?usize = null,
     /// The cells' context menu (`Options.cell_menu`), and its cell.
     cell_menu: menu_mod.Menu = .{},
     menu_cell: [2]usize = .{ 0, 0 },
@@ -426,6 +430,14 @@ pub fn table(c: *Context, state: *TableState, input_columns: []const Column, cou
         result.changed = true;
     }
     if (opts.drag_select or opts.cells) dragSelect(c, state, id, columns, count, opts, &result) else state.drag = null;
+    if (state.reveal) |row| {
+        state.reveal = null;
+        if (row < count) {
+            const view_h = if (c.rects.get(id)) |r| r.h else c.size.h;
+            const top = opts.row_height * @as(f32, @floatFromInt(row));
+            scroll_to = structure.reveal(top, opts.row_height, c.scroll.get(id) orelse 0, view_h);
+        }
+    }
     const l = list_mod.list(c, .{ .count = count, .row_height = opts.row_height, .height = .fill, .scroll_to = scroll_to });
     _ = c.interact(c.stack.items[c.stack.items.len - 1], .{ .focusable = true });
     c.describe(id, .{ .role = .table, .set_size = @intCast(count) });

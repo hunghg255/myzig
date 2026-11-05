@@ -8,6 +8,7 @@ const ctx_mod = @import("context.zig");
 const Context = ctx_mod.Context;
 const S = ctx_mod.Shortcut;
 const TextArea = @import("textarea.zig").TextArea;
+const multi = @import("textarea_multi.zig");
 const layout = @import("textlayout.zig");
 const Geo = layout.Geo;
 
@@ -32,6 +33,10 @@ pub const Cmd = union(enum) {
     cut,
     undo,
     redo,
+    /// Another caret a line above (true) or below.
+    add_caret: bool,
+    /// The word at the caret, then each next match, as another selection.
+    add_next,
 };
 
 /// This event's commands for the focused text, in the frame's memory.
@@ -130,6 +135,7 @@ fn fromShortcut(s: S, tab: bool) ?Cmd {
     const k = s.key;
     const primary = if (mac) s.cmd else s.ctrl;
     const plain = !s.cmd and !s.ctrl and !s.alt;
+    if ((k == S.up or k == S.down) and primary and s.alt and !s.shift) return .{ .add_caret = k == S.up };
     if (k == S.up or k == S.down) {
         const up = k == S.up;
         if (primary) return .{ .move = .{ .motion = if (up) .doc_start else .doc_end, .select = s.shift } };
@@ -149,6 +155,7 @@ fn fromShortcut(s: S, tab: bool) ?Cmd {
         'a' => return if (!s.shift) .select_all else null,
         'c' => return if (!s.shift) .copy else null,
         'x' => return if (!s.shift) .cut else null,
+        'd' => return if (!s.shift) .add_next else null,
         else => {},
     };
     if (k == S.tab and tab and plain) return .{ .tab = s.shift };
@@ -207,6 +214,8 @@ pub fn apply(c: *Context, ta: *TextArea, g: Geo, cmd: Cmd, opts: ApplyOptions) b
         },
         .undo => if (!ro) ta.undo(),
         .redo => if (!ro) ta.redo(),
+        .add_caret => |up| multi.addVertical(ta, g, up),
+        .add_next => multi.addNext(ta),
     }
     c.changed = true;
     return ta.doc.version != before;

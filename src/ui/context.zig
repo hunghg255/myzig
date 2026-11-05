@@ -113,6 +113,11 @@ pub const Context = struct {
     /// The largest offset of every scrolling box in the last layout, and
     /// the notches of a mouse wheel gliding through them (`wheel.zig`).
     scroll_limit: std.AutoHashMapUnmanaged(u64, f32) = .empty,
+    /// The bars painted in the last frame and this one, and the thumb being
+    /// dragged (`scrollbar.zig`).
+    bars: std.ArrayList(@import("scrollbar.zig").Bar) = .empty,
+    next_bars: std.ArrayList(@import("scrollbar.zig").Bar) = .empty,
+    bar_drag: ?@import("scrollbar.zig").Drag = null,
     wheel: @import("wheel.zig").Glides = .empty,
     /// The frame's layout pass while it runs (0 outside it), of
     /// `layout_seq`: boxes measured again at a width in one pass are as
@@ -220,6 +225,8 @@ pub const Context = struct {
         c.follow_glides.deinit(c.gpa);
         c.canvas_visible.deinit(c.gpa);
         c.scroll_limit.deinit(c.gpa);
+        c.bars.deinit(c.gpa);
+        c.next_bars.deinit(c.gpa);
         c.wheel.deinit(c.gpa);
         c.layout_cache.deinit(c.gpa);
         c.selection.deinit(c.gpa);

@@ -71,6 +71,12 @@ Everything a text field of the platform does:
 - The pointer: a click places the caret, a drag selects, a double click
   selects a word and a triple click a line, dragging by words or lines from
   there; Shift-click extends the selection.
+- More carets (`src/ui/textarea_multi.zig`): Control-Alt (Command-Option)
+  with Up or Down adds one a line above or below, Control-D (Command-D)
+  selects the word at the caret and then each next match, and Control-click
+  (Command-click) adds one where it lands. Typing, deleting, Tab, Enter, cut
+  and the arrows then act at every caret, as one step of undo; Escape goes
+  back to one. The others are in `TextArea.extra`, the main one in `sel`.
 
 On macOS the keys come through the text input system (`NSTextInputClient`),
 so the user's own key bindings apply; elsewhere they are mapped as the

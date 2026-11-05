@@ -22,6 +22,9 @@ pub const Unit = enum { char, word, line };
 pub const TextArea = struct {
     doc: TextDoc,
     sel: Sel = .{},
+    /// Other carets and selections, edited with the main one
+    /// (`textarea_multi.zig`); none most of the time.
+    extra: std.ArrayList(Sel) = .empty,
     /// What an input method composes, underlined, in the text already.
     marked: ?[2]usize = null,
     /// The x vertical moves keep to, in the row.
@@ -58,6 +61,7 @@ pub const TextArea = struct {
 
     pub fn deinit(ta: *TextArea) void {
         ta.wrap.deinit(ta.doc.gpa);
+        ta.extra.deinit(ta.doc.gpa);
         ta.long.deinit();
         ta.doc.deinit();
     }
@@ -76,6 +80,7 @@ pub const TextArea = struct {
     pub fn setText(ta: *TextArea, s: []const u8) void {
         ta.doc.begin(.other, ta.sel, ta.time);
         ta.doc.edit(0, ta.doc.len(), s);
+        ta.extra.clearRetainingCapacity();
         ta.collapse(ta.doc.len());
         ta.doc.end(ta.sel);
         ta.marked = null;
@@ -86,6 +91,7 @@ pub const TextArea = struct {
     pub fn reset(ta: *TextArea, s: []const u8) void {
         ta.doc.reset(s);
         ta.sel = .{};
+        ta.extra.clearRetainingCapacity();
         ta.marked = null;
         ta.scroll_x = 0;
         ta.content_w = 0;
@@ -158,6 +164,7 @@ pub const TextArea = struct {
 
     fn restore(ta: *TextArea, s: Sel) void {
         ta.sel = .{ .caret = @min(s.caret, ta.len()), .anchor = @min(s.anchor, ta.len()) };
+        ta.extra.clearRetainingCapacity();
         ta.marked = null;
         ta.goal_x = null;
         ta.reveal = true;

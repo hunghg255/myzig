@@ -302,6 +302,13 @@ const cols: []const ui.TableColumn = &.{ .{ .title = "#", .width = 48, .row_head
 var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ .ctx = s, .build = State.cellMenu } });
 ```
 
+### Revealing a row
+
+`TableState.reveal` names a row the app wants shown: in the next frame the
+table scrolls it into view (as little as it takes) and clears the field. A
+row the app just added past the end, or one chosen from elsewhere (a search),
+is shown this way: `s.table.reveal = s.rows.items.len - 1;`.
+
 ## Grid views
 
 ![A virtual grid of selectable photo tiles.](../images/ui/grid-view.png)

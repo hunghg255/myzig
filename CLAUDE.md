@@ -7,10 +7,10 @@ myzig is a desktop app framework in Zig 0.17.0, a port of
 the system webview (WKWebView, WebKitGTK, WebView2) with typed Zig ↔
 TypeScript IPC, or native UI that myzig draws itself (`src/ui/`).
 
-**[AGENTS.md](AGENTS.md) holds the hard rules, the source layout and the
-full command list; read it first.** Read
-[docs/architecture.md](docs/architecture.md) (and its `-ipc`, `-rendering`
-and `-testing` pages) before changing code. The rules that most often bite:
+Read [docs/architecture.md](docs/architecture.md) (its "Layers" section is
+the source layout) and its `-ipc`, `-rendering` and `-testing` pages before
+changing code. `AGENTS.md` is an older copy of this file for other agents;
+this file wins where they differ. The rules that most often bite:
 
 - Every file is at most 600 lines (`zig build lines`): split by
   responsibility before growing a file.
@@ -44,6 +44,11 @@ zig build test -Dportable=true   # same, with myzig's own text and CPU renderer 
 zig build lines               # the 600-line check
 zig build web && zig build test-web    # native UI for browsers, tested headless under Node
 zig build test-pages          # pages through the real webview, hidden
+zig build test-page-ipc       # IPC batches with ASCII, Unicode and large payloads
+zig build test-page-memory    # WebView2 memory transitions and IPC recovery (Windows)
+zig build gen                 # regenerate examples/hello/frontend/myzig.d.ts
+zig build size -Doptimize=ReleaseSmall   # counter and hello, for binary-size checks
+zig build docs-ui             # UI documentation images, offscreen, into zig-out/docs-ui
 zig build -Dtarget=x86_64-linux-gnu    # Linux and Windows build from any machine
 zig build -Dtarget=x86_64-windows-gnu
 zig build -Dtarget=x86-windows-gnu      # 32-bit Windows (its tests run on 64-bit Windows too)
@@ -136,3 +141,8 @@ image built from `tools/linux.Dockerfile`, with the repository mounted at
   mygo commit since that baseline with its status (ported, n/a, todo, ...)
   and the commit the last review reached: start the next review from it,
   and update a row when its commit is ported.
+- The Zig skills in `.agents/skills/` supplement these rules; this file
+  and the installed compiler's standard library win where they differ.
+  `zig-best-practice` targets 0.16 (adapt its APIs to 0.17), and
+  `zig-tiger-style`'s naming, line-width and allocation policies are not
+  repository rules.

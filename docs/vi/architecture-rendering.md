@@ -89,7 +89,7 @@ Việc chuyển các hiệu ứng và lớp mờ vẽ qua các kết cấu đư�
 
 Trình kết xuất GPU không thể khởi động sẽ không bao giờ ngăn cửa sổ hiển thị; thay vào đó, các khung tương tự được vẽ trên CPU:
 
-- **Windows**: không có thiết bị Direct3D hoặc chuỗi trao đổi, GDI hiển thị các pixel của bộ kết xuất CPU (`windows/surface.zig`).
+- **Windows**: một luồng tạo thiết bị Direct3D trong khi các khung đầu tiên của cửa sổ được vẽ bằng CPU và GDI hiển thị chúng; sau đó luồng chính tạo chuỗi trao đổi (`Startup` trong `windows/surface_present.zig`) và khung tiếp theo hiển thị qua nó. Không có thiết bị hoặc chuỗi trao đổi, GDI tiếp tục hiển thị các pixel của bộ kết xuất CPU (`windows/surface.zig`).
 - **Linux**: không có OpenGL (không có libepoxy, không có ngữ cảnh GL hoặc bộ kết xuất bị lỗi), GtkdrawArea và cairo hiển thị chúng. `MYZIG_GPU=0` giữ các khung trên CPU; `MYZIG_GPU=1` sử dụng OpenGL ngay cả trên llvmpipe của Mesa, nếu không thì bị bỏ qua vì chậm hơn bộ kết xuất CPU của chính myzig.
 - **Trình duyệt**: không có WebGL 2, canvas 2D sẽ hiển thị chúng.
 

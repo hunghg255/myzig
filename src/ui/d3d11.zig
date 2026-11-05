@@ -3,8 +3,8 @@
 //! `shader.metal`), into a window's DXGI flip model swap chain or into an
 //! offscreen texture. Its pixels are the CPU renderer's (`raster.zig`), to
 //! a level or two of blending's rounding, so a window without Direct3D
-//! shows the same frames drawn on the CPU. Windows makes it with the first
-//! frame a window shows (`windows/surface.zig`).
+//! shows the same frames drawn on the CPU. Windows makes it on a thread from
+//! the first frame a window shows (`windows/surface_present.zig`).
 const std = @import("std");
 const d3d = @import("d3d11_api.zig");
 const gpu = @import("gpu.zig");

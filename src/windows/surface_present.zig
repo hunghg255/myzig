@@ -14,25 +14,87 @@ const w = @import("win32.zig");
 const d3d11 = @import("../ui/d3d11.zig");
 
 pub const WM_PRESENT = w.WM_APP + 2;
+/// The renderer's thread is done: the next paint can take it.
+pub const WM_GPU_READY = w.WM_APP + 4;
 
-/// A renderer on the GPU presenting to `h`, `pw` × `ph` pixels, or null
-/// when Direct3D 11 or its swap chain can't be had: frames are drawn on the
-/// CPU then.
-pub fn renderer(gpa: std.mem.Allocator, h: w.HWND, pw: usize, ph: usize) ?*d3d11.Renderer {
-    const r = gpa.create(d3d11.Renderer) catch return null;
-    r.* = d3d11.Renderer.init(gpa) catch |e| {
-        std.log.info("myzig: no Direct3D ({s}): frames are drawn on the CPU", .{@errorName(e)});
-        gpa.destroy(r);
-        return null;
-    };
-    r.attach(h, @intCast(pw), @intCast(ph)) catch |e| {
-        std.log.info("myzig: no swap chain ({s}): frames are drawn on the CPU", .{@errorName(e)});
-        r.deinit();
-        gpa.destroy(r);
-        return null;
-    };
-    return r;
-}
+/// A renderer on the GPU being made. A driver takes tens of milliseconds
+/// to make a device, more when its caches are cold, so a thread makes it
+/// while the window's first frames are drawn on the CPU. The swap chain is
+/// made on the main thread (`finish`): DXGI talks to the window's thread,
+/// which must not wait for it. The thread needs nothing of the main one, so
+/// the main one may wait for it (`cancel`).
+pub const Startup = struct {
+    gpa: std.mem.Allocator,
+    hwnd: w.HWND,
+    thread: ?std.Thread = null,
+    done: std.atomic.Value(bool) = .init(false),
+    /// Holds the renderer once `done`, unless it could not be made.
+    made: ?d3d11.Renderer = null,
+
+    /// Starts making a renderer for `hwnd`; null without the memory to.
+    pub fn begin(gpa: std.mem.Allocator, hwnd: w.HWND) ?*Startup {
+        const s = gpa.create(Startup) catch return null;
+        s.* = .{ .gpa = gpa, .hwnd = hwnd };
+        // A stack as Windows gives a thread: a default one would commit 16 MB.
+        s.thread = std.Thread.spawn(.{ .stack_size = 1024 * 1024 }, run, .{s}) catch blk: {
+            run(s);
+            break :blk null;
+        };
+        return s;
+    }
+
+    fn run(s: *Startup) void {
+        s.made = d3d11.Renderer.init(s.gpa) catch |e| blk: {
+            std.log.info("myzig: no Direct3D ({s}): frames are drawn on the CPU", .{@errorName(e)});
+            break :blk null;
+        };
+        s.done.store(true, .release);
+        _ = w.PostMessageW(s.hwnd, WM_GPU_READY, 0, 0);
+    }
+
+    /// Whether `finish` can be called without waiting.
+    pub fn ready(s: *const Startup) bool {
+        return s.done.load(.acquire);
+    }
+
+    /// The renderer, presenting to the window, `pw` × `ph` pixels, or null
+    /// when Direct3D 11 or its swap chain can't be had: frames are drawn on
+    /// the CPU then. Nothing it draws shows before its first present, so
+    /// the frame GDI copied stays until then. Frees `s`.
+    pub fn finish(s: *Startup, pw: usize, ph: usize) ?*d3d11.Renderer {
+        const gpa = s.gpa;
+        const h = s.hwnd;
+        const made = s.wait();
+        var r = made orelse return null;
+        const kept = gpa.create(d3d11.Renderer) catch {
+            r.deinit();
+            return null;
+        };
+        kept.* = r;
+        kept.attach(h, @intCast(pw), @intCast(ph)) catch |e| {
+            std.log.info("myzig: no swap chain ({s}): frames are drawn on the CPU", .{@errorName(e)});
+            kept.deinit();
+            gpa.destroy(kept);
+            return null;
+        };
+        return kept;
+    }
+
+    /// The window goes first: waits for the thread, dropping what it made.
+    pub fn cancel(s: *Startup) void {
+        if (s.wait()) |made| {
+            var r = made;
+            r.deinit();
+        }
+    }
+
+    fn wait(s: *Startup) ?d3d11.Renderer {
+        if (s.thread) |t| t.join();
+        const made = s.made;
+        s.gpa.destroy(s);
+        return made;
+    }
+};
 
 const HANDLE = *anyopaque;
 extern "kernel32" fn WaitForSingleObject(h: HANDLE, ms: u32) callconv(.winapi) u32;

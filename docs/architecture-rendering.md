@@ -213,8 +213,11 @@ textures no frame took for 120 frames go.
 A GPU renderer that cannot start never stops a window from showing; the
 same frames are drawn on the CPU instead:
 
-- **Windows**: without a Direct3D device or swap chain, GDI shows the CPU
-  renderer's pixels (`windows/surface.zig`).
+- **Windows**: a thread makes the Direct3D device while the window's first
+  frames are drawn on the CPU and GDI shows them; the main thread then makes
+  the swap chain (`Startup` in `windows/surface_present.zig`), and the next
+  frame presents through it. Without a device or swap chain, GDI goes on
+  showing the CPU renderer's pixels (`windows/surface.zig`).
 - **Linux**: without OpenGL (no libepoxy, no GL context, or a renderer
   that fails), a GtkDrawingArea and cairo show them. `MYZIG_GPU=0` keeps
   frames on the CPU; `MYZIG_GPU=1` uses OpenGL even on Mesa's llvmpipe,

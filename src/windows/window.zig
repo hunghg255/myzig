@@ -35,7 +35,7 @@ const class_name = std.unicode.utf8ToUtf16LeStringLiteral("MyZigWindow");
 var registered = false;
 
 /// A message for the page from another thread: lParam is a `Sent`.
-// Not WM_APP + 2: that is surface_present's WM_PRESENT, posted to the same window.
+// Not WM_APP + 2 or + 4: those are surface_present's, posted to the same window.
 const WM_SEND = w.WM_APP + 3;
 const Sent = struct { msg: []u8 };
 const WM_PARENTNOTIFY = 0x0210;

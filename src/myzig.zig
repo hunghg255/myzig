@@ -216,6 +216,7 @@ test {
             _ = @import("windows/tray_tests.zig");
             _ = @import("windows/trash.zig");
             _ = @import("windows/relaunch_test.zig");
+            _ = @import("windows/surface_start_test.zig");
         },
         .linux => {
             _ = @import("linux/dbus_portal.zig");

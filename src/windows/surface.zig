@@ -1,7 +1,7 @@
 //! Native UI on Windows: the window's client area shows frames Direct3D 11
-//! draws (`ui/d3d11.zig`, into a flip model swap chain), or, where it is
-//! unavailable, the very same pixels the CPU renderer draws (GDI copies
-//! them), at the monitor's DPI, fed the mouse,
+//! draws (`ui/d3d11.zig`, into a flip model swap chain), or, until it is
+//! made and where it is unavailable, the very same pixels the CPU renderer
+//! draws (GDI copies them), at the monitor's DPI, fed the mouse,
 //! the wheel, keys and typed characters from the window procedure. Frames
 //! run on input and while something animates (a 60 Hz timer); idle,
 //! nothing runs.
@@ -37,9 +37,11 @@ pub const Surface = struct {
     ctx: Context,
     view: ui.View,
     instances: std.ArrayList(gpu.Instance) = .empty,
-    /// Direct3D, once the window is there to draw into; null where it is
-    /// unavailable (or failed), and frames are drawn on the CPU.
+    /// Direct3D, once made; null until then, and where it is unavailable
+    /// (or failed), and frames are drawn on the CPU.
     direct3d: ?*d3d11.Renderer = null,
+    /// Direct3D being made, off the main thread.
+    startup: ?*present_mod.Startup = null,
     direct3d_tried: bool = false,
     pixels: []u8 = &.{},
     pixel_w: usize = 0,
@@ -85,6 +87,7 @@ pub const Surface = struct {
         surface_access.destroy(self);
         // Going: the pictures need no copy in memory.
         self.text.images.sink = null;
+        if (self.startup) |s| s.cancel();
         self.dropDirect3D();
         self.cpu_damage.deinit();
         self.instances.deinit(self.gpa);
@@ -161,7 +164,7 @@ pub const Surface = struct {
         _ = w.PostMessageW(h, WM_FRAME, 0, 0);
     }
 
-    fn dropDirect3D(self: *Surface) void {
+    pub fn dropDirect3D(self: *Surface) void {
         self.latency.stop();
         self.pending = false;
         const r = self.direct3d orelse return;
@@ -172,15 +175,30 @@ pub const Surface = struct {
         self.direct3d = null;
     }
 
-    /// The renderer on the GPU, made with the first frame shown.
+    /// The renderer on the GPU, once made: the first frame shown starts
+    /// making it (`present_mod.Startup`), and it and the frames until it is
+    /// there are drawn on the CPU.
     fn gpuRenderer(self: *Surface, h: w.HWND, pw: usize, ph: usize) ?*d3d11.Renderer {
-        if (self.direct3d_tried) return self.direct3d;
-        self.direct3d_tried = true;
-        const r = present_mod.renderer(self.gpa, h, pw, ph) orelse return null;
+        if (self.direct3d) |r| return r;
+        if (!self.direct3d_tried) {
+            self.direct3d_tried = true;
+            self.startup = present_mod.Startup.begin(self.gpa, h);
+            return null;
+        }
+        const s = self.startup orelse return null;
+        if (!s.ready()) return null;
+        self.startup = null;
+        const r = s.finish(pw, ph) orelse return null;
         self.direct3d = r;
         self.latency.handle = r.latency;
         // Pictures go straight to the GPU: no copy of their atlas in memory.
         self.text.images.useSink(.{ .ctx = r, .upload = d3d11.Renderer.uploadImage });
+        // Nor of the frame: drawn on the CPU again, it starts whole.
+        self.gpa.free(self.pixels);
+        self.pixels = &.{};
+        self.pixel_w = 0;
+        self.pixel_h = 0;
+        self.cpu_damage.deinit();
         return r;
     }
 
@@ -348,6 +366,7 @@ pub const Surface = struct {
                 self.pacedFrame();
             },
             present_mod.WM_PRESENT => self.presented(wp != 0),
+            present_mod.WM_GPU_READY => _ = w.InvalidateRect(h, null, 0),
             w.WM_SETCURSOR => {
                 // Over the client area only: the frame keeps its own.
                 if (lp & 0xffff != 1) return null;

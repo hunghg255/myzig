@@ -49,7 +49,7 @@ Hiệu ứng phông nền ([kính mờ](transforms.md), [shaders](shaders.md)) v
 ## Chọn bộ kết xuất
 
 - **macOS** hòa với Metal. `zig build -Dportable=true` thay vào đó xây dựng bộ kết xuất văn bản và CPU của Linux và Windows để kiểm tra đường dẫn đó trên máy Mac.
-- **Windows** tạo thiết bị Direct3D 11 trên phần cứng với khung đầu tiên mà cửa sổ hiển thị. Không có (không có thiết bị phần cứng hoặc không có chuỗi trao đổi) hoặc khi thiết bị của nó bị mất, cửa sổ sẽ vẽ CPU và GDI sao chép khung vào đó; nhật ký cho biết lý do tại sao (`myzig: no Direct3D (...)`).
+- **Windows** bắt đầu tạo thiết bị Direct3D 11 trên phần cứng, trên một luồng riêng, từ khung đầu tiên mà cửa sổ hiển thị: khung đó và các khung cho đến khi có thiết bị được vẽ bằng CPU, nên driver khởi động chậm không giữ cửa sổ lại. Không có (không có thiết bị phần cứng hoặc không có chuỗi trao đổi) hoặc khi thiết bị của nó bị mất, cửa sổ sẽ vẽ CPU và GDI sao chép khung vào đó; nhật ký cho biết lý do tại sao (`myzig: no Direct3D (...)`).
 - **Linux** vẽ bằng OpenGL trong GtkGLArea (GTK 3.16 trở lên) khi có GPU. Trên trình điều khiển DRM chỉ hiển thị (máy ảo và máy chủ: `simpledrm`, `bochs`, `vboxvideo`, `hyperv_drm` và tương tự), nó sẽ sử dụng CPU, vì llvmpipe của Mesa sẽ chậm hơn bộ kết xuất CPU của myzig và cairo hiển thị khung. `MYZIG_GPU=0` giữ các khung trên CPU, `MYZIG_GPU=1` vẽ bằng OpenGL ngay cả khi không.
 - **Trình duyệt** vẽ bằng WebGL 2 hoặc trên CPU vào khung vẽ 2D mà trình duyệt không có (`start({ webgl: false })` buộc phải làm như vậy). Bối cảnh WebGL bị mất sẽ xuất hiện lại sau khi trình duyệt khôi phục nó.
 

@@ -94,8 +94,10 @@ twin (`Shader.cpu`) on the CPU.
 - **macOS** draws with Metal. `zig build -Dportable=true` builds the
   text and CPU renderer of Linux and Windows instead, to test that path on
   a Mac.
-- **Windows** makes a Direct3D 11 device on hardware with the first frame
-  a window shows. Without one (no hardware device, or no swap chain), or once its device is lost, the window draws on the CPU and GDI
+- **Windows** starts making a Direct3D 11 device on hardware, on a thread,
+  with the first frame a window shows: that frame and those until the device
+  is there are drawn on the CPU, so a driver slow to start never holds the
+  window back. Without one (no hardware device, or no swap chain), or once its device is lost, the window draws on the CPU and GDI
   copies the frame to it; the log says why (`myzig: no Direct3D (...)`).
 - **Linux** draws with OpenGL in a GtkGLArea (GTK 3.16 and later) when a
   GPU is there. On a display-only DRM driver (virtual machines' and

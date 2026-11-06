@@ -2,6 +2,8 @@
 test {
     _ = @import("tests_advanced_controls.zig");
     _ = @import("tests_table_columns.zig");
+    _ = @import("tests_table_frozen.zig");
+    _ = @import("tests_measured_list.zig");
     _ = @import("tests_feedback.zig");
     _ = @import("tests_sheet.zig");
     _ = @import("tests_command_palette.zig");

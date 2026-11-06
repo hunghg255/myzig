@@ -35,8 +35,9 @@ pub fn rowAt(c: *Context, id: u64, row_h: f32, count: usize) ?usize {
 }
 
 /// The column under the pointer in list `id`, as the columns share its
-/// width: those of a width keep it, the others share what is left.
-pub fn colAt(c: *Context, id: u64, widths: anytype) ?usize {
+/// width: those of a width keep it, the others share what is left. The
+/// first `frozen` stay at the edge of a box scrolled sideways by `scrolled`.
+pub fn colAt(c: *Context, id: u64, widths: anytype, frozen: usize, scrolled: f32) ?usize {
     const r = c.rects.get(id) orelse return null;
     if (widths.len == 0) return null;
     var fixed: f32 = 0;
@@ -53,7 +54,7 @@ pub fn colAt(c: *Context, id: u64, widths: anytype) ?usize {
         if (col.hidden) continue;
         last = i;
         x += if (col.width > 0) col.width else share;
-        if (pointer < x) return i;
+        if ((if (i < frozen) pointer - scrolled else pointer) < x) return i;
     }
     return last;
 }
@@ -74,6 +75,25 @@ pub fn autoScroll(c: *Context, id: u64) bool {
     c.scroll.put(c.gpa, id, to) catch return false;
     c.animationFrame();
     return true;
+}
+
+/// Scrolls a table's sideways box while a drag that chooses cells goes near
+/// or past its ends. One that began `from_frozen` columns is not scrolled
+/// back as it moves over them.
+pub fn autoScrollSideways(c: *Context, side: anytype, from_frozen: bool) void {
+    if (!side.on) return;
+    const r = c.rects.get(side.id) orelse return;
+    const rtl = @import("direction.zig").current(c) == .rtl;
+    const pointer = if (rtl) r.x + r.w - c.input.mouse.x else c.input.mouse.x - r.x;
+    const edge: f32 = 16;
+    var d: f32 = 0;
+    if (pointer > r.w - edge) d = pointer - (r.w - edge) else if (!from_frozen and pointer < side.frozen_w + edge) d = pointer - (side.frozen_w + edge);
+    if (d == 0) return;
+    const limit = c.scroll_limit.get(side.id) orelse return;
+    const to = std.math.clamp(side.x + std.math.clamp(d, -40, 40) * 12 * c.dt, 0, limit);
+    if (to == side.x) return;
+    c.scroll.put(c.gpa, side.id, to) catch return;
+    c.animationFrame();
 }
 
 test "a block from either end" {

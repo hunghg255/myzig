@@ -7,6 +7,7 @@ Bộ sưu tập các mục: danh sách ảo hóa, cây cối, đường viền, 
 | Tiện ích | cho | Bản dựng |
 |---|---|---|
 | `ui.list` | hàng có cùng chiều cao | các hàng trong view |
+| `ui.measuredList` | hàng có chiều cao bất kỳ: chat, feed | các hàng trong view |
 | `ui.tree` | một cây nhỏ, mỗi phần tử bên trong cây mẹ của nó | mỗi mục được hiển thị |
 | `ui.outline` | một cây có kích thước bất kỳ, dưới dạng view danh sách của Finder | các hàng trong view |
 | `ui.table` | các hàng trong các cột có thể sắp xếp dưới tiêu đề | các hàng trong view |
@@ -76,6 +77,34 @@ rows.end();
 `ui.rowDoubleClicked(c, index)` cho biết rằng thao tác nhấp đúp của một hàng đã chạm vào phần tử `index` mà không thực hiện thao tác nhấp chuột từ hàng và tiếp tục chọn (các ô của bảng cũng đọc phần tử đó).
 
 <a id="trees"></a>
+
+## Hàng có chiều cao bất kỳ
+
+`ui.measuredList(c, &state, opts)` là danh sách ảo hóa có hàng cao theo nội dung, theo cách `list` của GPUI: tin nhắn xuống dòng, feed. `next()` mở hộp của từng hàng, rộng bằng danh sách, để dựng nội dung, và dừng khi view đã đầy:
+
+```zig
+var rows = ui.measuredList(c, &s.messages, .{ .count = s.items.len, .estimate = 60, .gap = 8, .follow_end = true });
+while (rows.next()) |i| ui.text(c, s.items[i].text, .{ .wrap = true });
+rows.end();
+```
+
+Ứng dụng giữ một `ui.MeasuredListState` và giải phóng nó bằng `deinit(gpa)`. Mỗi hàng được đo ngay trong khung dựng nó, nên những gì hiển thị không phải là phỏng đoán. Hàng chưa dựng được tính theo `estimate`, giá trị này chỉ ảnh hưởng đến thanh cuộn và khoảng nhảy: càng gần chiều cao thường gặp, thanh cuộn càng ổn định. Vị trí đọc được giữ theo hàng, không theo offset: khi các hàng phía trên được đo và cao hơn hay thấp hơn dự kiến, không có gì trên màn hình di chuyển.
+
+`ui.MeasuredListOptions`:
+
+| Trường | Mặc định | |
+|---|---|---|
+| `count` | | số hàng |
+| `estimate` | 44 | chiều cao ước lượng của một hàng, theo điểm |
+| `width`, `height` | `.fill` | hộp của danh sách |
+| `gap` | 0 | khoảng cách giữa các hàng |
+| `padding` | không có | |
+| `overscan` | 2 | số hàng dựng thêm ngoài mỗi cạnh của view |
+| `follow_end` | false | bắt đầu ở cuối và giữ cuối trong view khi có hàng mới hoặc hàng lớn lên, cho đến khi người đọc cuộn đi |
+
+`state.reveal = i` đưa hàng `i` lên đầu view ở khung tiếp theo, trừ khi cả hàng đang hiển thị. Một hàng giữ chiều cao cho đến khi được dựng lại hoặc độ rộng danh sách đổi, nên hàng thay đổi khi ở ngoài view sẽ tự đúng khi quay lại. Khi các hàng bị lọc, sắp xếp, hoặc có hàng mới thêm ở phía trên, hãy gọi `state.reset()`: nó quên các chiều cao, còn vị trí vẫn tính theo chỉ mục.
+
+Mỗi hàng tốn hơn một hàng của `ui.list`, vốn không phải đo: hãy dùng `ui.list` khi các hàng cùng chiều cao. Danh sách này không có chọn hàng; nội dung của hàng có thể bấm được.
 
 ## Cây cối
 
@@ -209,6 +238,24 @@ var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ 
 ```
 
 <a id="grid-views"></a>
+
+### Cuộn ngang và cột cố định
+
+Với `sideways`, các cột rộng hơn bảng sẽ cuộn ngang bên trong bảng, dưới cùng một tiêu đề. Với `frozen`, các cột đầu tiên (tính cả cột ẩn) luôn ở trong view khi các cột còn lại cuộn, như trong bảng tính, kèm một đường kẻ dọc khi đã có cột bị che; tùy chọn này tự bật `sideways`:
+
+```zig
+const cols: []const ui.TableColumn = &.{
+    .{ .title = "#", .width = 48, .row_header = true },
+    .{ .title = "Name", .width = 160 },
+    .{ .title = "Email", .width = 260 },
+    .{ .title = "City", .width = 200 },
+};
+var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .frozen = 2 });
+```
+
+Bảng cuộn bằng thanh cuộn của nó và, với `cells`, bằng Trái và Phải (giữ cột của con trỏ không bị các cột cố định che) cùng với thao tác kéo chọn ô vượt qua hai đầu. Cột có width 0 chia nhau phần còn lại, mỗi cột ít nhất `min_width`. `cell()` trả các cột theo thứ tự và chỉ mục như mọi khi, nên phần dựng ô không phải đổi gì. Bảng quá hẹp để hiện thêm cột bên cạnh các cột cố định sẽ cuộn cả chúng.
+
+Giữ nguyên `sideways` khi `frozen` thay đổi, nếu không offset sẽ bắt đầu lại: truyền `.sideways = true` khi ứng dụng cho phép người đọc cố định cột.
 
 ## View lưới
 

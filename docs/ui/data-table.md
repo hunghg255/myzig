@@ -39,6 +39,10 @@ Drag a grip, or focus it and use Left/Right (ten points), Home (minimum) or
 End (maximum). Right-to-left layout reverses the arrow direction. Grips
 are accessible splitters and do not trigger sorting.
 
+A table too wide for its box scrolls with `.sideways = true`, and keeps its
+first columns in view with `.frozen = n`: see
+[lists, trees and tables](lists.md).
+
 Sorting remains app-owned; `result.sorted` reports a change. If selection
 must survive reordering or filtering, supply stable row keys as described
 in [lists, trees and tables](lists.md). See the complete

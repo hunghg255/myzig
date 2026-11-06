@@ -9,6 +9,7 @@ returns what happened in this frame.
 | Widget | For | Builds |
 |---|---|---|
 | `ui.list` | rows of one height | the rows in view |
+| `ui.measuredList` | rows of any height: a chat, a feed | the rows in view |
 | `ui.tree` | a small tree, each item inside its parent | every item shown |
 | `ui.outline` | a tree of any size, as Finder's list view | the rows in view |
 | `ui.table` | rows in sortable columns under a header | the rows in view |
@@ -103,6 +104,48 @@ rows.end();
 `ui.rowDoubleClicked(c, index)` tells that a row's double click landed on
 the element `index`, without taking the click from the row, which goes on
 choosing (a table's cells read it too).
+
+## Rows of any height
+
+`ui.measuredList(c, &state, opts)` is a virtualized list whose rows are as
+tall as their content, in the manner of GPUI's `list`: messages that wrap, a
+feed. `next()` opens each row's box, as wide as the list, for its content, and
+stops once the view is full:
+
+```zig
+var rows = ui.measuredList(c, &s.messages, .{ .count = s.items.len, .estimate = 60, .gap = 8, .follow_end = true });
+while (rows.next()) |i| ui.text(c, s.items[i].text, .{ .wrap = true });
+rows.end();
+```
+
+The app keeps a `ui.MeasuredListState` and frees it with `deinit(gpa)`.
+Each row is measured in the frame that builds it, so what shows is never a
+guess. Rows not built yet count for `estimate`, which only the scroll bar and
+how far a jump goes read: the closer to a usual row, the steadier the bar.
+The reader's place is a row, not an offset: when rows above are measured and
+turn out taller or shorter, nothing on screen moves.
+
+`ui.MeasuredListOptions`:
+
+| Field | Default | |
+|---|---|---|
+| `count` | | how many rows |
+| `estimate` | 44 | about how tall a row is, in points |
+| `width`, `height` | `.fill` | the list's box |
+| `gap` | 0 | between rows |
+| `padding` | none | |
+| `overscan` | 2 | rows built beyond each edge of the view |
+| `follow_end` | false | starts at the end and keeps it in view as rows come or grow, until the reader scrolls away |
+
+`state.reveal = i` brings row `i` to the top of the view in the next frame,
+unless all of it shows. A row keeps its height until it is built again or the
+list's width changes, so a row that changes out of view corrects itself when
+it comes back. When rows are filtered or sorted, or come above the others, call
+`state.reset()`: it forgets the heights, and the place is still by index.
+
+A row costs more than one of `ui.list`, which never measures: use that when
+the rows have one height. Rows are not chosen here; a row's content can be
+pressable.
 
 ## Trees
 
@@ -301,6 +344,33 @@ over it instead.
 const cols: []const ui.TableColumn = &.{ .{ .title = "#", .width = 48, .row_header = true }, .{ .title = "Name" } };
 var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ .ctx = s, .build = State.cellMenu } });
 ```
+
+### Scrolling sideways and frozen columns
+
+With `sideways`, columns wider than the table scroll inside it, under one
+header. With `frozen`, the first columns (hidden ones count) stay in view as the
+others scroll, as a spreadsheet's do, with a line along them once something has
+gone under them; it makes the table `sideways`:
+
+```zig
+const cols: []const ui.TableColumn = &.{
+    .{ .title = "#", .width = 48, .row_header = true },
+    .{ .title = "Name", .width = 160 },
+    .{ .title = "Email", .width = 260 },
+    .{ .title = "City", .width = 200 },
+};
+var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .frozen = 2 });
+```
+
+The table scrolls by its bar and, with `cells`, by Left and Right, which keep
+the cursor's column out from under the frozen ones, and by a drag choosing
+cells past either end. Columns of width 0 share the room left, at least their
+`min_width` each. `cell()` gives the columns in order and their indices are
+as always, so the cell builders change nothing. A table too narrow to show
+another column beside the frozen ones scrolls them too.
+
+Keep the same `sideways` as `frozen` comes and goes, or the offset starts over:
+pass `.sideways = true` where the app lets the reader freeze columns.
 
 ### Revealing a row
 

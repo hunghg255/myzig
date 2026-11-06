@@ -29,6 +29,8 @@
 //! Mac) add rows and take them out, and a right-click on a row (a cell)
 //! outside the choice chooses it before its menu opens. A `row_header`
 //! column chooses whole rows; `cell_menu` gives the cells a context menu.
+//! With `sideways`, columns wider than the table scroll inside it, and the
+//! first `frozen` of them stay in view (`table_columns.zig`).
 const std = @import("std");
 const types = @import("types.zig");
 const ctx_mod = @import("context.zig");
@@ -124,6 +126,14 @@ pub const Options = struct {
     /// App-owned widths parallel to columns. 0 shares room. Supplying
     /// this slice enables resize grips (pointer, arrows, Home/End).
     column_widths: ?[]f32 = null,
+    /// Columns wider than the table scroll sideways inside it: by its bar,
+    /// Left and Right with `cells`, and drags choosing cells. Columns that
+    /// share the room get at least their `min_width`.
+    sideways: bool = false,
+    /// The first `frozen` columns (hidden ones count) stay in view as the
+    /// others scroll, as a spreadsheet's do; it makes the table `sideways`.
+    /// A table too narrow to show any other column scrolls them all.
+    frozen: usize = 0,
 };
 
 /// Builds the menu of the cell of `row` and `col` into `m`.
@@ -165,6 +175,10 @@ pub const Table = struct {
     /// The column of the cell being built, and its box.
     col: usize = 0,
     cell_box: u32 = 0,
+    /// Scrolling sideways: where the columns go, and whether the box of
+    /// the cells that scroll is open in this row.
+    side: column_mod.Sideways = .{},
+    in_rest: bool = false,
 
     /// The next row in view, opened, or null when the view is full: build
     /// its cells with `cell`.
@@ -178,7 +192,7 @@ pub const Table = struct {
         t.next_col = 0;
         const it = c.interact(box, .{});
         const picks = t.opts.drag_select or t.opts.cells or s.selection != null;
-        const col = if (t.opts.cells) cells_mod.colAt(c, t.id, t.columns) else null;
+        const col = if (t.opts.cells) cells_mod.colAt(c, t.id, t.columns, t.side.frozen, t.side.x) else null;
         const adding = s.selection != null and c.input.adding();
         if (it.pressed and c.input.pressed) {
             t.takeFocus();
@@ -290,8 +304,14 @@ pub const Table = struct {
         if (t.next_col >= t.columns.len) return null;
         const col = t.next_col;
         t.next_col += 1;
+        if (t.side.frozen > 0 and col >= t.side.frozen and !t.in_rest) {
+            t.side.openRest(c);
+            t.in_rest = true;
+        }
         c.next_key_int = col;
-        const cell_box = c.open(column_mod.cellStyle(t.columns[col]), null);
+        var style = column_mod.cellStyle(t.columns[col]);
+        if (col < t.side.frozen) style.offset.x = t.side.x;
+        const cell_box = c.open(style, null);
         t.cell_box = cell_box;
         if (t.cellSelected(t.row.?, col)) c.node(cell_box).style.background = if (t.focused) c.theme.accent else c.theme.text.alpha(0.12);
         t.col = col;
@@ -314,7 +334,7 @@ pub const Table = struct {
     fn closeCell(t: *Table) void {
         if (!t.in_cell) return;
         const c = t.c;
-        if (t.opts.cell_menu != null and !t.state.cell_menu.isOpen() and @import("overlay_base.zig").rightPressed(c)) {
+        if (t.opts.cell_menu != null and !t.state.cell_menu.isOpen() and @import("overlay_base.zig").rightPressed(c) and t.pointerInView()) {
             if (c.rects.get(c.node(t.cell_box).id)) |r| if (r.contains(c.input.mouse)) {
                 c.input.right_pressed = false;
                 t.state.cell_menu.openAt(c.input.mouse);
@@ -326,9 +346,23 @@ pub const Table = struct {
         t.in_cell = false;
     }
 
+    /// A cell scrolled out of the table's view has its place there still.
+    fn pointerInView(t: *const Table) bool {
+        const mouse = t.c.input.mouse;
+        const rows = t.c.rects.get(t.id) orelse return false;
+        if (!rows.contains(mouse)) return false;
+        if (!t.side.on) return true;
+        const box = t.c.rects.get(t.side.id) orelse return false;
+        return box.contains(mouse);
+    }
+
     fn closeRow(t: *Table) void {
         if (t.row == null) return;
         t.closeCell();
+        if (t.in_rest) {
+            t.side.endRest(t.c);
+            t.in_rest = false;
+        }
         t.c.end();
         t.row = null;
     }
@@ -351,6 +385,7 @@ pub const Table = struct {
         };
         Choice.remember(t.state);
         t.c.end();
+        if (t.side.on) t.c.end();
         // The drag over the rows ends with the release, once its click is read.
         if (!t.c.input.down) t.state.drag = null;
         t.result.focused = t.focused;
@@ -361,15 +396,24 @@ pub const Table = struct {
 /// Opens a table of `count` rows in `columns`: `next` each row in view,
 /// `cell` each of its columns, then `end`.
 pub fn table(c: *Context, state: *TableState, input_columns: []const Column, count: usize, opts: Options) Table {
-    const columns = if (opts.column_widths) |widths| blk: {
+    const given = if (opts.column_widths) |widths| blk: {
         std.debug.assert(widths.len == input_columns.len);
         const copy = c.alloc().dupe(Column, input_columns) catch @panic("OOM");
         for (copy, widths) |*col, width| col.width = if (width > 0) std.math.clamp(width, @max(1, col.min_width), @max(col.min_width, col.max_width)) else 0;
         break :blk copy;
     } else input_columns;
-    _ = c.open(.{ .direction = .column, .width = opts.width, .height = opts.height }, null);
+    var columns = given;
+    var side: column_mod.Sideways = .{};
+    if (opts.sideways or opts.frozen > 0) {
+        const view = if (c.rects.get(c.peekId(null))) |r| r.w else c.size.w;
+        const fit = column_mod.sideways(c, given, opts.frozen, view);
+        columns = fit.columns;
+        side = fit.side;
+        _ = c.open(.{ .direction = .row, .width = opts.width, .height = opts.height, .scroll = true, .align_items = .stretch }, null);
+        _ = c.open(.{ .direction = .column, .width = .{ .px = side.total() }, .height = .fill }, null);
+    } else _ = c.open(.{ .direction = .column, .width = opts.width, .height = opts.height }, null);
     var result: Result = .{};
-    column_mod.header(c, state, columns, count, opts, &result);
+    column_mod.header(c, state, columns, count, opts, side, &result);
     // The choice follows its items (with a key), within the rows.
     Choice.sync(state, count);
     const id = c.peekId(null);
@@ -415,6 +459,7 @@ pub fn table(c: *Context, state: *TableState, input_columns: []const Column, cou
             }
             if (columns[to].hidden) to = cs[1];
             state.cols = if (c.input.shift) .{ cs[0], to } else .{ to, to };
+            side.reveal(c, columns, to);
             if (state.selected == null and count > 0) {
                 state.selected = 0;
                 state.anchor = 0;
@@ -429,7 +474,7 @@ pub fn table(c: *Context, state: *TableState, input_columns: []const Column, cou
         if (opts.cells and columns.len > 0) state.cols = .{ 0, columns.len - 1 };
         result.changed = true;
     }
-    if (opts.drag_select or opts.cells) dragSelect(c, state, id, columns, count, opts, &result) else state.drag = null;
+    if (opts.drag_select or opts.cells) dragSelect(c, state, id, columns, count, opts, side, &result) else state.drag = null;
     if (state.reveal) |row| {
         state.reveal = null;
         if (row < count) {
@@ -441,19 +486,20 @@ pub fn table(c: *Context, state: *TableState, input_columns: []const Column, cou
     const l = list_mod.list(c, .{ .count = count, .row_height = opts.row_height, .height = .fill, .scroll_to = scroll_to });
     _ = c.interact(c.stack.items[c.stack.items.len - 1], .{ .focusable = true });
     c.describe(id, .{ .role = .table, .set_size = @intCast(count) });
-    return .{ .c = c, .state = state, .columns = columns, .opts = opts, .list = l, .id = id, .focused = focused, .result = result };
+    return .{ .c = c, .state = state, .columns = columns, .opts = opts, .list = l, .id = id, .focused = focused, .result = result, .side = side };
 }
 
 /// A press on a row dragging over the rows (and cells) chooses what the
 /// pointer goes over, from where it began, scrolling near the edges.
-fn dragSelect(c: *Context, state: *TableState, id: u64, columns: []const Column, count: usize, opts: Options, result: *Result) void {
+fn dragSelect(c: *Context, state: *TableState, id: u64, columns: []const Column, count: usize, opts: Options, side: column_mod.Sideways, result: *Result) void {
     const d = if (state.drag) |*x| x else return;
     // Released: what it chose stays, which the release's click reads.
     if (!c.input.down) return;
     if (c.input.pressed) return; // the press itself chose
     _ = cells_mod.autoScroll(c, id);
+    if (opts.cells) if (d.col) |k| if (!columns[k].row_header) cells_mod.autoScrollSideways(c, side, k < side.frozen);
     const row = cells_mod.rowAt(c, id, opts.row_height, count) orelse return;
-    const col = if (opts.cells) cells_mod.colAt(c, id, columns) else null;
+    const col = if (opts.cells) cells_mod.colAt(c, id, columns, side.frozen, side.x) else null;
     if (row != d.row or !std.meta.eql(col, d.col)) d.moved = true;
     result.drag_selecting = true;
     if (!d.moved) return;

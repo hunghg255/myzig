@@ -80,6 +80,7 @@ Bắt đầu từ đây:
 
 - [Kiến trúc tổng quan](architecture.md#architecture-at-a-glance): bản đồ trực quan về các tầng, các adapter nền tảng và hai hướng làm UI, kèm sơ đồ IPC của trang và quá trình render native.
 - [Bắt đầu](getting-started.md): Zig 0.17, CLI, `myzig init`, build và chạy, mọi ví dụ.
+- [Showcase](showcase.md): các app ví dụ, kèm ảnh.
 
 App và desktop:
 

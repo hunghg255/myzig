@@ -90,6 +90,7 @@ Start here:
   diagrams of page IPC and native rendering.
 - [Getting started](getting-started.md): Zig 0.17, the CLI, `myzig init`,
   building and running, every example.
+- [Showcase](showcase.md): the example apps, with pictures.
 
 The app and the desktop:
 

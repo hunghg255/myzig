@@ -15,7 +15,7 @@ const page = (text: string, link: string) => ({ text, link })
 const guide = [
   {
     text: 'Introduction',
-    items: [page('Overview', '/README'), page('Getting started', '/getting-started')],
+    items: [page('Overview', '/README'), page('Getting started', '/getting-started'), page('Showcase', '/showcase')],
   },
   {
     text: 'The app and the desktop',

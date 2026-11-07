@@ -76,7 +76,7 @@ Where myzig comes from, first match wins:
 1. `--myzig`;
 2. `MYZIG_ROOT`;
 3. the myzig repository on GitHub at the CLI's version
-   (`git+https://github.com/hunghg255/myzig#v0.1.19` for CLI 0.1.19).
+   (`git+https://github.com/hunghg255/myzig#v0.1.20` for CLI 0.1.20).
 
 A checkout that a relative path reaches becomes a path dependency
 (`.myzig = .{ .path = "../myzig" }`). A URL, or a checkout on another

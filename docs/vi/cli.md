@@ -73,7 +73,7 @@ myzig được lấy từ đâu, theo thứ tự ưu tiên:
 
 1. `--myzig`;
 2. `MYZIG_ROOT`;
-3. repo myzig trên GitHub ở đúng phiên bản của CLI (`git+https://github.com/hunghg255/myzig#v0.1.19` với CLI 0.1.19).
+3. repo myzig trên GitHub ở đúng phiên bản của CLI (`git+https://github.com/hunghg255/myzig#v0.1.20` với CLI 0.1.20).
 
 Bản checkout tới được bằng đường dẫn tương đối sẽ thành dependency dạng path (`.myzig = .{ .path = "../myzig" }`). URL, hoặc bản checkout nằm trên ổ đĩa khác, được tải bằng `zig fetch --save=myzig`.
 

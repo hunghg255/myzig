@@ -5,6 +5,8 @@ name them for assistive technology. A form lines up the labels of its
 fields in a column of their own; a fieldset groups fields under a legend
 and can disable them together; `ui.validate` checks values.
 
+<!-- demo: forms height=453 -->
+
 ![A submitted form showing required-field, email and password validation errors.](../images/ui/forms.png)
 
 *A submitted form showing required-field, email and password validation errors.*

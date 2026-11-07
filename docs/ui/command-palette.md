@@ -3,6 +3,8 @@
 `ui.commandPalette` provides searchable commands in a modal dialog. It
 returns the original index in the app's items when a command is activated.
 
+<!-- demo: panels height=520 -->
+
 ![Workspace commands with icons, shortcuts and a disabled export action.](../images/ui/command-palette.png)
 
 ```zig

@@ -56,6 +56,8 @@ Khi bật, nút tròn trượt sang bên và phần nền chuyển sang màu suc
 
 ## Nút radio
 
+<!-- demo: choices height=223 -->
+
 ![Nhóm radio và mức đánh giá bốn sao.](../../images/ui/choices.png)
 
 *Nhóm radio và mức đánh giá bốn sao.*

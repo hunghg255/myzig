@@ -4,9 +4,11 @@ const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const sorts = [_][]const u8{ "Name", "Date modified", "Size", "Kind" };
 const folders = [_][]const u8{ "Inbox", "Archive", "Projects" };
+const places = [_][]const u8{ "Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right" };
 
 pub const Overlays = struct {
     pop: ui.OverlayState = .{},
@@ -24,6 +26,10 @@ pub const Overlays = struct {
     toasts: ui.Toasts = .{},
     undo: u64 = 0,
     shown: u32 = 0,
+    /// When the pretend upload began, for its toast to say it is done.
+    upload_at: f64 = -1,
+    place: usize = 5,
+    place_box: ui.SelectState = .{},
 
     fn setStatus(s: *Overlays, comptime fmt: []const u8, args: anytype) void {
         s.status = std.fmt.bufPrint(&s.status_buf, fmt, args) catch s.status;
@@ -35,7 +41,7 @@ pub const Overlays = struct {
 
     pub fn view(s: *Overlays, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Overlays");
+        gallery.heading(c, "Overlays");
         {
             card(c, "Popovers and tooltips");
             defer ui.end(c);
@@ -119,14 +125,43 @@ pub const Overlays = struct {
         {
             card(c, "Toasts");
             defer ui.end(c);
-            ui.row(c, .{ .gap = 8 });
-            defer ui.end(c);
-            if (ui.button(c, "Show a toast", .{}).clicked) {
-                s.shown += 1;
-                _ = s.toasts.show(c.print("Saved {d} time(s)", .{s.shown}));
-            }
-            if (ui.button(c, "With an action", .{}).clicked) s.undo = s.toasts.showAction("Moved to Trash", "Undo");
-            if (ui.button(c, "An error", .{ .variant = .danger }).clicked) _ = s.toasts.add(.{ .title = "Couldn't connect", .kind = .@"error" });
+            s.toastButtons(c);
+        }
+    }
+
+    fn toastButtons(s: *Overlays, c: *ui.Context) void {
+        ui.row(c, .{ .gap = 8 });
+        if (ui.button(c, "Show a toast", .{}).clicked) {
+            s.shown += 1;
+            _ = s.toasts.add(.{ .title = c.print("Saved {d} time(s)", .{s.shown}), .description = "Sunday, December 03, 2023 at 9:00 AM" });
+        }
+        if (ui.button(c, "Success", .{}).clicked) _ = s.toasts.success("Event has been created");
+        if (ui.button(c, "Info", .{}).clicked) _ = s.toasts.info("Be at the area 10 minutes before the event time");
+        if (ui.button(c, "Warning", .{}).clicked) _ = s.toasts.warning("Event start time cannot be earlier than 8am");
+        if (ui.button(c, "Error", .{}).clicked) _ = s.toasts.failure("Event has not been created");
+        ui.end(c);
+        ui.row(c, .{ .gap = 8 });
+        if (ui.button(c, "With an action", .{}).clicked) s.undo = s.toasts.add(.{ .title = "Moved to Trash", .action = "Undo", .cancel = "Dismiss" });
+        if (ui.button(c, "Upload", .{}).clicked) {
+            _ = s.toasts.loading("Uploading report.pdf…", "upload");
+            s.upload_at = c.time;
+        }
+        ui.end(c);
+        ui.row(c, .{ .gap = 16, .align_items = .center });
+        _ = ui.toggle(c, "Rich colors", &s.toasts.rich_colors);
+        _ = ui.toggle(c, "Expanded", &s.toasts.expand);
+        _ = ui.toggle(c, "Close buttons", &s.toasts.close_button);
+        ui.label(c, "Position");
+        if (ui.select(c, &s.place, &places, &s.place_box, .{ .width = .{ .px = 150 }, .label = "Position" }).changed)
+            s.toasts.position = @enumFromInt(s.place);
+        ui.end(c);
+        // The pretend upload takes two seconds.
+        if (s.upload_at >= 0) {
+            const left: f32 = @floatCast(2 - (c.time - s.upload_at));
+            if (left <= 0) {
+                _ = s.toasts.add(.{ .title = "report.pdf uploaded", .kind = .success, .key = "upload" });
+                s.upload_at = -1;
+            } else c.frameIn(left);
         }
     }
 

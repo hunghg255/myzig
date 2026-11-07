@@ -38,6 +38,8 @@ Núm xoay lấy tiêu điểm bàn phím; trong khi lấy nét, Trái và Phải
 
 ## Thanh trượt phạm vi
 
+<!-- demo: ranges height=233 -->
+
 ![Khoảng giá, nút tăng giảm, ô nhập số, thước đo và chỉ báo đang tải.](../../images/ui/ranges.png)
 
 *Khoảng giá, nút tăng giảm, ô nhập số, thước đo và chỉ báo đang tải.*

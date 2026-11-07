@@ -1,5 +1,7 @@
 # File drop zone
 
+<!-- demo: file-drop height=321 -->
+
 ![A drop target and a removable list of local file paths.](../images/ui/file-drop.png)
 
 `fileDropZone` uses the existing `DragDrop` target mechanism for local file

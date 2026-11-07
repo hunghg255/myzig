@@ -76,7 +76,7 @@ Những gì công nghệ hỗ trợ nhìn thấy cũng được kiểm tra thôn
 
 ### Thời gian
 
-Người kiểm tra có đồng hồ riêng, `t.time`, tăng thêm `t.dt` (1/60 giây) mỗi frame. Hoạt ảnh, nhấp đúp, dấu mũ nhấp nháy, chú giải công cụ, chúc mừng và `c.time` theo sau nó, không bao giờ là đồng hồ treo tường.
+Người kiểm tra có đồng hồ riêng, `t.time`, tăng thêm `t.dt` (1/60 giây) mỗi frame. Hoạt ảnh, nhấp đúp, dấu mũ nhấp nháy, chú giải công cụ, toast và `c.time` theo sau nó, không bao giờ là đồng hồ treo tường.
 
 ```zig
 try t.clickText("More");

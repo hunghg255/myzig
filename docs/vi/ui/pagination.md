@@ -4,6 +4,8 @@
 trang hiện tại và tải hoặc cắt dữ liệu khi số trang thay đổi. Virtualization
 giới hạn số hàng được render; Pagination giới hạn dữ liệu cần tải.
 
+<!-- demo: pagination height=455 -->
+
 ![Pagination đánh số trang có dấu ba chấm và bộ chuyển trang lịch sử chưa biết tổng.](../../images/ui/pagination.png)
 
 ```zig

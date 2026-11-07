@@ -3,6 +3,8 @@
 `ui.item` ghép hình đại diện hoặc icon, tiêu đề, mô tả và các nút thao tác
 thành một hàng nội dung. Dùng cho danh sách file, thành viên, thông báo và cài đặt.
 
+<!-- demo: items height=386 -->
+
 ![Các Item có icon file, avatar, nhãn trạng thái và nút thao tác riêng.](../../images/ui/items.png)
 
 ```zig

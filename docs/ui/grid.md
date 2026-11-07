@@ -7,6 +7,8 @@ column, fields in the other), dashboards and settings panes. A grid
 builds all its children; for many items built only as they show, use
 [`ui.gridView`](lists.md#grid-views).
 
+<!-- demo: grid height=304 -->
+
 ![A profile form laid out with fit and fractional tracks; the heading spans both columns.](../images/ui/grid.png)
 
 *A profile form laid out with fit and fractional tracks; the heading spans both columns.*

@@ -8,6 +8,8 @@ Các widget này tuân theo một mẫu: lựa chọn mà chúng đưa ra là c�
 
 <a id="tabs"></a>
 
+<!-- demo: structures height=397 -->
+
 ![Tab, mục thu gọn và accordion với phần Shipping đang mở.](../../images/ui/structures.png)
 
 *Tab, mục thu gọn và accordion với phần Shipping đang mở.*
@@ -77,6 +79,8 @@ Up và Down di chuyển tiêu điểm giữa các tiêu đề, Home và End đ�
 
 ## Chia lượt xem
 
+<!-- demo: tree height=415 -->
+
 ![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
 
 *Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
@@ -133,6 +137,8 @@ Một cú nhấp chuột sẽ chọn một mục; trong khi thanh bên có tiêu
 <a id="toolbars"></a>
 
 ## Thanh công cụ
+
+<!-- demo: toolbar height=210 -->
 
 ![Các thao tác trên thanh công cụ và đường dẫn breadcrumb.](../../images/ui/toolbar.png)
 

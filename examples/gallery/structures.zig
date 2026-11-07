@@ -5,6 +5,7 @@ const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const File = struct { name: []const u8, kind: []const u8, size: u32 };
 
@@ -85,7 +86,7 @@ pub const Structures = struct {
 
     pub fn view(s: *Structures, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Structures");
+        gallery.heading(c, "Structures");
         {
             card(c, "Tabs and disclosures");
             defer ui.end(c);

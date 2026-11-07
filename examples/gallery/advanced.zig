@@ -2,6 +2,7 @@
 const std = @import("std");
 const ui = @import("myzig").ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 pub const Advanced = struct {
     styles: [3]bool = .{ true, false, false },
@@ -25,7 +26,7 @@ pub const Advanced = struct {
     }
 
     pub fn view(s: *Advanced, c: *ui.Context) void {
-        ui.heading(c, "Actions and choices");
+        gallery.heading(c, "Actions and choices");
         ui.label(c, "Joined buttons, multiple choices, date ranges and file drops.");
         s.groups(c);
         s.choices(c);

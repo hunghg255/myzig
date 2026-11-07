@@ -11,6 +11,8 @@ As in Godot, the coordinates are not mirrored: x still grows to the right
 in rectangles, in canvases and in the pointer's position. Only the layout
 is.
 
+<!-- demo: right-to-left height=344 -->
+
 ![The same controls laid out from left to right and from right to left.](../images/ui/right-to-left.png)
 
 *The same controls laid out from left to right and from right to left.*

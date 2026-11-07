@@ -11,6 +11,8 @@ content, bottom up; `arrange` places them, top down. Text layouts are
 cached across frames, so a frame that changes nothing in a box costs
 little to lay out again.
 
+<!-- demo: layout height=374 -->
+
 ![A fixed-width sidebar beside a flexible column of cards, with gaps and padding.](../images/ui/layout.png)
 
 *A fixed-width sidebar beside a flexible column of cards, with gaps and padding.*

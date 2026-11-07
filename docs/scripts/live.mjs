@@ -14,8 +14,19 @@ for (const name of ['app.wasm', 'host.js', 'host_gl.js', 'host_wasi.js', 'fonts/
 for (const name of await readdir(new URL('fonts/', from)))
   if (name.endsWith('.ttf')) await copyFile(new URL(`fonts/${name}`, from), new URL(`fonts/${name}`, to));
 
-const source = await readFile(new URL('../../examples/gallery/live_demos.zig', import.meta.url), 'utf8');
-const demos = [...source.matchAll(/^\s*entry\("([a-z-]+)",/gm)].map((m) => m[1]);
-if (demos.length === 0) throw new Error('no demos in live_demos.zig');
-await writeFile(new URL('demos.json', to), JSON.stringify(demos) + '\n');
-console.log(`docs/public/live: ${demos.join(', ')}`);
+// Each demo and the file its view is in, for its Source link: the demos of
+// live_demos.zig, then the Gallery's pages of live_gallery.zig.
+const dir = 'examples/gallery/';
+const read = (name) => readFile(new URL(`../../${dir}${name}`, import.meta.url), 'utf8');
+const demos = {};
+for (const m of (await read('live_demos.zig')).matchAll(/^\s*entry\("([a-z-]+)",/gm)) demos[m[1]] = `${dir}live_demos.zig`;
+const gallery = await read('live_gallery.zig');
+const files = Object.fromEntries([...gallery.matchAll(/^const (\w+) = @import\("(\w+)\.zig"\)\.\w+;/gm)].map((m) => [m[1], m[2]]));
+files.Basics = 'basics';
+for (const m of gallery.matchAll(/^\s*gallery\("([a-z-]+)", (\w+),/gm)) {
+  if (!files[m[2]]) throw new Error(`live_gallery.zig: which file is ${m[2]} in?`);
+  demos[m[1]] = `${dir}${files[m[2]]}.zig`;
+}
+if (Object.keys(demos).length === 0) throw new Error('no demos in live_demos.zig');
+await writeFile(new URL('demos.json', to), JSON.stringify(demos, null, 1) + '\n');
+console.log(`docs/public/live: ${Object.keys(demos).length} demos`);

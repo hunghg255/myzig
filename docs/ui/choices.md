@@ -60,6 +60,8 @@ In a [form](forms.md), give it an empty title and let the field label it.
 
 ## Radio buttons
 
+<!-- demo: choices height=223 -->
+
 ![Radio groups and a four-star rating.](../images/ui/choices.png)
 
 *Radio groups and a four-star rating.*

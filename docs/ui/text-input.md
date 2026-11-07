@@ -120,6 +120,8 @@ browsers, a hidden text area takes the composition, which shows underlined.
 
 ## Search fields
 
+<!-- demo: fields height=214 -->
+
 ![A search field, avatars and a token field containing zig and ui.](../images/ui/fields.png)
 
 *A search field, avatars and a token field containing zig and ui.*
@@ -165,6 +167,8 @@ false if empty, already there, or too long for what is left) and
 `placeholder`, `width` (300 points) and `max_suggestions` (8).
 
 ## Comboboxes
+
+<!-- demo: selects height=168 -->
 
 ![A select, font combobox and city autocomplete field.](../images/ui/selects.png)
 

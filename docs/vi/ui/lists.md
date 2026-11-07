@@ -110,6 +110,8 @@ Mỗi hàng tốn hơn một hàng của `ui.list`, vốn không phải đo: hã
 
 ## Cây cối
 
+<!-- demo: tree height=415 -->
+
 ![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
 
 *Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
@@ -178,6 +180,8 @@ Trong khi dàn bài có tiêu điểm, Lên, Xuống, Trang chủ, Kết thúc v
 <a id="tables"></a>
 
 ## Bàn
+
+<!-- demo: table height=385 -->
 
 ![Bảng tệp với các cột Name, Kind và Size có thể sắp xếp.](../../images/ui/table.png)
 
@@ -260,6 +264,8 @@ Bảng cuộn bằng thanh cuộn của nó và, với `cells`, bằng Trái và
 Giữ nguyên `sideways` khi `frozen` thay đổi, nếu không offset sẽ bắt đầu lại: truyền `.sideways = true` khi ứng dụng cho phép người đọc cố định cột.
 
 ## View lưới
+
+<!-- demo: grid-view height=365 -->
 
 ![Lưới ảo gồm các ô ảnh có thể chọn.](../../images/ui/grid-view.png)
 

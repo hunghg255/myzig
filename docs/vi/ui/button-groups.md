@@ -1,5 +1,7 @@
 # Nhóm nút và nút bật/tắt
 
+<!-- demo: button-groups height=360 -->
+
 ![Nhóm hành động và lựa chọn một hoặc nhiều giá trị.](../../images/ui/button-groups.png)
 
 `buttonGroup` ghép các hành động liên quan thành một nhóm. Gọi `end` sau

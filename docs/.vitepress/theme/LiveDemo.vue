@@ -6,11 +6,10 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useData, withBase } from 'vitepress'
 
-const props = withDefaults(defineProps<{ demo: string; height?: number }>(), { height: 280 })
+const props = withDefaults(defineProps<{ demo: string; source?: string; height?: number }>(), { height: 280, source: 'examples/gallery/live_demos.zig' })
 const { isDark, lang } = useData()
 const stage = ref<HTMLElement | null>(null)
 const state = ref<'poster' | 'loading' | 'running' | 'failed'>('poster')
-const source = 'https://github.com/hunghg255/myzig/blob/main/examples/gallery/live_demos.zig'
 let host: any = null
 let observer: IntersectionObserver | null = null
 let gone = false
@@ -78,7 +77,7 @@ onBeforeUnmount(() => {
       <span v-else-if="state === 'loading'">{{ lang === 'vi' ? 'Đang tải…' : 'Loading…' }}</span>
       <a v-else-if="state === 'poster'" href="#" @click.prevent="run">{{ lang === 'vi' ? 'Chạy bản thử' : 'Run the demo' }}</a>
       <span v-else>{{ lang === 'vi' ? 'Đang chạy thật, bấm thử được: myzig trên WebAssembly' : 'Live, try it: myzig in WebAssembly' }}</span>
-      <a :href="source" target="_blank" rel="noreferrer">{{ lang === 'vi' ? 'Mã nguồn' : 'Source' }}</a>
+      <a :href="`https://github.com/hunghg255/myzig/blob/main/${props.source}`" target="_blank" rel="noreferrer">{{ lang === 'vi' ? 'Mã nguồn' : 'Source' }}</a>
     </figcaption>
   </figure>
 </template>

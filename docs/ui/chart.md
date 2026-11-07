@@ -29,6 +29,8 @@ and `zig build run-chart-streaming` three waveforms of 15 000 samples each,
 
 ## Lines, areas and bars
 
+<!-- demo: bars height=393 -->
+
 ![A stacked bar chart showing three traffic sources.](../images/ui/bars.png)
 
 *A stacked bar chart showing three traffic sources.*

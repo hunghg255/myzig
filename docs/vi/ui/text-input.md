@@ -105,6 +105,8 @@ Trên macOS, view native là `NSTextInputClient` (`src/ui/textinput.zig`): dấu
 
 ## Trường tìm kiếm
 
+<!-- demo: fields height=214 -->
+
 ![Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.](../../images/ui/fields.png)
 
 *Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.*
@@ -140,6 +142,8 @@ _ = ui.tokenField(c, &s.tokens, &tags, .{ .placeholder = "Add a tag", .width = 4
 <a id="comboboxes"></a>
 
 ## Hộp tổ hợp
+
+<!-- demo: selects height=168 -->
 
 ![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
 

@@ -5,6 +5,7 @@ const myzig = @import("myzig");
 const ui = myzig.ui;
 const chart = ui.chart;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const logo =
     \\<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -116,7 +117,7 @@ pub const Drawing = struct {
 
     pub fn chartsPage(s: *Drawing, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Charts");
+        gallery.heading(c, "Charts");
         {
             card(c, "Lines and areas");
             defer ui.end(c);

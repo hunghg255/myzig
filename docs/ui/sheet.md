@@ -3,6 +3,8 @@
 `ui.sheet` opens a modal panel against one edge of the window. Use it for
 details, settings and filters beside the current screen.
 
+<!-- demo: panels height=520 -->
+
 ![Workspace details in a panel on the right edge.](../images/ui/sheet.png)
 
 ```zig

@@ -166,7 +166,10 @@ test "a dialog makes what is behind it inert; toasts are announced" {
     try testing.expectEqual(@as(usize, 1), tree.announcements.len);
     try testing.expectEqualStrings("Saved", tree.announcements[0]);
     try testing.expect(tree.byName(.status, "Saved") != null);
-    try testing.expect(tree.byName(.button, "Close") != null);
+    app.toasts.close_button = true;
+    t.frame();
+    tree.build(&t.ctx);
+    try testing.expect(tree.byName(.button, "Close toast") != null);
 
     app.confirm.show();
     t.settle(1);

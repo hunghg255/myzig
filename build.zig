@@ -192,17 +192,35 @@ pub fn build(b: *std.Build) void {
     if (live_there) {
         const live = web.addSite(b, .{ .name = "live", .main = b.path("examples/gallery/live.zig"), .myzig = b.path("src"), .fonts = live_fonts, .install_subdir = "docs-live" });
         b.step("docs-live", "Build the documentation site's demos into zig-out/docs-live").dependOn(live.step);
-        for ([_][3][]const u8{
+        const checked = [_][3][]const u8{
             .{ "buttons", "Primary", "Clicks: 1" },
             .{ "toggles", "Remember me", "Remembered" },
-            .{ "sliders", "", "" },
-            .{ "text-input", "", "" },
-            .{ "virtual-list", "", "" },
             .{ "data-table", "Next", "Margaret Hamilton" },
             .{ "overlays", "Rename…", "Rename the note" },
-            .{ "chart", "", "" },
             .{ "palettes", "Preview", "Clicks: 1" },
-        }) |d| web_test.dependOn(web.addNodeTestArgs(b, live, b.path("src"), d[1], d[2], &.{b.fmt("--demo={s}", .{d[0]})}));
+            .{ "drawer", "Open drawer", "Move goal" },
+            .{ "toasts", "Success", "Event has been created" },
+            .{ "panels", "Open drawer", "CALORIES/DAY" },
+        };
+        for (checked) |d| web_test.dependOn(web.addNodeTestArgs(b, live, b.path("src"), d[1], d[2], &.{b.fmt("--demo={s}", .{d[0]})}));
+        // Every other demo the pages may name starts.
+        for ([_][]const u8{ "live_demos.zig", "live_gallery.zig" }) |file| {
+            const source = std.Io.Dir.cwd().readFileAlloc(b.graph.io, b.fmt("examples/gallery/{s}", .{file}), b.allocator, .limited(1 << 20)) catch @panic("examples/gallery: no demos");
+            var lines = std.mem.splitScalar(u8, source, '\n');
+            next: while (lines.next()) |line| {
+                const t = std.mem.trim(u8, line, " \r");
+                const open = for ([_][]const u8{ "entry(\"", "gallery(\"" }) |p| {
+                    if (std.mem.startsWith(u8, t, p)) break p.len;
+                } else continue;
+                const name = t[open .. std.mem.indexOfScalarPos(u8, t, open, '"') orelse continue];
+                for (checked) |d| if (std.mem.eql(u8, d[0], name)) continue :next;
+                // Those that move on their own draw while nothing happens.
+                const moves = for ([_][]const u8{"motion"}) |m| {
+                    if (std.mem.eql(u8, m, name)) break true;
+                } else false;
+                web_test.dependOn(web.addNodeTestArgs(b, live, b.path("src"), "", "", if (moves) &.{ b.fmt("--demo={s}", .{name}), "--animates" } else &.{b.fmt("--demo={s}", .{name})}));
+            }
+        }
         if (web_browser) |browser| {
             const guest = b.addSystemCommand(&.{"node"});
             guest.addFileArg(b.path("src/web/test_browser_run.mjs"));

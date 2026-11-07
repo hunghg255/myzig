@@ -9,6 +9,8 @@ long lines scrolled sideways. `ui.diffView` shows the changes between two
 texts, unified or side by side. Both build only the lines in view, so a
 file of 100 000 lines costs what a screenful does.
 
+<!-- demo: code-editor height=335 -->
+
 ![The Zig editor with syntax highlighting and a line-number gutter.](../images/ui/code-editor.png)
 
 *The Zig editor with syntax highlighting and a line-number gutter.*
@@ -156,6 +158,8 @@ groups (capturing and `(?:…)`), alternation, and the quantifiers `* + ?
 pattern from hanging the editor: past it, a line doesn't match.
 
 ## The diff viewer
+
+<!-- demo: diff height=355 -->
 
 ![A diff with deleted lines in red and added lines in green.](../images/ui/diff.png)
 

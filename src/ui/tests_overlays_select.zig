@@ -1,10 +1,10 @@
-//! Selects, comboboxes, autocompletes and toasts through the Tester.
+//! Selects, comboboxes and autocompletes through the Tester (toasts:
+//! `tests_toasts.zig`).
 const std = @import("std");
 const ui = @import("ui.zig");
 const base = @import("overlay_base.zig");
 const select = @import("select.zig");
 const combobox = @import("combobox.zig");
-const toast = @import("toast.zig");
 const testing = std.testing;
 const S = ui.Shortcut;
 
@@ -209,95 +209,4 @@ test "an autocomplete suggests what contains the text, and keeps what was typed"
     t.key(.escape);
     try testing.expect(!s.city_box.isOpen());
     try testing.expect(t.ctx.focused_text != null);
-}
-
-const Toaster = struct {
-    toasts: toast.Toasts = .{},
-    undo: u64 = 0,
-    undone: u32 = 0,
-    under: u32 = 0,
-
-    fn view(s: *Toaster, c: *ui.Context) void {
-        ui.column(c, .{ .width = .fill, .height = .fill, .padding = .all(20) });
-        defer ui.end(c);
-        ui.spacer(c);
-        if (ui.button(c, "Under", .{ .width = .fill }).clicked) s.under += 1;
-        const r = toast.toasts(c, &s.toasts);
-        if (r.action) |id| if (id == s.undo) {
-            s.undone += 1;
-        };
-    }
-};
-
-test "toasts show near the bottom and go after their time, on the context's clock" {
-    var s: Toaster = .{};
-    var t: ui.Tester = undefined;
-    try t.init(testing.allocator, .init(&s, Toaster.view), .{});
-    defer t.deinit();
-    _ = s.toasts.show("Saved");
-    t.frame();
-    const saved = t.findText("Saved").?;
-    try testing.expect(saved.y > 360 - 80);
-    try testing.expect(t.ctx.frame_in != null);
-    t.advance(3.5);
-    try testing.expect(t.hasText("Saved"));
-    t.advance(1);
-    t.settle(1);
-    try testing.expect(!t.hasText("Saved"));
-    try testing.expectEqual(@as(usize, 0), s.toasts.len);
-}
-
-test "the newest three toasts show, stacked; the same message shows anew" {
-    var s: Toaster = .{};
-    var t: ui.Tester = undefined;
-    try t.init(testing.allocator, .init(&s, Toaster.view), .{});
-    defer t.deinit();
-    _ = s.toasts.show("One");
-    _ = s.toasts.show("Two");
-    _ = s.toasts.show("Three");
-    _ = s.toasts.show("Four");
-    t.settle(1);
-    try testing.expect(!t.hasText("One"));
-    const two = t.findText("Two").?;
-    const four = t.findText("Four").?;
-    try testing.expect(two.y < four.y);
-    // "Two" again: newest, at the bottom; its time starts anew.
-    t.advance(2);
-    _ = s.toasts.show("Two");
-    t.settle(1);
-    try testing.expect(t.findText("Two").?.y > t.findText("Four").?.y);
-    t.advance(2.5);
-    t.settle(1);
-    try testing.expect(t.hasText("Two"));
-    try testing.expect(!t.hasText("Four"));
-    try testing.expectEqual(@as(usize, 1), s.toasts.count());
-}
-
-test "a toast's time stops while the pointer rests on it; its action and close button" {
-    var s: Toaster = .{};
-    var t: ui.Tester = undefined;
-    try t.init(testing.allocator, .init(&s, Toaster.view), .{});
-    defer t.deinit();
-    s.undo = s.toasts.showAction("Note deleted", "Undo");
-    t.settle(1);
-    const msg = t.findText("Note deleted").?;
-    t.moveTo(msg.x + 2, msg.y + 2);
-    t.advance(20);
-    try testing.expect(t.hasText("Note deleted"));
-    // The pointer goes through the room around it to what is under it.
-    const under = t.findText("Under").?;
-    t.click(30, under.y + under.h / 2);
-    try testing.expectEqual(@as(u32, 1), s.under);
-    try t.clickText("Undo");
-    try testing.expectEqual(@as(u32, 1), s.undone);
-    t.settle(1);
-    try testing.expect(!t.hasText("Note deleted"));
-    // Until closed: its close button.
-    const id = s.toasts.add(.{ .title = "Uploading", .description = "report.pdf", .timeout = -1 });
-    t.advance(30);
-    try testing.expect(t.hasText("report.pdf"));
-    try testing.expect(s.toasts.has(id));
-    s.toasts.close(id);
-    t.settle(1);
-    try testing.expect(!t.hasText("Uploading"));
 }

@@ -8,6 +8,8 @@ Như trong Godot, tọa độ không được phản chiếu: x vẫn phát tri�
 
 <a id="the-direction"></a>
 
+<!-- demo: right-to-left height=344 -->
+
 ![Cùng các điều khiển được bố trí từ trái sang phải và từ phải sang trái.](../../images/ui/right-to-left.png)
 
 *Cùng các điều khiển được bố trí từ trái sang phải và từ phải sang trái.*

@@ -4,6 +4,8 @@
 The app owns the page number and loads or slices its data when it changes.
 Virtualization limits rendered rows; pagination limits the data loaded.
 
+<!-- demo: pagination height=455 -->
+
 ![Numbered pagination with ellipses and a separate unknown-total history pager.](../images/ui/pagination.png)
 
 ```zig

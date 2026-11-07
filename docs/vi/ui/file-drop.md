@@ -1,5 +1,7 @@
 # Vùng thả file
 
+<!-- demo: file-drop height=321 -->
+
 ![Vùng nhận file và danh sách đường dẫn có thể xóa.](../../images/ui/file-drop.png)
 
 `fileDropZone` dùng cơ chế target của `DragDrop` cho danh sách file cục bộ

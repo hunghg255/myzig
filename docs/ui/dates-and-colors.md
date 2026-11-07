@@ -4,6 +4,8 @@ Calendars, fields of dates and times of day, and color pickers. Each edits
 a value of your state through a pointer and returns true when the user
 changed it.
 
+<!-- demo: dates-and-colors height=520 -->
+
 ![Calendar, date and time inputs, color well and color picker.](../images/ui/dates-and-colors.png)
 
 *Calendar, date and time inputs, color well and color picker.*

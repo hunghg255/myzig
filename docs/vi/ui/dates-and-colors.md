@@ -6,6 +6,8 @@ Lịch, trường ngày và giờ trong ngày cũng như bộ chọn màu. Mỗi
 
 <a id="dates"></a>
 
+<!-- demo: dates-and-colors height=520 -->
+
 ![Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.](../../images/ui/dates-and-colors.png)
 
 *Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.*

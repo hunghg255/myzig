@@ -4,6 +4,7 @@ const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const before =
     \\const std = @import("std");
@@ -103,7 +104,7 @@ pub const TextPages = struct {
 
     pub fn editing(t: *TextPages, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Text editing");
+        gallery.heading(c, "Text editing");
         {
             card(c, "Text area");
             defer ui.end(c);
@@ -137,7 +138,7 @@ pub const TextPages = struct {
 
     pub fn markdownPage(t: *TextPages, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Markdown");
+        gallery.heading(c, "Markdown");
         {
             card(c, "Rendered");
             defer ui.end(c);

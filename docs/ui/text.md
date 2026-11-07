@@ -3,6 +3,8 @@
 `ui.text` shows a string in a `ui.TextStyle`; `ui.textf` formats it first,
 into the frame's memory:
 
+<!-- demo: text height=479 -->
+
 ![System-font headings, italic and monospaced text, rich spans and wrapped text.](../images/ui/text.png)
 
 *System-font headings, italic and monospaced text, rich spans and wrapped text.*

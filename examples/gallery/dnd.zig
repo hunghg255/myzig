@@ -5,6 +5,7 @@ const myzig = @import("myzig");
 const ui = myzig.ui;
 const transfer = myzig.transfer;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const Task = struct { id: u32, title: []const u8, column: u8 };
 
@@ -43,7 +44,7 @@ pub const Board = struct {
 
     pub fn view(b: *Board, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Drag and drop");
+        gallery.heading(c, "Drag and drop");
         card(c, "A board");
         defer ui.end(c);
         ui.text(c, b.status, .{ .color = th.muted, .wrap = true });

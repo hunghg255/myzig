@@ -27,6 +27,8 @@ Trang Biểu đồ của thư viện hiển thị mọi loại (`examples/galler
 
 ## Đường, vùng và thanh
 
+<!-- demo: bars height=393 -->
+
 ![Biểu đồ cột xếp chồng thể hiện ba nguồn truy cập.](../../images/ui/bars.png)
 
 *Biểu đồ cột xếp chồng thể hiện ba nguồn truy cập.*

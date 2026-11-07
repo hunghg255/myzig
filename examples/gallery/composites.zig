@@ -2,6 +2,7 @@
 //! and its documentation snapshots.
 const ui = @import("myzig").ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 pub const Composites = struct {
     search: ui.TextBuffer = .{},
@@ -21,8 +22,8 @@ pub const Composites = struct {
     }
 
     pub fn view(s: *Composites, c: *ui.Context) void {
-        ui.heading(c, "Items, input groups and pagination");
-        ui.label(c, "Compose everyday app screens from reusable controls.");
+        gallery.heading(c, "Items, input groups and pagination");
+        gallery.intro(c, "Compose everyday app screens from reusable controls.");
         s.items(c);
         s.inputs(c);
         s.pages(c);

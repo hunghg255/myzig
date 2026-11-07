@@ -1,6 +1,7 @@
 //! Empty, loading and inline notices, a command menu and an edge panel.
 const ui = @import("myzig").ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const Command = enum { create, details, export_files };
 
@@ -9,6 +10,8 @@ pub const Feedback = struct {
     animated: bool = false,
     palette: ui.CommandState = .{},
     details: ui.OverlayState = .{},
+    drawer: ui.DrawerState = .{},
+    goal: i32 = 350,
     name: ui.TextBuffer = .{},
     status: []const u8 = "Use a command or open the details panel.",
     actions: ui.Actions(Command) = .init(.{
@@ -22,8 +25,8 @@ pub const Feedback = struct {
     }
 
     pub fn view(s: *Feedback, c: *ui.Context) void {
-        ui.heading(c, "Feedback and commands");
-        ui.label(c, "Useful states for everyday app screens.");
+        gallery.heading(c, "Feedback and commands");
+        gallery.intro(c, "Useful states for everyday app screens.");
         {
             card(c, "Inline alerts");
             defer ui.end(c);
@@ -69,6 +72,7 @@ pub const Feedback = struct {
         defer ui.end(c);
         if (ui.button(c, "Open commands", .{}).clicked) s.palette.show();
         if (ui.button(c, "Open details", .{}).clicked) s.details.show();
+        if (ui.button(c, "Open drawer", .{}).clicked) s.drawer.show();
         ui.label(c, "Ctrl/Cmd+K opens commands from any Gallery page.");
         ui.label(c, s.status);
     }
@@ -101,5 +105,29 @@ pub const Feedback = struct {
             }
             if (ui.button(c, "Close details", .{ .variant = .ghost }).clicked) s.details.close();
         }
+        if (ui.drawer(c, &s.drawer, .{ .label = "Move goal" })) |d| {
+            defer d.end();
+            moveGoal(c, &s.goal, &s.drawer);
+        }
     }
 };
+
+/// shadcn's drawer example: a daily goal set with two buttons.
+pub fn moveGoal(c: *ui.Context, goal: *i32, drawer: *ui.DrawerState) void {
+    ui.row(c, .{ .width = .fill, .justify = .center });
+    defer ui.end(c);
+    ui.column(c, .{ .width = .fill, .max_width = 384, .gap = 16 });
+    defer ui.end(c);
+    ui.text(c, "Move goal", .{ .size = 16, .weight = .semibold });
+    ui.text(c, "Set your daily activity goal.", .{ .color = c.theme.muted });
+    ui.row(c, .{ .width = .fill, .align_items = .center, .justify = .space_between });
+    if (ui.button(c, "−", .{ .disabled = goal.* <= 200 }).clicked) goal.* -= 10;
+    ui.column(c, .{ .align_items = .center });
+    ui.text(c, c.print("{d}", .{goal.*}), .{ .size = 48, .weight = .bold });
+    ui.text(c, "CALORIES/DAY", .{ .size = 12, .color = c.theme.muted });
+    ui.end(c);
+    if (ui.button(c, "+", .{ .disabled = goal.* >= 400 }).clicked) goal.* += 10;
+    ui.end(c);
+    if (ui.button(c, "Submit", .{ .variant = .primary, .width = .fill }).clicked) drawer.close();
+    if (ui.button(c, "Cancel", .{ .width = .fill }).clicked) drawer.close();
+}

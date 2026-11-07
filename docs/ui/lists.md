@@ -151,6 +151,8 @@ pressable.
 
 ## Trees
 
+<!-- demo: tree height=415 -->
+
 ![A file tree beside an outline of folders.](../images/ui/tree.png)
 
 *A file tree beside an outline of folders.*
@@ -244,6 +246,8 @@ them. `ui.OutlineOptions` has `row_height` (26), `indent` (16), `width`
 and `height` (`.fill`) and `padding` (`.all(4)`).
 
 ## Tables
+
+<!-- demo: table height=385 -->
 
 ![A file table with sortable Name, Kind and Size columns.](../images/ui/table.png)
 
@@ -381,6 +385,8 @@ row the app just added past the end, or one chosen from elsewhere (a search),
 is shown this way: `s.table.reveal = s.rows.items.len - 1;`.
 
 ## Grid views
+
+<!-- demo: grid-view height=365 -->
 
 ![A virtual grid of selectable photo tiles.](../images/ui/grid-view.png)
 

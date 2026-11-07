@@ -79,6 +79,7 @@ const ui = [
       page('Empty, loading and alerts', '/ui/feedback'),
       page('Command palette', '/ui/command-palette'),
       page('Sheet', '/ui/sheet'),
+      page('Drawer', '/ui/drawer'),
       page('Button and toggle groups', '/ui/button-groups'),
       page('Multi-select', '/ui/multi-select'),
       page('Date range picker', '/ui/date-range'),
@@ -146,7 +147,7 @@ const architecture = [
   },
 ]
 
-const demos: string[] = JSON.parse(fs.readFileSync(new URL('../public/live/demos.json', import.meta.url), 'utf8'))
+const demos: Record<string, string> = JSON.parse(fs.readFileSync(new URL('../public/live/demos.json', import.meta.url), 'utf8'))
 
 /**
  * `<!-- demo: buttons height=120 -->` above a picture runs that demo there on
@@ -162,11 +163,11 @@ function liveDemos(md: any) {
       const m = /^<!--\s*demo:\s*([a-z-]+)(?:\s+height=(\d+))?\s*-->\s*$/.exec(t.content)
       if (!m) continue
       const where = state.env.relativePath ?? 'a page'
-      if (!demos.includes(m[1])) throw new Error(`${where}: no demo "${m[1]}" (examples/gallery/live_demos.zig, then npm run live)`)
+      if (!(m[1] in demos)) throw new Error(`${where}: no demo "${m[1]}" (examples/gallery/live_demos.zig, then npm run live)`)
       const inline = tokens[i + 2]
       const picture = tokens[i + 1]?.type === 'paragraph_open' && inline?.children?.some((c: any) => c.type === 'image')
       if (!picture) throw new Error(`${where}: demo "${m[1]}" is not above a picture`)
-      t.content = `<LiveDemo demo="${m[1]}"${m[2] ? ` :height="${m[2]}"` : ''}>\n`
+      t.content = `<LiveDemo demo="${m[1]}" source="${demos[m[1]]}"${m[2] ? ` :height="${m[2]}"` : ''}>\n`
       const close = new state.Token('html_block', '', 0)
       close.content = '</LiveDemo>\n'
       tokens.splice(i + 4, 0, close)

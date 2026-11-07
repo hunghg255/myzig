@@ -3,6 +3,8 @@
 `ui.commandPalette` hiển thị danh sách lệnh có tìm kiếm trong một dialog
 modal. Khi kích hoạt, nó trả về chỉ số ban đầu của lệnh trong danh sách app.
 
+<!-- demo: panels height=520 -->
+
 ![Các lệnh workspace có icon, phím tắt và lệnh xuất file bị vô hiệu hóa.](../../images/ui/command-palette.png)
 
 ```zig

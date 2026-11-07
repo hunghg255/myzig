@@ -12,6 +12,8 @@ Their `end` (or the call itself) returns what happened in this frame:
 `changed` when a click or a key changed the app's value, and `focused`
 when they have the keyboard focus.
 
+<!-- demo: structures height=397 -->
+
 ![Tabs, a disclosure and an accordion with the Shipping section expanded.](../images/ui/structures.png)
 
 *Tabs, a disclosure and an accordion with the Shipping section expanded.*
@@ -90,6 +92,8 @@ where one section is open at a time, close the others when one opens:
 
 ## Split views
 
+<!-- demo: tree height=415 -->
+
 ![Sidebar, file tree and virtual outline arranged in split panes.](../images/ui/tree.png)
 
 *Sidebar, file tree and virtual outline arranged in split panes.*
@@ -164,6 +168,8 @@ otherwise, as AppKit's do. `ui.SidebarOptions` has `width`
 theme's).
 
 ## Toolbars
+
+<!-- demo: toolbar height=210 -->
 
 ![Toolbar actions and a breadcrumb trail.](../images/ui/toolbar.png)
 

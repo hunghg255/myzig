@@ -4,6 +4,8 @@
 cùng một khung. Ô nhập giữ nguyên cách chỉnh sửa, chọn chữ, bộ gõ và xử lý
 mật khẩu của [text field](text-input.md).
 
+<!-- demo: input-groups height=442 -->
+
 ![Input Group cho tìm kiếm, URL, ngân sách và một cài đặt bị vô hiệu hóa.](../../images/ui/input-groups.png)
 
 ```zig

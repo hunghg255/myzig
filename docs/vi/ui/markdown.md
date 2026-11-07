@@ -4,6 +4,8 @@
 
 `ui.markdown` hiển thị Markdown bằng phông chữ và màu sắc của cửa sổ: CommonMark với các bảng, danh sách tác vụ, gạch ngang và liên kết tự động của GitHub. Văn bản của nó có thể được lựa chọn, các liên kết báo cáo số lần nhấp chuột của chúng và các khối mã được đánh dấu bằng phông chữ đơn cách bằng nút Sao chép. Nó được tạo ra để phát trực tuyến các câu trả lời từ một mô hình: mã thông báo được gắn vào cuối một câu trả lời dài sẽ có giá bằng với giá của nó khi bắt đầu.
 
+<!-- demo: markdown height=520 -->
+
 ![Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.](../../images/ui/markdown.png)
 
 *Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.*
@@ -71,7 +73,7 @@ A `ui.MarkdownResult`:
 
 - `link`: đích của liên kết đã nhấp vào khung này.
 - `hovered_link`: liên kết bên dưới con trỏ, dưới dạng thanh trạng thái hiển thị liên kết đó.
-- `copied`: mã mà nút Sao chép của khối mã được đặt vào khay nhớ tạm (để nâng ly chúc mừng nói như vậy).
+- `copied`: mã mà nút Sao chép của khối mã được đặt vào khay nhớ tạm (để hiện toast báo đã chép).
 
 Các liên kết không được mở cho bạn: mở chúng bằng `myzig.shell.openUrl` hoặc định tuyến chúng trong ứng dụng.
 

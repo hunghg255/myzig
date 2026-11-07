@@ -4,6 +4,8 @@
 
 `ui.text` hiển thị một chuỗi trong `ui.TextStyle`; `ui.textf` định dạng nó trước tiên vào bộ nhớ của khung:
 
+<!-- demo: text height=479 -->
+
 ![Tiêu đề, chữ nghiêng, chữ monospace, rich span và văn bản xuống dòng.](../../images/ui/text.png)
 
 *Tiêu đề, chữ nghiêng, chữ monospace, rich span và văn bản xuống dòng.*

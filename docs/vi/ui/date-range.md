@@ -1,5 +1,7 @@
 # Chọn khoảng ngày
 
+<!-- demo: date-range height=520 -->
+
 ![Lịch chọn khoảng ngày có giới hạn và ngày không khả dụng.](../../images/ui/date-range.png)
 
 `dateRangeInput` ghi nhận `DateRange` gồm cả hai đầu sau khi người dùng chọn

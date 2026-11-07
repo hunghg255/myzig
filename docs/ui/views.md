@@ -5,6 +5,8 @@ it on the main thread to build a frame after input, a resize, while
 something animates, and when the app asks. It takes a pointer to your
 state and the window's `*ui.Context`:
 
+<!-- demo: tasks height=371 -->
+
 ![A view built from application state: a task list with completed and pending items.](../images/ui/tasks.png)
 
 *A view built from application state: a task list with completed and pending items.*

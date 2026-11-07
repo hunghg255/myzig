@@ -4,6 +4,8 @@
 
 Một cửa sổ có thể hiển thị frontend mà myzig tự vẽ thay vì một trang web. Bạn viết nó trong Zig chỉ với `myzig.ui`: không có HTML, không có JavaScript và không có bản dựng frontend, đồng thời cửa sổ không bắt đầu webview, vì vậy, nó mở ngay lập tức và sử dụng ít bộ nhớ. myzig vẽ nó trên GPU nếu có thể, với Metal trên macOS, Direct3D 11 trên Windows, OpenGL trên Linux và WebGL 2 trong trình duyệt và với bộ kết xuất CPU riêng (cùng pixel) ở mọi nơi khác; xem [kết xuất](rendering.md).
 
+<!-- demo: controls height=520 -->
+
 ![Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.](../../images/ui/controls.png)
 
 *Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.*
@@ -119,7 +121,7 @@ Widget:
 - [Nhập văn bản](text-input.md): trường văn bản, trường tìm kiếm, trường mã thông báo, hộp tổ hợp, tự động hoàn thành, phương thức nhập và thao tác văn bản.
 - [Ngày và màu](dates-and-colors.md): lịch, đầu vào ngày và giờ, bộ chọn màu và giếng.
 - [Biểu mẫu](forms.md): trường được gắn nhãn, biểu mẫu, tập hợp trường, xác thực.
-- [Lớp phủ](overlays.md): cửa sổ bật lên, chú giải công cụ, hộp thoại, hộp thoại cảnh báo, chúc mừng.
+- [Lớp phủ](overlays.md): cửa sổ bật lên, chú giải công cụ, hộp thoại, hộp thoại cảnh báo, toast.
 - [Menus](menus.md): menu, menu ngữ cảnh, nút menu, lựa chọn.
 - [Item](items.md): hàng nội dung có icon/avatar, mô tả và nút thao tác.
 - [Input Group](input-group.md): ô nhập có icon, tiền tố/hậu tố và nút.
@@ -127,6 +129,7 @@ Widget:
 - [Empty, Skeleton và Alert](feedback.md): nội dung trống, đang tải và thông báo trong trang.
 - [Command Palette](command-palette.md): tìm và kích hoạt lệnh bằng bàn phím.
 - [Sheet](sheet.md): panel modal ở các cạnh cửa sổ.
+- [Drawer](drawer.md): panel trồi từ một mép, kéo được bằng con trỏ, có snap point (vaul).
 - [Nh?m n?t v? n?t b?t/t?t](button-groups.md)
 - [Ch?n nhi?u m?c](multi-select.md)
 - [Ch?n kho?ng ng?y](date-range.md)

@@ -6,6 +6,8 @@ Menu được vẽ trong cửa sổ bởi myzig: menu ngữ cảnh được mở
 
 <a id="a-menu-s-state-and-items"></a>
 
+<!-- demo: menu height=520 -->
+
 ![Menu Sort by đang mở, với Name được chọn.](../../images/ui/menu.png)
 
 *Menu Sort by đang mở, với Name được chọn.*
@@ -118,6 +120,8 @@ if (ui.menu(c, &s.palette)) |m| {
 <a id="selects"></a>
 
 ## Lựa chọn
+
+<!-- demo: selects height=168 -->
 
 ![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
 

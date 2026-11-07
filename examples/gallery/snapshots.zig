@@ -77,6 +77,7 @@ pub fn main(init: std.process.Init) !void {
     for ([_]struct { []const u8, []const u8 }{
         .{ "command-palette", "click:Open commands;visible:Workspace settings" },
         .{ "sheet", "click:Open details;wait:0.5;visible:Save details" },
+        .{ "drawer", "click:Open drawer;wait:1;visible:Submit" },
     }) |entry| {
         var panels: Feedback = .{};
         panels.init();
@@ -88,7 +89,7 @@ pub fn main(init: std.process.Init) !void {
         .{ "popover", "click:Edit name…;visible:Done" },
         .{ "dialog", "click:Rename…;visible:Rename the note" },
         .{ "menu", "click:Sort by;visible:Date modified" },
-        .{ "toast", "click:With an action;visible:Undo" },
+        .{ "toast", "click:Success;click:Warning;click:With an action;wait:0.6;visible:Undo" },
     }) |entry| {
         var overlays: Overlays = .{};
         overlays.init();

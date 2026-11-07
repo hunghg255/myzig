@@ -9,6 +9,8 @@ the same parts.
 
 For one line of text, use `ui.textField` ([Text input](text-input.md)).
 
+<!-- demo: text-area height=248 -->
+
 ![A multiline text area with its byte count and caret line.](../images/ui/text-area.png)
 
 *A multiline text area with its byte count and caret line.*

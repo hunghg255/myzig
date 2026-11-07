@@ -8,6 +8,8 @@ Bố cục chạy mọi frame, theo hai lần: `measure` kích thước các h�
 
 <a id="containers"></a>
 
+<!-- demo: layout height=374 -->
+
 ![Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.](../../images/ui/layout.png)
 
 *Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.*

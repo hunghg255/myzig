@@ -8,6 +8,8 @@ can, with Metal on macOS, Direct3D 11 on Windows, OpenGL on Linux and WebGL 2
 in browsers, and with its own CPU renderer (the same pixels) everywhere
 else; see [rendering](rendering.md).
 
+<!-- demo: controls height=520 -->
+
 ![Gallery running with the light theme: buttons, switches, sliders and a text field.](../images/ui/controls.png)
 
 *Gallery running with the light theme: buttons, switches, sliders and a text field.*
@@ -138,6 +140,7 @@ Widgets:
 - [Empty, loading and alerts](feedback.md): empty content, skeleton placeholders and inline notices.
 - [Command palette](command-palette.md): searchable actions with keyboard navigation.
 - [Sheet](sheet.md): modal panels on the window's edges.
+- [Drawer](drawer.md): panels from an edge that the pointer drags, with snap points (vaul).
 - [Button and toggle groups](button-groups.md)
 - [Multi-select](multi-select.md)
 - [Date range picker](date-range.md)

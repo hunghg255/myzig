@@ -8,6 +8,8 @@ Trang Vẽ của thư viện có các ví dụ bên dưới (`examples/gallery/d
 
 <a id="a-canvas"></a>
 
+<!-- demo: drawing height=520 -->
+
 ![Đường vẽ canvas, gradient, nét đứt, hình khối và ảnh SVG.](../../images/ui/drawing.png)
 
 *Đường vẽ canvas, gradient, nét đứt, hình khối và ảnh SVG.*

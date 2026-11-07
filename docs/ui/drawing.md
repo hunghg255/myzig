@@ -9,6 +9,8 @@ per-pixel effects, see [Shaders](shaders.md).
 The gallery's Drawing page has the examples below
 (`examples/gallery/drawing.zig`, `zig build run-gallery`).
 
+<!-- demo: drawing height=520 -->
+
 ![Canvas paths, gradients, dashed strokes, shapes and SVG images.](../images/ui/drawing.png)
 
 *Canvas paths, gradients, dashed strokes, shapes and SVG images.*

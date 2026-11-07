@@ -1,5 +1,7 @@
 # Date range picker
 
+<!-- demo: date-range height=520 -->
+
 ![Calendar choosing an inclusive date range with unavailable days.](../images/ui/date-range.png)
 
 `dateRangeInput` commits an inclusive `DateRange` after the user chooses

@@ -2,9 +2,11 @@
 
 # Lớp phủ
 
-Lớp phủ là các hộp được vẽ trên mọi thứ khác trong cửa sổ: cửa sổ bật lên bên cạnh một phần tử, chú giải công cụ, hộp thoại trên cửa sổ bị mờ, hộp thoại cảnh báo và lời chúc mừng. Menu và lựa chọn cũng là lớp phủ; họ có [một trang của riêng mình](menus.md).
+Lớp phủ là các hộp được vẽ trên mọi thứ khác trong cửa sổ: cửa sổ bật lên bên cạnh một phần tử, chú giải công cụ, hộp thoại trên cửa sổ bị mờ, hộp thoại cảnh báo và toast. Menu và lựa chọn cũng là lớp phủ; họ có [một trang của riêng mình](menus.md).
 
 Lớp phủ được tạo ở vị trí thuộc về nó trong view, bên cạnh nội dung mở nó nhưng nó được bố trí trên cửa sổ (`Context.openOverlay`) và nó đưa con trỏ đến trước các hộp bên dưới nó. Liệu một hiển thị có phải là trạng thái của ứng dụng hay không: một `ui.OverlayState` được giữ trong cấu trúc của ứng dụng, ứng dụng này sẽ mở và widget sẽ đóng khi người dùng loại bỏ nó.
+
+<!-- demo: popover height=520 -->
 
 ![Popover đang mở, neo vào nút Edit name.](../../images/ui/popover.png)
 
@@ -156,41 +158,72 @@ switch (ui.alertDialog(c, &s.alert, "Delete “Groceries”?", "You can't undo t
 
 <a id="toasts"></a>
 
-## Nâng cốc chúc mừng
+## Toast
 
-![Thông báo toast có thao tác Undo ở cuối view.](../../images/ui/toast.png)
+Thông báo ngắn ở một góc cửa sổ, tự biến mất sau vài giây: bản port của [sonner](https://sonner.emilkowal.ski), toast mà shadcn/ui dùng.
 
-*Thông báo toast có thao tác Undo ở cuối view.*
+<!-- demo: toasts height=300 -->
 
-Lời chúc mừng là những tin nhắn ngắn ở gần cuối cửa sổ, kết quả của những gì người dùng vừa làm sẽ xuất hiện sau vài giây. Ứng dụng giữ một `ui.Toasts` trên mỗi cửa sổ và thêm vào nó từ bất kỳ đâu trong view:
+![Các toast xếp chồng ở góc dưới bên phải, cái mới nhất có Undo ở phía trước.](../../images/ui/toast.png)
+
+*Các toast xếp chồng ở góc dưới bên phải, cái mới nhất có Undo ở phía trước.*
+
+Giữ một `ui.Toasts` cho mỗi cửa sổ, thêm toast ở bất kỳ đâu, và dựng nó cuối cùng trong view:
 
 ```zig
-if (ui.button(c, "Save", .{}).clicked) _ = s.toasts.show("Saved");
+if (ui.button(c, "Save", .{}).clicked) _ = s.toasts.success("Saved");
 if (ui.button(c, "Delete", .{}).clicked) s.undo = s.toasts.showAction("Moved to Trash", "Undo");
-if (ui.button(c, "Connect", .{}).clicked) _ = s.toasts.add(.{ .title = "Couldn't connect", .kind = .@"error" });
-```
 
-và xây dựng chúng một lần, cuối cùng trong view, để chúng nằm trên các lớp phủ khác:
-
-```zig
+// Cuối view:
 const r = ui.toasts(c, &s.toasts);
 if (r.action) |id| if (id == s.undo) s.restore();
 ```
 
-`ui.Toast`, `add` cần những gì (chuỗi của nó được sao chép, vì vậy `c.print` vẫn ổn):
+**Thêm toast.** `show`, `success`, `info`, `warning` và `failure` nhận một tiêu đề. `add` nhận một `ui.Toast`:
 
-| trường | Mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `title` | | |
-| `description` | `""` | dòng thứ hai |
-| `kind` | `.info` | `.info`, `.success` hoặc `.@"error"`, đặt biểu tượng và màu sắc của nó |
-| `timeout` | 0 | giây nó hiển thị: 4 khi 0 (8 với một hành động), cho đến khi đóng khi âm |
-| `action` | `""` | một nút đóng nó, được báo cáo bởi `ui.toasts` |
-| `key` | `""` | đặt tên cho nó: thêm một lời chúc mừng với phím của một cái hiển thị những thay đổi cái đó, hiển thị lại (tiêu đề của nó khi trống) |
+| `title`, `description` | | description là dòng thứ hai, màu nhạt |
+| `kind` | `.normal` | `.info`, `.success`, `.warning`, `.@"error"`, hoặc `.loading` (vòng xoay cho đến khi được đổi) |
+| `timeout` | 0 | số giây: 4 khi là 0 (8 nếu có action); âm thì hiện đến khi đóng |
+| `action`, `cancel` | `""` | các nút đóng toast, báo về qua `r.action` và `r.cancel` |
+| `key` | tiêu đề | thêm lại cùng key thì đổi toast đó ngay tại chỗ |
+| `icon` | | một biểu tượng thay cho biểu tượng của loại |
+| `content` | `null` | một `ui.View` dựng thay cho biểu tượng, tiêu đề và mô tả |
+| `dismissible` | `true` | vuốt, nút đóng và Cancel đóng được nó |
+| `close_button`, `rich_colors` | `null` | ghi đè thiết lập của `ui.Toasts` cho riêng toast này |
 
-`add`, `show` và `showAction` trả về id của thông báo toast; `close(id)`, `closeAll()`, `has(id)` và `count()` hãy làm theo những gì họ nói. `ui.toasts` trả về `ui.ToastResult` có `action` là thông báo toast có nút được nhấp vào trong khung này và `closed` nút được đóng bằng nút đóng.
+**Việc chạy lâu** (như `toast.promise` của sonner): một toast loading, rồi cùng key đó với kết quả.
 
-Ba chương trình mới nhất, xếp chồng lên nhau; những người lớn tuổi hơn đang ẩn nấp chờ đợi, thời gian của họ đang trôi đi. Thời gian của họ là đồng hồ của ngữ cảnh (`Context.time`), không phải của bức tường và nó dừng khi con trỏ nằm trên chúng. Con trỏ đi qua căn phòng xung quanh họ.
+```zig
+_ = s.toasts.loading("Uploading report.pdf…", "upload");
+// Khi xong:
+_ = s.toasts.add(.{ .title = "report.pdf uploaded", .kind = .success, .key = "upload" });
+```
+
+**Cách hiển thị**, các trường của `ui.Toasts`:
+
+| Trường | Mặc định | |
+|---|---|---|
+| `position` | `.bottom_right` | một góc bất kỳ, hoặc `.top_center` / `.bottom_center` |
+| `expand` | `false` | luôn xòe ra, không chỉ khi con trỏ ở trên |
+| `visible` | 3 | số toast hiện cùng lúc |
+| `gap`, `offset` | 14, 24 | khoảng cách giữa các toast; tới mép cửa sổ |
+| `rich_colors` | `false` | nhuộm màu theo loại: xanh lá, xanh dương, vàng, đỏ |
+| `close_button` | `false` | nút đóng ở góc mỗi toast |
+| `invert` | `false` | toast tối trên theme sáng, toast sáng trên theme tối |
+| `swipe_directions` | các mép toast đang nằm | những hướng vuốt sẽ đóng toast |
+| `hotkey` | `true` | Alt+T đưa bàn phím tới toast; Escape trả lại |
+
+**`ui.toasts` báo về** trong frame này, qua `ui.ToastResult`: `action`, `cancel`, `closed` (bằng nút đóng hoặc vuốt) và `timed_out`. `close(id)`, `closeAll()`, `has(id)` và `count()` làm đúng như tên gọi.
+
+**Hành vi**
+
+- Toast mới nhất ở trước, các toast cũ nhô ra phía sau; khi con trỏ ở trên, cả chồng xòe ra.
+- Vuốt 45 điểm, hoặc vuốt nhanh, về phía mép thì đóng toast; vuốt ngắn hơn thì toast bật về.
+- Thời gian dừng khi con trỏ hoặc bàn phím ở trên toast. Đây là đồng hồ của context, nên `ui.Tester` điều khiển được.
+- Cửa sổ hẹp dưới 600 điểm thì toast chiếm hết bề ngang.
+- Trình đọc màn hình đọc từng toast khi nó xuất hiện hoặc thay đổi.
 
 <a id="building-overlays-of-your-own"></a>
 

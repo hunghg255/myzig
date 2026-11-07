@@ -4,6 +4,8 @@
 
 `ui.codeEditor` chỉnh sửa mã nguồn, sau trình soạn thảo của Zed và mygo của `ui/editor`: một dãy số dòng, màu cú pháp, dòng của dấu mũ được điền, thụt lề, dấu ngoặc và dấu ngoặc kép đóng khi chúng được nhập, dấu ngoặc ở dấu mũ khớp, một thanh tìm kiếm cũng thay thế (theo kiểu chữ, toàn bộ từ hoặc biểu thức thông thường), đi đến một dòng và dấu kết thúc mềm hoặc dòng dài cuộn sang một bên. `ui.diffView` hiển thị những thay đổi giữa hai văn bản, hợp nhất hoặc cạnh nhau. Cả hai chỉ xây dựng các dòng trong view, do đó, một tệp gồm 100 000 dòng có chi phí tương đương với một màn hình.
 
+<!-- demo: code-editor height=335 -->
+
 ![Trình soạn thảo Zig với tô màu cú pháp và số dòng.](../../images/ui/code-editor.png)
 
 *Trình soạn thảo Zig với tô màu cú pháp và số dòng.*
@@ -114,6 +116,8 @@ Các biểu thức chính quy được đối sánh bằng một máy quay lui n
 <a id="the-diff-viewer"></a>
 
 ## Trình xem khác biệt
+
+<!-- demo: diff height=355 -->
 
 ![Bản diff với dòng bị xóa màu đỏ và dòng thêm mới màu xanh.](../../images/ui/diff.png)
 

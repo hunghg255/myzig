@@ -14,6 +14,8 @@ data the clipboard and the system's drag and drop carry (see
 on in the system's drag and drop where myzig has one (Windows, OLE), to
 other windows and other apps.
 
+<!-- demo: drag-and-drop height=386 -->
+
 ![Draggable task cards in To do, Doing and Done columns, beside a trash target.](../images/ui/drag-and-drop.png)
 
 *Draggable task cards in To do, Doing and Done columns, beside a trash target.*

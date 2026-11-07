@@ -98,3 +98,15 @@ The documentation site's demos (`examples/gallery/live-fonts`,
 [Inter](https://github.com/rsms/inter) 4.1, Copyright (c) 2016 The Inter
 Project Authors, SIL Open Font License 1.1, kept in
 [`third_party/licenses/Inter-OFL.txt`](third_party/licenses/Inter-OFL.txt).
+
+## sonner and vaul
+
+Toasts (`src/ui/toast.zig`, `src/ui/toast_view.zig`) follow the behavior,
+measures and colors of [sonner](https://github.com/emilkowalski/sonner) as of
+commit [`8e4662b`](https://github.com/emilkowalski/sonner/tree/8e4662b39255120b62138312058f5d77c0139a5e),
+and drawers (`src/ui/drawer.zig`, `src/ui/drawer_drag.zig`) those of
+[vaul](https://github.com/emilkowalski/vaul) as of commit
+[`3e97aac`](https://github.com/emilkowalski/vaul/tree/3e97aac6a38e4481bade71d7233ed6002e80f9b0),
+both MIT License, Copyright (c) 2023 Emil Kowalski. Their licenses are kept
+verbatim in [`third_party/licenses/sonner-MIT.txt`](third_party/licenses/sonner-MIT.txt)
+and [`third_party/licenses/vaul-MIT.txt`](third_party/licenses/vaul-MIT.txt).

@@ -22,10 +22,12 @@ pub const all = [_]Demo{
     entry("overlays", Overlays),
     entry("chart", Chart),
     entry("palettes", Palettes),
+    entry("drawer", DrawerDemo),
 };
 
+/// The demo `name`, of these or the Gallery's (`live_gallery.zig`).
 pub fn find(name: []const u8) ?Demo {
-    for (all) |d| if (std.mem.eql(u8, d.name, name)) return d;
+    for (all ++ @import("live_gallery.zig").all) |d| if (std.mem.eql(u8, d.name, name)) return d;
     return null;
 }
 
@@ -231,3 +233,58 @@ const Palettes = struct {
         _ = ui.slider(c, &s.level, .{ .width = .{ .px = 280 }, .label = "Level" });
     }
 };
+
+const DrawerDemo = struct {
+    plain: ui.DrawerState = .{},
+    snapping: ui.DrawerState = .{},
+    outer: ui.DrawerState = .{},
+    inner: ui.DrawerState = .{},
+    side: ui.DrawerState = .{},
+    goal: i32 = 350,
+    clicks: u32 = 0,
+
+    fn view(s: *DrawerDemo, c: *ui.Context) void {
+        // The page shrinks back behind whichever drawer is open.
+        const back = ui.drawerBackground(c, if (s.snapping.visible()) &s.snapping else &s.plain);
+        page(c);
+        ui.text(c, "A drawer to drag", .{ .size = 16, .weight = .semibold });
+        ui.text(c, "Drag it down, or flick it, to close it; a short drag settles back.", .{ .color = c.theme.muted, .wrap = true });
+        ui.row(c, .{ .gap = 8 });
+        if (ui.button(c, "Open drawer", .{ .variant = .primary }).clicked) s.plain.show();
+        if (ui.button(c, "With snap points", .{}).clicked) s.snapping.show();
+        if (ui.button(c, "Nested", .{}).clicked) s.outer.show();
+        if (ui.button(c, "Not modal", .{}).clicked) s.side.toggle();
+        ui.end(c);
+        // Beside a drawer that is not modal, this still takes clicks.
+        if (ui.button(c, c.print("Clicked {d} times", .{s.clicks}), .{ .variant = .ghost }).clicked) s.clicks += 1;
+        ui.end(c);
+        back.end();
+        if (ui.drawer(c, &s.plain, .{ .label = "Move goal" })) |d| {
+            defer d.end();
+            moveGoal(c, &s.goal, &s.plain);
+        }
+        if (ui.drawer(c, &s.snapping, .{ .label = "Snap points", .snap_points = &.{ .{ .px = 140 }, .{ .fraction = 0.6 }, .{ .fraction = 1 } }, .fade_from = 1 })) |d| {
+            defer d.end();
+            ui.text(c, "Snap points", .{ .size = 16, .weight = .semibold });
+            ui.text(c, c.print("At {d} of 3: drag it up or down, or click the handle.", .{s.snapping.snap + 1}), .{ .color = c.theme.muted, .wrap = true });
+        }
+        if (ui.drawer(c, &s.outer, .{ .label = "Nested" })) |d| {
+            defer d.end();
+            ui.text(c, "A drawer", .{ .size = 16, .weight = .semibold });
+            ui.text(c, "Open another from it: this one shrinks back.", .{ .color = c.theme.muted, .wrap = true });
+            if (ui.button(c, "Open another", .{ .variant = .primary }).clicked) s.inner.show();
+            if (ui.drawer(c, &s.inner, .{ .label = "Nested drawer", .parent = &s.outer })) |n| {
+                defer n.end();
+                ui.text(c, "Another drawer", .{ .size = 16, .weight = .semibold });
+                ui.text(c, "Drag it down: the one behind comes forward with it.", .{ .color = c.theme.muted, .wrap = true });
+            }
+        }
+        if (ui.drawer(c, &s.side, .{ .label = "Not modal", .side = .right, .modal = false, .size = 240 })) |d| {
+            defer d.end();
+            ui.text(c, "Not modal", .{ .size = 16, .weight = .semibold });
+            ui.text(c, "The page beside it still takes clicks. Drag it right to close it.", .{ .color = c.theme.muted, .wrap = true });
+        }
+    }
+};
+
+const moveGoal = @import("feedback.zig").moveGoal;

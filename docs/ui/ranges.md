@@ -37,6 +37,8 @@ its value and bounds, and can step it.
 
 ## Range sliders
 
+<!-- demo: ranges height=233 -->
+
 ![A price range, stepper, number input, meter and loading spinner.](../images/ui/ranges.png)
 
 *A price range, stepper, number input, meter and loading spinner.*

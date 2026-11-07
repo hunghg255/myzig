@@ -1,5 +1,7 @@
 # Button and toggle groups
 
+<!-- demo: button-groups height=360 -->
+
 ![Joined actions and single or multiple toggle choices.](../images/ui/button-groups.png)
 
 `buttonGroup` joins related actions. Close the group with `end` after

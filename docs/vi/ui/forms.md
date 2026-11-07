@@ -6,6 +6,8 @@ Các điều khiển nhãn của trường, hiển thị mô tả hoặc lỗi b
 
 <a id="fields"></a>
 
+<!-- demo: forms height=453 -->
+
 ![Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.](../../images/ui/forms.png)
 
 *Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.*

@@ -3,6 +3,8 @@
 `ui.sheet` mở panel modal sát một cạnh cửa sổ. Dùng để xem chi tiết, cài
 đặt hoặc bộ lọc bên cạnh màn hình hiện tại.
 
+<!-- demo: panels height=520 -->
+
 ![Chi tiết workspace trong panel bên phải.](../../images/ui/sheet.png)
 
 ```zig

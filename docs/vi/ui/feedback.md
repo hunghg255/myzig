@@ -5,6 +5,8 @@ thị thông báo. Chúng dùng chung theme và renderer trên mọi backend.
 
 ## Nội dung trống
 
+<!-- demo: empty-state height=326 -->
+
 ![Workspace trống có nút tạo dự án.](../../images/ui/empty-state.png)
 
 ```zig
@@ -23,6 +25,8 @@ focus và hành động riêng. App quyết định khi nào hiển thị trạn
 và khi nào thay bằng dữ liệu thật.
 
 ## Skeleton khi tải
+
+<!-- demo: skeleton height=315 -->
 
 ![Các hàng giữ chỗ trong lúc tải nội dung.](../../images/ui/skeleton.png)
 
@@ -45,6 +49,8 @@ thật khi dữ liệu đến. Widget không nhận focus hay cung cấp văn b�
 cho công nghệ hỗ trợ; đặt tên nhóm bao quanh nếu cần thông báo đang tải.
 
 ## Alert trong trang
+
+<!-- demo: alerts height=366 -->
 
 ![Thông báo thông tin, cảnh báo và lỗi, có nút thử lại.](../../images/ui/alerts.png)
 

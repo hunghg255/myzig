@@ -4,6 +4,8 @@
 buttons inside a shared frame. Its input uses the same editing, selection,
 input methods and password handling as [text fields](text-input.md).
 
+<!-- demo: input-groups height=442 -->
+
 ![Search, URL and budget input groups, plus a disabled setting.](../images/ui/input-groups.png)
 
 ```zig

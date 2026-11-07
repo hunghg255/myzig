@@ -7,14 +7,17 @@
 //
 // clicks the text "Increment" (after the first frame) and expects the
 // text "1" to show; prints "web: ok" and exits 0 when it does. ARGS are the
-// app's arguments.
+// app's arguments; `--animates` among them (not passed on) says the view
+// moves on its own, drawing frames while nothing happens.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import { Wasi, Exit } from "./host_wasi.js";
 
-const [wasmPath, fontDir, click = "", expect = "", ...appArgs] = process.argv.slice(2);
+const [wasmPath, fontDir, click = "", expect = "", ...given] = process.argv.slice(2);
+const animates = given.includes("--animates");
+const appArgs = given.filter((a) => a !== "--animates");
 const fail = (what) => { console.error("web: FAIL " + what); process.exit(1); };
 
 const wasi = new Wasi(["app", ...appArgs], {});
@@ -91,7 +94,7 @@ if (colors.size < 3) fail("a frame of " + colors.size + " colors");
 
 const idle = frames.length;
 animate();
-if (frames.length !== idle) fail("frames while idle");
+if (!animates && frames.length !== idle) fail("frames while idle");
 
 if (click) {
   const r = find(click) || fail("no text " + click);

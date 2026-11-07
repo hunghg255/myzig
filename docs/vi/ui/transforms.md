@@ -6,6 +6,8 @@ Một hộp có thể được di chuyển, thu nhỏ, xoay và nghiêng khi nó
 
 <a id="transforms"></a>
 
+<!-- demo: transforms height=520 -->
+
 ![Phép xoay, gradient, blur và nền kính mờ do myzig render.](../../images/ui/transforms.png)
 
 *Phép xoay, gradient, blur và nền kính mờ do myzig render.*

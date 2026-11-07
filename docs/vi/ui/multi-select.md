@@ -1,5 +1,7 @@
 # Chọn nhiều mục
 
+<!-- demo: multi-select height=520 -->
+
 ![Popup tìm kiếm và giữ nhiều lựa chọn.](../../images/ui/multi-select.png)
 
 `multiSelect` kết hợp ô tìm kiếm và danh sách có đánh dấu chọn. Bộ lọc chỉ

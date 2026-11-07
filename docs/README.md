@@ -197,7 +197,10 @@ A page runs a demo where a comment names it above a picture:
 GitHub shows the picture alone. On the site the demo replaces it once it comes
 near the view, the picture its poster and what stays where the demo cannot
 run; a name that is not a demo fails the build. The demos are
-`examples/gallery/live_demos.zig`, one WebAssembly that every page shares.
+`examples/gallery/live_demos.zig`, small views of their own, and
+`examples/gallery/live_gallery.zig`, the Gallery's pages the pictures are
+taken of, showing only the picture's card: one WebAssembly that every
+page shares.
 The site is built where there is no Zig, so `docs/public/live` is committed:
 after changing a demo or what it draws, run `npm run live` (it needs Zig).
 `zig build test-web` runs every demo, and with `-Dweb-browser=...` runs one

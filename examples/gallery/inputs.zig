@@ -4,6 +4,7 @@ const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 const card = @import("basics.zig").card;
+const gallery = @import("basics.zig");
 
 const Plan = enum { free, pro, team };
 
@@ -51,7 +52,7 @@ pub const Inputs = struct {
 
     pub fn view(s: *Inputs, c: *ui.Context) void {
         const th = c.theme;
-        ui.heading(c, "Inputs");
+        gallery.heading(c, "Inputs");
         {
             card(c, "Choices");
             defer ui.end(c);

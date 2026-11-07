@@ -6,6 +6,8 @@ shared theme and renderer on every backend.
 
 ## Empty content
 
+<!-- demo: empty-state height=326 -->
+
 ![Empty workspace with an action to create a project.](../images/ui/empty-state.png)
 
 ```zig
@@ -24,6 +26,8 @@ Its buttons keep their own focus and actions. The app decides when it has
 no data and when to replace this state with content.
 
 ## Skeleton placeholders
+
+<!-- demo: skeleton height=315 -->
 
 ![Placeholder rows for content that is still loading.](../images/ui/skeleton.png)
 
@@ -47,6 +51,8 @@ fictitious text to assistive technology; name the surrounding group when
 it needs an accessible loading status.
 
 ## Inline alerts
+
+<!-- demo: alerts height=366 -->
 
 ![Informational, warning and error notices, including a retry action.](../images/ui/alerts.png)
 

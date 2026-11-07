@@ -27,6 +27,8 @@ test {
     _ = @import("tests_overlays_popover.zig");
     _ = @import("tests_overlays_menu.zig");
     _ = @import("tests_overlays_select.zig");
+    _ = @import("tests_toasts.zig");
+    _ = @import("tests_drawer.zig");
     _ = @import("controls_state.zig");
     _ = @import("tests_controls_choice.zig");
     _ = @import("tests_controls_range.zig");

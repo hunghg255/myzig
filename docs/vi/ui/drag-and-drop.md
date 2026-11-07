@@ -8,6 +8,8 @@ Dữ liệu là `myzig.transfer.Data`: các mục ở định dạng đã nhập
 
 <a id="a-board-of-cards"></a>
 
+<!-- demo: drag-and-drop height=386 -->
+
 ![Các thẻ công việc có thể kéo giữa To do, Doing và Done, cạnh vùng thả vào thùng rác.](../../images/ui/drag-and-drop.png)
 
 *Các thẻ công việc có thể kéo giữa To do, Doing và Done, cạnh vùng thả vào thùng rác.*

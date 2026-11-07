@@ -7,6 +7,8 @@ the monospaced font, with a Copy button. It is made for replies streaming
 in from a model: a token appended at the end of a long reply costs what it
 costs at its start.
 
+<!-- demo: markdown height=520 -->
+
 ![Rendered Markdown with lists, a quote, a table and highlighted Zig code.](../images/ui/markdown.png)
 
 *Rendered Markdown with lists, a quote, a table and highlighted Zig code.*

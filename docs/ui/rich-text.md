@@ -8,6 +8,8 @@ clipboard (its own rich copy, plain text and Markdown), input methods,
 Markdown shortcuts as you type, and builds only the blocks in view.
 `ui.richTextToolbar` is a toolbar of its formats.
 
+<!-- demo: rich-text height=456 -->
+
 ![The rich text editor and toolbar, with headings, inline formatting, tasks and a quote.](../images/ui/rich-text.png)
 
 *The rich text editor and toolbar, with headings, inline formatting, tasks and a quote.*

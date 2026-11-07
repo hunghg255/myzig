@@ -11,6 +11,8 @@ the pointer before the boxes under it. Whether one shows is the app's
 state: an `ui.OverlayState` kept in the app's struct, which the app opens
 and the widget closes when the user dismisses it.
 
+<!-- demo: popover height=520 -->
+
 ![An open popover anchored to the Edit name button.](../images/ui/popover.png)
 
 *An open popover anchored to the Edit name button.*
@@ -197,49 +199,79 @@ drawn by the operating system, see `myzig.dialog` in [System](../system.md).
 
 ## Toasts
 
-![A toast with an Undo action at the bottom of the view.](../images/ui/toast.png)
+Short messages in a corner that go after a few seconds: a port of
+[sonner](https://sonner.emilkowal.ski), shadcn/ui's toasts.
 
-*A toast with an Undo action at the bottom of the view.*
+<!-- demo: toasts height=300 -->
 
-Toasts are short messages near the bottom of the window, the outcome of
-what the user just did, which go after a few seconds. The app keeps one
-`ui.Toasts` per window and adds to it from anywhere in the view:
+![Toasts stacked in the bottom right corner, the newest with Undo in front.](../images/ui/toast.png)
+
+*Toasts stacked in the bottom right corner, the newest with Undo in front.*
+
+Keep one `ui.Toasts` per window, add to it anywhere, and build it last in
+the view:
 
 ```zig
-if (ui.button(c, "Save", .{}).clicked) _ = s.toasts.show("Saved");
+if (ui.button(c, "Save", .{}).clicked) _ = s.toasts.success("Saved");
 if (ui.button(c, "Delete", .{}).clicked) s.undo = s.toasts.showAction("Moved to Trash", "Undo");
-if (ui.button(c, "Connect", .{}).clicked) _ = s.toasts.add(.{ .title = "Couldn't connect", .kind = .@"error" });
-```
 
-and builds them once, last in the view, so that they are over the other
-overlays:
-
-```zig
+// Last in the view:
 const r = ui.toasts(c, &s.toasts);
 if (r.action) |id| if (id == s.undo) s.restore();
 ```
 
-`ui.Toast`, what `add` takes (its strings are copied, so `c.print` is
-fine):
+**Adding.** `show`, `success`, `info`, `warning` and `failure` take a title.
+`add` takes a `ui.Toast`:
 
 | Field | Default | |
 |---|---|---|
-| `title` | | |
-| `description` | `""` | a second line |
-| `kind` | `.info` | `.info`, `.success` or `.@"error"`, which sets its icon and color |
-| `timeout` | 0 | seconds it shows: 4 when 0 (8 with an action), until closed when negative |
-| `action` | `""` | a button that closes it, reported by `ui.toasts` |
-| `key` | `""` | names it: adding a toast with the key of one showing changes that one, which shows anew (its title when empty) |
+| `title`, `description` | | the description is a muted second line |
+| `kind` | `.normal` | `.info`, `.success`, `.warning`, `.@"error"`, or `.loading` (a spinner until changed) |
+| `timeout` | 0 | seconds: 4 when 0 (8 with an action); negative stays until closed |
+| `action`, `cancel` | `""` | buttons that close it, reported as `r.action` and `r.cancel` |
+| `key` | the title | adding the same key again changes that toast in place |
+| `icon` | | a symbol in place of the kind's icon |
+| `content` | `null` | a `ui.View` built in place of icon, title and description |
+| `dismissible` | `true` | a swipe, the close button and Cancel close it |
+| `close_button`, `rich_colors` | `null` | override the `ui.Toasts` setting for this toast |
 
-`add`, `show` and `showAction` return the toast's id; `close(id)`,
-`closeAll()`, `has(id)` and `count()` do what they say. `ui.toasts`
-returns a `ui.ToastResult` whose `action` is the toast whose button was
-clicked in this frame, and `closed` the one closed by its close button.
+**Work that takes a while** (sonner's `toast.promise`): a loading toast,
+then the same key with how it went.
 
-The newest three show, stacked above one another; older ones wait hidden,
-their time running. Their time is the context's clock (`Context.time`),
-not the wall's, and it stops while the pointer rests on them. The pointer
-goes through the room around them.
+```zig
+_ = s.toasts.loading("Uploading report.pdf…", "upload");
+// When it is done:
+_ = s.toasts.add(.{ .title = "report.pdf uploaded", .kind = .success, .key = "upload" });
+```
+
+**How they show**, the fields of `ui.Toasts`:
+
+| Field | Default | |
+|---|---|---|
+| `position` | `.bottom_right` | any corner, or `.top_center` / `.bottom_center` |
+| `expand` | `false` | always spread out, not only under the pointer |
+| `visible` | 3 | how many show at once |
+| `gap`, `offset` | 14, 24 | between toasts; to the window's edges |
+| `rich_colors` | `false` | tinted after the kind: green, blue, amber, red |
+| `close_button` | `false` | a close button at each toast's corner |
+| `invert` | `false` | dark toasts in the light theme, light in the dark |
+| `swipe_directions` | the edges they are at | which ways a swipe closes one |
+| `hotkey` | `true` | Alt+T takes the keyboard to them; Escape gives it back |
+
+**What `ui.toasts` reports** this frame, in `ui.ToastResult`: `action`,
+`cancel`, `closed` (by the close button or a swipe) and `timed_out`.
+`close(id)`, `closeAll()`, `has(id)` and `count()` do what they say.
+
+**Behavior**
+
+- The newest is in front, older ones peek out behind it; the stack spreads
+  out under the pointer.
+- A swipe of 45 points, or a fast one, toward the edge closes a toast; a
+  shorter one springs back.
+- Their time stops while the pointer or the keyboard is on them. It is
+  the context's clock, so `ui.Tester` drives it.
+- Below 600 points of width they take the window's width.
+- Screen readers read each as it comes or changes.
 
 ## Building overlays of your own
 

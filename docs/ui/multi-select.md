@@ -1,5 +1,7 @@
 # Multi-select
 
+<!-- demo: multi-select height=520 -->
+
 ![A searchable popup that retains multiple selections.](../images/ui/multi-select.png)
 
 `multiSelect` combines a search field with a persistent list of checked

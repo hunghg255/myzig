@@ -9,6 +9,8 @@ rounding, where no GPU draws: the CPU renderer and `ui.Tester`. So a shader
 works on every platform and in tests, and a mistake in it is a compile
 error of the app.
 
+<!-- demo: shaders height=288 -->
+
 ![The waves shader from this guide, rendered by myzig's CPU twin.](../images/ui/shaders.png)
 
 *The waves shader from this guide, rendered by myzig's CPU twin.*

@@ -3,6 +3,8 @@
 `ui.item` groups media, a title, a description and trailing actions into a
 content row. Use it for files, people, notifications and settings.
 
+<!-- demo: items height=386 -->
+
 ![Items with a file icon, an avatar, status badges and independent actions.](../images/ui/items.png)
 
 ```zig

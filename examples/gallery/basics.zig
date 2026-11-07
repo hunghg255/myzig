@@ -4,8 +4,26 @@ const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 
+/// The one card that shows, set by the documentation's demos
+/// (`live_gallery.zig`): the others are built, their state going on, but
+/// take no room, draw nothing and take no press.
+pub var only: ?[]const u8 = null;
+
+/// A page's heading, and a line under it: not in a demo of one card.
+pub fn heading(c: *ui.Context, title: []const u8) void {
+    if (only == null) ui.heading(c, title);
+}
+
+pub fn intro(c: *ui.Context, text: []const u8) void {
+    if (only == null) ui.label(c, text);
+}
+
 /// A card with a title: its children follow, then `ui.end`.
 pub fn card(c: *ui.Context, title: []const u8) void {
+    if (only) |o| if (!std.mem.eql(u8, o, title)) {
+        ui.card(c, .{ .absolute = true, .width = .{ .px = 0 }, .height = .{ .px = 0 }, .clip = true, .opacity = 0 });
+        return;
+    };
     ui.card(c, .{ .width = .fill, .gap = 12 });
     ui.text(c, title, .{ .weight = .semibold });
 }

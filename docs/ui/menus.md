@@ -8,6 +8,8 @@ tray menus, see [Menus](../menus.md); for the commands an app offers as
 menu items, buttons and shortcuts at once, see
 [Actions](navigation.md#actions).
 
+<!-- demo: menu height=520 -->
+
 ![The Sort by menu is open, with Name selected.](../images/ui/menu.png)
 
 *The Sort by menu is open, with Name selected.*
@@ -142,6 +144,8 @@ if (ui.menu(c, &s.palette)) |m| {
 ```
 
 ## Selects
+
+<!-- demo: selects height=168 -->
 
 ![Closed select, combobox and autocomplete controls.](../images/ui/selects.png)
 

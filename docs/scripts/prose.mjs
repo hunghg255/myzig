@@ -100,6 +100,15 @@ for (const [p, doc] of parsed) {
   for (const a of en.headings) if (!doc.anchors.has(a)) problems.push(`${p}: no anchor "${a}" (<a id="${a}"></a> above its heading)`)
 }
 
+// Vietnamese written through a non-UTF-8 pipe loses its accents to "?".
+const lost = /\p{L}\?\p{Ll}/u
+for (const p of [...pages.filter((p) => p.startsWith('vi/')), '.vitepress/vi.mts']) {
+  const lines = fs.readFileSync(path.join(root, p), 'utf8').split('\n')
+  lines.forEach((l, i) => {
+    if (lost.test(l.replace(/`[^`]*`/g, '').replace(/\?\?|\(\?[!:=]/g, ''))) problems.push(`${p}:${i + 1}: accents lost: ${l.trim().slice(0, 60)}`)
+  })
+}
+
 for (const p of problems) console.log(p)
 console.log(`${problems.length} problems in ${pages.length} pages`)
 process.exit(problems.length ? 1 : 0)

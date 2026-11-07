@@ -69,6 +69,22 @@ Cung cấp thư mục qua HTTP, với WebAssugging là `application/wasm`, như 
 
 `start` cũng lấy `container` (phần tử mà cửa sổ đi vào), `args` và `env` (dòng lệnh và môi trường của ứng dụng) và `webgl: false` để vẽ trên CPU.
 
+### Trong một trang của riêng bạn
+
+`embed: true` chạy app như khách trong một trang có đời sống riêng, như các bản thử của site này: trang giữ tiêu đề và bàn phím cho đến khi app được bấm, và thao tác chạm vẫn cuộn được trang. Con lăn trên app sẽ cuộn trang trừ khi có phần nào trong app cuộn được. `start` trả về host, và `destroy()` của nó gỡ app khi trang không cần nữa: cửa sổ, ngữ cảnh WebGL, bộ hẹn giờ và các listener.
+
+```js
+const host = await start({
+  wasm: "/app.wasm",
+  fonts: "/fonts/",
+  container: document.getElementById("demo"), // trang đặt chiều cao cho nó
+  args: ["app", "--demo=buttons"],
+  embed: true,
+});
+// Sau này:
+host.destroy();
+```
+
 <a id="fonts"></a>
 
 ## Phông chữ

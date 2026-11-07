@@ -125,6 +125,8 @@ Trong view, `ui.themes.apply(c, theme)` tạo chủ đề cho khung (những wid
 
 ## Bảng màu
 
+<!-- demo: palettes height=230 -->
+
 ![Các nút, công tắc và thanh trượt theo chủ đề của một bảng màu.](../../images/ui/controls.png)
 
 `ui.Palette` là một trong các chủ đề của [shadcn/ui](https://ui.shadcn.com): một nền xám với màu chính của riêng nó, hoặc lấy một màu nhấn làm màu chính:

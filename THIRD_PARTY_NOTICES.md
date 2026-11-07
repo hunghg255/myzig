@@ -90,3 +90,11 @@ The palettes of native UI (`src/ui/palettes.zig`) are the colors of
 [`42f3bb6`](https://github.com/shadcn-ui/ui/tree/42f3bb63b46a69e52a24bd005cdc9ec15ba7a7b9/apps/v4/registry/themes.ts),
 MIT License, Copyright (c) 2023 shadcn. The license is kept verbatim in
 [`third_party/licenses/shadcn-ui-MIT.txt`](third_party/licenses/shadcn-ui-MIT.txt).
+
+## Inter
+
+The documentation site's demos (`examples/gallery/live-fonts`,
+`docs/public/live/fonts`) draw their text with subsets of
+[Inter](https://github.com/rsms/inter) 4.1, Copyright (c) 2016 The Inter
+Project Authors, SIL Open Font License 1.1, kept in
+[`third_party/licenses/Inter-OFL.txt`](third_party/licenses/Inter-OFL.txt).

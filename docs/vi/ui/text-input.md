@@ -6,6 +6,8 @@
 
 <a id="text-fields"></a>
 
+<!-- demo: text-input height=120 -->
+
 ![Ô nhập chứa Ada; view hiển thị lời chào tương ứng.](../../images/ui/text-field.png)
 
 *Ô nhập chứa Ada; view hiển thị lời chào tương ứng.*

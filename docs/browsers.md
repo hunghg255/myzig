@@ -80,6 +80,27 @@ most servers do. `index.html` starts the app:
 `env` (the app's command line and environment), and `webgl: false` to draw
 on the CPU.
 
+### In a page of your own
+
+`embed: true` runs the app as a guest in a page that has its own life, as
+the demos of this site do: the page keeps its title and the keyboard until
+the app is clicked, and touches can still scroll it. A wheel over the app
+scrolls the page unless something in the app scrolls. `start` resolves to the
+host, whose `destroy()` removes the app when the page is done with it: its
+windows, their WebGL contexts, its timers and listeners.
+
+```js
+const host = await start({
+  wasm: "/app.wasm",
+  fonts: "/fonts/",
+  container: document.getElementById("demo"), // given a height by the page
+  args: ["app", "--demo=buttons"],
+  embed: true,
+});
+// Later:
+host.destroy();
+```
+
 ## Fonts
 
 Text is myzig's own TrueType, drawn from fonts the site bundles: the host

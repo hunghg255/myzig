@@ -183,3 +183,22 @@ The site defaults to English at the root URL. Choose **Tiếng Việt** in the
 language menu for the corresponding page under `/vi/`, or read the
 [Vietnamese edition](vi/README.md) directly. Both editions keep the same
 API names, commands and code examples.
+
+## Live demos
+
+A page runs a demo where a comment names it above a picture:
+
+```md
+<!-- demo: buttons height=76 -->
+
+![Primary, secondary and ghost buttons.](../images/ui/buttons.png)
+```
+
+GitHub shows the picture alone. On the site the demo replaces it once it comes
+near the view, the picture its poster and what stays where the demo cannot
+run; a name that is not a demo fails the build. The demos are
+`examples/gallery/live_demos.zig`, one WebAssembly that every page shares.
+The site is built where there is no Zig, so `docs/public/live` is committed:
+after changing a demo or what it draws, run `npm run live` (it needs Zig).
+`zig build test-web` runs every demo, and with `-Dweb-browser=...` runs one
+embedded in a real browser.

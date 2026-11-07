@@ -6,6 +6,8 @@
 
 <a id="sliders"></a>
 
+<!-- demo: sliders height=130 -->
+
 ![Hai thanh trượt hiển thị giá trị và một thanh tiến trình.](../../images/ui/sliders.png)
 
 *Hai thanh trượt hiển thị giá trị và một thanh tiến trình.*

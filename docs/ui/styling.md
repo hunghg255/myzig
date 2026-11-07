@@ -142,6 +142,8 @@ and accent outside a view.
 
 ## Palettes
 
+<!-- demo: palettes height=230 -->
+
 ![Buttons, switches and sliders in the theme of a palette.](../images/ui/controls.png)
 
 `ui.Palette` is one of [shadcn/ui](https://ui.shadcn.com)'s themes, a base of

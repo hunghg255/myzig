@@ -18,6 +18,8 @@ returns what happened in this frame.
 For a layout of cells in rows and columns that holds every child (a form,
 a dashboard), use [`ui.grid`](grid.md) instead.
 
+<!-- demo: virtual-list height=360 -->
+
 ![A virtual list of 10,000 rows; only the visible rows are built.](../images/ui/virtual-list.png)
 
 *A virtual list of 10,000 rows; only the visible rows are built.*

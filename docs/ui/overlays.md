@@ -127,6 +127,8 @@ if (ui.tooltipBase(c, info)) |box| {
 
 ## Dialogs
 
+<!-- demo: overlays height=300 -->
+
 ![The Rename dialog above a dimmed view.](../images/ui/dialog.png)
 
 *The Rename dialog above a dimmed view.*

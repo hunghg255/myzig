@@ -56,6 +56,7 @@ cd cli && zig build test      # the CLI (its own package); `zig build e2e` for a
 cd plugins/<name> && zig build test    # each plugin is its own package
 cd hillclimb && zig build run -Doptimize=ReleaseFast -- --label "change"   # benchmarks against mygo
 cd docs && npm install && npm run dev  # the VitePress docs site; `npm run build` fails on dead links
+cd docs && npm run live       # rebuild the site's live demos (examples/gallery/live_demos.zig) into docs/public/live
 ```
 
 `zig build test` has no filter option. To run one test, compile the module

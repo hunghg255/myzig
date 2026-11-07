@@ -6,6 +6,8 @@ Nhóm này gồm hộp kiểm và công tắc cho một tùy chọn, nhóm hộp
 
 <a id="checkboxes"></a>
 
+<!-- demo: toggles height=220 -->
+
 ![Công tắc, checkbox và segmented control trong Gallery.](../../images/ui/toggles.png)
 
 *Công tắc, checkbox và segmented control trong Gallery.*

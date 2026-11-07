@@ -4,6 +4,8 @@ Controls of a number: sliders and range sliders that set one, steppers and
 number inputs that step it, and meters, progress bars and spinners that
 show one (or show that work goes on).
 
+<!-- demo: sliders height=130 -->
+
 ![Two sliders with numeric values and a progress bar.](../images/ui/sliders.png)
 
 *Two sliders with numeric values and a progress bar.*

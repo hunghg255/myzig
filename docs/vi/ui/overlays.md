@@ -99,6 +99,8 @@ if (ui.tooltipBase(c, info)) |box| {
 
 ## Hộp thoại
 
+<!-- demo: overlays height=300 -->
+
 ![Hộp thoại Rename nằm trên view được làm tối.](../../images/ui/dialog.png)
 
 *Hộp thoại Rename nằm trên view được làm tối.*

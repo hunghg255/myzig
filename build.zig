@@ -185,6 +185,33 @@ pub fn build(b: *std.Build) void {
     const web_step = b.step("web", "Build counter and gallery for browsers into zig-out/web/<name>");
     const web_test = b.step("test-web", "Run counter and gallery built for browsers, headless under Node");
     const web_browser = b.option([]const u8, "web-browser", "Headless Chrome/Edge executable for DOM gesture tests");
+    // The documentation site's demos, with fonts they may publish. A package
+    // that depends on myzig has neither.
+    const live_fonts = "examples/gallery/live-fonts";
+    const live_there = if (std.Io.Dir.cwd().access(b.graph.io, live_fonts, .{})) true else |_| false;
+    if (live_there) {
+        const live = web.addSite(b, .{ .name = "live", .main = b.path("examples/gallery/live.zig"), .myzig = b.path("src"), .fonts = live_fonts, .install_subdir = "docs-live" });
+        b.step("docs-live", "Build the documentation site's demos into zig-out/docs-live").dependOn(live.step);
+        for ([_][3][]const u8{
+            .{ "buttons", "Primary", "Clicks: 1" },
+            .{ "toggles", "Remember me", "Remembered" },
+            .{ "sliders", "", "" },
+            .{ "text-input", "", "" },
+            .{ "virtual-list", "", "" },
+            .{ "data-table", "Next", "Margaret Hamilton" },
+            .{ "overlays", "Rename…", "Rename the note" },
+            .{ "chart", "", "" },
+            .{ "palettes", "Preview", "Clicks: 1" },
+        }) |d| web_test.dependOn(web.addNodeTestArgs(b, live, b.path("src"), d[1], d[2], &.{b.fmt("--demo={s}", .{d[0]})}));
+        if (web_browser) |browser| {
+            const guest = b.addSystemCommand(&.{"node"});
+            guest.addFileArg(b.path("src/web/test_browser_run.mjs"));
+            guest.addArg(browser);
+            guest.addDirectoryArg(live.dir);
+            guest.addArg("embed=1&arg=--demo=buttons");
+            web_test.dependOn(&guest.step);
+        }
+    }
     for ([_][3][]const u8{ .{ "counter", "Increment", "1" }, .{ "gallery", "Tasks", "2 of 3 left" }, .{ "gestures", "Zoom in", "Scale 2.00" } }) |e| {
         const app = web.addSite(b, .{ .name = e[0], .main = b.path(b.fmt("examples/{s}/main.zig", .{e[0]})), .myzig = b.path("src"), .fonts = web_fonts });
         web_step.dependOn(app.step);

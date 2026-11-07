@@ -3,6 +3,7 @@
 // GitHub; links out of docs/ (to AGENTS.md, the sources, hillclimb's
 // notes) go to the repository there.
 import { defineConfig } from 'vitepress'
+import fs from 'node:fs'
 import path from 'node:path'
 import { vietnamese, vietnameseSearch } from './vi.mts'
 
@@ -145,6 +146,34 @@ const architecture = [
   },
 ]
 
+const demos: string[] = JSON.parse(fs.readFileSync(new URL('../public/live/demos.json', import.meta.url), 'utf8'))
+
+/**
+ * `<!-- demo: buttons height=120 -->` above a picture runs that demo there on
+ * the site, the picture its poster. GitHub shows the picture alone. A demo
+ * that does not exist fails the build, as a dead link does.
+ */
+function liveDemos(md: any) {
+  md.core.ruler.push('myzig_live_demos', (state: any) => {
+    const tokens = state.tokens
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i]
+      if (t.type !== 'html_block') continue
+      const m = /^<!--\s*demo:\s*([a-z-]+)(?:\s+height=(\d+))?\s*-->\s*$/.exec(t.content)
+      if (!m) continue
+      const where = state.env.relativePath ?? 'a page'
+      if (!demos.includes(m[1])) throw new Error(`${where}: no demo "${m[1]}" (examples/gallery/live_demos.zig, then npm run live)`)
+      const inline = tokens[i + 2]
+      const picture = tokens[i + 1]?.type === 'paragraph_open' && inline?.children?.some((c: any) => c.type === 'image')
+      if (!picture) throw new Error(`${where}: demo "${m[1]}" is not above a picture`)
+      t.content = `<LiveDemo demo="${m[1]}"${m[2] ? ` :height="${m[2]}"` : ''}>\n`
+      const close = new state.Token('html_block', '', 0)
+      close.content = '</LiveDemo>\n'
+      tokens.splice(i + 4, 0, close)
+    }
+  })
+}
+
 /** A link out of docs/ (`../AGENTS.md` from a page) becomes the file's page in the repository. */
 function outOfDocs(md: any) {
   md.core.ruler.push('myzig_out_of_docs', (state: any) => {
@@ -189,7 +218,10 @@ export default defineConfig({
   lastUpdated: false,
   head: [['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]],
   markdown: {
-    config: outOfDocs,
+    config(md) {
+      outOfDocs(md)
+      liveDemos(md)
+    },
     theme: { light: 'github-light', dark: 'github-dark' },
   },
   themeConfig: {

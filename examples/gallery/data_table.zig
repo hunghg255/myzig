@@ -27,6 +27,10 @@ pub const DataTable = struct {
     pub fn view(s: *DataTable, c: *ui.Context) void {
         ui.heading(c, "Data table");
         ui.label(c, "Search, filter, sort, paginate and resize. Column indices remain stable.");
+        s.invoices(c);
+    }
+
+    pub fn invoices(s: *DataTable, c: *ui.Context) void {
         card(c, "Invoices");
         defer ui.end(c);
         ui.row(c, .{ .width = .fill, .gap = 12, .align_items = .center });

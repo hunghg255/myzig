@@ -23,3 +23,41 @@
   --vp-button-brand-hover-text: #1b1b1f;
   --vp-button-brand-active-text: #1b1b1f;
 }
+
+/* A demo running in a page (LiveDemo.vue). */
+.live-demo {
+  margin: 16px 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.live-demo-stage {
+  position: relative;
+  overflow: hidden;
+}
+.live-demo-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vp-c-bg);
+}
+.live-demo-poster p {
+  margin: 0;
+}
+.live-demo-poster img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.live-demo-caption {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-top: 1px solid var(--vp-c-divider);
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+}

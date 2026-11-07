@@ -6,6 +6,8 @@ Các nút, liên kết, huy hiệu, keycap, biểu tượng, hình ảnh, hình 
 
 <a id="buttons"></a>
 
+<!-- demo: buttons height=76 -->
+
 ![Các nút primary, secondary, ghost, danger và disabled, kèm badge và phím tắt.](../../images/ui/buttons.png)
 
 *Các nút primary, secondary, ghost, danger và disabled, kèm badge và phím tắt.*

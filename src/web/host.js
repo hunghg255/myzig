@@ -25,11 +25,15 @@ const dec = new TextDecoder();
 
 /// Starts the app: `wasm` its URL, `fonts` the directory of its fonts,
 /// listed in `fonts.json` there (fetched into /usr/share/fonts); `webgl`
-/// false draws on the CPU.
-export async function start({ wasm = "app.wasm", fonts = "fonts/", container = null, args = ["app"], env = {}, webgl = true } = {}) {
+/// false draws on the CPU; `embed` true is a guest in a page that has its
+/// own life: the page keeps its title and the keyboard until the app is
+/// clicked, touches can still scroll it, and `host.destroy()` removes the
+/// app when the page is done with it.
+export async function start({ wasm = "app.wasm", fonts = "fonts/", container = null, args = ["app"], env = {}, webgl = true, embed = false } = {}) {
   const host = new Host(container, args, env);
   host.webgl = webgl;
-  window.myzigHost = host;
+  host.embed = embed;
+  if (!embed) window.myzigHost = host;
   await host.load(wasm, fonts);
   host.start();
   return host;
@@ -44,6 +48,22 @@ class Host {
     this.capture = false;
     this.frames = new Map();
     this.dark = matchMedia("(prefers-color-scheme: dark)");
+    this.timers = new Set();
+    this.dead = false;
+  }
+
+  /// Removes the app from the page: its windows and their WebGL contexts,
+  /// and everything that would call it again. The app does not run after.
+  destroy() {
+    this.dead = true;
+    this.unlisten?.();
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
+    for (const w of this.windows.values()) {
+      if (w.gl) w.canvas.getContext("webgl2")?.getExtension("WEBGL_lose_context")?.loseContext();
+      w.remove();
+    }
+    this.windows.clear();
   }
 
   async load(url, fonts) {
@@ -74,9 +94,16 @@ class Host {
   listen() {
     const appearance = () => this.exports.myzig_web_appearance(this.isDark());
     this.dark.addEventListener("change", appearance);
-    new MutationObserver(appearance).observe(document.documentElement, { attributes: true, attributeFilter: ["data-myzig-theme"] });
+    const theme = new MutationObserver(appearance);
+    theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-myzig-theme"] });
     // A zoom or a move to another screen changes the device pixel ratio.
-    addEventListener("resize", () => { for (const w of this.windows.values()) w.sendSize(); });
+    const resize = () => { for (const w of this.windows.values()) w.sendSize(); };
+    addEventListener("resize", resize);
+    this.unlisten = () => {
+      this.dark.removeEventListener("change", appearance);
+      theme.disconnect();
+      removeEventListener("resize", resize);
+    };
   }
 
   isDark() {
@@ -101,14 +128,20 @@ class Host {
       window_open: (id, ptr, len) => {
         const title = this.str(ptr, len);
         this.windows.set(id, new HostWindow(this, id, title));
-        if (title) document.title = title;
+        if (title && !this.embed) document.title = title;
       },
       window_close: (id) => { w(id)?.remove(); this.windows.delete(id); },
-      window_title: (id, ptr, len) => { document.title = this.str(ptr, len); },
+      window_title: (id, ptr, len) => { if (!this.embed) document.title = this.str(ptr, len); },
       request_frame: (id) => w(id)?.requestFrame(),
       set_cursor: (id, c) => { const win = w(id); if (win) win.canvas.style.cursor = cursors[c] || "default"; },
       text_area: (id, x, y, width, h, focused) => w(id)?.placeTextArea(x, y, width, h, focused),
-      set_timeout: (ms, token) => setTimeout(() => this.exports.myzig_web_timer(token), ms),
+      set_timeout: (ms, token) => {
+        const t = setTimeout(() => {
+          this.timers.delete(t);
+          this.exports.myzig_web_timer(token);
+        }, ms);
+        this.timers.add(t);
+      },
       clipboard_write: (ptr, len) => {
         const text = this.str(ptr, len);
         this.copied = text;
@@ -133,7 +166,7 @@ class Host {
       gl_init: (id, vs, vsLen, fs, fsLen) => {
         const win = w(id);
         if (!win || !this.webgl) return false;
-        const g = GL.create(win.canvas, null, () => this.exports.myzig_web_context_restored(id));
+        const g = GL.create(win.canvas, null, () => { if (!this.dead) this.exports.myzig_web_context_restored(id); });
         if (!g || !g.init(this.str(vs, vsLen), this.str(fs, fsLen))) return false;
         win.gl = g;
         return true;
@@ -170,7 +203,7 @@ class HostWindow {
     Object.assign(root.style, { position: "absolute", inset: "0", overflow: "hidden" });
     const canvas = (this.canvas = document.createElement("canvas"));
     canvas.setAttribute("aria-label", title);
-    Object.assign(canvas.style, { display: "block", width: "100%", height: "100%", touchAction: "none", outline: "none" });
+    Object.assign(canvas.style, { display: "block", width: "100%", height: "100%", touchAction: host.embed ? "pan-y" : "none", outline: "none" });
     const ta = (this.ta = document.createElement("textarea"));
     ta.setAttribute("autocapitalize", "off");
     ta.setAttribute("autocomplete", "off");
@@ -185,7 +218,7 @@ class HostWindow {
     this.listen();
     this.observer = new ResizeObserver(() => this.sendSize());
     this.observer.observe(canvas);
-    queueMicrotask(() => ta.focus({ preventScroll: true }));
+    if (!host.embed) queueMicrotask(() => ta.focus({ preventScroll: true }));
   }
 
   remove() {
@@ -273,6 +306,11 @@ class HostWindow {
     c.addEventListener("pointerup", (e) => {
       const [x, y] = this.point(e);
       if (ex.myzig_web_pointer(id, 2, x, y, e.button, 0, this.mods(e))) e.preventDefault();
+    });
+    // The browser took the touch to scroll: nothing stays held.
+    c.addEventListener("pointercancel", (e) => {
+      const [x, y] = this.point(e);
+      ex.myzig_web_pointer(id, 2, x, y, 0, 0, this.mods(e));
     });
     c.addEventListener("pointerleave", (e) => ex.myzig_web_pointer(id, 3, 0, 0, 0, 0, this.mods(e)));
     c.addEventListener("contextmenu", (e) => e.preventDefault());

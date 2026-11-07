@@ -1,5 +1,7 @@
 # Ghép bảng dữ liệu
 
+<!-- demo: data-table height=350 -->
+
 ![Bảng hóa đơn có tìm kiếm, lọc, ẩn cột và phân trang.](../../images/ui/data-table.png)
 
 Trang **Data table** trong Gallery ghép `textField`, checkbox, `table`,

@@ -5,6 +5,8 @@ groups for several, radio buttons and segmented controls for one of a few,
 and ratings. Each edits a value of your state through a pointer and returns
 true when the user changed it, so you can act on the change.
 
+<!-- demo: toggles height=220 -->
+
 ![Switches, a checkbox and a segmented control in the Gallery.](../images/ui/toggles.png)
 
 *Switches, a checkbox and a segmented control in the Gallery.*

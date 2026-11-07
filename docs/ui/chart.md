@@ -6,6 +6,8 @@ are drawn on a canvas ([Drawing](drawing.md)) and follow the theme. Its
 parts (scales, paths of lines, areas and slices, stacks, the nearest point)
 are public too, for charts of your own.
 
+<!-- demo: chart height=300 -->
+
 ![Line and stacked-area charts with labels and legends.](../images/ui/chart.png)
 
 *Line and stacked-area charts with labels and legends.*

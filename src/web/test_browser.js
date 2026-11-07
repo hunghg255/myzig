@@ -96,9 +96,29 @@ async function gestures(host, id) {
   text(`Pan ${100 + canvas.clientWidth}`);
 }
 
+// `embed=1`: the app as a guest in a page, removed when the page is done.
+async function embedded() {
+  const title = document.title;
+  const host = await start({ wasm: "app.wasm", fonts: "fonts/", embed: true, args: ["app", ...params.getAll("arg")] });
+  await settle(host);
+  if (host.windows.size !== 1) throw new Error("no window");
+  if (document.title !== title) throw new Error("the page's title changed to " + document.title);
+  if (document.activeElement?.tagName === "TEXTAREA") throw new Error("the app took the keyboard");
+  const canvas = document.querySelector(".myzig-window canvas");
+  if (canvas.style.touchAction !== "pan-y") throw new Error("touches do not scroll the page");
+  host.destroy();
+  if (document.querySelector(".myzig-window")) throw new Error("a window is left");
+  // Nothing calls the app any more.
+  dispatchEvent(new Event("resize"));
+  document.documentElement.dataset.myzigTheme = "dark";
+  await tick();
+  report("web: ok embedded");
+}
+
 // `theme=dark` (or light) is the page's choice of appearance.
 if (params.get("theme")) document.documentElement.dataset.myzigTheme = params.get("theme");
-try {
+if (params.has("embed")) embedded().catch((e) => report("web: FAIL " + (e?.message ?? e)));
+else try {
   const host = await start({ wasm: "app.wasm", fonts: "fonts/", webgl: params.get("webgl") !== "0" });
   host.capture = true;
   await settle(host);

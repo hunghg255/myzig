@@ -3,6 +3,8 @@
 Buttons, links, badges, key caps, icons, pictures, avatars and a history's
 back and forward buttons: the small pieces most views are made of.
 
+<!-- demo: buttons height=76 -->
+
 ![Primary, secondary, ghost, danger and disabled buttons, with a badge and key cap.](../images/ui/buttons.png)
 
 *Primary, secondary, ghost, danger and disabled buttons, with a badge and key cap.*

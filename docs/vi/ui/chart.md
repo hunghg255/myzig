@@ -4,6 +4,8 @@
 
 `ui.chart` vẽ biểu đồ đường, vùng, thanh, phân tán và hình tròn bằng các trục, đường lưới, chú giải và chú giải công cụ về điểm gần con trỏ nhất. Chúng được vẽ trên canvas ([Bản vẽ](drawing.md)) và theo chủ đề. Các phần của nó (tỷ lệ, đường dẫn của đường, vùng và lát cắt, ngăn xếp, điểm gần nhất) cũng được công khai cho các biểu đồ của riêng bạn.
 
+<!-- demo: chart height=300 -->
+
 ![Biểu đồ đường và vùng xếp chồng có nhãn và chú giải.](../../images/ui/chart.png)
 
 *Biểu đồ đường và vùng xếp chồng có nhãn và chú giải.*

@@ -17,6 +17,8 @@ Bộ sưu tập các mục: danh sách ảo hóa, cây cối, đường viền, 
 
 <a id="lists"></a>
 
+<!-- demo: virtual-list height=360 -->
+
 ![Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.](../../images/ui/virtual-list.png)
 
 *Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.*

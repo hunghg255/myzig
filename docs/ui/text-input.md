@@ -5,6 +5,8 @@
 field of chips, a combobox and an autocomplete. For several lines, see the
 [text area](text-area.md); for code, the [code editor](code-editor.md).
 
+<!-- demo: text-input height=120 -->
+
 ![The text field contains Ada; the view immediately shows the greeting.](../images/ui/text-field.png)
 
 *The text field contains Ada; the view immediately shows the greeting.*

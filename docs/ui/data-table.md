@@ -1,5 +1,7 @@
 # Data table composition
 
+<!-- demo: data-table height=350 -->
+
 ![Invoices with search, status filtering, column visibility and pagination.](../images/ui/data-table.png)
 
 The Gallery's **Data table** page composes `textField`, checkboxes,

@@ -3,20 +3,21 @@
 // stubbed (no WebGL: frames are drawn on the CPU and kept here), then
 // checks a frame draws and clicking a text changes the view.
 //
-//   node src/web/test_node.mjs app.wasm FONT_DIR "Increment" "1"
+//   node src/web/test_node.mjs app.wasm FONT_DIR "Increment" "1" [ARGS...]
 //
 // clicks the text "Increment" (after the first frame) and expects the
-// text "1" to show; prints "web: ok" and exits 0 when it does.
+// text "1" to show; prints "web: ok" and exits 0 when it does. ARGS are the
+// app's arguments.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import { Wasi, Exit } from "./host_wasi.js";
 
-const [wasmPath, fontDir, click = "", expect = ""] = process.argv.slice(2);
+const [wasmPath, fontDir, click = "", expect = "", ...appArgs] = process.argv.slice(2);
 const fail = (what) => { console.error("web: FAIL " + what); process.exit(1); };
 
-const wasi = new Wasi(["app"], {});
+const wasi = new Wasi(["app", ...appArgs], {});
 if (fontDir) for (const f of readdirSync(fontDir)) if (/\.tt[fc]$/i.test(f)) wasi.writeFile("/usr/share/fonts/" + f, new Uint8Array(readFileSync(join(fontDir, f))));
 
 const running = {};

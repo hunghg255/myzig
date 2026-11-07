@@ -117,11 +117,17 @@ fn bundleDir(b: *std.Build, wf: *std.Build.Step.WriteFile, dir_path: []const u8,
 /// draws, nothing draws while idle, and clicking the text `click` shows
 /// the text `expect`. Needs `node` on the PATH.
 pub fn addNodeTest(b: *std.Build, app: Site, myzig_src: std.Build.LazyPath, click: []const u8, expect: []const u8) *std.Build.Step {
+    return addNodeTestArgs(b, app, myzig_src, click, expect, &.{});
+}
+
+/// `addNodeTest`, the app run with `args`.
+pub fn addNodeTestArgs(b: *std.Build, app: Site, myzig_src: std.Build.LazyPath, click: []const u8, expect: []const u8, args: []const []const u8) *std.Build.Step {
     const run = b.addSystemCommand(&.{"node"});
     run.addFileArg(myzig_src.path(b, "web/test_node.mjs"));
     run.addFileArg(app.wasm.getEmittedBin());
     run.addDirectoryArg(app.dir.path(b, "fonts"));
     run.addArgs(&.{ click, expect });
+    run.addArgs(args);
     run.addCheck(.{ .expect_stdout_match = "web: ok" });
     // Node has no WebGL 2: the CPU draws (said on stderr, every run).
     run.addCheck(.{ .expect_stderr_match = "frames are drawn on the CPU" });

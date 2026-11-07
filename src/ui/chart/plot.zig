@@ -57,8 +57,8 @@ pub const Result = struct {
 };
 
 pub const palette = [_]Color{
-    .hex(0x0a84ff), .hex(0xff9f0a), .hex(0x30d158), .hex(0xbf5af2),
-    .hex(0xff453a), .hex(0x64d2ff), .hex(0xffd60a), .hex(0xff375f),
+    .hex(0x3b82f6), .hex(0xf97316), .hex(0x22c55e), .hex(0x8b5cf6),
+    .hex(0xef4444), .hex(0x06b6d4), .hex(0xeab308), .hex(0xec4899),
 };
 
 pub fn colorOf(color: ?Color, i: usize) Color {

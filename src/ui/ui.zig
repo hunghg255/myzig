@@ -418,6 +418,7 @@ pub const RouteTransition = @import("router.zig").Transition;
 pub const preferences = @import("preferences.zig");
 pub const Preferences = preferences.Preferences;
 pub const themes = @import("themes.zig");
+pub const Palette = themes.Palette;
 pub const ThemeSwitcher = themes.Switcher;
 pub const Inspector = @import("inspector.zig").Inspector;
 pub const inspector = @import("inspector.zig").inspector;

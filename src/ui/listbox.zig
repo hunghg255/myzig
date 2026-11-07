@@ -115,10 +115,10 @@ pub fn popup(c: *Context, l: *ListState, anchor: types.Rect, labels: []const []c
         c.describe(it.id, .{ .role = .list_item, .label = lab, .selected = if (opts.selected) |sel| sel == i else on, .pos_in_set = @intCast(i + 1), .set_size = @intCast(labels.len) });
         if (on) l.highlight_id = it.id;
         if (on) {
-            c.node(row).style.background = th.accent;
+            c.node(row).style.background = th.surface_hover;
             hl_rect = it.rect;
         }
-        const fg = if (on) th.accent_text else th.text;
+        const fg = th.text;
         if (opts.selected != null) {
             _ = c.open(.{ .width = .{ .px = 14 }, .align_items = .center }, null);
             if (opts.selected == i) widgets.icon(c, "checkmark", .{ .size = 12, .weight = .semibold, .color = fg });

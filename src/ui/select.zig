@@ -65,8 +65,8 @@ pub fn select(c: *Context, selected: *usize, options: []const []const u8, s: *Se
     const focus = c.animate(it.id, 1, if (it.focused) 1 else 0, 20);
     const n = c.node(box);
     n.style.background = th.surface.mix(th.surface_hover, hover * 0.6);
-    n.style.border = th.border.mix(th.accent, focus);
-    n.style.shadow = if (focus > 0.01) .{ .color = th.accent.alpha(0.25 * focus), .blur = 6, .y = 0 } else .{ .color = th.shadow.alpha(0.5), .blur = 2, .y = 1 };
+    n.style.border = th.border.mix(th.ring, focus);
+    n.style.shadow = if (focus > 0.01) .{ .color = th.ring.alpha(0.25 * focus), .blur = 6, .y = 0 } else .{ .color = th.shadow.alpha(0.5), .blur = 2, .y = 1 };
     _ = c.open(.{ .grow = 1, .clip = true }, null);
     if (selected.* < options.len)
         widgets.text(c, options[selected.*], .{ .size = opts.size })

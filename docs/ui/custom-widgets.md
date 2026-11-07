@@ -203,7 +203,7 @@ pub fn pill(c: *ui.Context, title: []const u8, on: *bool) bool {
     const hover = c.animate(it.id, 1, if (it.hovered) 1 else 0, 20);
     const n = c.node(box);
     n.style.background = th.surface.mix(th.surface_hover, hover).mix(th.accent, t);
-    if (it.focused and c.focus_visible) n.style.border = th.accent;
+    if (it.focused and c.focus_visible) n.style.border = th.ring;
     ui.text(c, title, .{ .size = 13, .weight = .medium, .color = th.text.mix(th.accent_text, t) });
     return it.clicked;
 }
@@ -240,7 +240,7 @@ are what the built-in lists use.
 ## Theme
 
 `c.theme` is the window's `ui.Theme`: `background`, `surface`,
-`surface_hover`, `text`, `muted`, `border`, `accent`, `accent_hover`,
+`surface_hover`, `text`, `muted`, `border`, `ring`, `accent`, `accent_hover`,
 `accent_text`, `track`, `knob`, `danger`, `success`, `shadow`, and
 `dark`. Draw with its colors, not fixed ones, so that a widget follows
 light and dark and the app's own theme (see [Styling](styling.md)).

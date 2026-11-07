@@ -53,7 +53,7 @@ pub const Basics = struct {
             if (ui.button(c, "Ghost", .{ .variant = .ghost }).clicked) g.clicks += 1;
             if (ui.button(c, "Delete", .{ .variant = .danger }).clicked) g.clicks = 0;
             _ = ui.button(c, "Disabled", .{ .disabled = true });
-            ui.badge(c, c.print("{d} clicks", .{g.clicks}), c.theme.accent);
+            ui.badge(c, c.print("{d} clicks", .{g.clicks}), c.theme.accentInk());
             ui.kbd(c, "⌘K");
         }
         {

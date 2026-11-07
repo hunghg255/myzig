@@ -295,7 +295,7 @@ pub const V = struct {
             const on = task == .checked;
             const s = @round(v.em * 0.95);
             _ = c.open(.{ .width = .{ .px = s }, .height = .{ .px = s }, .radius = 3, .border = if (on) v.pal.accent else v.pal.border, .background = if (on) v.pal.accent else null, .align_items = .center, .justify = .center }, null);
-            if (on) _ = c.leaf(.{}, .{ .text = .{ .str = "✓", .style = .{ .size = s * 0.75, .weight = .bold }, .color = Color.white } }, null);
+            if (on) _ = c.leaf(.{}, .{ .text = .{ .str = "✓", .style = .{ .size = s * 0.75, .weight = .bold }, .color = c.theme.accent_text } }, null);
             c.end();
             return;
         }

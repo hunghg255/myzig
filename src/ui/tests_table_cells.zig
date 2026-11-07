@@ -55,13 +55,13 @@ test "cells: a click chooses a cell, Shift extends the rows and columns" {
     try testing.expectEqual(@as(?[2]usize, .{ 2, 4 }), s.state.rows());
     try testing.expectEqual(@as(?[2]usize, .{ 1, 2 }), s.state.cols);
     try testing.expect(s.state.cellChosen(3, 2) and !s.state.cellChosen(3, 0) and !s.state.cellChosen(5, 1));
-    // The block's cells show in the accent color, the others not.
+    // The block's cells show in the gray of a chosen row, the others not.
     t.frame();
-    var accent: usize = 0;
+    var gray: usize = 0;
     for (t.ctx.nodes.items) |n| if (n.style.background) |bg| {
-        if (std.meta.eql(bg, t.ctx.theme.accent)) accent += 1;
+        if (std.meta.eql(bg, t.ctx.theme.surface_hover)) gray += 1;
     };
-    try testing.expectEqual(@as(usize, 6), accent);
+    try testing.expectEqual(@as(usize, 6), gray);
 }
 
 test "cells: a drag chooses the cells it goes over, and says so while it goes" {

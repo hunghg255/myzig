@@ -91,7 +91,7 @@ pub fn row(c: *Context, ch: *Choice, i: usize, row_h: f32, list_id: u64, result:
     const now = Choice.chosen(ch, i);
     c.describe(it.id, .{ .role = .row, .selected = now });
     if (ch.selected == i) c.describe(list_id, .{ .active_descendant = it.id });
-    c.node(box).style.background = structure.rowBackground(c, now, c.focus == list_id, hover);
+    c.node(box).style.background = structure.rowBackground(c, now, hover);
 }
 
 /// Whether the row the element `index` is in was double-clicked with the

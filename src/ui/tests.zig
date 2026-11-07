@@ -134,11 +134,11 @@ test "the renderer draws what the view says" {
         }
     }.f;
     // The background is the light theme's.
-    try testing.expectEqual([3]u8{ 0xf5, 0xf5, 0xf7 }, at(pixels, 2, 2));
-    // The button's corner is the accent blue (#0a84ff), away from its label.
+    try testing.expectEqual([3]u8{ 0xff, 0xff, 0xff }, at(pixels, 2, 2));
+    // The button's corner is the accent (#18181b), away from its label.
     const r = t.findText("Increment").?;
     const b = at(pixels, @intFromFloat(r.x - 8), @intFromFloat(r.y + r.h / 2));
-    try testing.expectEqual([3]u8{ 0x0a, 0x84, 0xff }, b);
+    try testing.expectEqual([3]u8{ 0x18, 0x18, 0x1b }, b);
     // The digit is drawn: some pixel of its box is dark.
     const d = t.findText("0").?;
     var darkest: u8 = 255;

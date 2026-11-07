@@ -48,8 +48,8 @@ pub fn breadcrumbs(c: *Context, items: []const []const u8, chosen: *usize, opts:
         const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
         const n = c.node(box);
         n.style.background = th.text.alpha(0.06 * hover);
-        if (it.focused) n.style.border = th.accent;
-        widgets.text(c, name, .{ .size = opts.size, .color = th.muted.mix(th.accent, hover) });
+        if (it.focused) n.style.border = th.ring;
+        widgets.text(c, name, .{ .size = opts.size, .color = th.muted.mix(th.text, hover) });
     }
     return picked;
 }

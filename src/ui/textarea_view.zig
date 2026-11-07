@@ -376,7 +376,7 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
                 if (!e.empty() or e.caret < a_abs or e.caret > b_abs) continue;
                 if (e.caret == b_abs and sub + 1 < lr.rows.len) continue;
                 const xc = x0 + lr.xIn(sub, e.caret - lr.start);
-                _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
+                _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accentInk(), .offset = .{ .x = xc, .y = y } }, .none, null);
             };
             for (marks) |mk| {
                 if (mk.end == Mark.whole) continue;
@@ -415,7 +415,7 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
                 const xc = x0 + caret_pos.x;
                 caret_rect = .{ .x = view_rect.x + gutter_w + xc, .y = view_rect.y + y - f.scroll, .w = 1.5, .h = row_h };
                 if (focused and !cfg.read_only and ta.sel.empty() and cfg.caret_width > 0)
-                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accent, .offset = .{ .x = xc, .y = y } }, .none, null);
+                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accentInk(), .offset = .{ .x = xc, .y = y } }, .none, null);
             }
         }
         // What the view adds after the line's end.
@@ -564,9 +564,9 @@ pub fn textArea(c: *Context, ta: *TextArea, opts: Options) Result {
     var box: types.Style = .{ .width = opts.width, .height = height, .radius = 8 };
     if (!opts.bare) {
         box.background = th.surface;
-        box.border = th.border.mix(th.accent, focus_t);
+        box.border = th.border.mix(th.ring, focus_t);
         box.border_width = 1 + focus_t;
-        if (focus_t > 0.01) box.shadow = .{ .color = th.accent.alpha(0.25 * focus_t), .blur = 6, .y = 0 };
+        if (focus_t > 0.01) box.shadow = .{ .color = th.ring.alpha(0.25 * focus_t), .blur = 6, .y = 0 };
     }
     return view(c, ta, box, .{
         .style = style,

@@ -68,7 +68,7 @@ pub const InputGroup = struct {
             focused = false;
         }
         const n = c.node(g.index);
-        n.style.border = if (g.opts.invalid) c.theme.danger else if (focused) c.theme.accent else c.theme.border;
+        n.style.border = if (g.opts.invalid) c.theme.danger else if (focused) c.theme.ring else c.theme.border;
         n.style.border_width = if (focused) 2 else 1;
         c.end();
     }

@@ -21,7 +21,7 @@ pub const Alert = struct {
 
 pub fn alert(c: *Context, title: []const u8, description: []const u8, opts: Options) Alert {
     const color = switch (opts.kind) {
-        .info => c.theme.accent,
+        .info => c.theme.accentInk(),
         .success => c.theme.success,
         .warning => c.theme.warning,
         .danger => c.theme.danger,

@@ -66,8 +66,8 @@ pub const Toolbar = struct {
         const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
         const n = c.node(box);
         n.style.background = if (on) th.text.alpha(0.12) else th.text.alpha(0.07 * hover);
-        if (tb.focused and @as(usize, @intFromFloat(tb.current.*)) == index) n.style.border = th.accent;
-        const fg = if (on) th.accent else th.text;
+        if (tb.focused and @as(usize, @intFromFloat(tb.current.*)) == index) n.style.border = th.ring;
+        const fg = if (on) th.accentInk() else th.text;
         if (icon.len > 0) widgets.icon(c, icon, .{ .size = 14, .weight = .medium, .color = fg });
         if (title.len > 0) widgets.text(c, title, .{ .size = 13, .weight = .medium, .color = fg });
         const clicked = it.clicked or keyed;

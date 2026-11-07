@@ -76,18 +76,13 @@ pub fn matchPrefix(labels: []const []const u8, from: ?usize, typed: []const u8) 
     return null;
 }
 
-/// The background of a row: chosen (in the accent while its list has the
-/// focus, gray otherwise, as AppKit's), hovered, or none.
-pub fn rowBackground(c: *Context, chosen: bool, focused: bool, hover: f32) ?types.Color {
+/// The background of a row: chosen (the hover's gray), half of it hovered,
+/// or none. Text keeps its color on it.
+pub fn rowBackground(c: *Context, chosen: bool, hover: f32) ?types.Color {
     const th = c.theme;
-    if (chosen) return if (focused) th.accent else th.text.alpha(0.12);
-    if (hover > 0.01) return th.text.alpha(0.06 * hover);
+    if (chosen) return th.surface_hover;
+    if (hover > 0.01) return th.surface_hover.alpha(0.5 * hover);
     return null;
-}
-
-/// The text color on such a row.
-pub fn rowText(c: *Context, chosen: bool, focused: bool) types.Color {
-    return if (chosen and focused) c.theme.accent_text else c.theme.text;
 }
 
 test "step" {

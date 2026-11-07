@@ -31,7 +31,7 @@ pub const Palette = struct {
         return .{
             .text = t.text,
             .muted = t.muted,
-            .link = t.accent,
+            .link = t.accentInk(),
             .code = if (t.dark) Color.hex(0xe6a8a8) else Color.hex(0xb3304c),
             .code_bg = t.text.alpha(0.07),
             .block_bg = if (t.dark) Color.hex(0x232326) else Color.hex(0xf0f0f3),

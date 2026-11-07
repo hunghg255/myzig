@@ -51,7 +51,7 @@ pub fn timeInput(c: *Context, time: *Time, opts: TimeInputOptions) bool {
         const on = c.focus == it.id;
         if (on) {
             focused = k;
-            c.node(b).style.background = th.accent;
+            c.node(b).style.background = th.surface_hover;
         }
         const h12 = (time.hour + 11) % 12 + 1;
         const str = switch (seg) {
@@ -59,11 +59,11 @@ pub fn timeInput(c: *Context, time: *Time, opts: TimeInputOptions) bool {
             .minutes => c.print("{d:0>2}", .{time.minute}),
             .period => if (time.hour >= 12) opts.pm else opts.am,
         };
-        widgets.text(c, str, .{ .color = if (on) th.accent_text else th.text });
+        widgets.text(c, str, .{ .color = th.text });
         c.end();
     }
     if (focused != null) {
-        c.node(i).style.border = th.accent;
+        c.node(i).style.border = th.ring;
         c.node(i).style.border_width = 2;
     }
     const k = focused orelse return false;

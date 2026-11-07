@@ -144,7 +144,7 @@ test "ui.canvas draws through the image atlas, rasterized again only when it cha
     const inside = try windowPixel(&t, 30, 40);
     try testing.expect(inside[2] > 250 and inside[1] < 5);
     const outside = try windowPixel(&t, 100, 40);
-    try testing.expectEqual(@as(u8, 0xf5), outside[2]);
+    try testing.expectEqual(@as(u8, 0xff), outside[1]);
     const gen = im.generation;
     t.frame();
     t.frame();
@@ -154,7 +154,7 @@ test "ui.canvas draws through the image atlas, rasterized again only when it cha
     t.frame();
     try testing.expectEqual(@as(usize, 1), im.decoded.count());
     const moved = try windowPixel(&t, 80, 40);
-    try testing.expect(moved[2] > 250);
+    try testing.expect(moved[2] > 250 and moved[1] < 5);
     const left = try windowPixel(&t, 30, 40);
-    try testing.expectEqual(@as(u8, 0xf5), left[2]);
+    try testing.expectEqual(@as(u8, 0xff), left[1]);
 }

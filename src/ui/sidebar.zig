@@ -93,13 +93,12 @@ pub const Sidebar = struct {
         sb.ids.append(c.alloc(), id) catch {};
         sb.labels.append(c.alloc(), label) catch {};
         const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
-        c.node(row).style.background = structure.rowBackground(c, chosen, sb.focused, hover);
-        const fg = structure.rowText(c, chosen, sb.focused);
-        if (opts.icon.len > 0) widgets.icon(c, opts.icon, .{ .size = 14, .frame = 16, .color = if (chosen and sb.focused) fg else c.theme.accent });
-        widgets.text(c, label, .{ .size = 13, .color = fg });
+        c.node(row).style.background = structure.rowBackground(c, chosen, hover);
+        if (opts.icon.len > 0) widgets.icon(c, opts.icon, .{ .size = 14, .frame = 16, .color = c.theme.text });
+        widgets.text(c, label, .{ .size = 13, .weight = if (chosen) .medium else .regular, .color = c.theme.text });
         if (opts.badge) |b| {
             widgets.spacer(c);
-            widgets.text(c, b, .{ .size = 11, .weight = .medium, .color = if (chosen and sb.focused) fg else c.theme.muted });
+            widgets.text(c, b, .{ .size = 11, .weight = .medium, .color = c.theme.muted });
         }
     }
 

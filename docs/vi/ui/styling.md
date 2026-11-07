@@ -99,17 +99,18 @@ Di chuột theo tổ tiên, như `:hover` của CSS thực hiện: một hàng �
 |---|---|
 | `dark` | cho dù đó là một chủ đề tối |
 | `background` | cửa sổ |
-| `surface`, `surface_hover` | thẻ, trường, nút phụ và di chuột của chúng |
+| `surface`, `surface_hover` | thẻ, trường, nút phụ; khi di chuột, và mục được chọn trong danh sách, menu, bảng |
 | `text`, `muted` | văn bản và văn bản phụ (nhãn, phần giữ chỗ) |
 | `border` | ranh giới, dải phân cách |
-| `accent`, `accent_hover`, `accent_text` | các nút chính, lựa chọn, vòng lấy nét và văn bản trên dấu |
+| `accent`, `accent_hover`, `accent_text` | các nút chính, công tắc đang bật, vùng chọn văn bản và văn bản trên màu nhấn |
+| `ring` | viền và quầng sáng của phần tử đang có tiêu điểm bàn phím |
 | `track`, `knob` | các rãnh và nút bấm của thanh trượt, công tắc và thanh tiến trình |
-| `danger`, `success` | hành động phá hoại và sai sót; xong và tiếp tục |
+| `danger`, `success`, `warning` | hành động phá hoại và lỗi; hoàn tất; điều cần chú ý |
 | `shadow` | màu sắc của bóng tối |
 | `font`, `mono_font` | họ phông chữ, null cho ([text](text.md)) của hệ thống |
 | `tooltip_delay` | số giây con trỏ dừng trước khi tooltip hiện; 0 là 0.6, âm là hiện ngay ([overlays](overlays.md#tooltips)) |
 
-`ui.Theme.light` và `ui.Theme.dark_theme` là của myzig, sau màu của macOS. Một cửa sổ sử dụng cái này hoặc cái kia làm giao diện của hệ thống, chuyển đổi khi nó thay đổi. Để sửa màu của cửa sổ, hãy đặt chủ đề cho cửa sổ:
+`ui.Theme.light` và `ui.Theme.dark_theme` là của myzig: [bảng màu](#bảng-màu) zinc. Một cửa sổ sử dụng cái này hoặc cái kia làm giao diện của hệ thống, chuyển đổi khi nó thay đổi. Để sửa màu của cửa sổ, hãy đặt chủ đề cho cửa sổ:
 
 ```zig
 var mine = ui.Theme.dark_theme;
@@ -122,9 +123,37 @@ Trong view, `ui.themes.apply(c, theme)` tạo chủ đề cho khung (những wid
 
 <a id="named-themes"></a>
 
+## Bảng màu
+
+![Các nút, công tắc và thanh trượt theo chủ đề của một bảng màu.](../../images/ui/controls.png)
+
+`ui.Palette` là một trong các chủ đề của [shadcn/ui](https://ui.shadcn.com): một nền xám với màu chính của riêng nó, hoặc lấy một màu nhấn làm màu chính:
+
+| | |
+|---|---|
+| `base` | `neutral`, `stone`, `zinc` (mặc định), `mauve`, `olive`, `mist`, `taupe` |
+| `accent` | `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, `yellow`; null để dùng màu của nền |
+
+`ui.themes.use` biến một bảng màu thành chủ đề của khung hình, sáng hay tối theo cửa sổ; hãy gọi nó đầu tiên trong view:
+
+```zig
+fn view(s: *State, c: *ui.Context) void {
+    ui.themes.use(c, .{ .base = .stone, .accent = .blue });
+    // ...
+}
+```
+
+`palette.theme(dark)` là chính `ui.Theme`, để cố định cửa sổ ở một giao diện hoặc chuyển sang nó có hoạt hình:
+
+```zig
+_ = try app.newWindow(.{ .theme = ui.Palette.theme(.{ .accent = .rose }, true), .content = .{ .view = .init(&state, State.view) } });
+```
+
+Màu dùng cho văn bản hoặc biểu tượng thì lấy `theme.accentInk()`, không lấy `theme.accent`: màu chính có sắc độ thường tối khi ở chế độ tối, màu vàng thì sáng khi ở chế độ sáng, nên nó được kéo về gần màu văn bản để đọc được.
+
 ## Chủ đề được đặt tên
 
-`ui.themes.builtins` liệt kê các chủ đề của myzig theo tên: `light`, `dark`, `light-high-contrast` và `dark-high-contrast`. `ui.themes.find(list, name)` trước tiên tìm tên trong danh sách riêng của ứng dụng, sau đó trong myzig, đối với chủ đề được lưu trong cài đặt theo tên:
+`ui.themes.builtins` liệt kê các chủ đề của myzig theo tên: `light`, `dark`, `light-high-contrast` và `dark-high-contrast`. `ui.themes.find(list, name)` trước tiên tìm tên trong danh sách riêng của ứng dụng, sau đó trong myzig, rồi trong các bảng màu (`stone-light`, `blue-dark`, `stone-blue-dark`), đối với chủ đề được lưu trong cài đặt theo tên:
 
 ```zig
 const app_themes = [_]ui.themes.Named{

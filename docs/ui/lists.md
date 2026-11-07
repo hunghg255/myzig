@@ -283,8 +283,7 @@ data itself: `row` is a place in the order the app keeps.
 
 A click chooses a row; while the table has the focus, the arrows, Home,
 End and Page Up and Down do, and Enter (or a double click) submits it.
-`textColor()` is the color of text on the row being built: the accent's
-text on the row chosen while the table has the focus.
+`textColor()` is the color of text on the row being built, chosen or not.
 
 `ui.TableOptions` has `row_height` (28), `header_height` (28), `width` and
 `height` (`.fill`), `striped` (every other row tinted, true),
@@ -310,10 +309,10 @@ click chooses a cell, a Shift-click extends the rows and the columns to
 it, and a drag chooses the cells it goes over. Left and Right move the
 cursor's column, Shift with them extends the columns, the keys that move
 the rows leave one column unless with Shift, and Cmd+A (Ctrl+A) chooses
-every row and column. The block's cells show in the accent color while the
-table has the focus; chosen rows are not tinted whole. `t.cellSelected(row,
-col)` tells a cell builder whether its cell is chosen, and `textColor()` is
-the accent's text in it:
+every row and column. The block's cells show in the gray of a chosen row;
+chosen rows are not tinted whole. `t.cellSelected(row, col)` tells a cell
+builder whether its cell is chosen, and `textColor()` is the text's color in
+it:
 
 ```zig
 var tb = ui.table(c, &s.sheet, columns, rows.len, .{ .cells = true });

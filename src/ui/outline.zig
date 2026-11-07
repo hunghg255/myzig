@@ -129,7 +129,7 @@ pub fn Rows(comptime T: type) type {
                     r.setOpen(i, !open);
                     c.changed = true;
                 }
-                widgets.icon(c, if (open) "chevron.down" else "chevron.right", .{ .size = 11, .weight = .semibold, .color = structure.rowText(c, chosen, r.focused).alpha(0.7) });
+                widgets.icon(c, if (open) "chevron.down" else "chevron.right", .{ .size = 11, .weight = .semibold, .color = c.theme.text.alpha(0.7) });
                 c.end();
             } else _ = c.leaf(.{ .width = .{ .px = 16 } }, .none, null);
             if (it.clicked) {
@@ -141,7 +141,7 @@ pub fn Rows(comptime T: type) type {
                 c.changed = true;
             }
             const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
-            c.node(box).style.background = structure.rowBackground(c, chosen, r.focused, hover);
+            c.node(box).style.background = structure.rowBackground(c, chosen, hover);
             return row;
         }
 

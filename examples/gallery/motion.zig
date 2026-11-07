@@ -30,6 +30,7 @@ const easings = [_]struct { []const u8, motion.Animation }{
 };
 
 pub const MotionPage = struct {
+    palette: ui.Palette = .{},
     rotate: f32 = 12,
     scale: f32 = 1,
     skew: f32 = 0,
@@ -42,9 +43,43 @@ pub const MotionPage = struct {
     next: u32 = 4,
     wide: bool = false,
 
+    /// Every shadcn/ui base and accent, the whole window in the one chosen.
+    fn palettes(s: *MotionPage, c: *ui.Context) void {
+        card(c, "Palettes");
+        defer ui.end(c);
+        ui.row(c, .{ .gap = 6 });
+        for (std.enums.values(ui.themes.Base)) |b| {
+            const on = s.palette.base == b;
+            if (ui.button(c, @tagName(b), .{ .variant = if (on) .primary else .secondary }).clicked) {
+                s.palette.base = b;
+                c.changed = true;
+            }
+        }
+        ui.end(c);
+        ui.row(c, .{ .gap = 6 });
+        if (ui.button(c, "base's own", .{ .variant = if (s.palette.accent == null) .primary else .secondary }).clicked) {
+            s.palette.accent = null;
+            c.changed = true;
+        }
+        // Six to a row: a row does not wrap.
+        for (std.enums.values(ui.themes.Accent), 1..) |a, i| {
+            if (i % 6 == 0) {
+                ui.end(c);
+                ui.row(c, .{ .gap = 6 });
+            }
+            const on = s.palette.accent == a;
+            if (ui.button(c, @tagName(a), .{ .variant = if (on) .primary else .secondary }).clicked) {
+                s.palette.accent = a;
+                c.changed = true;
+            }
+        }
+        ui.end(c);
+    }
+
     pub fn look(s: *MotionPage, c: *ui.Context) void {
         const th = c.theme;
         ui.heading(c, "Styling");
+        s.palettes(c);
         {
             card(c, "Transforms");
             defer ui.end(c);

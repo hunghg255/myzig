@@ -1,5 +1,6 @@
 //! The colors of native UI, light and dark, following the system appearance.
 const types = @import("types.zig");
+const palettes = @import("palettes.zig");
 const Color = types.Color;
 
 pub const Theme = struct {
@@ -21,6 +22,9 @@ pub const Theme = struct {
     /// What calls for attention without being an error (mygo's Warning):
     /// amber. Themes made before it had it get the light one's.
     warning: Color = .hex(0xd97706),
+    /// The border and glow of what has the keyboard's focus. A theme made
+    /// from another keeps its gray when given another accent.
+    ring: Color = .hex(0xa1a1aa),
     /// Font families: text, and monospaced text (null: the system's, SF
     /// Pro and SF Mono). A family that is not installed falls back.
     font: ?[]const u8 = null,
@@ -33,40 +37,20 @@ pub const Theme = struct {
     /// part of the window gives those elements' tips a delay of their own.
     tooltip_delay: f32 = 0,
 
-    pub const light: Theme = .{
-        .dark = false,
-        .background = .hex(0xf5f5f7),
-        .surface = .hex(0xffffff),
-        .surface_hover = .hex(0xececf0),
-        .text = .hex(0x1d1d1f),
-        .muted = .hex(0x6e6e73),
-        .border = .hex(0xd2d2d7),
-        .accent = .hex(0x0a84ff),
-        .accent_hover = .hex(0x0071e3),
-        .accent_text = .white,
-        .track = .hex(0xe0e0e5),
-        .knob = .white,
-        .danger = .hex(0xff3b30),
-        .success = .hex(0x34c759),
-        .shadow = .{ .a = 0.12 },
-    };
+    /// shadcn/ui's zinc (`palettes.zig` has the others).
+    pub const light: Theme = (palettes.Palette{}).theme(false);
+    pub const dark_theme: Theme = (palettes.Palette{}).theme(true);
 
-    pub const dark_theme: Theme = .{
-        .dark = true,
-        .background = .hex(0x1c1c1e),
-        .surface = .hex(0x2c2c2e),
-        .surface_hover = .hex(0x3a3a3c),
-        .text = .hex(0xf5f5f7),
-        .muted = .hex(0x98989d),
-        .border = .hex(0x48484a),
-        .accent = .hex(0x0a84ff),
-        .accent_hover = .hex(0x409cff),
-        .accent_text = .white,
-        .track = .hex(0x48484a),
-        .knob = .hex(0xf5f5f7),
-        .danger = .hex(0xff453a),
-        .success = .hex(0x30d158),
-        .shadow = .{ .a = 0.4 },
-        .warning = .hex(0xf59e0b),
-    };
+    /// The accent for text, icons and a caret on a surface: nearer the text's
+    /// color where it is too near the surface's lightness to read, as a
+    /// colored primary is in the dark and yellow is in the light.
+    pub fn accentInk(t: Theme) Color {
+        const a = lightness(t.accent);
+        const s = lightness(t.surface);
+        return if (@abs(a - s) < 0.45) t.accent.mix(t.text, 0.55) else t.accent;
+    }
+
+    fn lightness(c: Color) f32 {
+        return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+    }
 };

@@ -271,9 +271,9 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
     const focus_t = c.animate(it.id, 0, if (it.focused) 1 else 0, 20);
     const n = c.node(i);
     if (!opts.bare) {
-        n.style.border = th.border.mix(th.accent, focus_t);
+        n.style.border = th.border.mix(th.ring, focus_t);
         n.style.border_width = 1 + focus_t;
-        if (focus_t > 0.01) n.style.shadow = .{ .color = th.accent.alpha(0.25 * focus_t), .blur = 6, .y = 0 };
+        if (focus_t > 0.01) n.style.shadow = .{ .color = th.ring.alpha(0.25 * focus_t), .blur = 6, .y = 0 };
     }
 
     var result: Result = .{ .focused = it.focused };
@@ -397,7 +397,7 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
         _ = c.leaf(.{ .absolute = true, .width = .{ .px = x1 - x0 }, .height = .{ .px = 1.5 }, .background = th.text, .offset = .{ .x = x0 - e.scroll_x, .y = lh - 1 } }, .none, null);
     };
     if (focused and hi == lo and opts.caret_width > 0) {
-        _ = c.leaf(.{ .absolute = true, .width = .{ .px = caretWidth(c, opts.caret_width) }, .height = .{ .px = lh }, .background = th.accent, .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
+        _ = c.leaf(.{ .absolute = true, .width = .{ .px = caretWidth(c, opts.caret_width) }, .height = .{ .px = lh }, .background = th.accentInk(), .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
     }
     // Its value, but a password's; never its children's texts as its name.
     if (c.access.enabled) {

@@ -113,18 +113,19 @@ hover keeps them while the pointer goes to them.
 |---|---|
 | `dark` | whether it is a dark theme |
 | `background` | the window |
-| `surface`, `surface_hover` | cards, fields, secondary buttons, and their hover |
+| `surface`, `surface_hover` | cards, fields, secondary buttons; their hover, and what is chosen in lists, menus and tables |
 | `text`, `muted` | text, and secondary text (labels, placeholders) |
 | `border` | borders, dividers |
-| `accent`, `accent_hover`, `accent_text` | primary buttons, selection, focus rings, and text on the accent |
+| `accent`, `accent_hover`, `accent_text` | primary buttons, switches that are on, text selection, and text on the accent |
+| `ring` | the border and glow of what has the keyboard's focus |
 | `track`, `knob` | sliders', switches' and progress bars' tracks and knobs |
-| `danger`, `success` | destructive actions and errors; done and on |
+| `danger`, `success`, `warning` | destructive actions and errors; done; what calls for attention |
 | `shadow` | the color of shadows |
 | `font`, `mono_font` | font families, null for the system's ([text](text.md)) |
 | `tooltip_delay` | seconds the pointer rests before a tooltip shows; 0 is 0.6, negative at once ([overlays](overlays.md#tooltips)) |
 
-`ui.Theme.light` and `ui.Theme.dark_theme` are myzig's, after macOS's
-colors. A window uses one or the other as the system's appearance is,
+`ui.Theme.light` and `ui.Theme.dark_theme` are myzig's: the zinc
+[palette](#palettes). A window uses one or the other as the system's appearance is,
 switching when it changes. To fix a window's colors, give it a theme:
 
 ```zig
@@ -139,11 +140,45 @@ widgets built after it read, and the window's background); call it first.
 `myzig.isDark()` and `myzig.accentColor()` read the system's appearance
 and accent outside a view.
 
+## Palettes
+
+![Buttons, switches and sliders in the theme of a palette.](../images/ui/controls.png)
+
+`ui.Palette` is one of [shadcn/ui](https://ui.shadcn.com)'s themes, a base of
+grays with its own primary, or with one of the accents as the primary:
+
+| | |
+|---|---|
+| `base` | `neutral`, `stone`, `zinc` (the default), `mauve`, `olive`, `mist`, `taupe` |
+| `accent` | `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, `yellow`; null for the base's own |
+
+`ui.themes.use` makes one the frame's theme, light or dark as the window is;
+call it first in the view:
+
+```zig
+fn view(s: *State, c: *ui.Context) void {
+    ui.themes.use(c, .{ .base = .stone, .accent = .blue });
+    // ...
+}
+```
+
+`palette.theme(dark)` is the `ui.Theme` itself, to fix a window in one
+appearance or change to it animated:
+
+```zig
+_ = try app.newWindow(.{ .theme = ui.Palette.theme(.{ .accent = .rose }, true), .content = .{ .view = .init(&state, State.view) } });
+```
+
+Colors to use as text or icons take `theme.accentInk()`, not `theme.accent`:
+a colored primary is dark in the dark, and yellow is light in the light, and
+it comes nearer the text's color there to read.
+
 ## Named themes
 
 `ui.themes.builtins` lists myzig's themes by name: `light`, `dark`,
 `light-high-contrast` and `dark-high-contrast`. `ui.themes.find(list,
-name)` looks a name up in the app's own list first, then in myzig's, for a
+name)` looks a name up in the app's own list first, then in myzig's, then
+among the palettes (`stone-light`, `blue-dark`, `stone-blue-dark`), for a
 theme kept in settings by name:
 
 ```zig

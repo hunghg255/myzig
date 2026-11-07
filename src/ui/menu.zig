@@ -202,9 +202,9 @@ pub const MenuPanel = struct {
             c.changed = true;
         }
         const on = m.highlight[p.level] == i and !opts.disabled;
-        if (on) c.node(box).style.background = th.accent;
-        const fg = if (on) th.accent_text else th.text;
-        const muted = if (on) th.accent_text.alpha(0.8) else th.muted;
+        if (on) c.node(box).style.background = th.surface_hover;
+        const fg = th.text;
+        const muted = th.muted;
         if (opts.checked) |checked| {
             _ = c.open(.{ .width = .{ .px = 14 }, .align_items = .center }, null);
             if (checked) widgets.icon(c, "checkmark", .{ .size = 12, .weight = .semibold, .color = fg });

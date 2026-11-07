@@ -74,12 +74,9 @@ pub const Rows = struct {
         r.in_row = false;
     }
 
-    /// The color of text on the row being built: the accent's text on a
-    /// row chosen while the list has the focus.
+    /// The color of text on the row being built, chosen or not.
     pub fn textColor(r: *const Rows) types.Color {
-        const ch = r.opts.choice orelse return r.c.theme.text;
-        const i = r.next_index -| 1;
-        return @import("structure.zig").rowText(r.c, select.Choice.chosen(ch, i), r.c.focus == r.id);
+        return r.c.theme.text;
     }
 
     /// Closes the list: the room of the rows after the view, then the box.

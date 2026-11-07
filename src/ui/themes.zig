@@ -16,7 +16,13 @@ const Theme = @import("theme.zig").Theme;
 const Context = @import("context.zig").Context;
 const motion = @import("motion.zig");
 const preferences = @import("preferences.zig");
+const palettes = @import("palettes.zig");
 const Color = types.Color;
+
+/// shadcn/ui's bases and accents (`palettes.zig`).
+pub const Palette = palettes.Palette;
+pub const Base = palettes.Base;
+pub const Accent = palettes.Accent;
 
 pub const Named = struct {
     name: []const u8,
@@ -31,11 +37,23 @@ pub const builtins = [_]Named{
     .{ .name = "dark-high-contrast", .theme = preferences.highContrast(Theme.dark_theme) },
 };
 
-/// The theme named `name` among `list` (an app's own), else among myzig's.
+/// The theme named `name` among `list` (an app's own), else among myzig's,
+/// else a palette's: `"stone-light"`, `"blue-dark"`, `"stone-blue-dark"`.
 pub fn find(list: []const Named, name: []const u8) ?Theme {
     for (list) |n| if (std.mem.eql(u8, n.name, name)) return n.theme;
     for (builtins) |n| if (std.mem.eql(u8, n.name, name)) return n.theme;
-    return null;
+    const dash = std.mem.lastIndexOfScalar(u8, name, '-') orelse return null;
+    const dark = std.mem.eql(u8, name[dash + 1 ..], "dark");
+    if (!dark and !std.mem.eql(u8, name[dash + 1 ..], "light")) return null;
+    const p = Palette.parse(name[0..dash]) orelse return null;
+    return p.theme(dark);
+}
+
+/// Makes the palette the frame's theme, light or dark as the window is: call
+/// it first in the view. A window with a fixed `theme` keeps that one's
+/// appearance.
+pub fn use(c: *Context, p: Palette) void {
+    apply(c, p.theme(c.theme.dark));
 }
 
 /// The light or the dark theme of a pair, as the appearance is.
@@ -118,6 +136,13 @@ test "find and mix" {
     const mine = [_]Named{.{ .name = "dark", .theme = Theme.light }};
     try std.testing.expect(!find(&mine, "dark").?.dark);
     try std.testing.expect(find(&.{}, "nope") == null);
+    try std.testing.expect(find(&.{}, "nope-dark") == null);
+    try std.testing.expect(find(&.{}, "stone-nope-dark") == null);
+    try std.testing.expect(find(&.{}, "blue-dim") == null);
+    const blue = (Palette{ .accent = .blue }).theme(true);
+    try std.testing.expectEqual(blue, find(&.{}, "blue-dark").?);
+    try std.testing.expectEqual((Palette{ .base = .stone }).theme(false), find(&.{}, "stone-light").?);
+    try std.testing.expectEqual((Palette{ .base = .stone, .accent = .blue }).theme(true), find(&.{}, "stone-blue-dark").?);
     const half = mix(Theme.light, Theme.dark_theme, 0.5);
     try std.testing.expect(half.background.r < Theme.light.background.r);
     try std.testing.expect(half.background.r > Theme.dark_theme.background.r);

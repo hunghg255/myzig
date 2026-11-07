@@ -354,7 +354,7 @@ fn drawBlock(c: *Context, rt: *RichText, g: Geo, i: usize, y: f32, top: f32, l: 
             const xc = l.x0 + rows.xIn(sub, cp.off);
             caret_rect.* = .{ .x = origin.x + xc, .y = origin.y + ry, .w = 1.5, .h = l.row_h };
             if (caret_on and focused and rt.sel.empty())
-                _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1.5 }, .height = .{ .px = l.row_h }, .background = th.accent, .offset = .{ .x = xc, .y = ry } }, .none, null);
+                _ = c.leaf(.{ .absolute = true, .width = .{ .px = 1.5 }, .height = .{ .px = l.row_h }, .background = th.accentInk(), .offset = .{ .x = xc, .y = ry } }, .none, null);
         }
     }
 }
@@ -381,7 +381,7 @@ pub fn richTextEditor(c: *Context, rt: *RichText, opts: Options) Result {
     var box: types.Style = .{ .width = opts.width, .height = opts.height, .radius = 8 };
     if (!opts.bare) {
         box.background = th.surface;
-        box.border = th.border.mix(th.accent, focus_t);
+        box.border = th.border.mix(th.ring, focus_t);
         box.border_width = 1 + focus_t;
     }
     return view(c, rt, box, opts);

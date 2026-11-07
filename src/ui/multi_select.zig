@@ -101,7 +101,7 @@ pub fn multiSelect(c: *ctx.Context, s: *State, options: []const []const u8, sele
             s.active = pos;
         }
         c.describe(it.id, .{ .role = .checkbox, .label = options[original], .checked = if (selected[original]) .on else .off, .disabled = disabled });
-        widgets.text(c, if (selected[original]) "✓" else "○", .{ .color = c.theme.accent });
+        widgets.text(c, if (selected[original]) "✓" else "○", .{ .color = c.theme.accentInk() });
         widgets.text(c, options[original], .{ .wrap = true });
         c.end();
     }

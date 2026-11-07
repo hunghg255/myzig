@@ -231,7 +231,7 @@ pub fn toasts(c: *Context, s: *Toasts) Result {
         widgets.end(c);
         if (it.action.len > 0) {
             const a = widgets.pressable(c, .{ .padding = .xy(8, 3), .radius = 6, .control = true }, fg.alpha(0.15));
-            widgets.text(c, it.action.get(), .{ .size = 13, .weight = .semibold, .color = th.accent });
+            widgets.text(c, it.action.get(), .{ .size = 13, .weight = .semibold, .color = th.accentInk() });
             widgets.end(c);
             if (a.clicked and !it.closing) {
                 result.action = it.id;

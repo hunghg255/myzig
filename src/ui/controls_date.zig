@@ -344,7 +344,7 @@ pub fn dateInput(c: *Context, date: *Date, opts: DateInputOptions) bool {
     state.put(c, it.id, salt_cursor, @floatFromInt(cursor.toDays()));
     const n = c.node(i);
     if (focused or open) {
-        n.style.border = th.accent;
+        n.style.border = th.ring;
         n.style.border_width = 2;
     }
     return changed;

@@ -227,7 +227,7 @@ pub const Table = struct {
         c.describe(it.id, .{ .role = .row, .selected = now_chosen, .pos_in_set = @intCast(i + 1), .set_size = @intCast(t.list.opts.count) });
         if (s.selected == i) c.describe(t.id, .{ .active_descendant = it.id });
         // Choosing cells, the cells show the choice, not the rows.
-        var bg = structure.rowBackground(c, now_chosen and !t.opts.cells, t.focused, hover);
+        var bg = structure.rowBackground(c, now_chosen and !t.opts.cells, hover);
         if (bg == null and t.opts.striped and i % 2 == 1) bg = c.theme.text.alpha(0.03);
         c.node(box).style.background = bg;
         return i;
@@ -313,20 +313,16 @@ pub const Table = struct {
         if (col < t.side.frozen) style.offset.x = t.side.x;
         const cell_box = c.open(style, null);
         t.cell_box = cell_box;
-        if (t.cellSelected(t.row.?, col)) c.node(cell_box).style.background = if (t.focused) c.theme.accent else c.theme.text.alpha(0.12);
+        if (t.cellSelected(t.row.?, col)) c.node(cell_box).style.background = c.theme.surface_hover;
         t.col = col;
         c.describeOpen(.{ .role = .cell });
         t.in_cell = true;
         return col;
     }
 
-    /// The color of text on the row being built (with `cells`, in the cell
-    /// being built): the accent's text on what is chosen while the table
-    /// has the focus.
+    /// The color of text on the row being built, chosen or not.
     pub fn textColor(t: *const Table) types.Color {
-        const row = t.row orelse return t.c.theme.text;
-        const chosen = if (t.opts.cells) t.cellSelected(row, t.col) else t.state.rowChosen(row);
-        return structure.rowText(t.c, chosen, t.focused);
+        return t.c.theme.text;
     }
 
     /// Closes the cell being built: a right-click over it, which what it

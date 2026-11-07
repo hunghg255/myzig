@@ -100,7 +100,7 @@ pub const GridView = struct {
         const n = c.node(box);
         if (g.state.selected == i) {
             n.style.background = if (g.focused) th.accent.alpha(0.2) else th.text.alpha(0.1);
-            n.style.border = if (g.focused) th.accent else null;
+            n.style.border = if (g.focused) th.ring else null;
         } else n.style.background = th.text.alpha(0.05 * hover);
         return i;
     }

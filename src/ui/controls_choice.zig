@@ -183,7 +183,7 @@ pub fn link(c: *Context, title: []const u8, opts: LinkOptions) bool {
         c.alloc().dupe(types.Span, &.{.{ .start = 0, .end = @intCast(title.len), .underline = true }}) catch &.{}
     else
         &.{};
-    widgets.richText(c, title, spans, .{ .size = opts.size, .color = if (it.pressed) c.theme.accent_hover else c.theme.accent });
+    widgets.richText(c, title, spans, .{ .size = opts.size, .color = c.theme.accentInk() });
     const focused = it.focused and c.focus == it.id;
     state.focusRing(c, i, focused);
     var clicked = it.clicked;

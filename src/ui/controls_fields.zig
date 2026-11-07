@@ -61,7 +61,7 @@ pub fn searchField(c: *Context, query: *TextBuffer, opts: SearchFieldOptions) Se
     if (box.clicked) c.focus = field_id;
     const focus_t = c.animate(box.id, 0, if (r.focused) 1 else 0, 20);
     const n = c.node(i);
-    n.style.border = th.border.mix(th.accent, focus_t);
+    n.style.border = th.border.mix(th.ring, focus_t);
     n.style.border_width = 1 + focus_t;
     if (res.changed or res.cleared or box.clicked) c.changed = true;
     return res;
@@ -249,7 +249,7 @@ pub fn tokenField(c: *Context, t: *Tokens, suggestions: []const []const u8, opts
     }
     const n = c.node(outer);
     const focus_t = c.animate(box.id, 0, if (focused) 1 else 0, 20);
-    n.style.border = th.border.mix(th.accent, focus_t);
+    n.style.border = th.border.mix(th.ring, focus_t);
     n.style.border_width = 1 + focus_t;
     if (changed) c.changed = true;
     return changed;
@@ -269,8 +269,8 @@ fn suggestionsOverlay(c: *Context, field: u32, shown: []const []const u8, highli
         // The field keeps the focus a press here would take.
         if (it.pressed) c.focus = input_id;
         const on = k == highlighted;
-        if (on or it.hovered) c.node(c.stack.items[c.stack.items.len - 1]).style.background = if (on) th.accent else th.surface_hover;
-        widgets.text(c, s, .{ .size = 13, .color = if (on) th.accent_text else th.text });
+        if (on or it.hovered) c.node(c.stack.items[c.stack.items.len - 1]).style.background = th.surface_hover;
+        widgets.text(c, s, .{ .size = 13, .color = th.text });
         c.end();
         if (it.clicked) pick = s;
     }

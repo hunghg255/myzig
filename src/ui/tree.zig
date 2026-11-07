@@ -101,7 +101,7 @@ pub const Tree = struct {
                 tr.result.changed = true;
                 c.changed = true;
             }
-            widgets.icon(c, if (o.*) "chevron.down" else "chevron.right", .{ .size = 11, .weight = .semibold, .color = structure.rowText(c, chosen, tr.focused).alpha(0.7) });
+            widgets.icon(c, if (o.*) "chevron.down" else "chevron.right", .{ .size = 11, .weight = .semibold, .color = c.theme.text.alpha(0.7) });
             c.end();
         } else _ = c.leaf(.{ .width = .{ .px = 16 } }, .none, null);
         if (it.clicked) {
@@ -113,8 +113,8 @@ pub const Tree = struct {
             c.changed = true;
         }
         const hover = c.animate(it.id, 0, if (it.hovered) 1 else 0, 20);
-        c.node(row).style.background = structure.rowBackground(c, chosen, tr.focused, hover);
-        widgets.text(c, label, .{ .size = 13, .color = structure.rowText(c, chosen, tr.focused) });
+        c.node(row).style.background = structure.rowBackground(c, chosen, hover);
+        widgets.text(c, label, .{ .size = 13, .color = c.theme.text });
         c.end();
         const has_children = if (open) |o| o.* else false;
         if (has_children) {

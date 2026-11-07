@@ -93,7 +93,7 @@ fn disclose(c: *Context, title: []const u8, open: *bool, look: Look, acc: ?*Acco
     const hover = c.animate(it.id, 1, if (it.hovered) 1 else 0, 20);
     const head_n = c.node(head);
     head_n.style.background = th.text.alpha(0.05 * hover);
-    if (focused) head_n.style.border = th.accent.alpha(0.6);
+    if (focused) head_n.style.border = th.ring;
     widgets.icon(c, if (p > 0.5) "chevron.down" else "chevron.right", .{ .size = 12, .frame = 14, .weight = .semibold, .color = th.muted });
     widgets.text(c, title, .{ .size = 13, .weight = if (look == .section) .semibold else .medium });
     c.end();

@@ -137,7 +137,7 @@ pub fn pill(c: *ui.Context, title: []const u8, on: *bool) bool {
     const hover = c.animate(it.id, 1, if (it.hovered) 1 else 0, 20);
     const n = c.node(box);
     n.style.background = th.surface.mix(th.surface_hover, hover).mix(th.accent, t);
-    if (it.focused and c.focus_visible) n.style.border = th.accent;
+    if (it.focused and c.focus_visible) n.style.border = th.ring;
     ui.text(c, title, .{ .size = 13, .weight = .medium, .color = th.text.mix(th.accent_text, t) });
     return it.clicked;
 }
@@ -167,4 +167,4 @@ Một số widget có một biến thể không có giao diện riêng, biến t
 
 ## Chủ đề
 
-`c.theme` là `ui.Theme` của cửa sổ: `background`, `surface`, `surface_hover`, `text`, `muted`, `border`, `accent`, `accent_hover`, `accent_text`, `track`, `knob`, `danger`, `success`, `shadow` và `dark`. Vẽ bằng màu sắc chứ không phải màu cố định để widget tuân theo ánh sáng và bóng tối cũng như chủ đề riêng của ứng dụng (xem [Tạo kiểu](styling.md)).
+`c.theme` là `ui.Theme` của cửa sổ: `background`, `surface`, `surface_hover`, `text`, `muted`, `border`, `ring`, `accent`, `accent_hover`, `accent_text`, `track`, `knob`, `danger`, `success`, `shadow` và `dark`. Vẽ bằng màu sắc chứ không phải màu cố định để widget tuân theo ánh sáng và bóng tối cũng như chủ đề riêng của ứng dụng (xem [Tạo kiểu](styling.md)).

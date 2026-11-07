@@ -56,7 +56,7 @@ pub fn pressable(c: *Context, style: Style, hover: ?Color) Interaction {
 pub fn focusRing(c: *Context, index: u32, it: Interaction) void {
     if (!it.focused or !c.focus_visible) return;
     const n = c.node(index);
-    n.style.border = c.theme.accent;
+    n.style.border = c.theme.ring;
     n.style.border_width = 2;
     if (n.style.radius == 0) n.style.radius = 6;
 }
@@ -216,10 +216,15 @@ pub fn button(c: *Context, title: []const u8, opts: ButtonOptions) Interaction {
     const n = c.node(i);
     var fg = th.text;
     switch (opts.variant) {
-        .primary, .danger => {
-            const base = if (opts.variant == .primary) th.accent else th.danger;
-            n.style.background = base.mix(th.accent_hover, hover * 0.6).mix(Color.black, press * 0.15);
+        .primary => {
+            n.style.background = th.accent.mix(th.accent_hover, hover * 0.6).mix(Color.black, press * 0.15);
             fg = th.accent_text;
+        },
+        .danger => {
+            // Darker on the dark, as shadcn's: white text reads on it.
+            const base = if (th.dark) th.danger.mix(th.background, 0.4) else th.danger;
+            n.style.background = base.mix(Color.black, hover * 0.12 + press * 0.15);
+            fg = .white;
         },
         .secondary => {
             n.style.background = th.surface.mix(th.surface_hover, hover).mix(th.border, press * 0.5);
@@ -287,13 +292,15 @@ pub fn toggle(c: *Context, title: []const u8, value: *bool) bool {
         .height = .{ .px = 24 },
         .radius = 12,
         .padding = .{ .left = 2 + t * 16, .top = 2 },
-        .background = th.track.mix(th.success, t),
+        .background = th.track.mix(th.accent, t),
     }, null);
     _ = c.leaf(.{
         .width = .{ .px = 20 },
         .height = .{ .px = 20 },
         .radius = 10,
-        .background = th.knob,
+        // On the accent it stands out as text does: a near white accent
+        // would hide a near white knob.
+        .background = th.knob.mix(th.accent_text, t),
         .shadow = .{ .color = .{ .a = 0.25 }, .blur = 3, .y = 1 },
     }, .none, null);
     c.end();

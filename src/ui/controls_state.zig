@@ -88,14 +88,14 @@ pub fn takeSpace(c: *Context) bool {
 pub fn focusRing(c: *Context, index: u32, focused: bool) void {
     if (!focused) return;
     const n = c.node(index);
-    n.style.border = c.theme.accent;
+    n.style.border = c.theme.ring;
     n.style.border_width = 2;
-    n.style.shadow = .{ .color = c.theme.accent.alpha(0.25), .blur = 6, .y = 0 };
+    n.style.shadow = .{ .color = c.theme.ring.alpha(0.25), .blur = 6, .y = 0 };
 }
 
-/// The color the theme lacks for warnings: Apple's orange.
+/// The theme's color for warnings.
 pub fn warning(c: *Context) types.Color {
-    return if (c.theme.dark) .hex(0xff9f0a) else .hex(0xff9500);
+    return c.theme.warning;
 }
 
 test "snap and decimals" {

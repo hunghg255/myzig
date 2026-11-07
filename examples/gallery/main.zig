@@ -78,6 +78,7 @@ const Gallery = struct {
     }
 
     fn view(g: *Gallery, c: *ui.Context) void {
+        ui.themes.use(c, g.motion.palette);
         {
             ui.row(c, .{ .width = .fill, .height = .fill });
             defer ui.end(c);
@@ -135,12 +136,11 @@ const Gallery = struct {
                 const selected = g.page == p[0];
                 // GPUI's way: a box styled by a chain of methods.
                 var item = ui.div(c).row().wFull().px(10).py(6).gap(8).itemsCenter().rounded(7);
-                item = if (selected) item.bg(th.accent) else item.hover(th.surface_hover);
+                item = if (selected) item.bg(th.surface_hover) else item.hover(th.surface_hover);
                 defer item.end();
                 if (item.clicked()) g.page = p[0];
-                const fg = if (selected) th.accent_text else th.text;
-                ui.icon(c, p[2], .{ .size = 14, .frame = 18, .color = fg });
-                ui.text(c, p[1], .{ .weight = .medium, .color = fg });
+                ui.icon(c, p[2], .{ .size = 14, .frame = 18, .color = th.text });
+                ui.text(c, p[1], .{ .weight = .medium, .color = th.text });
             }
         }
         ui.spacer(c);

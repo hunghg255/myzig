@@ -82,3 +82,11 @@ ship beside them with those notices. Its themes
 (`plugins/terminal/src/themes_*.zig`) are Ghostty's, from
 [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)
 (MIT License), whose notice the theme files keep.
+
+## shadcn/ui
+
+The palettes of native UI (`src/ui/palettes.zig`) are the colors of
+[shadcn/ui](https://github.com/shadcn-ui/ui)'s themes as of commit
+[`42f3bb6`](https://github.com/shadcn-ui/ui/tree/42f3bb63b46a69e52a24bd005cdc9ec15ba7a7b9/apps/v4/registry/themes.ts),
+MIT License, Copyright (c) 2023 shadcn. The license is kept verbatim in
+[`third_party/licenses/shadcn-ui-MIT.txt`](third_party/licenses/shadcn-ui-MIT.txt).

@@ -1,8 +1,14 @@
 <a id="bindings"></a>
 
-# Liên kết Zig và JavaScript
+# Bindings
 
-Một trang gọi Zig thông qua các dịch vụ mà ứng dụng liên kết, nghe nó thông qua các sự kiện đã nhập và truyền các giá trị theo cả hai cách thông qua các kênh. myzig tạo client của trang từ các kiểu Zig tại thời điểm biên dịch: mô-đun JavaScript mà ứng dụng phục vụ tại `/myzig.js` và các khai báo TypeScript của nó, `myzig.d.ts`.
+Trang web nói chuyện với Zig theo ba cách:
+
+- gọi Zig qua các **service** mà app bind;
+- nghe Zig qua các **event** có kiểu;
+- truyền dòng giá trị hai chiều qua các **channel**.
+
+myzig sinh client cho trang từ các kiểu Zig lúc compile time. Client là một module JavaScript mà app phục vụ tại `/myzig.js`, kèm khai báo TypeScript của nó, `myzig.d.ts`.
 
 ```zig
 const Greeter = struct {
@@ -15,7 +21,7 @@ const Greeter = struct {
 
 const Tick = myzig.Event("tick", struct { uptime: u64 });
 
-// in main, before the windows:
+// trong main, trước khi mở cửa sổ:
 var greeter: Greeter = .{};
 try app.bind(&greeter);
 try app.registerEvent(Tick);
@@ -30,11 +36,21 @@ onTick(({ uptime }) => console.log(uptime));
 
 <a id="bind-a-service"></a>
 
-## Ràng buộc một dịch vụ
+## Bind một service
 
-`app.bind(&service)` liên kết một con trỏ với bất kỳ cấu trúc nào. Các trang gọi nó bằng tên của cấu trúc, phần cuối cùng của tên loại của nó (`Greeter`) hoặc theo tên mà nó khai báo bằng `pub const myzig_name = "Name";`. Dịch vụ phải tồn tại lâu hơn các cửa sổ gọi nó: nó thường là một biến `main`.
+`app.bind(&service)` bind một con trỏ tới bất kỳ struct nào.
 
-Các phương thức của nó là các hàm công khai có tham số đầu tiên là dịch vụ (`Greeter`, `*Greeter` hoặc `*const Greeter`), không chung chung và có tên không bắt đầu bằng `_`. Các tuyên bố khác không phải là một phần của nó.
+- Trang gọi nó bằng tên struct: phần cuối của tên kiểu (`Greeter`).
+- Hoặc bằng tên mà nó khai báo qua `pub const myzig_name = "Name";`.
+- Service phải sống lâu hơn các cửa sổ gọi nó. Thường nó là một biến trong `main`.
+
+Method của nó là các hàm public:
+
+- nhận service làm tham số đầu tiên (`Greeter`, `*Greeter` hoặc `*const Greeter`);
+- không generic;
+- có tên không bắt đầu bằng `_`.
+
+Các khai báo khác không thuộc về service.
 
 ```zig
 const Todos = struct {
@@ -67,17 +83,30 @@ const Todos = struct {
 };
 ```
 
-Zig không giữ tên tham số trong các loại hàm, do đó, dịch vụ sẽ đặt tên chúng theo `myzig_params`, một cấu trúc gồm các tên của phương thức, mỗi tên là một bộ tên theo thứ tự. Họ đặt tên cho các tham số của client được tạo; không có chúng, khách hàng sẽ nói `arg0`, `arg1`, ... Các nhận xét tài liệu về các phương thức cũng không được lưu giữ trong client: Zig không cung cấp chúng cho mã thời gian tính toán.
+**Tên tham số.** Kiểu hàm trong Zig không giữ tên tham số. Vì vậy service đặt tên chúng trong `myzig_params`: một struct theo tên các method, mỗi method là một tuple các tên theo thứ tự.
 
-Các đối số đến từ trang dưới dạng JSON và được phân tích cú pháp thành các loại tham số (các trường đối tượng không xác định sẽ bị bỏ qua). Cuộc gọi có quá ít đối số không thành công với `MissingArgument`, với quá nhiều đối số với `TooManyArguments` và với một cuộc gọi không phân tích cú pháp bằng `InvalidArgument`. Kết quả được viết lại dưới dạng JSON.
+- Chúng là tên tham số trong client được sinh ra.
+- Không có chúng, client ghi `arg0`, `arg1`, ...
+- Comment tài liệu của method cũng không có trong client. Zig không đưa chúng cho mã comptime.
 
-Các phương thức chạy trên luồng chính, mỗi lần gọi một cuộc gọi, do đó, chúng có thể tự do sử dụng trạng thái và cửa sổ của ứng dụng, còn phương thức chậm sẽ duy trì ứng dụng: bắt đầu công việc lâu dài trên chuỗi của riêng bạn và trả lời sau, thông qua [sự kiện](#events) hoặc [kênh](#channels).
+**Đối số.** Chúng đến từ trang dưới dạng JSON và được parse thành kiểu của tham số. Trường lạ trong object bị bỏ qua. Kết quả được ghi lại dưới dạng JSON.
+
+| lời gọi có | lỗi trả về |
+|---|---|
+| thiếu đối số | `MissingArgument` |
+| thừa đối số | `TooManyArguments` |
+| một đối số không parse được | `InvalidArgument` |
+
+**Thread.** Method chạy trên main thread, mỗi lần một lời gọi.
+
+- Chúng được tự do dùng state và cửa sổ của app.
+- Method chậm sẽ làm cả app đứng. Hãy chạy việc lâu trên thread riêng và trả lời sau, qua một [event](#events) hoặc một [channel](#channels).
 
 <a id="the-call"></a>
 
-### Cuộc gọi
+### Lời gọi
 
-Một phương thức có thể mất `*myzig.Call` sau dịch vụ. Nó không phải là một đối số của trang: khách hàng sẽ bỏ nó đi.
+Method có thể nhận một `*myzig.Call` ngay sau service. Đây không phải đối số của trang: client bỏ nó ra.
 
 ```zig
 pub fn greet(_: *Greeter, call: *myzig.Call, name: []const u8) ![]const u8 {
@@ -86,14 +115,15 @@ pub fn greet(_: *Greeter, call: *myzig.Call, name: []const u8) ![]const u8 {
 }
 ```
 
-- `call.arena` được giải phóng sau khi trả lời được gửi: phân bổ kết quả trong đó, cũng như mọi thứ mà phương thức chỉ cần khi nó chạy. Các đối số (chuỗi, lát) cũng nằm trong đó, vì vậy hãy sao chép những gì bạn giữ lại (`self.gpa.dupe`).
-- `call.window` là cửa sổ có trang được gọi. Một phương thức có thể đóng nó lại; câu trả lời sau đó sẽ bị loại bỏ.
+- `call.arena` được giải phóng sau khi gửi trả lời. Cấp phát kết quả trong đó, cùng mọi thứ method chỉ cần khi đang chạy.
+- Đối số (chuỗi, slice) cũng nằm trong đó, nên hãy copy những gì cần giữ (`self.gpa.dupe`).
+- `call.window` là cửa sổ có trang đã gọi. Method có thể đóng nó; khi đó trả lời bị bỏ.
 
 <a id="errors"></a>
 
 ## Lỗi
 
-Một phương thức trả về liên kết lỗi có thể thất bại. Lời hứa của trang bị từ chối với `Error` có thông báo là phương thức và tên lỗi:
+Method trả về error union thì có thể lỗi. Promise của trang bị reject với một `Error` có message là tên method và tên lỗi:
 
 ```js
 try {
@@ -103,19 +133,23 @@ try {
 }
 ```
 
-Những gì bản thân cây cầu từ chối cũng thất bại theo cách tương tự: `UnknownService`, `UnknownMethod`, các lỗi đối số ở trên và `Untrusted` đối với một trang mà ứng dụng không [tin cậy](pages.md#trust).
+Những gì chính bridge từ chối cũng lỗi theo cách đó:
+
+- `UnknownService`, `UnknownMethod`;
+- các lỗi đối số ở trên;
+- `Untrusted`, cho trang mà app không [tin cậy](pages.md#trust).
 
 <a id="the-generated-client"></a>
 
-## Khách hàng được tạo
+## Client được sinh ra
 
-Ứng dụng khách được tạo từ các khai báo thời gian tính toán của các dịch vụ và sự kiện và không cần bước xây dựng: ứng dụng phục vụ nó tại `/myzig.js`, vì vậy một trang trong frontend của ứng dụng sẽ nhập nó dưới dạng mô-đun.
+Client được tạo từ khai báo comptime của các service và event. Nó không cần bước build nào. App phục vụ nó tại `/myzig.js`, nên trang trong frontend của app import nó như một module.
 
 ```js
 import { Greeter, Todos, onTick, Channel } from "/myzig.js";
 ```
 
-Đối với TypeScript và người chỉnh sửa, hãy viết `myzig.d.ts` (và một bản sao của `myzig.js`, dành cho các gói muốn có tệp) bên cạnh frontend:
+Cho TypeScript và editor, hãy ghi `myzig.d.ts` cạnh frontend. Thêm một bản `myzig.js` cho các bundler cần file thật.
 
 ```sh
 zig-out/bin/hello --myzig-generate=examples/hello/frontend   # any app: write the client and exit
@@ -123,7 +157,10 @@ zig build gen                                               # this repository's 
 myzig generate                                              # an app made with `myzig init`
 ```
 
-`--myzig-generate=DIR` làm cho `App.run` viết `DIR/myzig.js` và `DIR/myzig.d.ts` rồi quay lại mà không có cửa sổ. `myzig dev` và `myzig build` của CLI cũng viết nó ([CLI](cli.md)). Tạo lại nó khi dịch vụ thay đổi; `myzig.d.ts` đáng được cam kết, do đó, frontend sẽ kiểm tra lỗi đánh máy mà không cần xây dựng ứng dụng.
+- `--myzig-generate=DIR` khiến `App.run` ghi `DIR/myzig.js` và `DIR/myzig.d.ts` rồi return, không mở cửa sổ.
+- `myzig dev` và `myzig build` của CLI cũng ghi nó ([CLI](cli.md)).
+- Sinh lại khi service thay đổi.
+- Hãy commit `myzig.d.ts`, để frontend typecheck được mà không cần build app.
 
 ```ts
 // Generated by myzig. Do not edit.
@@ -152,34 +189,37 @@ export declare const Todos: {
 export declare function onTick(listener: (payload: TickPayload) => void): () => void;
 ```
 
-Các dịch vụ được sắp xếp theo tên, do đó đầu ra ổn định và các phương thức của chúng giữ nguyên thứ tự khai báo. Mọi phương thức đều trả về một lời hứa.
+Service được sắp theo tên, nên output ổn định. Method giữ thứ tự khai báo. Mọi method đều trả về promise.
 
 <a id="types"></a>
 
-### Các loại
+### Kiểu
 
 | Zig | TypeScript |
 |---|---|
 | `bool` | `boolean` |
-| số nguyên và số float | `number` |
+| số nguyên và số thực | `number` |
 | `[]const u8`, `[N]u8` | `string` |
 | `[]const T`, `[N]T` | `T[]` |
-| `?T` | `T \| null`; trường cấu trúc của nó là tùy chọn (`note?: string \| null`) |
+| `?T` | `T \| null`; trường struct có kiểu này là tùy chọn (`note?: string \| null`) |
 | `*T`, `*const T` | `T` |
-| một enum | `type Name = "a" \| "b"` (enum được gửi dưới dạng tên thẻ của chúng) |
-| một cấu trúc | `interface Name { ... }`, được đặt tên theo cấu trúc |
+| enum | `type Name = "a" \| "b"` (enum được gửi bằng tên tag) |
+| struct | `interface Name { ... }`, đặt theo tên struct |
 | `std.json.Value` | `unknown` |
 | `void` | `void` |
-| `E!T` | `T` (lỗi từ chối lời hứa) |
+| `E!T` | `T` (lỗi sẽ reject promise) |
 | `myzig.Channel(T)` | `Channel<T>` |
 
-Các kiểu được đặt tên được khai báo một lần, ngay cả khi một số dịch vụ sử dụng chúng và các cấu trúc đệ quy vẫn hoạt động. Bộ dữ liệu, kết hợp và các loại khác là lỗi biên dịch đặt tên cho loại đó, do đó dịch vụ không thể liên kết những gì trang không thể đọc. Các số nguyên lớn hơn 2^53 sẽ mất độ chính xác trong JavaScript, như với bất kỳ JSON nào.
+- Kiểu có tên chỉ được khai báo một lần, kể cả khi nhiều service dùng.
+- Struct đệ quy dùng được.
+- Tuple, union và các kiểu khác gây lỗi compile có ghi tên kiểu. Nhờ vậy service không thể bind thứ mà trang không đọc được.
+- Số nguyên lớn hơn 2^53 mất độ chính xác trong JavaScript, như với mọi JSON.
 
 <a id="events"></a>
 
-## Sự kiện
+## Event
 
-Một sự kiện là một loại: tên và tải trọng.
+Một event là một kiểu: gồm tên và payload.
 
 ```zig
 const TickPayload = struct { uptime: u64, todos: usize };
@@ -191,16 +231,18 @@ Tick.emit(window, .{ .uptime = 3, .todos = 2 });   // one window's page; safe fr
 Tick.broadcast(app, .{ .uptime = 3, .todos = 2 }); // every window's page; main thread
 ```
 
-Máy khách có `on` và tên sự kiện theo kiểu Pascal (`"tick"` → `onTick`, `"build-logs"` → `onBuildLogs`), trả về một hàm dừng nghe:
+Client có hàm `on` cộng tên event viết kiểu Pascal case: `"tick"` → `onTick`, `"build-logs"` → `onBuildLogs`. Hàm này trả về một hàm để ngừng nghe:
 
 ```js
 const off = onTick(({ uptime, todos }) => render(uptime, todos));
 off();
 ```
 
-Các sự kiện được gửi trước khi trang sẵn sàng chờ nó (`dom_ready`), tối đa 1024 sự kiện trong số đó và các sự kiện của tài liệu mà trang còn lại sẽ bị loại bỏ. Tin nhắn tới một trang được gửi theo nhóm: mọi thứ được gửi trong một lượt của vòng lặp chính sẽ được đánh giá trong một lần đánh giá.
+- Event gửi trước khi trang sẵn sàng sẽ chờ trang (`dom_ready` của nó), tối đa 1024 event.
+- Event cho một document mà trang đã rời bị bỏ.
+- Tin nhắn tới trang được gom lại. Mọi thứ gửi trong một vòng của main loop đi trong một lần evaluate.
 
-Đồng hồ hẹn giờ phát sóng, như `examples/hello` thực hiện:
+Một timer broadcast, như `examples/hello` làm:
 
 ```zig
 fn tick(ctx: ?*anyopaque) callconv(.c) void {
@@ -213,15 +255,15 @@ fn tick(ctx: ?*anyopaque) callconv(.c) void {
 
 <a id="channels"></a>
 
-## Kênh
+## Channel
 
-Kênh là một luồng các giá trị được nhập giữa Zig và một trang, theo cả hai cách, theo thứ tự, cho đến khi một trong hai bên đóng nó lại. Hãy sử dụng nó cho những việc mà cuộc gọi không thể quay lại ngay lập tức: dòng quy trình, tiến trình, nội dung tải lên.
+Channel là một dòng giá trị có kiểu giữa Zig và một trang. Nó đi cả hai chiều, theo thứ tự, cho đến khi một bên đóng. Dùng nó cho những gì một lời gọi không trả về ngay được: các dòng output của process, tiến độ, upload.
 
 <a id="channels-the-page-makes"></a>
 
-### Các kênh mà trang tạo ra
+### Channel do trang tạo
 
-Một phương thức bị ràng buộc có tham số `myzig.Channel(T)`; trang đó vượt qua `Channel` mà nó đã tạo:
+Method được bind nhận một tham số `myzig.Channel(T)`. Trang truyền vào một `Channel` nó tự tạo:
 
 ```zig
 const Shell = struct {
@@ -257,13 +299,13 @@ for (const v of ["a", "b", "c"]) await up.send(v);
 up.close();
 ```
 
-Giá trị `Channel(T)` nhỏ: giữ nó (ở trạng thái dịch vụ) để gửi sau khi có giá trị. Một phương thức có thể trả về trước khi kênh được sử dụng.
+Giá trị `Channel(T)` rất nhỏ. Giữ nó trong state của service để gửi sau, khi có giá trị. Method có thể return trước khi channel được dùng.
 
 <a id="channels-zig-opens"></a>
 
-### Kênh Zig mở
+### Channel do Zig mở
 
-Một loại kênh khai báo tên và loại của nó và trang sẽ lắng nghe các kênh thuộc loại đó:
+Một loại channel khai báo tên và kiểu. Trang nghe các channel thuộc loại đó:
 
 ```zig
 const Line = struct { text: []const u8 };
@@ -284,32 +326,43 @@ onLogsChannel(async (logs) => {
 });
 ```
 
-Các kênh được mở trước khi trang nghe chờ người nghe (tối đa 1024 loại). Nếu không có loại này, `myzig.Channel(T).open(window, "logs")` sẽ mở một tên theo tên, trang này sẽ có `myzig.onChannel("logs", fn)`.
+- Channel mở trước khi trang nghe sẽ chờ listener, tối đa 1024 channel mỗi loại.
+- Không cần loại, `myzig.Channel(T).open(window, "logs")` mở channel theo tên. Trang nhận nó bằng `myzig.onChannel("logs", fn)`.
 
 <a id="both-sides"></a>
 
-### Cả hai bên
+### Hai phía
 
-Trong Zig, `myzig.Channel(T)`:
+Trong Zig, một `myzig.Channel(T)`:
 
 | | |
 |---|---|
-| `send(value)` | gửi một giá trị; không thành công với `error.ChannelClosed` sau khi nó đóng và `error.ChannelFull` trong khi trang vẫn chưa nhận được một cửa sổ giá trị |
-| `close()` | đóng nó lại; quá trình lặp lại của trang kết thúc sau khi các giá trị được gửi |
+| `send(value)` | gửi một giá trị; lỗi `error.ChannelClosed` khi đã đóng, và `error.ChannelFull` khi trang còn cả một cửa sổ giá trị chưa nhận |
+| `close()` | đóng nó; vòng lặp ở trang kết thúc sau các giá trị đã gửi |
 | `isOpen()` | |
-| `onMessage(ptr, func)` | `func(ptr, channel, value)` cho mỗi giá trị của trang, được phân tích thành `T` |
-| `onClose(ptr, func)` | `func(ptr, channel, reason)` khi nó đóng; `reason` là `.zig`, `.page` hoặc `.lost` (trang đã được điều hướng đi hoặc bị đóng) |
-| `onDrain(ptr, func)` | `func(ptr, channel)` một lần gửi không thành công với `ChannelFull` sẽ thành công |
+| `onMessage(ptr, func)` | `func(ptr, channel, value)` cho mỗi giá trị từ trang, đã parse thành `T` |
+| `onClose(ptr, func)` | `func(ptr, channel, reason)` khi nó đóng; `reason` là `.zig`, `.page` hoặc `.lost` (trang đã chuyển đi hoặc đóng) |
+| `onDrain(ptr, func)` | `func(ptr, channel)` khi một lần send từng lỗi `ChannelFull` giờ sẽ thành công |
 
-Trong trang, `Channel<T>` là một biến lặp không đồng bộ và có `onmessage` (đặt nó để nhận các giá trị khi chúng xuất hiện thay vì lặp lại; các giá trị chờ cái này hoặc cái kia), `onclose`, `closed`, `send(value)` và `close()`. Thoát ra khỏi `for await` sẽ đóng nó lại.
+Ở trang, một `Channel<T>` là async iterable. Nó có:
 
-Áp suất ngược hoạt động theo cả hai cách với cửa sổ 1 MiB: các giá trị từ Zig đợi trong trang cho đến khi nó nhận được chúng và một khi nhiều hơn cửa sổ chờ, `send` sẽ không thành công với `ChannelFull` cho đến khi trang đủ (`onDrain` cho biết khi nào). `send` của trang được giải quyết ngay lập tức khi Zig còn chỗ và sau đó khi Zig được thừa nhận đủ. Điều hướng đi sẽ đóng các kênh của trang bằng `.lost` và `Channel(T)` của tài liệu trước đó sẽ bị đóng vĩnh viễn, ngay cả khi cửa sổ hiển thị một trang mới. Các kênh chỉ có luồng chính.
+- `onmessage`: đặt nó để nhận giá trị khi chúng đến, thay vì lặp. Giá trị chờ một trong hai cách.
+- `onclose`, `closed`, `send(value)` và `close()`.
+- Thoát khỏi `for await` bằng `break` sẽ đóng nó.
+
+**Backpressure** áp dụng cả hai chiều, với cửa sổ 1 MiB:
+
+- Giá trị từ Zig chờ trong trang đến khi trang nhận.
+- Khi số đang chờ vượt cửa sổ, `send` lỗi `ChannelFull` đến khi trang nhận đủ. `onDrain` báo lúc nào.
+- `send` của trang resolve ngay khi Zig còn chỗ. Nếu không, nó resolve khi Zig đã xác nhận đủ.
+
+Chuyển trang sẽ đóng các channel của trang với `.lost`. `Channel(T)` của một document cũ bị đóng vĩnh viễn, kể cả khi cửa sổ hiện trang mới. Channel chỉ dùng trên main thread.
 
 <a id="without-the-generated-client"></a>
 
-## Không có khách hàng được tạo
+## Không dùng client được sinh
 
-Ứng dụng khách là một lớp mỏng trên `window.myzig` mà cây cầu đặt vào mỗi trang của ứng dụng:
+Client là một lớp mỏng trên `window.myzig`, thứ mà bridge đặt vào mọi trang của app:
 
 ```js
 await myzig.call("Greeter.greet", "Ada");
@@ -319,16 +372,22 @@ myzig.onChannel("logs", (channel) => {});
 const ch = new myzig.Channel();
 ```
 
-Đó là những trang không nhập mô-đun (tập lệnh nội tuyến, trang được tải bằng `loadHtml`) sử dụng. Toàn bộ thời gian chạy nằm trong [Giao diện người dùng](frontend.md#the-page-runtime) và giao thức dây bên dưới nó trong [hướng dẫn kiến ​​trúc](architecture-ipc.md).
+Trang không import module sẽ dùng nó: một script inline, một trang nạp bằng `loadHtml`. Toàn bộ runtime có trong [The frontend](frontend.md#the-page-runtime). Giao thức truyền bên dưới có trong [hướng dẫn kiến trúc](architecture-ipc.md).
 
 <a id="from-zig-to-the-page"></a>
 
-## Từ Zig đến trang
+## Từ Zig tới trang
 
-Ngoài các sự kiện và kênh, Zig có thể chạy các tập lệnh trong một trang: `win.eval(js)` và `win.evalResult(js, cb)`, đang chờ giá trị ([Trang](pages.md#evaluating-scripts)).
+Ngoài event và channel, Zig có thể chạy script trong trang:
+
+- `win.eval(js)`;
+- `win.evalResult(js, cb)`, chờ lấy giá trị ([Pages](pages.md#evaluating-scripts)).
 
 <a id="testing"></a>
 
-## Kiểm tra
+## Test
 
-Một dịch vụ là một cấu trúc: kiểm tra các phương thức của nó một cách trực tiếp, với `std.testing.allocator` làm arena. Thông qua trang, hãy chạy ứng dụng với `--myzig-eval` ([Pages](pages.md#testing-pages)); `zig build test-pages` gọi các dịch vụ của `examples/hello`, lỗi và sự kiện của chúng, đồng thời chạy `examples/pages`, có các kênh bao gồm cả hướng, loại và áp suất ngược. Ánh xạ kiểu được kiểm thử trong `src/tsgen.zig`.
+- Service là một struct: test trực tiếp các method của nó, dùng `std.testing.allocator` làm arena.
+- Qua trang, chạy app với `--myzig-eval` ([Pages](pages.md#testing-pages)).
+- `zig build test-pages` gọi các service của `examples/hello`, lỗi của chúng và một event. Nó cũng chạy `examples/pages`, nơi các channel bao quát cả hai chiều, các loại channel và backpressure.
+- Phần ánh xạ kiểu được test trong `src/tsgen.zig`.

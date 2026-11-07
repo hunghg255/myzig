@@ -1,30 +1,32 @@
 <a id="native-ui"></a>
 
-# Giao diện native
+# Native UI
 
-Một cửa sổ có thể hiển thị frontend mà myzig tự vẽ thay vì một trang web. Bạn viết nó trong Zig chỉ với `myzig.ui`: không có HTML, không có JavaScript và không có bản dựng frontend, đồng thời cửa sổ không bắt đầu webview, vì vậy, nó mở ngay lập tức và sử dụng ít bộ nhớ. myzig vẽ nó trên GPU nếu có thể, với Metal trên macOS, Direct3D 11 trên Windows, OpenGL trên Linux và WebGL 2 trong trình duyệt và với bộ kết xuất CPU riêng (cùng pixel) ở mọi nơi khác; xem [kết xuất](rendering.md).
+Cửa sổ có thể hiện một giao diện do chính myzig vẽ, thay vì một trang web. Bạn viết nó hoàn toàn bằng Zig, với `myzig.ui`:
+
+- không HTML, không JavaScript, không bước build frontend;
+- cửa sổ không khởi động webview, nên mở ngay và tốn ít bộ nhớ;
+- myzig vẽ nó bằng GPU khi có thể: Metal trên macOS, Direct3D 11 trên Windows, OpenGL trên Linux và WebGL 2 trên trình duyệt;
+- ở mọi nơi khác, renderer CPU riêng của myzig vẽ ra đúng những pixel đó; xem [rendering](rendering.md).
 
 <!-- demo: controls height=520 -->
 
-![Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.](../../images/ui/controls.png)
+![Gallery chạy với theme sáng: nút, switch, slider và một ô nhập chữ.](../../images/ui/controls.png)
 
-*Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.*
+*Gallery chạy với theme sáng: nút, switch, slider và một ô nhập chữ.*
 
-Ảnh trong các hướng dẫn được render từ view Zig đang chạy bằng `ui.Tester`,
-ở tỉ lệ 2×. Phần lớn dùng lại [ví dụ Gallery](../../../examples/gallery/main.zig);
-ảnh bố cục, grid, hướng đọc và shader dùng các ví dụ nhỏ riêng.
-Xem [cách tạo lại ảnh](testing.md#documentation-images).
+Hình ảnh trong các hướng dẫn này được render từ các view Zig đang chạy bằng `ui.Tester`, ở tỷ lệ 2×. Phần lớn dùng lại [ví dụ Gallery](../../../examples/gallery/main.zig). Ảnh về layout, grid, hướng chữ và shader chạy các ví dụ nhỏ riêng. Xem [tạo lại hình ảnh](testing.md#documentation-images).
 
 ```zig
 const std = @import("std");
 const myzig = @import("myzig");
 const ui = myzig.ui;
 
-/// The app's state.
+/// State của app.
 const Counter = struct {
     n: i64 = 0,
 
-    /// Builds the window's interface from the state, for every frame.
+    /// Dựng giao diện cửa sổ từ state, cho mỗi frame.
     fn view(s: *Counter, c: *ui.Context) void {
         ui.column(c, .{ .width = .fill, .height = .fill, .align_items = .center, .justify = .center, .gap = 12 });
         defer ui.end(c);
@@ -47,36 +49,39 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-View là hàm của state, được myzig chạy trên main thread khi có input,
-thay đổi kích thước hoặc một bước hoạt ảnh. Widget trả lời ngay trong
-lượt dựng view: `ui.button` cho biết có được nhấp hay không, `ui.toggle`
-đổi giá trị `bool` được truyền vào. Bạn cập nhật state và frame tiếp theo
-hiển thị nó. Nếu tương tác làm đổi state, myzig dựng lại frame trước khi
-vẽ để hình hiển thị theo kịp state.
+View theo kiểu immediate mode. Nó là một hàm của state mà myzig chạy trên main thread mỗi khi có chuyện xảy ra: input, đổi kích thước, một bước animation.
 
-Phần tử cần nhận scroll hoặc pinch trước lượt dựng kế tiếp có thể dùng
-[callback `handleInput`](gestures.md).
+- Widget là các lời gọi hàm trả lời ngay. `ui.button` trả về nút có được bấm không; `ui.toggle` đảo giá trị `bool` bạn đưa vào.
+- Widget báo về tương tác ngay trong lúc build. Bạn đổi state, và frame sau sẽ hiện ra thay đổi.
+- Khi một tương tác làm đổi state, myzig build lại frame trước khi vẽ. Nhờ vậy màn hình không bao giờ chậm hơn state.
+- Phần tử nào cần event scroll hay pinch trước lần build sau có thể dùng [callback `handleInput`](gestures.md) tùy chọn.
 
-Không có polling nào. Một khung được vẽ khi nhập, khi thay đổi kích thước, trong khi hoạt ảnh chạy hoặc khi ứng dụng yêu cầu (`Window.redraw`, `c.frameIn`); một cửa sổ nhàn rỗi không sử dụng CPU.
+Không có gì polling. Frame được vẽ khi có input, khi đổi kích thước, khi animation đang chạy, hoặc khi app yêu cầu (`Window.redraw`, `c.frameIn`). Cửa sổ rảnh không tốn CPU.
 
 <a id="what-a-frame-keeps-of-what-you-pass"></a>
 
-## Khung hình giữ lại những gì bạn vượt qua
+## Frame giữ lại gì từ những thứ bạn truyền vào
 
-Một khung được xây dựng, sau đó bố trí, rồi vẽ: bố cục và vẽ chạy sau khi view đã quay trở lại. Văn bản được sao chép vào bộ nhớ của khung khi chúng được hiển thị (`ui.text`, `ui.richText` và các khoảng, nhãn, chú giải công cụ, trường của nó, những gì `c.describe` cho biết công nghệ hỗ trợ), do đó, một view có thể giải phóng hoặc thay đổi một chuỗi ngay sau khi hiển thị nó. Các slice và con trỏ khác mà widget lấy (byte của ảnh, tên biểu tượng, độ dốc, điểm của khung vẽ) được đọc ở vị trí của chúng cho đến khi khung được vẽ: truyền hằng số, bộ nhớ riêng của ứng dụng hoặc định dạng của khung (`c.print("{d} left", .{n})` vào một arena được giải phóng khi khung tiếp theo bắt đầu, `c.alloc()` cung cấp arena đó cho bất kỳ thứ gì khác), không bao giờ là bộ đệm trên ngăn xếp của chức năng xem. Để giải phóng dữ liệu như vậy mà view hiển thị, hãy giải phóng dữ liệu đó sau khung (sự kiện tiếp theo hoặc khung sau) hoặc giữ bản sao cũ để cập nhật thêm một lần nữa.
+Một frame được build, rồi layout, rồi paint. Layout và paint chạy sau khi view đã return.
+
+- **Chữ được copy** vào bộ nhớ của frame khi được hiển thị. Gồm `ui.text`, `ui.richText` và các span của nó, label, tooltip, trường nhập, và những gì `c.describe` báo cho công nghệ hỗ trợ. Nên view có thể giải phóng hoặc sửa một chuỗi ngay sau khi hiển thị nó.
+- **Các slice và con trỏ khác** mà widget nhận thì được đọc tại chỗ cho đến khi frame được vẽ: byte của ảnh, tên icon, gradient, các điểm của canvas.
+- Hãy truyền hằng số, bộ nhớ của chính app, hoặc bộ nhớ của frame. Đừng bao giờ truyền buffer nằm trên stack của hàm view.
+- `c.print("{d} left", .{n})` format vào một arena được giải phóng khi frame sau bắt đầu. `c.alloc()` cho bạn arena đó để dùng cho thứ khác.
+- Muốn giải phóng dữ liệu như vậy mà view đã hiển thị, hãy giải phóng sau frame (ở event sau, hoặc một frame sau). Hoặc giữ bản cũ thêm một lần cập nhật.
 
 <a id="two-ways-to-write-boxes"></a>
 
-## Hai cách để viết hộp
+## Hai cách viết box
 
-Các hàm đơn giản có cấu trúc `ui.Style`, theo cách của CSS flexbox:
+Các hàm thường nhận một struct `ui.Style`, theo kiểu CSS flexbox:
 
 ```zig
 ui.row(c, .{ .gap = 8, .padding = .all(12), .background = c.theme.surface, .radius = 8 });
 defer ui.end(c);
 ```
 
-`ui.div` tạo kiểu cho cùng một hộp bằng một chuỗi các phương thức nhỏ, như GPUI thực hiện:
+`ui.div` style cùng box đó bằng một chuỗi method nhỏ, như GPUI:
 
 ```zig
 const card = ui.div(c).row().p(12).gap(8).bg(c.theme.surface).rounded(8).hover(c.theme.surface_hover);
@@ -84,13 +89,13 @@ defer card.end();
 if (card.clicked()) s.open = !s.open;
 ```
 
-Cả hai đều làm những chiếc hộp giống nhau; trộn chúng một cách tự do. Xem [bố cục](layout.md) và [kiểu dáng](styling.md).
+Cả hai tạo ra cùng các box; trộn thoải mái. Xem [layout](layout.md) và [styling](styling.md).
 
 <a id="run-it-without-a-window"></a>
 
-## Chạy nó mà không có cửa sổ
+## Chạy không cần cửa sổ
 
-Mọi view đều có thể được điều khiển trong kiểm thử với `ui.Tester`, xây dựng và vẽ khung ngoài màn hình, nhấp chuột, nhập và chụp ảnh màn hình, trên đồng hồ mà bạn tự nâng cao:
+Mọi view đều có thể được điều khiển trong test bằng `ui.Tester`. Nó build và vẽ frame offscreen, bấm, gõ phím và chụp ảnh, theo một đồng hồ do bạn tự cho chạy:
 
 ```zig
 var t: ui.Tester = undefined;
@@ -100,70 +105,70 @@ try t.clickText("Increment");
 try std.testing.expect(t.hasText("1"));
 ```
 
-Xem [thử nghiệm](testing.md).
+Xem [testing](testing.md).
 
 <a id="the-guides"></a>
 
-## Các hướng dẫn viên
+## Các hướng dẫn
 
 Nền tảng:
 
-- [Lượt xem](views.md): chức năng xem, `ui.View`, ngữ cảnh, id và khóa, trạng thái thay đổi từ bên ngoài, khung theo yêu cầu.
-- [Bố cục](layout.md): hàng, cột, kích thước, tăng trưởng, căn chỉnh, đệm, cuộn, hộp tuyệt đối, cắt bớt.
-- [Tạo kiểu](styling.md): màu sắc, đường viền, bóng, chủ đề, sáng và tối, chủ đề được đặt tên, điểm nhấn, tùy chọn của màn hình, Oklch.
-- [Văn bản](text.md): kiểu văn bản, ngắt dòng, khoảng phong phú, tiêu đề và nhãn, phông chữ, văn bản có thể chọn, thu phóng.
+- [Views](views.md): hàm view, `ui.View`, context, id và key, state thay đổi từ bên ngoài, frame theo yêu cầu.
+- [Layout](layout.md): hàng, cột, kích thước, grow, căn chỉnh, padding, scroll, box absolute, clip.
+- [Styling](styling.md): màu, viền, bóng, theme, sáng và tối, theme có tên, màu accent, tùy chọn của desktop, Oklch.
+- [Text](text.md): kiểu chữ, xuống dòng, span rich text, heading và label, font, chữ chọn được, zoom.
 
 Widget:
 
-- [Nút và những thứ nhỏ nhặt](buttons.md): nút, liên kết, huy hiệu, mũ phím, biểu tượng, hình ảnh, hình đại diện, nút lịch sử.
-- [Lựa chọn](choices.md): hộp kiểm, nhóm hộp kiểm, công tắc, nút radio, nhóm radio, điều khiển phân đoạn, xếp hạng.
-- [Phạm vi](ranges.md): thanh trượt, thanh trượt phạm vi, bước, đầu vào số, mét, thanh tiến trình, vòng quay.
-- [Nhập văn bản](text-input.md): trường văn bản, trường tìm kiếm, trường mã thông báo, hộp tổ hợp, tự động hoàn thành, phương thức nhập và thao tác văn bản.
-- [Ngày và màu](dates-and-colors.md): lịch, đầu vào ngày và giờ, bộ chọn màu và giếng.
-- [Biểu mẫu](forms.md): trường được gắn nhãn, biểu mẫu, tập hợp trường, xác thực.
-- [Lớp phủ](overlays.md): cửa sổ bật lên, chú giải công cụ, hộp thoại, hộp thoại cảnh báo, toast.
-- [Menus](menus.md): menu, menu ngữ cảnh, nút menu, lựa chọn.
-- [Item](items.md): hàng nội dung có icon/avatar, mô tả và nút thao tác.
-- [Input Group](input-group.md): ô nhập có icon, tiền tố/hậu tố và nút.
-- [Pagination](pagination.md): phân trang với tổng đã biết hoặc chưa biết.
-- [Empty, Skeleton và Alert](feedback.md): nội dung trống, đang tải và thông báo trong trang.
-- [Command Palette](command-palette.md): tìm và kích hoạt lệnh bằng bàn phím.
-- [Sheet](sheet.md): panel modal ở các cạnh cửa sổ.
-- [Drawer](drawer.md): panel trồi từ một mép, kéo được bằng con trỏ, có snap point (vaul).
-- [Nh?m n?t v? n?t b?t/t?t](button-groups.md)
-- [Ch?n nhi?u m?c](multi-select.md)
-- [Ch?n kho?ng ng?y](date-range.md)
-- [Gh?p b?ng d? li?u](data-table.md)
-- [V?ng th? file](file-drop.md)
-- [Cấu trúc](structures.md): tab, thành phần thu gọn, accordion, phần tách, thanh bên, thanh công cụ, đường dẫn.
-- [Danh sách, cây và bảng](lists.md): danh sách ảo, cây, đường viền, bảng, view lưới.
-- [Bố cục lưới](grid.md): lưới kiểu CSS gồm các rãnh và ô.
-- [Điều hướng](navigation.md): bộ định tuyến, hành động và lối tắt, nhóm tiêu điểm.
-- [Kéo và thả](drag-and-drop.md): kéo trong và ngoài cửa sổ.
-- [Tiện ích tùy chỉnh](custom-widgets.md): hộp, tương tác, giá trị hoạt ảnh, tay cầm: cách tạo ra các widget riêng của myzig.
-- [Cuộn và thu phóng](gestures.md): handler scroll/pinch, định tuyến sự kiện và test headless.
-- [Chỉ báo loading](../plugins/loading.md): plugin tùy chọn với 29 mẫu, đồng hồ độc lập và cấu hình riêng.
+- [Items](items.md): hàng nội dung có media, mô tả và action.
+- [Input groups](input-group.md): ô nhập chữ có icon, tiền tố/hậu tố và nút.
+- [Pagination](pagination.md): trang đánh số và điều hướng khi chưa biết tổng.
+- [Empty, loading and alerts](feedback.md): nội dung trống, placeholder skeleton và thông báo trong trang.
+- [Command palette](command-palette.md): các action tìm kiếm được, điều hướng bằng bàn phím.
+- [Sheet](sheet.md): panel modal ở các mép cửa sổ.
+- [Drawer](drawer.md): panel trồi ra từ một mép, kéo bằng con trỏ, có snap point (vaul).
+- [Button and toggle groups](button-groups.md)
+- [Multi-select](multi-select.md)
+- [Date range picker](date-range.md)
+- [Data table composition](data-table.md)
+- [File drop zone](file-drop.md)
+- [Buttons and small things](buttons.md): nút, link, badge, phím chữ, icon, ảnh, avatar, nút lịch sử.
+- [Choices](choices.md): checkbox, nhóm checkbox, switch, nút radio, nhóm radio, segmented control, đánh giá sao.
+- [Ranges](ranges.md): slider, range slider, stepper, ô nhập số, meter, thanh tiến trình, spinner.
+- [Text input](text-input.md): ô nhập chữ, ô tìm kiếm, token field, combobox, autocomplete, bộ gõ và các thao tác chữ.
+- [Dates and colors](dates-and-colors.md): lịch, ô nhập ngày và giờ, bộ chọn màu và ô màu.
+- [Forms](forms.md): trường có label, form, fieldset, kiểm tra hợp lệ.
+- [Overlays](overlays.md): popover, tooltip, dialog, alert dialog, toast.
+- [Menus](menus.md): menu, context menu, menu button, select.
+- [Structures](structures.md): tab, collapsible, accordion, split, sidebar, toolbar, breadcrumb.
+- [Lists, trees and tables](lists.md): virtual list, tree, outline, table, grid view.
+- [Grid layout](grid.md): grid kiểu CSS gồm các track và ô.
+- [Navigation](navigation.md): router, action và shortcut, focus group.
+- [Drag and drop](drag-and-drop.md): kéo trong cửa sổ và kéo ra ngoài.
+- [Custom widgets](custom-widgets.md): box, tương tác, giá trị animate, handle: cách các widget của chính myzig được làm ra.
+- [Scrolling and pinching](gestures.md): handler scroll/pinch, đường đi của event và test cử chỉ không cần cửa sổ.
+- [Loading indicators](../plugins/loading.md): 29 mẫu của plugin tùy chọn, đồng hồ độc lập và tùy chọn riêng cho từng mẫu.
 
 Vẽ và nội dung phong phú:
 
-- [Chuyển động](motion.md): giá trị hoạt ảnh, lò xo, khung hình chính, dòng thời gian, chuyển tiếp, ít chuyển động hơn.
-- [Biến đổi và hiệu ứng](transforms.md): di chuyển, chia tỷ lệ và xoay hộp, chuyển màu, làm mờ, hiệu ứng phông nền.
-- [Bản vẽ](drawing.md): khung vẽ đường dẫn, phần tô màu và nét vẽ, SVG.
-- [Biểu đồ](chart.md): đường, thanh, vùng, v.v, phát trực tuyến.
-- [Markdown](markdown.md): Các tiện ích mở rộng của CommonMark và GitHub, được phát trực tuyến khi nó xuất hiện.
-- [Vùng văn bản](text-area.md): văn bản nhiều dòng, sợi dây, tài liệu.
-- [Trình chỉnh sửa mã và trình xem khác biệt](code-editor.md): tô sáng cú pháp, máng xối, khác biệt.
-- [Văn bản có định dạng](rich-text.md): trình soạn thảo văn bản có định dạng và thanh công cụ của nó.
-- [Shaders](shaders.md): các shader được viết một lần, được vẽ bởi mọi bộ kết xuất.
-- [View web](web-view.md): các trang web trong hộp giao diện native, với giao diện native được vẽ phía trên chúng.
+- [Motion](motion.md): giá trị animate, spring, keyframe, timeline, transition, giảm chuyển động.
+- [Transforms and effects](transforms.md): dịch, co giãn và xoay box, gradient, blur, backdrop effect.
+- [Drawing](drawing.md): canvas gồm path, fill và stroke, SVG.
+- [Charts](chart.md): đường, cột, vùng và hơn nữa, dữ liệu streaming.
+- [Markdown](markdown.md): CommonMark và các mở rộng của GitHub, render dần khi dữ liệu đến.
+- [Text area](text-area.md): chữ nhiều dòng, rope, document.
+- [Code editor and diff viewer](code-editor.md): tô màu cú pháp, gutter, diff.
+- [Rich text](rich-text.md): trình soạn rich text và toolbar của nó.
+- [Shaders](shaders.md): shader viết một lần, mọi renderer đều vẽ được.
+- [Web views](web-view.md): trang web trong box của native UI, có native UI vẽ đè lên trên.
 
 Chất lượng:
 
-- [Khả năng truy cập](accessibility.md): công nghệ hỗ trợ đọc gì, vai trò và mô tả trên mỗi nền tảng.
-- [Phải sang trái](right-to-left.md): bố cục phản chiếu.
-- [Inspector](inspector.md): cây hộp của cửa sổ đang chạy (F12).
-- [Đang kiểm tra](testing.md): `ui.Tester` và cờ `--myzig-*` của ứng dụng.
-- [Đang kết xuất](rendering.md): bộ kết xuất và CPU song sinh của chúng.
-- [Hiệu suất](performance.md): giá khung và cách giữ giá khung ở mức rẻ.
+- [Accessibility](accessibility.md): công nghệ hỗ trợ đọc được gì, role và mô tả, trên từng nền tảng.
+- [Right to left](right-to-left.md): layout lật ngược.
+- [Inspector](inspector.md): cây box của một cửa sổ đang chạy (F12).
+- [Testing](testing.md): `ui.Tester`, và các cờ `--myzig-*` của app.
+- [Rendering](rendering.md): các renderer và bản sao CPU của chúng.
+- [Performance](performance.md): một frame tốn bao nhiêu, và cách giữ nó rẻ.
 
-Giao diện native cũng chạy trong trình duyệt, được xây dựng cho `wasm32-wasi`; xem [trình duyệt](../browsers.md).
+Native UI cũng chạy trên trình duyệt, build cho `wasm32-wasi`; xem [browsers](../browsers.md).

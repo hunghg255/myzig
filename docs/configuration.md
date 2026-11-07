@@ -1,10 +1,8 @@
 # Configuration
 
 The [CLI](cli.md) reads an app's configuration from `myzig.zon` at its
-root, or `myzig.json` (not both). Every field is optional; without a file,
-the defaults below apply. Zig itself never reads it: `zig build` builds the
-app from `build.zig` and `build.zig.zon`, and the configuration says how
-the CLI runs, packages and names it.
+root, or `myzig.json` (not both). It says how the CLI runs, packages and
+names the app.
 
 ```zig
 .{
@@ -29,9 +27,13 @@ the CLI runs, packages and names it.
 }
 ```
 
-Paths are relative to the app's root, or absolute. A field the CLI doesn't
-know is an error that names it (`myzig.zon has no field nmae`), as is a
-value of the wrong kind; a ZON syntax error gives its line and column.
+- Every field is optional. Without a file, the defaults below apply.
+- Zig itself never reads it: `zig build` builds the app from `build.zig`
+  and `build.zig.zon`.
+- Paths are relative to the app's root, or absolute.
+- A field the CLI doesn't know is an error that names it
+  (`myzig.zon has no field nmae`). So is a value of the wrong kind.
+- A ZON syntax error gives its line and column.
 
 ## The app
 
@@ -44,10 +46,11 @@ value of the wrong kind; a ZON syntax error gives its line and column.
 | `icon` | `resources/icon.png` when it exists | a square PNG (1024 pixels is best): `.icns`, `.ico`, Linux's sizes are made from it |
 | `executable` | `build.zig.zon`'s `.name`, else the name in snake case | the artifact `build.zig` installs (`zig-out/bin/<executable>`) |
 
-`name`, `version` and `identifier` cannot hold quotes or control
-characters. Keep `identifier` the same as `AppOptions.id` in the app's
-code, which names its single instance lock, URL handler and secrets (see
-[The app](app.md)).
+- `name`, `version` and `identifier` cannot hold quotes or control
+  characters.
+- Keep `identifier` the same as `AppOptions.id` in the app's code. That
+  id names its single instance lock, URL handler and secrets (see
+  [The app](app.md)).
 
 ## Development and the frontend
 
@@ -61,10 +64,10 @@ code, which names its single instance lock, URL handler and secrets (see
 | `out` | `dist` | where `myzig build` puts packages |
 | `watch` | none | accepted; `myzig dev` already watches the whole app directory |
 
-A frontend without a build (plain HTML, as the web template's) has
-`frontend` alone: the app embeds its sources. A frontend built by Vite or
-another tool sets `frontend_dist` to its output, and `dev_command`,
-`dev_url` and `build_command`:
+- A frontend without a build (plain HTML, as the web template's) has
+  `frontend` alone: the app embeds its sources.
+- A frontend built by Vite or another tool sets `frontend_dist` to its
+  output, and `dev_command`, `dev_url` and `build_command`:
 
 ```zig
 .{
@@ -99,13 +102,16 @@ A file association is:
 | `mime_type` | `application/x-<executable>-<ext>` | the MIME type; Linux packages define the type when it is myzig's |
 | `role` | `Editor` | `Editor` or `Viewer` (macOS) |
 
-The packages register these with the system: `CFBundleURLTypes` and
-`CFBundleDocumentTypes` in the macOS bundle, registry keys written by the
-Windows installer, `MimeType=` in the Linux desktop entry. The app also
-names them in its own options, `AppOptions.url_schemes` and
-`AppOptions.file_extensions`, so that launches with such arguments reach
-`on_open_url` and `on_open_file`, and can register them while it runs
-(`myzig.system.registerUrlScheme`, `registerFileType`; see
+The packages register these with the system:
+
+- macOS: `CFBundleURLTypes` and `CFBundleDocumentTypes` in the bundle;
+- Windows: registry keys written by the installer;
+- Linux: `MimeType=` in the desktop entry.
+
+The app also names them in its own options, `AppOptions.url_schemes` and
+`AppOptions.file_extensions`. Launches with such arguments then reach
+`on_open_url` and `on_open_file`. The app can also register them while it
+runs (`myzig.system.registerUrlScheme`, `registerFileType`; see
 [System](system.md)).
 
 ## macos
@@ -115,10 +121,16 @@ names them in its own options, `AppOptions.url_schemes` and
 | `minimum_system_version` | `12.0` | `LSMinimumSystemVersion` |
 | `signing_identity` | `-` | `codesign`'s identity; `-` signs ad hoc (runs on the Mac that built it) |
 | `entitlements` | none | an entitlements file for `codesign` |
-| `provisioning_profile` | none | a profile embedded as `Contents/embedded.provisionprofile` before signing; it must match the app's identifier, entitlements and signing identity, and cannot be used with ad-hoc signing. See [provisioning profiles](distribution.md#provisioning-profiles) |
+| `provisioning_profile` | none | a profile embedded as `Contents/embedded.provisionprofile` before signing (below) |
 | `dmg_title` | the name | the disk image's volume name |
-| `icon` | none | an `.icns` (made with `iconutil` from an `.iconset`) the bundle gets in place of the one rendered from `icon`, for an icon drawn per size; `myzig dev` shows the PNG |
+| `icon` | none | an `.icns` the bundle gets in place of the one rendered from `icon` (below) |
 | `info_plist` | none | keys added to `Info.plist`, replacing myzig's |
+
+- `provisioning_profile` must match the app's identifier, entitlements
+  and signing identity. It cannot be used with ad-hoc signing. See
+  [provisioning profiles](distribution.md#provisioning-profiles).
+- `icon` is for an icon drawn per size, made with `iconutil` from an
+  `.iconset`. `myzig dev` shows the PNG.
 
 ```zig
 .macos = .{
@@ -156,10 +168,26 @@ are required.
 | field | default | |
 |---|---|---|
 | `installer` | true | write the NSIS installer's script, and make the installer when `makensis` is installed |
-| `uninstall_run` | none | arguments the uninstaller runs the app with, and waits for, before taking its files away: for the app to undo what it set up itself (a command on the `PATH`, File Explorer's menus) |
-| `uninstall_data` | none | folders of the app's data, as NSIS paths (`$APPDATA\\MyApp`), the uninstaller offers to delete too, asking first; a silent uninstall keeps them |
-| `install_dir_name` | the name | the folder in `%LOCALAPPDATA%\Programs` the installer puts the app in, e.g. an ASCII `ZhiLian` for an app named `智链`; the shortcuts and Settings › Apps keep the name, and an installed app is updated where it is |
-| `installer_include` | none | an NSIS script of the app's own the installer includes, as `resources/installer.nsh`, after `MUI2.nsh` and the languages: the macros it defines among `customInit`, `customInstall` and `customUnInstall` run as the installer starts (`.onInit`), at the end of the install, once the files are in `$INSTDIR`, and in the uninstall before the app's folder is removed; silent installs run them too |
+| `uninstall_run` | none | arguments the uninstaller runs the app with, and waits for, before taking its files away |
+| `uninstall_data` | none | folders of the app's data, as NSIS paths (`$APPDATA\\MyApp`), the uninstaller offers to delete too |
+| `install_dir_name` | the name | the folder in `%LOCALAPPDATA%\Programs` the installer puts the app in |
+| `installer_include` | none | an NSIS script of the app's own the installer includes, as `resources/installer.nsh` |
+
+- `uninstall_run` lets the app undo what it set up itself: a command on
+  the `PATH`, File Explorer's menus.
+- `uninstall_data` asks first. A silent uninstall keeps the folders.
+- `install_dir_name` is, for example, an ASCII `ZhiLian` for an app named
+  `智链`. The shortcuts and Settings › Apps keep the name. An installed
+  app is updated where it is.
+- `installer_include` is included after `MUI2.nsh` and the languages. It
+  may define the macros `customInit`, `customInstall` and
+  `customUnInstall`. Silent installs run them too.
+
+| Macro | Runs |
+|---|---|
+| `customInit` | as the installer starts (`.onInit`) |
+| `customInstall` | at the end of the install, once the files are in `$INSTDIR` |
+| `customUnInstall` | in the uninstall, before the app's folder is removed |
 
 ## linux
 
@@ -186,9 +214,13 @@ The same fields in JSON:
 
 ## How it is read
 
-The CLI reads the file with a ZON reader of its own (`cli/src/zon.zig`, so
-that it reads the same across Zig versions and says where a mistake is),
-fills in the defaults (from `build.zig.zon` and the directory), and checks
-the result: extensions without dots, URL schemes and the identifier as
-their systems want them, `dev_url` an http(s) URL, `role` `Editor` or
-`Viewer`. `Config` in `cli/src/config.zig` is the reference.
+The CLI reads the file with a ZON reader of its own (`cli/src/zon.zig`).
+It reads the same across Zig versions and says where a mistake is. Then
+the CLI:
+
+1. fills in the defaults, from `build.zig.zon` and the directory;
+2. checks the result: extensions without dots, URL schemes and the
+   identifier as their systems want them, `dev_url` an http(s) URL,
+   `role` `Editor` or `Viewer`.
+
+`Config` in `cli/src/config.zig` is the reference.

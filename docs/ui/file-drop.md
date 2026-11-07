@@ -4,9 +4,8 @@
 
 ![A drop target and a removable list of local file paths.](../images/ui/file-drop.png)
 
-`fileDropZone` uses the existing `DragDrop` target mechanism for local file
-lists and URI lists. `FileList` owns copies of paths, so they survive after
-the drop data expires. Neither type reads file contents or uploads files.
+A target for dropped files and URI lists, with a list of the paths. It
+never reads or uploads the files.
 
 ```zig
 // Initialize app state once:
@@ -21,19 +20,41 @@ if (result.err) |err| reportError(err);
 s.drag.preview(c);
 ```
 
-On teardown call `files.deinit()` and `drag.deinit()`. Add paths returned
-by your app's file dialog with `try files.add(path)`; request a redraw
-after the asynchronous result arrives. `add` copies the string and returns
-false for empty paths or duplicates. Programmatic additions are not
-limited by the drop zone's `max_files`.
+On teardown call `files.deinit()` and `drag.deinit()`.
 
-The widget returns `changed`, `browse`, `over`, the number of paths rejected
-by `max_files`, and an optional allocation/decoding `err`. Earlier accepted
-paths remain if a later one fails. Duplicate paths do not consume capacity.
-The list has a Remove action per path; `disabled` blocks browsing, removal
-and drops. Customize `title`, `description`, `browse_label` and `width`.
+| `FileDropOptions` | Default | |
+|---|---|---|
+| `title` | `"Drop files here"` | the heading |
+| `description` | `"Or choose files from your device."` | the line under it |
+| `browse_label` | `"Browse files"` | the button |
+| `width` | `.fill` | |
+| `disabled` | `false` | blocks browsing, removal and drops |
+| `max_files` | no limit | drops past it are rejected |
 
-The Gallery's Browse action adds a sample path to keep its example
-deterministic. Production apps handle the `browse` event themselves.
-External drag capabilities remain those of the existing backend; see
-[drag and drop](drag-and-drop.md).
+| `FileDropResult` | |
+|---|---|
+| `changed` | the list changed |
+| `browse` | the Browse button was pressed |
+| `over` | a drag is over the zone |
+| `rejected` | paths turned away by `max_files` |
+| `err` | an allocation or decoding error, or `null` |
+
+**Behavior**
+
+- `FileList` owns copies of the paths, so they outlive the drop data.
+- Paths accepted before a failure stay in the list.
+- A duplicate path takes no room under `max_files`.
+- Each path has a Remove action.
+- It uses the `DragDrop` target mechanism. External drags work as the
+  backend allows; see [drag and drop](drag-and-drop.md).
+
+**Your own file dialog.** Add the paths it returns with
+`try files.add(path)`, and request a redraw when the asynchronous result
+arrives.
+
+- `add` copies the string.
+- It returns false for an empty path or a duplicate.
+- `max_files` does not limit `add`.
+
+The Gallery's Browse action adds a sample path, to keep its example
+deterministic. A real app handles `browse` itself.

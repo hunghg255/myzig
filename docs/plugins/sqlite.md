@@ -1,8 +1,8 @@
 # sqlite
 
 SQLite from Zig and from pages. The plugin uses the system's library,
-loaded when the first database opens: no C code is compiled, nothing is
-linked or shipped.
+loaded when the first database opens. No C code is compiled, and nothing
+is linked or shipped.
 
 | platform | library |
 |---|---|
@@ -10,8 +10,8 @@ linked or shipped.
 | macOS | `/usr/lib/libsqlite3.dylib` |
 | Linux | `libsqlite3.so.0` (packages `libsqlite3-0`, `sqlite-libs`) |
 
-`MYZIG_SQLITE_LIBRARY` names another build. Without a library, opening
-fails with `error.SqliteMissing`.
+- `MYZIG_SQLITE_LIBRARY` names another build.
+- Without a library, opening fails with `error.SqliteMissing`.
 
 The package is `plugins/sqlite` (module `sqlite`). See
 [Plugins](../plugins.md) for adding it to an app.
@@ -40,7 +40,7 @@ try db.transaction(ctx, struct {
 
 `Db.open(path, options)` takes `OpenOptions`:
 
-| field | default | |
+| `OpenOptions` | Default | |
 |---|---|---|
 | `read_only` | false | open without writing |
 | `busy_timeout_ms` | 5000 | how long a statement waits for another connection's lock; 0 fails at once |
@@ -48,31 +48,44 @@ try db.transaction(ctx, struct {
 
 ### Statements and values
 
-- `exec`, `all` and `one` take one statement (a trailing `;` and comments
-  are fine; more fails with `error.MultipleStatements`; `execScript` runs
-  several) and a tuple of arguments bound to `?1`, `?2`... (`:name`,
-  `$name` and `@name` bind by their index too). Every parameter needs a
-  value (`error.WrongParameterCount`).
-- Bound values: `null`, bools (0 or 1), integers (within `i64`), finite
-  floats, text (`[]const u8`, valid UTF-8), `sqlite.blob(bytes)`, enums
-  (their names), `sqlite.Value`, and optionals of these.
-- Rows read into structs by column name: integers, floats, bools, enums
-  (from text), `[]const u8` (copied), `sqlite.Value` and optionals (NULL).
-  A field with a default may have no column, or NULL in it.
-- `prepare` gives a `Statement` to `bind` (or `bindAll`), `step`, read
-  (`int`, `float`, `text`, `bytes`, `value`, `read(T)`), `reset` for reuse
-  and `finalize`. `query` returns dynamic `Rows` of `Value`s;
-  `execValues` binds a slice of `Value`s.
+**One statement.** `exec`, `all` and `one` take one statement and a tuple
+of arguments.
+
+- A trailing `;` and comments are fine. More statements fail with
+  `error.MultipleStatements`. `execScript` runs several.
+- Arguments bind to `?1`, `?2`... `:name`, `$name` and `@name` bind by
+  their index too.
+- Every parameter needs a value (`error.WrongParameterCount`).
+
+**Bound values:** `null`, bools (0 or 1), integers (within `i64`), finite
+floats, text (`[]const u8`, valid UTF-8), `sqlite.blob(bytes)`, enums
+(their names), `sqlite.Value`, and optionals of these.
+
+**Rows** read into structs by column name.
+
+- Field types: integers, floats, bools, enums (from text), `[]const u8`
+  (copied), `sqlite.Value` and optionals (NULL).
+- A field with a default may have no column, or NULL in it.
+
+**Lower level**
+
+- `prepare` gives a `Statement`. You can `bind` (or `bindAll`), `step`,
+  read (`int`, `float`, `text`, `bytes`, `value`, `read(T)`), `reset` for
+  reuse and `finalize`.
+- `query` returns dynamic `Rows` of `Value`s. `execValues` binds a slice
+  of `Value`s.
 - `begin`, `commit`, `rollback` and `inTransaction` are there for
   transactions that `transaction` doesn't fit.
 
 ### Errors and threads
 
-Errors are Zig errors: `error.Constraint`, `error.Busy`,
-`error.Interrupted`, `error.InvalidSql`, `error.Sqlite`, and others named
-in `sqlite.Error`; after `error.Sqlite`, `db.diagnostics` has SQLite's
-extended code and `diagnostics.text()` its message. A `Db` is used by one
-thread at a time; `interrupt()` stops a running statement from another.
+- Errors are Zig errors: `error.Constraint`, `error.Busy`,
+  `error.Interrupted`, `error.InvalidSql`, `error.Sqlite`, and others
+  named in `sqlite.Error`.
+- After `error.Sqlite`, `db.diagnostics` has SQLite's extended code and
+  `diagnostics.text()` its message.
+- A `Db` is used by one thread at a time. `interrupt()` stops a running
+  statement from another.
 
 ## From pages
 
@@ -96,31 +109,47 @@ await db.transaction([{ sql: "DELETE FROM notes WHERE id = ?", params: [1] }]);
 await db.close();
 ```
 
-- **Values:** `null`, numbers, strings, booleans (0 or 1), `bigint`s for
-  integers past 2^53 (results give them as `bigint`s, `lastInsertId`
-  always), and `Uint8Array`s (any `ArrayBuffer` view) for blobs. What JSON
-  can't carry travels as strings with its kind, turned back by the client.
-- **Names, never paths:** pages open file names in the service's
-  `directory` (the app's data directory by default): no directories, `..`,
-  `:`, Windows' reserved names (`CON`, `COM1`...) or symbolic links. The
-  directory is created for writable databases; `open(name, { readOnly:
-  true })` opens one read-only.
-- **Guarded SQL:** one statement per call, and no `BEGIN`, `COMMIT` or
-  `SAVEPOINT` (use `transaction`, which is `BEGIN IMMEDIATE` and rolls back
-  on any error), `ATTACH`, `DETACH` or `VACUUM INTO`.
-- **Per page:** a connection belongs to the page that opened it: other
-  windows can't use its id, and it closes when the page navigates, reloads
-  or closes, or the service deinits. A reloaded page opens its databases
-  again.
-- **The main thread:** calls run there, as all bound methods do; keep
-  queries short (`LIMIT`).
+| `sqlite.ServiceOptions` | Default | |
+|---|---|---|
+| `directory` | null | where pages' databases are; null is the app's data directory |
+| `busy_timeout_ms` | 5000 | |
 
-`sqlite.ServiceOptions`: `directory` (null: the app's data directory),
-`busy_timeout_ms` (5000).
+**Values**
+
+- `null`, numbers, strings, booleans (0 or 1), and `Uint8Array`s (any
+  `ArrayBuffer` view) for blobs.
+- `bigint`s for integers past 2^53. Results give them as `bigint`s, and
+  `lastInsertId` always is one.
+- What JSON can't carry travels as strings with its kind. The client
+  turns it back.
+
+**Names, never paths.** Pages open file names in the service's
+`directory`.
+
+- No directories, `..`, `:`, Windows' reserved names (`CON`, `COM1`...)
+  or symbolic links.
+- The directory is created for writable databases.
+- `open(name, { readOnly: true })` opens one read-only.
+
+**Guarded SQL.** One statement per call. These are refused:
+
+- `BEGIN`, `COMMIT` or `SAVEPOINT`. Use `transaction`, which is
+  `BEGIN IMMEDIATE` and rolls back on any error.
+- `ATTACH`, `DETACH` or `VACUUM INTO`.
+
+**Per page.** A connection belongs to the page that opened it.
+
+- Other windows can't use its id.
+- It closes when the page navigates, reloads or closes, or the service
+  deinits.
+- A reloaded page opens its databases again.
+
+**The main thread.** Calls run there, as all bound methods do. Keep
+queries short (`LIMIT`).
 
 ## Example and tests
 
-`example/` is a notes page; `zig build run` shows it.
+`example/` is a notes page. `zig build run` shows it.
 
 ```sh
 cd plugins/sqlite

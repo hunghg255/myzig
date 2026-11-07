@@ -1,31 +1,33 @@
 <a id="lists-trees-tables-and-grid-views"></a>
 
-# Danh sách, cây, bảng và dạng xem lưới
+# Danh sách, cây, bảng và grid view
 
-Bộ sưu tập các mục: danh sách ảo hóa, cây cối, đường viền, bảng và view dạng lưới. Tất cả trừ cây chỉ xây dựng các hàng trong view (và một số hàng xung quanh chúng), do đó, một danh sách gồm một trăm nghìn hàng có chi phí tương đương với một màn hình. Lựa chọn họ đưa ra là của ứng dụng, được giữ ở trạng thái của nó; `end` của họ trả về những gì đã xảy ra trong khung này.
+Các widget cho tập hợp nhiều mục: danh sách ảo hóa, cây, outline, bảng và grid view.
 
-| Tiện ích | cho | Bản dựng |
+- Tất cả, trừ cây, chỉ dựng các hàng đang hiện, cộng thêm vài hàng xung quanh. Danh sách một trăm nghìn hàng chỉ tốn bằng một màn hình.
+- Lựa chọn của chúng thuộc về app, giữ trong state của app.
+- `end` của chúng trả về những gì đã xảy ra trong frame này.
+
+| Widget | Dùng cho | Dựng |
 |---|---|---|
-| `ui.list` | hàng có cùng chiều cao | các hàng trong view |
-| `ui.measuredList` | hàng có chiều cao bất kỳ: chat, feed | các hàng trong view |
-| `ui.tree` | một cây nhỏ, mỗi phần tử bên trong cây mẹ của nó | mỗi mục được hiển thị |
-| `ui.outline` | một cây có kích thước bất kỳ, dưới dạng view danh sách của Finder | các hàng trong view |
-| `ui.table` | các hàng trong các cột có thể sắp xếp dưới tiêu đề | các hàng trong view |
-| `ui.gridView` | các mục trong lưới bao bọc, dưới dạng thư viện Ảnh | các hàng trong view |
+| `ui.list` | các hàng cao bằng nhau | các hàng đang hiện |
+| `ui.measuredList` | các hàng cao bất kỳ: khung chat, một feed | các hàng đang hiện |
+| `ui.tree` | cây nhỏ, mỗi mục nằm trong phần tử cha của nó | mọi mục đang hiện |
+| `ui.outline` | cây kích thước bất kỳ, như list view của Finder | các hàng đang hiện |
+| `ui.table` | các hàng trong các cột sắp xếp được, dưới một header | các hàng đang hiện |
+| `ui.gridView` | các mục trong lưới tự xuống hàng, như thư viện của Photos | các hàng đang hiện |
 
-Để có bố cục các ô theo hàng và cột chứa mọi ô con (biểu mẫu, bảng thông tin), thay vào đó, hãy sử dụng [`ui.grid`](grid.md).
-
-<a id="lists"></a>
+Để xếp các ô theo hàng và cột mà chứa mọi phần tử con, như một form hay dashboard, hãy dùng [`ui.grid`](grid.md).
 
 <!-- demo: virtual-list height=360 -->
 
-![Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.](../../images/ui/virtual-list.png)
+![Danh sách ảo 10.000 hàng; chỉ những hàng đang hiện mới được dựng.](../../images/ui/virtual-list.png)
 
-*Danh sách ảo gồm 10.000 dòng; chỉ các dòng đang thấy được dựng.*
+*Danh sách ảo 10.000 hàng; chỉ những hàng đang hiện mới được dựng.*
+
+<a id="lists"></a>
 
 ## Danh sách
-
-`ui.list(c, opts)` là một danh sách ảo hóa, theo cách GPUI's `uniform_list`: các hàng có một chiều cao, trong đó chỉ những hàng trong view mới được tạo. Nó cuộn; `next()` đưa ra chỉ mục của từng hàng cần xây dựng, sau đó `end()` đóng nó lại:
 
 ```zig
 var rows = ui.list(c, .{ .count = s.items.len, .row_height = 36 });
@@ -38,33 +40,58 @@ while (rows.next()) |i| {
 rows.end();
 ```
 
-Mỗi hàng phải có chiều cao `row_height`: xây dựng hàng đó với chiều cao đó. Danh sách cung cấp cho mỗi hàng một id từ chỉ mục của nó, do đó, một hàng sẽ giữ nguyên trạng thái di chuột và hình ảnh động khi danh sách cuộn; khi các hàng được lọc hoặc sắp xếp lại và trạng thái của chúng phải tuân theo mục đó, hãy khóa nội dung của hàng bằng `ui.key` (xem [View](views.md)).
+`ui.list(c, opts)` là một danh sách ảo hóa, theo kiểu `uniform_list` của GPUI: các hàng cao bằng nhau, và chỉ những hàng đang hiện mới được dựng. Nó có scroll. `next()` cho chỉ số của từng hàng cần dựng, rồi `end()` đóng danh sách.
 
-`ui.ListOptions`:
+- Mỗi hàng phải cao đúng `row_height`: hãy dựng nó với chiều cao đó.
+- Danh sách cấp cho mỗi hàng một id theo chỉ số. Hàng giữ được hover và animation khi danh sách scroll.
+- Khi hàng bị lọc hoặc đổi thứ tự mà state của nó phải đi theo mục, hãy gắn key cho nội dung hàng bằng `ui.key` (xem [Views](views.md)).
 
-| trường | Mặc định | |
+| `ui.ListOptions` | Mặc định | |
 |---|---|---|
-| `count` | | có bao nhiêu hàng |
-| `row_height` | | chiều cao của mỗi hàng, tính bằng điểm |
-| `width`, `height` | `.fill` | hộp danh sách |
+| `count` | | số hàng |
+| `row_height` | | chiều cao mỗi hàng, tính bằng điểm |
+| `width`, `height` | `.fill` | box của danh sách |
 | `gap` | 0 | giữa các hàng |
 | `padding` | không có | |
-| `overscan` | 4 | các hàng được tạo ngoài mỗi cạnh của view để cuộn mượt mà |
-| `scroll_to` | null | cuộn danh sách đến phần bù này, theo điểm, trong khung này |
-| `follow_end`, `follow_glide` | false, null | bắt đầu ở cuối và giữ nó ở view khi các hàng đến, lướt tới đó ([layout](layout.md)) |
-| `choice` | null | các hàng được chọn (bên dưới) |
+| `overscan` | 4 | số hàng dựng thêm ngoài mỗi mép của vùng hiện, để scroll mượt |
+| `scroll_to` | null | scroll danh sách tới offset này, tính bằng điểm, trong frame này |
+| `follow_end`, `follow_glide` | false, null | bắt đầu ở cuối và giữ cuối danh sách trong tầm nhìn khi có hàng mới, trượt tới đó ([layout](layout.md)) |
+| `choice` | null | các hàng được chọn (xem dưới) |
 
-Để hiển thị hàng `i`, hãy cuộn tới `i * (row_height + gap)`. Phòng của các hàng phía trên và phía dưới view được giữ bởi các ô trống, vì vậy thanh cuộn là thanh cuộn của toàn bộ danh sách.
+- Để hiện hàng `i`, scroll tới `i * (row_height + gap)`.
+- Các box rỗng giữ chỗ cho những hàng ở trên và dưới vùng hiện. Thanh scroll là của toàn bộ danh sách.
 
 <a id="choosing-rows"></a>
 
 ### Chọn hàng
 
-Với `choice`, ứng dụng sẽ giữ lại `*ui.ListChoice`, danh sách sẽ tự mở hộp của mỗi hàng (`row_height` cao; tạo nội dung của hàng trong đó) và các hàng của nó được chọn: một cú nhấp chuột sẽ chọn một hàng, các mũi tên, Trang chủ, Kết thúc và Lên xuống Trang sẽ di chuyển `choice.selected` trong khi danh sách có tiêu điểm và Enter hoặc nhấp đúp sẽ gửi nó. `rows.result`, đọc sau `end()`, có `changed`, `submitted`, `focused` và `menu_row`, nhấp chuột phải vào hàng trong khung; `rows.textColor()` là màu của văn bản trên hàng đang được tạo.
+Với `choice`, một `*ui.ListChoice` do app giữ, các hàng có thể được chọn. Danh sách tự mở box cho từng hàng, cao `row_height`: hãy dựng nội dung hàng bên trong.
 
-Với `choice.selection`, `*ui.Selection` (một tập hợp các phím của hàng), người dùng chọn một số, như trong Finder: Nhấn Shift và Shift bằng các mũi tên sẽ mở rộng lựa chọn từ hàng mà nó bắt đầu, nhấp chuột Cmd (nhấp Ctrl trên máy Mac) thêm một hàng hoặc loại bỏ nó và Cmd+A chọn mọi hàng. Nhấn vào một hàng không được chọn sẽ chọn nó khi con trỏ đi xuống; một cái trên hàng đã chọn đang chờ phát hành. Nhấp chuột phải vào hàng không được chọn sẽ chọn nó trước khi menu ngữ cảnh của nó mở ra, do đó menu sẽ hoạt động trên hàng mà nó được mở; trên một hàng đã chọn sự lựa chọn vẫn còn. `choice.menu_keeps_selection` giữ nguyên lựa chọn (menu chỉ hoạt động trên `menu_row`). Một danh sách không có lựa chọn sẽ không bao giờ được chọn khi nhấp chuột phải.
+- Bấm để chọn một hàng.
+- Khi danh sách có focus, phím mũi tên, Home, End, Page Up và Page Down di chuyển `choice.selected`.
+- Enter hoặc double click thì submit hàng đó.
+- `rows.result`, đọc sau `end()`, có `changed`, `submitted`, `focused` và `menu_row`, hàng vừa bị bấm chuột phải trong frame.
+- `rows.textColor()` là màu chữ trên hàng đang dựng.
 
-`choice.key` (`ui.SelectionKey.of(ctx, keyOf)`) cung cấp danh tính cho mỗi mục của hàng: lựa chọn giữ các khóa của mục đó và con trỏ đi theo mục của nó khi các hàng đến, đi và di chuyển, trong khi lựa chọn vẫn giữ nó, do đó, ứng dụng chọn một hàng khác tại chỉ mục của con trỏ (một tệp được dán, sắp xếp ở đó; một mục được đổi tên ở vị trí của nó) sẽ giữ nguyên lựa chọn của ứng dụng.
+**Chọn nhiều hàng.** Với `choice.selection`, một `*ui.Selection` (tập key của các hàng), người dùng chọn được nhiều hàng, như trong Finder:
+
+- Shift-click, và Shift với phím mũi tên, mở rộng lựa chọn từ hàng bắt đầu.
+- Cmd-click (Ctrl-click ngoài Mac) thêm hoặc bỏ một hàng.
+- Cmd+A chọn mọi hàng.
+- Nhấn vào hàng chưa chọn thì chọn nó ngay khi nhấn xuống. Nhấn vào hàng đã chọn thì đợi tới lúc nhả.
+
+**Bấm chuột phải.**
+
+- Bấm chuột phải vào hàng chưa chọn thì chọn nó trước khi context menu mở. Nhờ vậy menu thao tác đúng trên hàng nó được mở.
+- Trên hàng đã chọn, lựa chọn giữ nguyên.
+- `choice.menu_keeps_selection` để nguyên lựa chọn. Khi đó menu chỉ thao tác trên `menu_row`.
+- Danh sách không có selection thì không bao giờ chọn khi bấm chuột phải.
+
+**Key.** `choice.key` (`ui.SelectionKey.of(ctx, keyOf)`) cho mục của mỗi hàng một danh tính.
+
+- Selection giữ key của các mục.
+- Con trỏ chọn đi theo mục của nó khi các hàng xuất hiện, biến mất hay di chuyển, miễn selection vẫn còn giữ mục đó.
+- Vì vậy app có thể chọn một hàng khác tại chỉ số của con trỏ chọn, như một file vừa paste hay sắp xếp vào đó, hoặc một mục vừa đổi tên tại chỗ. Lựa chọn của app được giữ lại.
 
 ```zig
 s.choice = .{ .selection = &s.chosen, .key = .of(s, State.keyOf) };
@@ -76,13 +103,11 @@ while (rows.next()) |i| {
 rows.end();
 ```
 
-`ui.rowDoubleClicked(c, index)` cho biết rằng thao tác nhấp đúp của một hàng đã chạm vào phần tử `index` mà không thực hiện thao tác nhấp chuột từ hàng và tiếp tục chọn (các ô của bảng cũng đọc phần tử đó).
+`ui.rowDoubleClicked(c, index)` cho biết double click của một hàng rơi vào phần tử `index`. Nó không lấy mất cú bấm của hàng, hàng vẫn chọn như thường. Các ô của bảng cũng đọc được nó.
 
-<a id="trees"></a>
+<a id="rows-of-any-height"></a>
 
-## Hàng có chiều cao bất kỳ
-
-`ui.measuredList(c, &state, opts)` là danh sách ảo hóa có hàng cao theo nội dung, theo cách `list` của GPUI: tin nhắn xuống dòng, feed. `next()` mở hộp của từng hàng, rộng bằng danh sách, để dựng nội dung, và dừng khi view đã đầy:
+## Hàng cao bất kỳ
 
 ```zig
 var rows = ui.measuredList(c, &s.messages, .{ .count = s.items.len, .estimate = 60, .gap = 8, .follow_end = true });
@@ -90,33 +115,38 @@ while (rows.next()) |i| ui.text(c, s.items[i].text, .{ .wrap = true });
 rows.end();
 ```
 
-Ứng dụng giữ một `ui.MeasuredListState` và giải phóng nó bằng `deinit(gpa)`. Mỗi hàng được đo ngay trong khung dựng nó, nên những gì hiển thị không phải là phỏng đoán. Hàng chưa dựng được tính theo `estimate`, giá trị này chỉ ảnh hưởng đến thanh cuộn và khoảng nhảy: càng gần chiều cao thường gặp, thanh cuộn càng ổn định. Vị trí đọc được giữ theo hàng, không theo offset: khi các hàng phía trên được đo và cao hơn hay thấp hơn dự kiến, không có gì trên màn hình di chuyển.
+`ui.measuredList(c, &state, opts)` là một danh sách ảo hóa mà mỗi hàng cao theo nội dung, theo kiểu `list` của GPUI: tin nhắn tự xuống dòng, một feed. `next()` mở box cho từng hàng, rộng bằng danh sách, để chứa nội dung. Nó dừng khi vùng hiện đã đầy.
 
-`ui.MeasuredListOptions`:
+- App giữ một `ui.MeasuredListState` và giải phóng nó bằng `deinit(gpa)`.
+- Mỗi hàng được đo trong frame dựng nó, nên những gì hiện ra không bao giờ là ước đoán.
+- Hàng chưa dựng được tính bằng `estimate`. Chỉ thanh scroll và độ xa của một cú nhảy đọc giá trị này: càng gần chiều cao hàng thông thường, thanh scroll càng ổn định.
+- Vị trí của người đọc là một hàng, không phải một offset. Khi các hàng phía trên được đo và hóa ra cao hơn hay thấp hơn, không có gì trên màn hình bị xê dịch.
 
-| Trường | Mặc định | |
+| `ui.MeasuredListOptions` | Mặc định | |
 |---|---|---|
 | `count` | | số hàng |
-| `estimate` | 44 | chiều cao ước lượng của một hàng, theo điểm |
-| `width`, `height` | `.fill` | hộp của danh sách |
-| `gap` | 0 | khoảng cách giữa các hàng |
+| `estimate` | 44 | chiều cao ước chừng của một hàng, tính bằng điểm |
+| `width`, `height` | `.fill` | box của danh sách |
+| `gap` | 0 | giữa các hàng |
 | `padding` | không có | |
-| `overscan` | 2 | số hàng dựng thêm ngoài mỗi cạnh của view |
-| `follow_end` | false | bắt đầu ở cuối và giữ cuối trong view khi có hàng mới hoặc hàng lớn lên, cho đến khi người đọc cuộn đi |
+| `overscan` | 2 | số hàng dựng thêm ngoài mỗi mép của vùng hiện |
+| `follow_end` | false | bắt đầu ở cuối và giữ cuối danh sách trong tầm nhìn khi hàng mới tới hoặc hàng cao lên, cho tới khi người đọc scroll đi chỗ khác |
 
-`state.reveal = i` đưa hàng `i` lên đầu view ở khung tiếp theo, trừ khi cả hàng đang hiển thị. Một hàng giữ chiều cao cho đến khi được dựng lại hoặc độ rộng danh sách đổi, nên hàng thay đổi khi ở ngoài view sẽ tự đúng khi quay lại. Khi các hàng bị lọc, sắp xếp, hoặc có hàng mới thêm ở phía trên, hãy gọi `state.reset()`: nó quên các chiều cao, còn vị trí vẫn tính theo chỉ mục.
+- `state.reveal = i` đưa hàng `i` lên đầu vùng hiện ở frame tiếp theo, trừ khi hàng đó đã hiện trọn.
+- Một hàng giữ chiều cao cho tới khi được dựng lại hoặc bề rộng danh sách thay đổi. Hàng thay đổi lúc nằm ngoài vùng hiện sẽ tự sửa lại khi quay vào.
+- Khi hàng bị lọc, sắp xếp, hoặc chèn lên trên các hàng khác, hãy gọi `state.reset()`. Nó quên các chiều cao đã đo; vị trí vẫn tính theo chỉ số.
+- Mỗi hàng tốn hơn một hàng của `ui.list`, vốn không bao giờ đo. Hãy dùng `ui.list` khi các hàng cao bằng nhau.
+- Ở đây không chọn hàng được; nội dung của hàng có thể bấm được.
 
-Mỗi hàng tốn hơn một hàng của `ui.list`, vốn không phải đo: hãy dùng `ui.list` khi các hàng cùng chiều cao. Danh sách này không có chọn hàng; nội dung của hàng có thể bấm được.
+<a id="trees"></a>
 
-## Cây cối
+## Cây
 
 <!-- demo: tree height=415 -->
 
-![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
+![Cây thư mục bên cạnh một outline các thư mục.](../../images/ui/tree.png)
 
-*Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
-
-`ui.tree(c, &chosen, opts)` là một cái cây có các vật phẩm được xây dựng bên trong vật phẩm mà chúng thuộc về, con của chúng hiển thị khi nó mở. Các mục được đặt tên theo khóa mà ứng dụng lưu giữ (đường dẫn, id); `chosen.*` là chìa khóa của mục được chọn.
+*Cây thư mục bên cạnh một outline các thư mục.*
 
 ```zig
 var tr = ui.tree(c, &s.chosen, .{});
@@ -133,19 +163,34 @@ _ = tr.item("build.zig", "build.zig", null);
 if (tr.end().submitted) s.open(s.chosen);
 ```
 
-`item(key, label, open)` thêm một mục; null `open` tạo thành một chiếc lá. Nó trả về true trong khi phần tử con của mục này hiển thị: xây dựng chúng, sau đó `endChildren()`.
+`ui.tree(c, &chosen, opts)` là một cây mà mỗi mục được dựng bên trong mục cha. Các phần tử con hiện ra khi mục cha đang mở. Mục được đặt tên bằng key do app giữ, như đường dẫn hay id. `chosen.*` là key của mục đang chọn.
 
-Một cú nhấp chuột vào mũi tên của một mục sẽ mở hoặc đóng nó; một cú nhấp chuột vào nơi khác sẽ chọn nó. Trong khi cây tập trung vào bàn phím, Up và Down chọn các mục xung quanh, Phải mở mục hoặc đi đến con đầu tiên của nó, Trái đóng nó hoặc đi đến cha mẹ của nó và Enter (hoặc nhấp đúp) gửi lựa chọn. `ui.TreeOptions` có `width` (`.fill`), `height` (`.auto`), `row_height` (26) và `indent` (16, mỗi cấp độ thêm gì vào trước mũi tên của một vật phẩm). Kết quả có `changed`, `submitted` và `focused`.
+`item(key, label, open)` thêm một mục; `open` là null thì mục là lá. Nó trả về true khi các phần tử con của mục đang hiện: hãy dựng chúng, rồi gọi `endChildren()`.
 
-Một cái cây xây dựng mọi mục mà nó hiển thị. Đối với hàng nghìn mục, hãy sử dụng dàn ý.
+- Bấm vào mũi tên của mục thì mở hoặc đóng nó. Bấm vào chỗ khác trên mục thì chọn nó.
+- Khi có focus bàn phím, Up và Down chọn các mục lân cận.
+- Right mở mục hoặc đi tới phần tử con đầu tiên. Left đóng mục hoặc đi về phần tử cha.
+- Enter, hoặc double click, submit lựa chọn.
+- Kết quả có `changed`, `submitted` và `focused`.
+
+| `ui.TreeOptions` | Mặc định | |
+|---|---|---|
+| `width` | `.fill` | |
+| `height` | `.auto` | |
+| `row_height` | 26 | |
+| `indent` | 16 | mỗi cấp thụt thêm chừng này trước mũi tên của mục |
+
+Cây dựng mọi mục nó hiển thị. Với hàng nghìn mục, hãy dùng outline.
 
 <a id="outlines"></a>
 
-## Phác thảo
+## Outline
 
-`ui.outline(T, c, &state, roots, provider, opts)` hiển thị một cây gồm các mục thuộc loại `T` dưới dạng view phác thảo của AppKit và view danh sách của Finder: bên dưới mỗi mục đang mở là các mục con của nó, được thụt lề, có mũi tên mở và đóng mục đó. Nó chỉ xây dựng các hàng trong view.
+`ui.outline(T, c, &state, roots, provider, opts)` hiển thị một cây các mục kiểu `T`, như outline view của AppKit và list view của Finder. Bên dưới mỗi mục đang mở là các phần tử con, thụt lề, với một mũi tên để mở và đóng. Nó chỉ dựng các hàng đang hiện.
 
-Ứng dụng giữ `ui.OutlineState(T)`, các mục đang mở và mục được chọn (`selected`). `provider.children(item)` trả về phần tử con của một mục, trống đối với một mục không có mục nào; `provider` là bất kỳ giá trị nào với phương thức đó, thường là trạng thái của ứng dụng:
+- App giữ một `ui.OutlineState(T)`: các mục đang mở và mục đang chọn (`selected`).
+- `provider.children(item)` trả về các phần tử con của một mục, rỗng nếu mục không có con.
+- `provider` là giá trị bất kỳ có method đó, thường là state của app.
 
 ```zig
 const Files = struct {
@@ -171,23 +216,36 @@ const Files = struct {
 };
 ```
 
-`next()` mở từng hàng trong view, thụt lề và mũi tên của nó đã được thêm và trả về `ui.OutlineRow(T)`: `item`, `depth`, `has_children` và hàng `parent` của nó. Thêm nội dung của hàng; `next()` tiếp theo sẽ đóng nó lại.
+`next()` mở từng hàng đang hiện, đã có sẵn thụt lề và mũi tên. Nó trả về một `ui.OutlineRow(T)`: `item`, `depth` của nó, `has_children` và hàng cha `parent`. Thêm nội dung cho hàng; lần gọi `next()` tiếp theo sẽ đóng hàng.
 
-Các mục được so sánh theo giá trị và các chuỗi (`[]const u8`) theo byte của chúng, vì vậy các đường dẫn hoạt động như các mục. `isOpen(item)`, `setOpen(gpa, item, open)` và `isSelected(item)` của tiểu bang mở các thư mục từ mã (để hiển thị một tệp); giải phóng nó bằng `deinit(gpa)`.
+- Các mục được so theo giá trị, còn chuỗi (`[]const u8`) thì so theo byte. Vì vậy đường dẫn dùng làm mục được.
+- `isOpen(item)`, `setOpen(gpa, item, open)` và `isSelected(item)` của state cho phép mở thư mục từ code, để làm lộ ra một file.
+- Giải phóng state bằng `deinit(gpa)`.
 
-Trong khi dàn bài có tiêu điểm, Lên, Xuống, Trang chủ, Kết thúc và Trang Up và Down chọn các hàng, Bên phải mở mục đã chọn hoặc chuyển đến mục con đầu tiên của nó, Bên trái đóng mục đó hoặc đi đến cấp độ gốc của nó và Enter (hoặc bấm đúp) gửi mục đó. Đóng một mục có con được chọn sẽ chọn mục đó. Các hàng giữ danh tính của chúng (di chuột) khi các mục mở và đóng phía trên chúng. `ui.OutlineOptions` có `row_height` (26), `indent` (16), `width` và `height` (`.fill`) và `padding` (`.all(4)`).
+**Bàn phím và con trỏ.**
+
+- Khi có focus, Up, Down, Home, End, Page Up và Page Down chọn hàng.
+- Right mở mục đang chọn hoặc đi tới phần tử con đầu tiên. Left đóng mục hoặc đi về phần tử cha.
+- Enter, hoặc double click, submit nó.
+- Đóng một mục khi phần tử con của nó đang được chọn thì mục đó được chọn.
+- Các hàng giữ danh tính, và cả hover, khi các mục phía trên mở ra hay đóng lại.
+
+| `ui.OutlineOptions` | Mặc định | |
+|---|---|---|
+| `row_height` | 26 | |
+| `indent` | 16 | |
+| `width`, `height` | `.fill` | |
+| `padding` | `.all(4)` | |
 
 <a id="tables"></a>
 
-## Bàn
+## Bảng
 
 <!-- demo: table height=385 -->
 
-![Bảng tệp với các cột Name, Kind và Size có thể sắp xếp.](../../images/ui/table.png)
+![Bảng file với các cột Name, Kind và Size sắp xếp được.](../../images/ui/table.png)
 
-*Bảng tệp với các cột Name, Kind và Size có thể sắp xếp.*
-
-`ui.table(c, &state, columns, count, opts)` hiển thị `count` hàng trong `columns` dưới tiêu đề, được tạo khi chúng hiển thị. `next()` mở từng hàng trong view, `cell()` mỗi cột của nó, sau đó `end()`:
+*Bảng file với các cột Name, Kind và Size sắp xếp được.*
 
 ```zig
 const columns: []const ui.TableColumn = &.{
@@ -205,24 +263,66 @@ while (tb.next()) |row| {
         else => ui.text(c, c.print("{d} KB", .{f.size / 1000}), .{ .mono = true, .size = 12 }),
     };
 }
-if (tb.end().sorted) s.sortFiles(); // by s.table.sort
+if (tb.end().sorted) s.sortFiles(); // theo s.table.sort
 ```
 
-`ui.TableColumn` có `title`, `width` về điểm (0 chia sẻ số điểm mà các cột khác để lại), `alignment` (`.start`, `.center` hoặc `.end`) và `sortable`.
+`ui.table(c, &state, columns, count, opts)` hiển thị `count` hàng trong các cột `columns` dưới một header, dựng khi chúng hiện ra. `next()` mở từng hàng đang hiện, `cell()` mở từng cột của hàng, rồi `end()` đóng bảng.
 
-Ứng dụng giữ `ui.TableState`: `selected`, hàng được chọn và `sort`, `ui.TableSort` (`column`, `descending`) hoặc null. Nhấp chuột vào tiêu đề của cột có thể sắp xếp sẽ sắp xếp theo cột đó, tăng dần và nhấp chuột thứ hai sẽ đảo ngược thứ tự: tiêu đề hiển thị một mũi tên, `end()` báo cáo `sorted` và ứng dụng sắp xếp các hàng của nó như `state.sort` cho biết. Bảng không bao giờ tự sắp xếp lại dữ liệu của ứng dụng: `row` là một vị trí trong thứ tự mà ứng dụng giữ nguyên.
+Một `ui.TableColumn` có:
 
-Một cú nhấp chuột chọn một hàng; trong khi bảng có tiêu điểm thì các mũi tên, Trang chủ, Kết thúc và Lên xuống Trang và Enter (hoặc bấm đúp) sẽ gửi nó. `textColor()` là màu của văn bản trên hàng đang được tạo, dù hàng có được chọn hay không.
+- `title`;
+- `width` tính bằng điểm; 0 thì chia nhau chỗ trống các cột khác để lại;
+- `alignment`: `.start`, `.center` hoặc `.end`;
+- `sortable`.
 
-`ui.TableOptions` có `row_height` (28), `header_height` (28), `width` và `height` (`.fill`), `striped` (mỗi hàng khác được tô màu, true), `drag_select`, `cells` và `cell_menu` (bên dưới). Kết quả có `changed`, `sorted`, `submitted`, `focused`, `drag_selecting` và `menu_row` và `menu_col`, hàng và cột được nhấp chuột phải vào khung.
+App giữ một `ui.TableState`:
+
+- `selected`, hàng đang chọn;
+- `sort`, một `ui.TableSort` (`column`, `descending`) hoặc null.
+
+**Sắp xếp.**
+
+- Bấm vào header của cột sắp xếp được thì sắp theo cột đó, tăng dần. Bấm lần nữa thì đảo thứ tự.
+- Header hiện một mũi tên, và `end()` báo `sorted`.
+- App tự sắp xếp các hàng theo `state.sort`. Bảng không bao giờ tự đổi thứ tự dữ liệu của app: `row` là một vị trí trong thứ tự mà app giữ.
+
+**Chọn.**
+
+- Bấm để chọn một hàng. Khi có focus, phím mũi tên, Home, End, Page Up và Page Down cũng chọn.
+- Enter, hoặc double click, submit hàng đó.
+- `textColor()` là màu chữ trên hàng đang dựng, dù được chọn hay không.
+
+| `ui.TableOptions` | Mặc định | |
+|---|---|---|
+| `row_height` | 28 | |
+| `header_height` | 28 | |
+| `width`, `height` | `.fill` | |
+| `striped` | true | tô nhạt xen kẽ các hàng |
+| `drag_select`, `cells`, `cell_menu` | false, false, null | xem dưới |
+| `sideways`, `frozen` | false, 0 | xem dưới |
+
+Kết quả có `changed`, `sorted`, `submitted`, `focused`, `drag_selecting`, cùng `menu_row` và `menu_col`: hàng và cột vừa bị bấm chuột phải trong frame.
 
 <a id="choosing-rows-and-cells"></a>
 
 ### Chọn hàng và ô
 
-Với `drag_select`, thao tác kéo qua các hàng sẽ chọn những hàng mà nó đi qua từ hàng được nhấn, cuộn bảng khi con trỏ đến gần hoặc đi qua đỉnh hoặc đáy của bảng và nhấp Shift hoặc Shift bằng các mũi tên sẽ mở rộng lựa chọn: các hàng được chọn là những hàng từ `state.anchor` đến `state.selected` (`state.rows()`, `state.rowChosen(i)`). Nhấn vào một hàng không được chọn sẽ chọn hàng đó khi con trỏ đi xuống, giống như bảng tính; một cái trên hàng đã chọn sẽ chờ phát hành, do đó, việc kéo lựa chọn sẽ giữ nó. `drag_selecting` báo cáo một sự cản trở đang diễn ra, đối với công việc tuân theo sự lựa chọn (tổng số những gì được chọn) để đợi cho đến khi nó kết thúc.
+**`drag_select`.** Kéo qua các hàng thì chọn những hàng đi qua, tính từ hàng bắt đầu nhấn.
 
-Với `cells`, bảng chọn một khối ô: các hàng được chọn nhân với các cột từ `state.cols[0]` đến `state.cols[1]`, theo thứ tự hiển thị. Một cú nhấp chuột sẽ chọn một ô, một cú nhấp chuột Shift sẽ mở rộng các hàng và cột vào ô đó và thao tác kéo sẽ chọn các ô mà nó đi qua. Trái và Phải di chuyển cột của con trỏ, Shift khi chúng mở rộng các cột, các phím di chuyển các hàng sẽ rời khỏi một cột trừ khi dùng Shift và Cmd+A (Ctrl+A) chọn mọi hàng và cột. Các ô của khối hiển thị bằng màu xám của hàng được chọn; các hàng đã chọn không được tô màu toàn bộ. `t.cellSelected(row, col)` cho trình tạo ô biết ô của nó có được chọn hay không và `textColor()` là màu văn bản trong đó:
+- Bảng tự scroll khi con trỏ tới gần hoặc vượt mép trên hay mép dưới.
+- Shift-click, hoặc Shift với phím mũi tên, mở rộng lựa chọn.
+- Các hàng được chọn là từ `state.anchor` tới `state.selected` (`state.rows()`, `state.rowChosen(i)`).
+- Nhấn vào hàng chưa chọn thì chọn nó ngay khi nhấn xuống, như bảng tính. Nhấn vào hàng đã chọn thì đợi tới lúc nhả, nên kéo cả vùng đã chọn vẫn giữ được nó.
+- `drag_selecting` báo đang có một cú kéo. Việc phụ thuộc lựa chọn, như tính tổng các ô đã chọn, có thể đợi tới khi kéo xong.
+
+**`cells`.** Bảng chọn một khối ô: các hàng đã chọn nhân với các cột từ `state.cols[0]` tới `state.cols[1]`, theo thứ tự hiển thị.
+
+- Bấm để chọn một ô. Shift-click mở rộng hàng và cột tới ô đó. Kéo thì chọn các ô đi qua.
+- Left và Right di chuyển cột của con trỏ chọn; giữ Shift thì mở rộng các cột.
+- Các phím di chuyển hàng chỉ giữ lại một cột, trừ khi có Shift.
+- Cmd+A (Ctrl+A) chọn mọi hàng và mọi cột.
+- Các ô trong khối hiện màu xám của hàng được chọn. Hàng được chọn không bị tô cả hàng.
+- `t.cellSelected(row, col)` cho hàm dựng ô biết ô của nó có được chọn không. `textColor()` là màu chữ trong ô đó.
 
 ```zig
 var tb = ui.table(c, &s.sheet, columns, rows.len, .{ .cells = true });
@@ -232,22 +332,35 @@ while (tb.next()) |row| {
 _ = tb.end();
 ```
 
-Với `state.selection` (a `*ui.Selection` và `state.key` dưới dạng danh sách), các hàng được chọn là một tập hợp: Nhấp chuột Cmd sẽ thêm hàng và loại bỏ chúng (và giữ nguyên các cột), Shift mở rộng từ hàng có lần nhấp cuối cùng và Cmd+A chọn mọi hàng. Nhấp chuột phải vào một hàng hoặc với `cells` trên một ô, bên ngoài lựa chọn sẽ chọn nó trước khi menu của nó mở ra; bên trong, sự lựa chọn vẫn ở lại; `state.menu_keeps_selection` cứ để nguyên như vậy.
+**`state.selection`.** Với một `*ui.Selection`, và `state.key` như của danh sách, các hàng được chọn là một tập hợp.
 
-Cột `row_header`, dưới dạng số hàng của bảng tính, sẽ chọn toàn bộ các hàng có `cells`: một cú nhấp chuột hoặc kéo trên các ô của nó sẽ chọn các hàng có mỗi cột và một cú nhấp chuột vào tiêu đề của cột đó ở mỗi hàng. Nó không sắp xếp.
+- Cmd-click thêm hoặc bỏ hàng, và giữ nguyên các cột.
+- Shift mở rộng từ hàng của cú bấm gần nhất.
+- Cmd+A chọn mọi hàng.
+- Bấm chuột phải ngoài vùng chọn, trên một hàng hoặc, với `cells`, trên một ô, thì chọn nó trước khi menu mở. Bên trong vùng chọn thì lựa chọn giữ nguyên.
+- `state.menu_keeps_selection` để nguyên lựa chọn.
 
-`cell_menu` (a `ui.TableCellMenu`: `ctx` và `build(ctx, menu, row, col)`) cung cấp cho các ô một menu ngữ cảnh trên toàn bộ ô, bao gồm phần đệm, được xây dựng dưới dạng [menu ngữ cảnh](menus.md). Một menu được tạo không có mục sẽ không mở và thay vào đó, menu ngữ cảnh chứa nội dung của ô sẽ nhấp chuột phải vào nó.
+**Header hàng.** Một cột `row_header`, như số thứ tự hàng của bảng tính, chọn cả hàng khi có `cells`.
+
+- Bấm hoặc kéo trên các ô của nó thì chọn hàng với mọi cột.
+- Bấm vào header của nó thì chọn mọi hàng.
+- Nó không sắp xếp.
+
+**`cell_menu`.** Một `ui.TableCellMenu` (`ctx` và `build(ctx, menu, row, col)`) cho các ô một context menu.
+
+- Menu phủ toàn bộ ô, kể cả padding.
+- Nó được dựng như một [context menu](menus.md).
+- Menu dựng ra mà không có mục nào thì không mở.
+- Context menu của nội dung bên trong ô sẽ nhận cú bấm chuột phải trên nội dung đó.
 
 ```zig
 const cols: []const ui.TableColumn = &.{ .{ .title = "#", .width = 48, .row_header = true }, .{ .title = "Name" } };
 var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ .ctx = s, .build = State.cellMenu } });
 ```
 
-<a id="grid-views"></a>
+<a id="scrolling-sideways-and-frozen-columns"></a>
 
-### Cuộn ngang và cột cố định
-
-Với `sideways`, các cột rộng hơn bảng sẽ cuộn ngang bên trong bảng, dưới cùng một tiêu đề. Với `frozen`, các cột đầu tiên (tính cả cột ẩn) luôn ở trong view khi các cột còn lại cuộn, như trong bảng tính, kèm một đường kẻ dọc khi đã có cột bị che; tùy chọn này tự bật `sideways`:
+### Scroll ngang và cột cố định
 
 ```zig
 const cols: []const ui.TableColumn = &.{
@@ -259,19 +372,41 @@ const cols: []const ui.TableColumn = &.{
 var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .frozen = 2 });
 ```
 
-Bảng cuộn bằng thanh cuộn của nó và, với `cells`, bằng Trái và Phải (giữ cột của con trỏ không bị các cột cố định che) cùng với thao tác kéo chọn ô vượt qua hai đầu. Cột có width 0 chia nhau phần còn lại, mỗi cột ít nhất `min_width`. `cell()` trả các cột theo thứ tự và chỉ mục như mọi khi, nên phần dựng ô không phải đổi gì. Bảng quá hẹp để hiện thêm cột bên cạnh các cột cố định sẽ cuộn cả chúng.
+- Với `sideways`, các cột rộng hơn bảng sẽ scroll bên trong nó, dưới cùng một header.
+- Với `frozen`, các cột đầu tiên luôn nằm trong tầm nhìn khi các cột khác scroll, như bảng tính. Cột bị ẩn cũng được tính.
+- Một đường kẻ chạy dọc các cột cố định khi đã có nội dung trượt xuống dưới chúng.
+- `frozen` làm bảng thành `sideways`.
 
-Giữ nguyên `sideways` khi `frozen` thay đổi, nếu không offset sẽ bắt đầu lại: truyền `.sideways = true` khi ứng dụng cho phép người đọc cố định cột.
+Bảng scroll:
 
-## View lưới
+- bằng thanh scroll;
+- với `cells`, bằng Left và Right, giữ cho cột của con trỏ chọn không bị che dưới các cột cố định;
+- bằng cú kéo chọn ô vượt qua một trong hai mép.
+
+Ngoài ra:
+
+- Các cột rộng 0 chia nhau chỗ còn lại, mỗi cột ít nhất bằng `min_width` của nó.
+- `cell()` trả về các cột theo thứ tự, với chỉ số như thường. Hàm dựng ô không phải đổi gì.
+- Bảng quá hẹp để hiện thêm một cột cạnh các cột cố định thì scroll cả các cột cố định.
+- Giữ nguyên `sideways` khi `frozen` bật tắt, nếu không offset sẽ bắt đầu lại. Hãy truyền `.sideways = true` ở nơi app cho người đọc cố định cột.
+
+<a id="revealing-a-row"></a>
+
+### Làm lộ một hàng
+
+`TableState.reveal` chỉ định một hàng app muốn hiện ra. Ở frame tiếp theo, bảng scroll hàng đó vào tầm nhìn, ít nhất có thể, rồi xóa trường này.
+
+Dùng cách này cho hàng app vừa thêm vào cuối, hoặc vừa chọn từ nơi khác như một kết quả tìm kiếm: `s.table.reveal = s.rows.items.len - 1;`.
+
+<a id="grid-views"></a>
+
+## Grid view
 
 <!-- demo: grid-view height=365 -->
 
-![Lưới ảo gồm các ô ảnh có thể chọn.](../../images/ui/grid-view.png)
+![Lưới ảo gồm các ô ảnh chọn được.](../../images/ui/grid-view.png)
 
-*Lưới ảo gồm các ô ảnh có thể chọn.*
-
-`ui.gridView(c, &state, opts)` hiển thị các mục trong lưới bao bọc, dưới dạng thư viện Ảnh và view biểu tượng của Finder: càng nhiều cột càng phù hợp với các mục có chiều rộng tối thiểu `min_item_width`, chia sẻ chiều rộng bên trái, theo hàng cao `row_height`. `next()` mở từng mục trong view, ô của nó đã sẵn sàng cho nội dung của nó:
+*Lưới ảo gồm các ô ảnh chọn được.*
 
 ```zig
 var g = ui.gridView(c, &s.grid, .{ .count = s.photos.len, .min_item_width = 96, .row_height = 80 });
@@ -283,16 +418,24 @@ while (g.next()) |i| {
 if (g.end().submitted) s.openPhoto(s.grid.selected.?);
 ```
 
-Ứng dụng giữ `ui.GridState`, trong đó `selected` là mục được chọn. Một cú nhấp chuột sẽ chọn một mục; trong khi lưới có tiêu điểm, các mũi tên sẽ di chuyển lựa chọn theo cả hai hướng, Home và End về đầu và cuối, PageUp và PageDown di chuyển một màn hình và Enter (hoặc nhấp đúp) sẽ gửi nó.
+`ui.gridView(c, &state, opts)` hiển thị các mục trong một lưới tự xuống hàng, như thư viện của Photos và icon view của Finder.
 
-`ui.GridViewOptions`:
+- Nó có nhiều cột nhất có thể với các mục rộng ít nhất `min_item_width`. Các cột chia nhau phần bề rộng còn lại.
+- Mỗi hàng cao `row_height`.
+- `next()` mở từng mục đang hiện, ô của nó sẵn sàng cho nội dung.
 
-| trường | Mặc định | |
+App giữ một `ui.GridState`, trong đó `selected` là mục đang chọn.
+
+- Bấm để chọn một mục.
+- Khi có focus, phím mũi tên di chuyển lựa chọn theo cả hai chiều. Home và End tới hai đầu, Page Up và Page Down đi một màn hình.
+- Enter, hoặc double click, submit mục đó.
+
+| `ui.GridViewOptions` | Mặc định | |
 |---|---|---|
-| `count` | | có bao nhiêu món đồ |
+| `count` | | số mục |
 | `min_item_width` | 120 | |
 | `row_height` | 120 | |
-| `gap` | 8 | giữa các mục, cả hai cách |
+| `gap` | 8 | giữa các mục, cả hai chiều |
 | `padding` | `.all(8)` | |
 | `width`, `height` | `.fill` | |
 
@@ -300,4 +443,4 @@ if (g.end().submitted) s.openPhoto(s.grid.selected.?);
 
 ## Kéo các mục
 
-Các hàng và mục có thể kéo được bằng [kéo và thả](drag-and-drop.md): xây dựng nội dung của hàng bên trong hộp `DragDrop.draggable` và đặt mục tiêu cho danh sách.
+Hàng và mục kéo được nhờ [kéo thả](drag-and-drop.md): dựng nội dung hàng bên trong một box `DragDrop.draggable`, và cho danh sách một đích thả.

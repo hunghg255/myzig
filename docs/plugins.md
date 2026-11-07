@@ -1,15 +1,20 @@
 # Plugins
 
-A plugin is a Zig package that adds a feature myzig's core leaves out, so
-that apps which don't use it don't grow. Plugins for pages come in two
-halves, as mygo's do: a Zig service the app binds, and a JavaScript module
-(served by the app, never fetched from npm) whose functions call it. Plugins
-for native UI are Zig alone.
+A plugin is a Zig package for a feature myzig's core leaves out. Apps that
+don't use it don't grow.
 
-Every official plugin lives in `plugins/<name>` of the myzig repository, a
-package of its own with a `build.zig`, a `build.zig.zon` (depending on
-myzig, and on `mainthread` when it works off the main thread), its sources
-in `src/`, an `example/` app and its tests.
+- **Plugins for pages** come in two halves, as mygo's do: a Zig service the
+  app binds, and a JavaScript module whose functions call it. The app
+  serves the module; it never comes from npm.
+- **Plugins for native UI** are Zig alone.
+
+Every official plugin lives in `plugins/<name>` of the myzig repository. It
+is a package of its own with:
+
+- a `build.zig`;
+- a `build.zig.zon` that depends on myzig, and on `mainthread` when it
+  works off the main thread;
+- its sources in `src/`, an `example/` app and its tests.
 
 ## Official plugins
 
@@ -56,14 +61,12 @@ in `src/`, an `example/` app and its tests.
 
 ## Using a plugin
 
-myzig's own package exports `updater` and `mainthread` (its release ships
-their sources), so an app that depends on a release takes them from it:
-`b.dependency("myzig", ...).module("updater")`. Other plugins:
+**updater and mainthread** come with myzig. Its own package exports them,
+and its release ships their sources. An app that depends on a release takes
+them from it: `b.dependency("myzig", ...).module("updater")`.
 
-A plugin is a dependency of the app's package. Add it next to myzig in
-`build.zig.zon`, as a path into a checkout of myzig (the plugins depend on
-the myzig two directories up, `../..`, so the app and the plugin share one
-myzig):
+**Other plugins** are dependencies of the app's package. Add one next to
+myzig in `build.zig.zon`, as a path into a checkout of myzig:
 
 ```zig
 .dependencies = .{
@@ -72,8 +75,9 @@ myzig):
 },
 ```
 
-and give its module to the app in `build.zig`, as `examples/farm` does with
-the game plugin:
+The plugins depend on the myzig two directories up (`../..`), so the app
+and the plugin share one myzig. Then give the plugin's module to the app in
+`build.zig`, as `examples/farm` does with the game plugin:
 
 ```zig
 const myzig = b.dependency("myzig", .{ .target = target, .optimize = optimize }).module("myzig");
@@ -89,15 +93,10 @@ const root = b.createModule(.{
 });
 ```
 
-Pass the same `target` and `optimize` to both dependencies: Zig then builds
+Pass the same `target` and `optimize` to both dependencies. Zig then builds
 one myzig for the app and the plugin.
 
 ### Plugins for pages
-
-The Zig half is a service: initialize it on the main thread, bind it, and
-register the event its results come back as. The JavaScript half is an
-`Asset` the plugin exports (`fetch.asset` is served at
-`/plugins/fetch.js`): add it to the page's assets.
 
 ```zig
 const std = @import("std");
@@ -126,9 +125,13 @@ import { fetch } from "/plugins/fetch.js";
 const res = await fetch("https://api.example.com/me", { headers: { authorization: `Bearer ${token}` } });
 ```
 
-Each service has `Options`, such as an `allow` function that decides which
-requests, connections or watches pages may make; each plugin's page lists
-them.
+- **The Zig half** is a service. Initialize it on the main thread, bind it,
+  and register the event its results come back as.
+- **The JavaScript half** is an `Asset` the plugin exports. Add it to the
+  page's assets: `fetch.asset` is served at `/plugins/fetch.js`.
+- Each service has `Options`, such as an `allow` function that decides
+  which requests, connections or watches pages may make. Each plugin's page
+  lists them.
 
 ### Plugins for native UI
 
@@ -160,26 +163,29 @@ zig build test -Dtest-filter=redirect       # only the tests whose names contain
 ```
 
 The page tests run the example with `--myzig-eval`, which keeps its window
-hidden, and pass when the page logs `ok` (`page: ok`).
+hidden. They pass when the page logs `ok` (`page: ok`).
 
 ## Writing a plugin
 
-A plugin is a Zig package like the official ones. For pages, its parts are:
+A plugin is a Zig package like the official ones. For pages, its parts
+are:
 
 - **A service**: a struct whose public methods pages call, bound with
-  `app.bind`. `myzig_name` names it to pages (otherwise its type's name),
-  `myzig_params` names each method's parameters for the generated client,
-  and methods that take a `*myzig.Call` learn which window called
-  (`call.window`) and get an arena for their result (`call.arena`). See
-  [Bindings](bindings.md).
+  `app.bind`. See [Bindings](bindings.md).
+  - `myzig_name` names it to pages; otherwise its type's name does.
+  - `myzig_params` names each method's parameters for the generated
+    client.
+  - Methods that take a `*myzig.Call` learn which window called
+    (`call.window`) and get an arena for their result (`call.arena`).
 - **An event** for what comes back later: `myzig.Event("myzig-<name>",
-  Payload)`, sent to one window with `Event.emit(window, payload)` or to
-  all with `Event.broadcast(app, payload)`. The app registers it with
+  Payload)`. Send it to one window with `Event.emit(window, payload)` or
+  to all with `Event.broadcast(app, payload)`. The app registers it with
   `app.registerEvent`.
 - **The JavaScript module**, embedded with `@embedFile` and exported as an
   `Asset` under `/plugins/<name>.js`. It calls the service with
-  `myzig.call("Name.method", ...)` and listens with `myzig.on("myzig-<name>",
-  ...)` (the page runtime, `window.myzig`; see [Frontend](frontend.md)).
+  `myzig.call("Name.method", ...)` and listens with
+  `myzig.on("myzig-<name>", ...)`. These are the page runtime,
+  `window.myzig`; see [Frontend](frontend.md).
 
 ```zig
 //! A counter for pages: `bump()`, and the new count sent to every window.
@@ -209,38 +215,44 @@ export const onCount = (f) => myzig.on("myzig-counter", f);
 
 Rules the official plugins keep, and yours should too:
 
-- **Bound methods run on the main thread.** Work that blocks (the network,
-  files, a long query) runs on a task of the app's `Io` (`io.concurrent`)
-  or a thread, and hands its result to the main thread with
-  [`mainthread.post`](plugins/mainthread.md); only there may it emit
-  events or touch windows. Check that the window is still open before
-  emitting (`app.windows`), and drop the work of windows that closed.
-- **Work kept for a page goes with it.** A service with
-  `pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void`
-  hears when a page's document is gone (it navigated, reloaded or closed):
-  it lets go of what it kept for that page, which it knows by `call.page`.
-  A page that reloads never calls for that work again, nor reads what
-  comes, so a stream waiting for its `ack` would wait for good. Pages
-  never call `myzig_*` methods.
+- **Bound methods run on the main thread.**
+  - Work that blocks (the network, files, a long query) runs on a task of
+    the app's `Io` (`io.concurrent`) or a thread.
+  - It hands its result to the main thread with
+    [`mainthread.post`](plugins/mainthread.md). Only there may it emit
+    events or touch windows.
+  - Check that the window is still open before emitting (`app.windows`).
+    Drop the work of windows that closed.
+- **Work kept for a page goes with it.**
+  - A service with
+    `pub fn myzig_pageGone(s: *Service, window: *myzig.Window, page: *anyopaque) void`
+    hears when a page's document is gone: it navigated, reloaded or
+    closed.
+  - It lets go of what it kept for that page, which it knows by
+    `call.page`.
+  - A page that reloads never calls for that work again, nor reads what
+    comes. A stream waiting for its `ack` would wait for good.
+  - Pages never call `myzig_*` methods.
 - **Backpressure.** Streams wait while the page has more than a window of
-  bytes unread (the page acknowledges what it read, `ack`), so a fast
+  bytes unread. The page acknowledges what it read (`ack`), so a fast
   source never piles up in the page.
-- **Pages name things, never paths.** File names in the app's data
-  directory (sqlite), roots the app named (watch): a page can't reach
+- **Pages name things, never paths**: file names in the app's data
+  directory (sqlite), roots the app named (watch). A page can't reach
   further than the app allowed.
 - **Native libraries are loaded, not linked**, with `std.DynLib` or the
-  platform's loader, and checked (sqlite tries the system's library;
+  platform's loader, and checked. sqlite tries the system's library.
   terminal checks the SHA-256 of what it downloads and the layouts of the
-  structs it passes). No `@cImport`, no C files.
-- **Nothing polls**, and tests never wait on wall-clock time: they wait for
+  structs it passes. No `@cImport`, no C files.
+- **Nothing polls**, and tests never wait on wall-clock time. They wait for
   the event they expect, or advance a `ui.Tester`'s clock.
 - **At most 600 lines a file**, as everywhere in myzig.
 
 ## Not yet
 
-mygo's plugins are registered with `mygo.Use`, which installs their
-services and scripts at once, and their JavaScript halves are npm packages.
-myzig has neither: an app binds a plugin's service and adds its asset
-itself, and the CLI does not yet put plugins' native libraries into apps
-(the terminal plugin downloads them into the user's cache, or finds them
-next to the executable).
+- mygo's plugins are registered with `mygo.Use`, which installs their
+  services and scripts at once. myzig has no such call: an app binds a plugin's
+  service and adds its asset itself.
+- mygo's JavaScript halves are npm packages; myzig's are not.
+- The CLI does not yet put plugins' native libraries into apps. The
+  terminal plugin downloads them into the user's cache, or finds them next
+  to the executable.

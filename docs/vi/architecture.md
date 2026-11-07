@@ -2,59 +2,73 @@
 
 # Kiến trúc myzig
 
-Hướng dẫn này mô tả các lớp của myzig, cách chọn backend nền tảng, mô hình luồng, cách gọi API native không dùng C và các quy tắc của repo. Hãy đọc trước khi sửa code. Ba trang sau trình bày chi tiết hơn:
+Trang này nói về cách myzig được ghép lại: các lớp, cách chọn nền tảng, mô hình thread, cách gọi code native mà không dùng C, và các quy tắc mọi file phải theo. Hãy đọc trước khi sửa code. Ba trang sau đi sâu hơn:
 
-- [IPC và sinh TypeScript](architecture-ipc.md): giao thức giữa runtime của trang (`src/bridge.js`) và Zig, outbox, channel, scheme của ứng dụng và client được sinh từ kiểu Zig.
-- [Kết xuất](architecture-rendering.md): pipeline giao diện native (context, layout, paint, frame), các bộ kết xuất Metal, Direct3D 11, OpenGL, WebGL 2 và CPU; bản đối chiếu CPU dùng để kiểm thử, văn bản, atlas và surface của từng nền tảng.
-- [Kiểm thử, kích thước binary và thêm tính năng](architecture-testing.md): `ui.Tester`, các cờ `--myzig-*`, lệnh kiểm thử, container Linux, image Wine, benchmark hill climb và quy trình thêm tính năng.
+- [IPC và sinh TypeScript](architecture-ipc.md): giao thức giữa runtime của trang (`src/bridge.js`) và Zig, outbox, channel, các scheme của app, và client sinh ra từ kiểu Zig.
+- [Render](architecture-rendering.md): pipeline của UI native (context, layout, paint, frame), các renderer (Metal, Direct3D 11, OpenGL, WebGL 2 và CPU), bản sao CPU dùng để kiểm chứng chúng, chữ, atlas và surface của từng nền tảng.
+- [Test, kích thước binary và thêm tính năng](architecture-testing.md): `ui.Tester`, các cờ `--myzig-*`, các bước test của build, container Linux và image Wine, hill climb, và checklist cho một tính năng mới.
 
 <a id="architecture-at-a-glance"></a>
 
 ## Tổng quan kiến trúc
 
-![Các lớp khung: ứng dụng, API công khai, hành vi được chia sẻ, hai đường dẫn giao diện người dùng và bộ điều hợp nền tảng. Các plugin sử dụng API công khai; CLI là một công cụ riêng biệt.](../images/architecture-overview.svg)
+![Các lớp của framework: app, API công khai, phần dùng chung, hai đường UI và adapter cho từng nền tảng. Plugin dùng API công khai; CLI là công cụ riêng.](../images/architecture-overview.svg)
 
-Bắt đầu từ trên xuống: ứng dụng gọi `src/myzig.zig`, nơi công khai API dùng chung và backend được chọn lúc biên dịch. Bên dưới phần code dùng chung, luồng xử lý tùy thuộc nội dung cửa sổ: **trang web** dùng IPC có kiểu và webview hệ thống; **view native** dùng bố cục và bộ kết xuất của myzig. Các thành phần phối hợp với nhau; không phải mọi lời gọi API đều đi qua toàn bộ chuỗi. Chẳng hạn, menu và hộp thoại gọi trực tiếp adapter nền tảng. Plugin dùng API công khai; CLI tạo và build ứng dụng.
+- App của bạn gọi `src/myzig.zig`. File này cung cấp các hợp đồng dùng chung và backend được chọn lúc biên dịch.
+- Bên dưới phần dùng chung, đường đi tùy vào nội dung cửa sổ. **Trang web** dùng IPC có kiểu và webview của hệ thống. **View native** dùng layout và renderer riêng của myzig.
+- Đây là các thành phần phối hợp với nhau, không phải một chuỗi mà mọi lời gọi đều đi qua. Các dịch vụ desktop như menu và hộp thoại đi thẳng tới adapter của nền tảng.
+- Plugin dùng API công khai. CLI tạo và build app.
 
-Target trình duyệt chạy giao diện native qua `src/web/host.js` và WebGL 2; nó không cung cấp đường IPC của webview desktop. Một ứng dụng desktop có thể có cả cửa sổ trang web và cửa sổ giao diện native. Giao diện native cũng có thể nhúng webview bằng [widget webview](ui/web-view.md).
+Target trình duyệt chạy UI native qua `src/web/host.js` và WebGL 2. Đường IPC qua webview của desktop không phải là tính năng của backend trình duyệt. Một app desktop có thể có cả cửa sổ trang web lẫn cửa sổ UI native. UI native cũng có thể nhúng webview bằng [widget web view](ui/web-view.md).
 
-Xem chi tiết đường đi của [lời gọi từ trang web đến Zig](architecture-ipc.md) hoặc [quá trình biến view native thành pixel](architecture-rendering.md). [Trang sơ đồ độc lập](../public/architecture-diagrams.html) chứa cả ba sơ đồ trong một file HTML có thể mở ngoại tuyến.
+Để xem chi tiết, hãy theo [một trang gọi Zig](architecture-ipc.md) hoặc [một view native thành pixel](architecture-rendering.md). [Trang sơ đồ độc lập](../public/architecture-diagrams.html) gom cả ba sơ đồ vào một file HTML mở được khi offline.
 
 <a id="goals-and-constraints"></a>
 
-## Mục tiêu và hạn chế
+## Mục tiêu và ràng buộc
 
-- **Một chương trình Zig cho mỗi ứng dụng.** Một ứng dụng là một tệp nhị phân duy nhất (khoảng 0,7 MB cho bộ đếm trong `ReleaseSmall`) không có thời gian chạy để cài đặt ngoài những gì hệ thống có: AppKit và WebKit trên macOS, GTK 3 (và WebKitGTK cho các trang) trên Linux, Win32 (và WebView2 Runtime cho các trang) trên Windows, một trình duyệt dành cho mục tiêu web.
-- **Không C.** Không có tệp `@cImport`, không có tệp `.c` hoặc `.m`, không có shim. Mã gốc được khai báo trong Zig (`extern`) hoặc được tải trong thời gian chạy (`dlopen`/`dlsym`, `GetProcAddress`), vì vậy Linux và Windows xây dựng từ bất kỳ máy nào có `-Dtarget=...` (macOS liên kết các khung của nó từ SDK).
-- **Không có polling nào.** Các khung được vẽ khi nhập, khi thay đổi kích thước hoặc khi hoạt ảnh chạy; các câu trả lời và sự kiện tiếp cận các trang theo một đợt trong mỗi lượt của vòng lặp chính; một ứng dụng nhàn rỗi không sử dụng CPU.
-- **Zig 0,17.** `build.zig.zon` nói `minimum_zig_version = "0.17.0"`; mã sử dụng các API của nó (`std.process.Init`, `std.Io`, `std.lang.Type`'s `field_names`, `field_types` và `decl_names`).
-- **Mỗi tệp có tối đa 600 dòng**, nguồn, tập lệnh, shader và các tài liệu này giống nhau. `zig build lines` (`tools/lines.zig`) kiểm tra nó. Trước tiên, một tệp vượt quá giới hạn sẽ được phân chia theo trách nhiệm: bộ widget, mối quan tâm phụ trợ, thẻ bố cục. Ngoại lệ duy nhất là văn bản giấy phép ngược dòng được giữ nguyên văn trong `third_party/licenses/`.
+- **Mỗi app là một chương trình Zig.** App là một binary duy nhất, khoảng 0,7 MB với counter ở `ReleaseSmall`. Nó không cần runtime nào ngoài những gì hệ thống đã có:
+  - macOS: AppKit và WebKit.
+  - Linux: GTK 3, và WebKitGTK cho trang web.
+  - Windows: Win32, và WebView2 Runtime cho trang web.
+  - Target web: một trình duyệt.
+- **Không C.** Không `@cImport`, không file `.c` hay `.m`, không shim. Code native được khai báo trong Zig (`extern`) hoặc nạp lúc chạy (`dlopen`/`dlsym`, `GetProcAddress`). Nhờ vậy Linux và Windows build được từ bất kỳ máy nào với `-Dtarget=...`. macOS link framework từ SDK.
+- **Không polling.** Frame được vẽ khi có input, khi đổi kích thước, hoặc khi animation đang chạy. Reply và event tới trang theo từng đợt, mỗi vòng main loop một đợt. App rảnh không tốn CPU.
+- **Zig 0.17.** `build.zig.zon` ghi `minimum_zig_version = "0.17.0"`. Code dùng API của bản này: `std.process.Init`, `std.Io`, và `field_names`, `field_types`, `decl_names` của `std.lang.Type`.
+- **Mỗi file tối đa 600 dòng**: mã nguồn, script, shader và cả các trang tài liệu này. `zig build lines` (`tools/lines.zig`) kiểm tra điều đó.
+  - File sắp vượt giới hạn thì tách theo trách nhiệm trước: một bộ widget, một phần việc của backend, một lượt layout.
+  - Ngoại lệ duy nhất là văn bản giấy phép của upstream giữ nguyên trong `third_party/licenses/`.
 
 <a id="layers"></a>
 
-## Lớp
+## Các lớp
 
-Từ ứng dụng trở xuống:
+Từ app đi xuống:
 
-1. **API công khai**, `src/myzig.zig`. Nó tái xuất những ứng dụng nào sử dụng: `App`, `Window` và các tùy chọn của chúng, `ui`, `i18n`, `l10n`, `Call`, `Event`, `Channel`, `page`, menu, khay, hộp thoại, bảng nhớ tạm và shell, `system`, `secrets`, `Documents`, `audio`, `transfer`, `file_watch`, v.v. Nó không có hành vi riêng của nó.
-2. **Mã được chia sẻ, không có nền tảng.** Mọi chức năng phụ trợ đều hoạt động theo cách giống nhau trong các tệp được đặt tên theo mối lo ngại, không có lệnh gọi hệ điều hành nào: `app_types.zig` và `app_common.zig` (tùy chọn, trình xử lý, đối số của lần khởi chạy), `window_types.zig` (tùy chọn cửa sổ và trang, `Asset`, sự kiện, thanh tiêu đề), `page_types.zig`, `page_core.zig`, `page_channel.zig`, `page_serve.zig` và `page_find.zig` (những trang chia sẻ: tin cậy, đánh giá, kênh, kế hoạch phục vụ, tìm kiếm), `ipc.zig`, `bindings.zig`, `channel.zig` và `tsgen.zig` (đã nhập IPC), `menu_types.zig`, `dialog_types.zig`, `tray_types.zig`, `documents.zig` và `document_*.zig` tệp, `transfer.zig`, `window_state.zig`, `paths.zig`, `i18n/`, `l10n/` và bộ trộn của `audio/`.
-3. **Giao diện native**, `src/ui/`. View, cây hộp, bố cục, vẽ và bộ kết xuất. Nó không biết gì về cửa sổ: khung được xây dựng từ `ui.View`, kích thước, tỷ lệ và chủ đề (`ui/frame.zig`), đồng thời chức năng tương tự phục vụ cửa sổ và headless `ui.Tester`.
-4. **Phần phụ trợ của nền tảng**, giúp dịch các loại được chia sẻ thành các lệnh gọi gốc:
-   - macOS: các tệp ở đầu `src/` (`app.zig`, `window.zig`, `page.zig`, `menu.zig`, `tray.zig`, `dialog.zig`, `desktop.zig`, `*_mac.zig`) và `ui/surface.zig`, `ui/metal.zig`, `ui/text_mac.zig`, `ui/access_mac.zig`.
+1. **API công khai**, `src/myzig.zig`. Nó re-export những gì app dùng: `App`, `Window` và các tùy chọn của chúng, `ui`, `i18n`, `l10n`, `Call`, `Event`, `Channel`, `page`, menu, tray, hộp thoại, clipboard và shell, `system`, `secrets`, `Documents`, `audio`, `transfer`, `file_watch`, v.v. Bản thân nó không chứa logic.
+2. **Code dùng chung, không phụ thuộc nền tảng.** Những gì mọi backend làm giống nhau nằm trong các file đặt tên theo chức năng, không gọi OS:
+   - `app_types.zig` và `app_common.zig`: tùy chọn, handler, tham số khi khởi chạy.
+   - `window_types.zig`: tùy chọn cửa sổ và trang, `Asset`, event, thanh tiêu đề.
+   - `page_types.zig`, `page_core.zig`, `page_channel.zig`, `page_serve.zig` và `page_find.zig`: phần các trang dùng chung. Đó là trust, evaluate, channel, phục vụ scheme và tìm kiếm.
+   - `ipc.zig`, `bindings.zig`, `channel.zig` và `tsgen.zig`: IPC có kiểu.
+   - `menu_types.zig`, `dialog_types.zig`, `tray_types.zig`, `documents.zig` và các file `document_*.zig`, `transfer.zig`, `window_state.zig`, `paths.zig`, `i18n/`, `l10n/` và mixer của `audio/`.
+3. **UI native**, `src/ui/`. View, cây box, layout, paint và các renderer. Nó không biết gì về cửa sổ. Một frame được dựng từ một `ui.View`, một kích thước, một tỉ lệ và một theme (`ui/frame.zig`). Cùng một hàm phục vụ cả cửa sổ lẫn `ui.Tester` chạy headless.
+4. **Các backend nền tảng**, dịch các kiểu dùng chung thành lời gọi native:
+   - macOS: các file ở gốc `src/` (`app.zig`, `window.zig`, `page.zig`, `menu.zig`, `tray.zig`, `dialog.zig`, `desktop.zig`, `*_mac.zig`) và `ui/surface.zig`, `ui/metal.zig`, `ui/text_mac.zig`, `ui/access_mac.zig`.
    - Linux: `src/linux/` (GTK 3, WebKitGTK, D-Bus, AT-SPI, xdg).
-   - Windows: `src/windows/` (Win32, COM, WebView2, Tự động hóa giao diện người dùng, kéo và thả OLE, sổ đăng ký, danh sách nhảy).
-   - Trình duyệt: `src/web/` (wasm32-wasi; máy chủ của trang ở `host.js`).
-   - `platform.zig` chứa một số thứ bên dưới giao diện người dùng khác nhau tùy theo hệ điều hành (chạy vòng lặp trong một thời gian, bảng nhớ tạm dành cho các thiết bị ngang hàng của Người kiểm tra).
-5. **Plugin**, `plugins/<name>`: các gói riêng (`build.zig.zon` tùy thuộc vào myzig) chỉ sử dụng API công khai: tìm nạp, websocket, sqlite, watch, updater, terminal, glass, game và mainthread. Xem [plugin](plugins.md).
-6. ** CLI**, `cli/`: `myzig init`, `dev`, `build`, `generate`, `icon`, `doctor`, một chương trình riêng. Xem [CLI](cli.md).
+   - Windows: `src/windows/` (Win32, COM, WebView2, UI Automation, kéo thả OLE, registry, jump list).
+   - Trình duyệt: `src/web/` (wasm32-wasi; host của trang nằm trong `host.js`).
+   - `platform.zig` giữ vài thứ bên dưới UI khác nhau theo OS: chạy loop trong một khoảng thời gian, clipboard cho các peer của Tester.
+5. **Plugin**, `plugins/<name>`: các package riêng (`build.zig.zon` phụ thuộc vào myzig) chỉ dùng API công khai: fetch, websocket, sqlite, watch, updater, terminal, glass, game và mainthread. Xem [plugin](plugins.md).
+6. **CLI**, `cli/`: `myzig init`, `dev`, `build`, `generate`, `icon`, `doctor`, một chương trình riêng. Xem [CLI](cli.md).
 
-Hành vi mới sẽ đi vào lớp chia sẻ trước tiên; một chương trình phụ trợ chỉ làm những gì phải có nguồn gốc. Một tính năng tồn tại trên một nền tảng cũng nhận được khai báo trên các nền tảng khác (không làm gì hoặc trả về `null` hoặc `false`), vì vậy các ứng dụng sẽ biên dịch ở mọi nơi.
+Logic mới vào lớp dùng chung trước. Backend chỉ làm phần bắt buộc phải native. Tính năng có trên một nền tảng thì các nền tảng khác cũng có khai báo tương ứng, không làm gì hoặc trả về `null` hay `false`. Nhờ vậy app biên dịch được ở mọi nơi.
 
 <a id="choosing-the-platform"></a>
 
 ### Chọn nền tảng
 
-`myzig.zig` chọn backend tại thời điểm biên dịch từ `builtin.os.tag`:
+`myzig.zig` chọn backend lúc biên dịch dựa trên `builtin.os.tag`:
 
 ```zig
 const plat = switch (builtin.os.tag) {
@@ -78,93 +92,147 @@ pub const App = plat.app.App;
 pub const Window = plat.window.Window;
 ```
 
-Do đó, `App` và `Window` của mỗi chương trình phụ trợ có cùng phương thức công khai và loại tùy chọn giống nhau (chúng đến từ `app_types.zig` và `window_types.zig`) và `myzig.App` là loại cụ thể, không phải giao diện: lệnh gọi là trực tiếp và trình liên kết loại bỏ những gì ứng dụng không bao giờ gọi. Khi backend thiếu một phần, API công khai sẽ nói như vậy theo loại của nó: `myzig.FlyoutOptions` là `void` trong đó `App` không có `FlyoutOptions`; `myzig.systemDrag(win)` trả về `null` khi không có nguồn kéo hệ thống; `myzig.objc` là một cấu trúc trống ngoài macOS.
+- `App` và `Window` của mọi backend có cùng các method công khai và cùng kiểu tùy chọn, lấy từ `app_types.zig` và `window_types.zig`.
+- `myzig.App` là một kiểu cụ thể, không phải interface. Lời gọi là trực tiếp, và linker bỏ đi những gì app không bao giờ gọi.
+- Khi một backend thiếu một phần, API công khai thể hiện điều đó ngay trong kiểu:
+  - `myzig.FlyoutOptions` là `void` khi `App` không có `FlyoutOptions`.
+  - `myzig.systemDrag(win)` trả về `null` khi không có nguồn kéo của hệ thống.
+  - `myzig.objc` là struct rỗng ngoài macOS.
 
-Giao diện native chọn văn bản và bộ kết xuất theo cách tương tự. `ui/text.zig` bộ
+UI native chọn cách vẽ chữ và renderer theo cùng cách. `ui/text.zig` đặt
 
 ```zig
 pub const portable = options.portable or builtin.os.tag != .macos;
 ```
 
-vì vậy macOS sử dụng CoreText và Metal, mọi thứ khác (và macOS được xây dựng với `-Dportable=true`) sử dụng trình đọc TrueType của myzig (`ui/tt/`), atlas glyph trong bộ nhớ (`ui/atlas_tt.zig`) và các biểu tượng dòng (`ui/icons.zig`). Tùy chọn xây dựng `inspector` (bật trong Gỡ lỗi) quyết định xem trình kiểm tra giao diện native có được biên dịch hay không.
+- macOS dùng CoreText và Metal.
+- Mọi nền tảng khác, và macOS khi build với `-Dportable=true`, dùng bộ đọc TrueType của myzig (`ui/tt/`), atlas glyph trong bộ nhớ (`ui/atlas_tt.zig`) và icon dạng nét (`ui/icons.zig`).
+- Tùy chọn build `inspector` (bật ở Debug) quyết định inspector của UI native có được biên dịch vào hay không.
 
 <a id="threading-model"></a>
 
-## Mô hình luồng
+## Mô hình thread
 
-Các cửa sổ AppKit, WebKit, GTK, Win32 và giao diện native đều chạy trên **luồng chính** và mọi thứ myzig gọi thay mặt ứng dụng cũng vậy: phương thức dịch vụ ràng buộc, lệnh gọi lại sự kiện và cửa sổ, lần nhấp vào menu, view. Trạng thái ứng dụng không cần khóa miễn là các luồng khác chuyển kết quả của chúng tới luồng chính thay vì chạm vào nó.
+AppKit, WebKit, GTK, cửa sổ Win32 và UI native đều chạy trên **main thread**. Mọi thứ myzig gọi thay cho app cũng vậy: method của service đã bind, callback của event và cửa sổ, click menu, view. State của app không cần khóa, miễn là các thread khác chuyển kết quả về main thread thay vì đụng trực tiếp vào state.
 
-Những gì vượt qua luồng:
+Những gì đi qua giữa các thread:
 
-- `Event.emit(window, payload)` an toàn trước mọi luồng. Nó mã hóa tải trọng nơi nó được gọi và đăng nó lên luồng của cửa sổ: `objc.dispatchMain` trên macOS, `g_idle_add` trên Linux, `PostMessageW` lên cửa sổ trên Windows (`Window.sendOwned`). `Event.broadcast` và `Channel` chỉ là luồng chính.
-- Plugin `mainthread` cung cấp cho các plugin và ứng dụng một hàng đợi trên luồng chính từ mọi nơi (`mainthread.post(job, Job.run)`): hàng đợi chính của libdispatch, ngữ cảnh mặc định của GLib hoặc cửa sổ chỉ có tin nhắn. Công việc diễn ra theo thứ tự; không có polling nào. Các plugin tìm nạp, websocket, sqlite và watch cung cấp kết quả của các luồng thông qua nó.
-- Đầu ra âm thanh chạy trên luồng âm thanh của hệ thống (AudioQueue, PulseAudio, WASAPI); `audio/mixer.zig` là thứ kết nối giữa nó và ứng dụng.
+- `Event.emit(window, payload)` an toàn khi gọi từ bất kỳ thread nào. Nó mã hóa payload ngay tại chỗ gọi rồi gửi sang thread của cửa sổ:
+  - macOS: `objc.dispatchMain`.
+  - Linux: `g_idle_add`.
+  - Windows: `PostMessageW` tới cửa sổ (`Window.sendOwned`).
 
-Không bao giờ chặn luồng chính đang chờ công việc cần nó: một phương thức ràng buộc phải chờ (phản hồi HTTP, quy trình con) trả về cùng một lúc và trả lời thông qua một sự kiện hoặc một kênh sau đó.
+  `Event.broadcast` và `Channel` chỉ dùng trên main thread.
+- Plugin `mainthread` cho plugin và app một hàng đợi về main thread từ bất kỳ đâu: `mainthread.post(job, Job.run)`.
+  - Nó dùng main queue của libdispatch, context mặc định của GLib, hoặc một cửa sổ chỉ nhận message.
+  - Job chạy theo thứ tự; không polling.
+  - Các plugin fetch, websocket, sqlite và watch chuyển kết quả từ thread của chúng qua đây.
+- Âm thanh chạy trên thread audio của hệ thống (AudioQueue, PulseAudio, WASAPI). `audio/mixer.zig` là phần đi qua lại giữa thread đó và app.
 
-Các đối tượng mà lệnh gọi lại vẫn có thể tiếp cận sau khi chúng được giải phóng tự do khi lệnh gọi lại đó chạy: một trang có lịch trình xóa được đặt `dead` và bị phá hủy bởi lệnh xóa (`page.zig`) và `Surface` có khung đang trong quá trình bay cũng làm điều tương tự.
+Đừng bao giờ chặn main thread để chờ việc cần chính main thread. Method đã bind mà phải chờ, như chờ HTTP response hay process con, thì trả về ngay. Nó trả lời sau qua một event hoặc một channel.
 
-`myzig.runFor(seconds)` chạy vòng lặp của nền tảng trong một thời gian (`CFRunLoopRunInMode`, `g_main_context_iteration`, `PeekMessageW`): headless các kiểm thử sử dụng nó giữa các khung để xử lý các phản hồi, bộ tính giờ và quy trình.
+Một số đối tượng vẫn có thể bị callback chạm tới sau khi đã bị hủy. Chúng tự giải phóng khi callback đó chạy:
+
+- Trang đã lên lịch flush thì đặt `dead` và bị hủy bởi chính lần flush đó (`page.zig`).
+- `Surface` đang có frame chưa vẽ xong cũng làm như vậy.
+
+`myzig.runFor(seconds)` chạy loop của nền tảng trong một khoảng thời gian (`CFRunLoopRunInMode`, `g_main_context_iteration`, `PeekMessageW`). Test headless dùng nó giữa các frame để reply, timer và process được xử lý.
 
 <a id="native-interop-without-c"></a>
 
-## Tương tác gốc không có C
+## Gọi code native không qua C
 
 <a id="macos-the-objective-c-runtime-called-directly"></a>
 
-### MacOS: thời gian chạy Objective-C, được gọi trực tiếp
+### macOS: gọi thẳng runtime Objective-C
 
-`src/objc.zig` khai báo các hàm của thời gian chạy (`objc_getClass`, `sel_registerName`, `objc_msgSend`, `objc_allocateClassPair`, `class_addMethod`, `class_addIvar`, nhóm tự động phát hành) là `extern "c"` và xây dựng dựa trên chúng:
+`src/objc.zig` khai báo các hàm của runtime dạng `extern "c"`: `objc_getClass`, `sel_registerName`, `objc_msgSend`, `objc_allocateClassPair`, `class_addMethod`, `class_addIvar`, autorelease pool. Trên nền đó:
 
-- `objc.msg(R, target, "selector:with:", .{ a, b })` gửi tin nhắn. Loại hàm chính xác của mỗi cuộc gọi được xây dựng tại thời điểm biên dịch từ kiểu trả về và bộ đối số và `objc_msgSend` được truyền tới nó, vì arm64 yêu cầu gọi nó bằng chữ ký thực của callee (các lệnh gọi biến đổi truyền đối số trong các thanh ghi sai).
-- `objc.defineClass(.{ ... })` đăng ký một lớp trong thời gian chạy có các phương thức là các hàm Zig: đại biểu cửa sổ, ứng dụng và view web, view native của giao diện native, client nhập văn bản. Một con trỏ ivar liên kết từng phiên bản với đối tượng Zig của nó (`objc.setZig`, `objc.getZig`).
-- `objc.Block(Ctx, Args)` tạo các khối cho các API lấy chúng (trình xử lý hoàn thành), được trình bày như khối ABI nói.
-- `objc.dispatchMain` và `objc.dispatchAfter` gọi libdispatch (`dispatch_async_f`, `dispatch_after_f`) bằng con trỏ ngữ cảnh và hàm `callconv(.c)`.
-- `objc.Pool` kết thúc `objc_autoreleasePoolPush`/`Pop`.
+- `objc.msg(R, target, "selector:with:", .{ a, b })` gửi một message.
+  - Kiểu hàm chính xác của mỗi lời gọi được dựng lúc biên dịch từ kiểu trả về và tuple tham số. `objc_msgSend` được ép sang kiểu đó.
+  - arm64 bắt buộc gọi nó với đúng chữ ký thật của hàm đích. Gọi kiểu variadic sẽ đặt tham số sai thanh ghi.
+- `objc.defineClass(.{ ... })` đăng ký lúc chạy một class có method là hàm Zig.
+  - Dùng cho delegate của cửa sổ, application và web view, view native của UI native, và text input client.
+  - Một ivar con trỏ gắn mỗi instance với đối tượng Zig của nó (`objc.setZig`, `objc.getZig`).
+- `objc.Block(Ctx, Args)` tạo block cho các API nhận block (completion handler), bố trí theo block ABI.
+- `objc.dispatchMain` và `objc.dispatchAfter` gọi libdispatch (`dispatch_async_f`, `dispatch_after_f`) với một con trỏ context và một hàm `callconv(.c)`.
+- `objc.Pool` bọc `objc_autoreleasePoolPush`/`Pop`.
 
-Các khung C (CoreText, CoreGraphics, CoreFoundation trong `ui/cf.zig`, Metal đến `objc.msg`, ImageIO) là các phần khai báo `extern` bên cạnh mã sử dụng chúng. `build.zig` liên kết các khung và `libobjc` cho các mục tiêu macOS; Cần có SDK macOS để liên kết ở đó, không cần gì khác. Các khung chỉ dành cho một số ứng dụng cần được mở bằng `dlopen` khi sử dụng lần đầu, vì vậy, các khung khác không mất phí gì: Bảo mật cho Chuỗi khóa (`secrets_mac.zig`), Thông báo người dùng (`notify_mac.zig`).
+Các framework C là khai báo `extern` nằm cạnh code dùng chúng: CoreText, CoreGraphics, CoreFoundation trong `ui/cf.zig`, Metal qua `objc.msg`, ImageIO.
 
-Bộ nhớ tuân theo quy tắc của Cocoa: các đối tượng từ `alloc`/`new` được sở hữu và phải được giải phóng (`objc.release`); mã làm cho các đối tượng tạm thời chạy bên trong `objc.Pool`.
+- `build.zig` link các framework và `libobjc` cho target macOS. Ở đó chỉ cần macOS SDK để link, không cần gì khác.
+- Framework chỉ vài app cần thì được mở bằng `dlopen` khi dùng lần đầu, nên app khác không tốn gì. Đó là Security cho Keychain (`secrets_mac.zig`) và UserNotifications (`notify_mac.zig`).
+
+Bộ nhớ theo quy tắc của Cocoa. Đối tượng từ `alloc`/`new` thuộc quyền sở hữu của bạn và phải release (`objc.release`). Code tạo đối tượng tạm chạy bên trong một `objc.Pool`.
+
+<a id="linux-dlopen"></a>
 
 ### Linux: dlopen
 
-Không có gì được liên kết trên Linux ngoài libc. GTK 3 được tải khi ứng dụng khởi động: `linux/gtk.zig`'s `load()` mở `libgtk-3.so.0` bằng `std.c.dlopen` và điền cấu trúc con trỏ hàm theo tên bằng `dlsym`; `linux/gtk_more.zig`, `gtkmenu.zig` và `window_extras.zig` tải thêm nội dung đó theo cách tương tự. Các thư viện khác cũng hoạt động theo cách tương tự, mỗi thư viện chỉ khi một tính năng cần đến nó lần đầu tiên và mỗi thư viện bị thiếu sẽ tắt tính năng đó thay vì làm ứng dụng bị lỗi:
+Trên Linux không link gì ngoài libc. GTK 3 được nạp khi app khởi động:
 
-| thư viện | cho |
+- `load()` của `linux/gtk.zig` mở `libgtk-3.so.0` bằng `std.c.dlopen`. Nó điền một struct con trỏ hàm theo tên bằng `dlsym`.
+- `linux/gtk_more.zig`, `gtkmenu.zig` và `window_extras.zig` nạp thêm phần khác của GTK theo cùng cách.
+
+Các thư viện khác cũng nạp như vậy, mỗi cái chỉ khi một tính năng cần tới lần đầu. Thiếu thư viện nào thì tính năng đó tắt đi, app không bị lỗi:
+
+| thư viện | dùng cho |
 |---|---|
-| `libwebkit2gtk-4.1.so.0` hoặc `-4.0.so.37` | trang (`linux/webkit.zig`) |
-| `libepoxy.so.0` | OpenGL cho giao diện native (`ui/gl_api.zig`) |
-| `libayatana-appindicator3.so.1` hoặc `libappindicator3.so.1` | khay |
-| `libsecret-1.so.0` | bí mật |
+| `libwebkit2gtk-4.1.so.0` hoặc `-4.0.so.37` | trang web (`linux/webkit.zig`) |
+| `libepoxy.so.0` | OpenGL cho UI native (`ui/gl_api.zig`) |
+| `libayatana-appindicator3.so.1` hoặc `libappindicator3.so.1` | tray |
+| `libsecret-1.so.0` | secrets |
 | `libgio-2.0.so.0` | trạng thái mạng |
-| `libX11.so.6` | phím nóng toàn cầu |
+| `libX11.so.6` | phím tắt toàn cục |
 
-D-Bus (thông báo, phiên bản đơn, bus truy cập AT-SPI, mục khởi chạy) được chính myzig đọc qua ổ cắm của bus phiên (`linux/dbus.zig`, `dbus_conn.zig`, `atspi_proto.zig`), không thông qua libdbus. Lệnh gọi lại Cuộc gọi GTK là các hàm `callconv(.c)` Zig được truyền với `gtk.connect(instance, "signal", handler, data)`.
-
-Chương trình phụ trợ x86_64 của chính Zig biên dịch sai lệnh gọi vào JavaScriptCore của WebKitGTK, vì vậy `build.zig` xây dựng các ví dụ Linux với LLVM (`.use_llvm = true`).
+- myzig tự nói D-Bus qua socket của session bus, không qua libdbus (`linux/dbus.zig`, `dbus_conn.zig`, `atspi_proto.zig`). Phần này lo thông báo, single instance, bus trợ năng AT-SPI và launcher entry.
+- Callback mà GTK gọi là hàm Zig `callconv(.c)`, truyền vào bằng `gtk.connect(instance, "signal", handler, data)`.
+- Backend x86_64 riêng của Zig biên dịch sai các lời gọi vào JavaScriptCore của WebKitGTK. Vì vậy `build.zig` build các ví dụ Linux bằng LLVM (`.use_llvm = true`).
 
 <a id="windows-extern-and-com"></a>
 
-### Windows: bên ngoài và COM
+### Windows: extern và COM
 
-Các hàm Win32 là `extern "user32"`, `"kernel32"`, `"gdi32"`, v.v., `callconv(.winapi)`, được khai báo trong `windows/win32.zig` và bên cạnh người dùng của chúng. COM cũng không cần tiêu đề: `windows/com.zig` gọi các phương thức của đối tượng thông qua vtable theo chỉ mục, phân tích GUID tại thời điểm biên dịch (`GUID.parse("...")`) và tạo các đối tượng xử lý WebView2 nhận các sự kiện và hoàn thành của nó (IUnknown cộng với một `Invoke`). Direct3D 11 (`ui/d3d11_api.zig`), Tự động hóa giao diện người dùng (`windows/uia*.zig`), kéo và thả OLE (`windows/oledrag.zig`), Trình quản lý thông tin xác thực, danh sách nhảy và thanh tác vụ là COM hoặc API phẳng được khai báo theo cách này.
+Hàm Win32 là `extern "user32"`, `"kernel32"`, `"gdi32"`, v.v., với `callconv(.winapi)`. Chúng được khai báo trong `windows/win32.zig` và cạnh code dùng chúng.
 
-WebView2 được tìm thấy theo cách `WebView2Loader.dll` tìm thấy nó mà không cần DLL đó: `windows/webview2.zig` đọc vị trí của thời gian chạy đã cài đặt (`WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, nếu không thì các kênh Stable, Beta, Dev và Canary trong sổ đăng ký), tải DLL client của nó và tạo một môi trường cho mỗi trang trong lần sử dụng đầu tiên. Nếu không có thời gian chạy, các trang sẽ ghi lại nơi tải xuống.
+COM cũng không cần header. `windows/com.zig`:
 
-Ví dụ nhúng `windows/myzig.manifest`, khai báo Windows 8 trở lên: các nút chú thích của thanh tiêu đề ẩn là các cửa sổ con được xếp lớp, cần có nó và Windows sau đó báo cáo phiên bản thực của nó cho ứng dụng.
+- gọi method của đối tượng qua vtable theo chỉ số;
+- parse GUID lúc biên dịch (`GUID.parse("...")`);
+- tạo các đối tượng handler mà WebView2 nhận cho event và completion của nó (IUnknown cộng một `Invoke`).
+
+Direct3D 11 (`ui/d3d11_api.zig`), UI Automation (`windows/uia*.zig`), kéo thả OLE (`windows/oledrag.zig`), Credential Manager, jump list và taskbar là các API COM hoặc API phẳng được khai báo theo cách này.
+
+WebView2 được tìm theo cách `WebView2Loader.dll` tìm, nhưng không cần DLL đó. `windows/webview2.zig`:
+
+1. đọc vị trí của runtime đã cài: `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, nếu không có thì các kênh Stable, Beta, Dev và Canary trong registry;
+2. nạp DLL client của nó;
+3. tạo một environment dùng cho mọi trang, ở lần dùng đầu tiên.
+
+Nếu không có runtime, trang sẽ log ra chỗ tải về.
+
+Các ví dụ nhúng `windows/myzig.manifest`, khai báo Windows 8 trở lên. Nút caption của thanh tiêu đề ẩn là cửa sổ con dạng layered, cần khai báo này. Khi đó Windows cũng báo về đúng phiên bản thật cho app.
 
 <a id="browsers-webassembly-imports"></a>
 
-### Trình duyệt: Nhập WebAssembly
+### Trình duyệt: import WebAssembly
 
-Được xây dựng cho `wasm32-wasi`, myzig không có libc: thư viện tiêu chuẩn của Zig nói về WASI, `web/host_wasi.js` trả lời. Những gì trang làm cho ứng dụng là một tập hợp các chức năng được nhập từ mô-đun `"myzig"` (`extern "myzig" fn window_open(...)` trong `web/js.zig`) và những gì ứng dụng làm cho trang là một tập hợp các lần xuất (`web/exports.zig`): các sự kiện của trình duyệt cho một cửa sổ, bộ hẹn giờ và giao diện. Các chuỗi giao nhau dưới dạng một con trỏ và độ dài vào bộ nhớ của mô-đun. Xem [trình duyệt](browsers.md).
+Khi build cho `wasm32-wasi`, myzig không có libc. Thư viện chuẩn của Zig nói WASI, và `web/host_wasi.js` trả lời.
+
+- Những gì trang làm cho app là một tập hàm import từ module `"myzig"` (`extern "myzig" fn window_open(...)` trong `web/js.zig`).
+- Những gì app làm cho trang là một tập export (`web/exports.zig`): event của trình duyệt cho một cửa sổ, timer và giao diện sáng/tối.
+- Chuỗi đi qua dưới dạng một con trỏ và một độ dài vào bộ nhớ của module.
+
+Xem [trình duyệt](browsers.md).
 
 <a id="conventions-that-keep-this-working"></a>
 
-## Các quy ước giúp duy trì hoạt động này
+## Các quy ước giữ cho mọi thứ chạy đúng
 
-- Triển khai phương thức nền tảng trong mọi chương trình phụ trợ: macOS, `linux/`, `windows/`, `web/`. Khối kiểm tra của `myzig.zig` gọi `std.testing.refAllDecls` trên mỗi mô-đun của chương trình phụ trợ và trên mọi phương thức trang, do đó, một phương thức biên dịch trên một nền tảng chứ không phải nền tảng khác sẽ bị `zig build test` bắt và bằng cách xây dựng cho các mục tiêu khác.
-- Giữ API công khai cụ thể và theo thời gian tính toán: các dịch vụ, sự kiện và kênh bị ràng buộc được nhập vào thời gian biên dịch (`tsgen.zig`), trình xử lý là `myzig.Handler(T).of(&state, State.method)` cặp con trỏ và hàm, không bao giờ giao diện được giải quyết trong thời gian chạy.
-- Các widget được tạo thành từ các hộp (`Context.open`/`leaf`), được tạo kiểu theo chủ đề và hoạt hình bằng `Context.animate`; một người có tương tác thay đổi trạng thái ứng dụng sẽ đặt `c.changed`, do đó khung được tạo lại.
-- Mọi hành vi đều được kiểm tra: các widget trong `src/ui/tests*.zig` thông qua Trình kiểm tra, ánh xạ loại IPC trong `tsgen.zig`, bộ kết xuất dựa trên bộ kết xuất CPU.
-- Những gì ứng dụng không sử dụng không được phát triển nó: các tính năng được tiếp cận thông qua các chức năng mà ứng dụng gọi, do đó trình liên kết sẽ loại bỏ phần còn lại. Xem [kích thước nhị phân](architecture-testing.md#binary-size).
+- Viết method nền tảng trong mọi backend: macOS, `linux/`, `windows/`, `web/`. Khối test của `myzig.zig` gọi `std.testing.refAllDecls` trên module của từng backend và trên mọi method của trang. Method biên dịch được trên nền tảng này mà không được trên nền tảng kia sẽ bị `zig build test` và việc build cho các target khác bắt được.
+- Giữ API công khai cụ thể và dựa trên comptime.
+  - Service đã bind, event và channel có kiểu từ lúc biên dịch (`tsgen.zig`).
+  - Handler là cặp con trỏ và hàm `myzig.Handler(T).of(&state, State.method)`, không bao giờ là interface phân giải lúc chạy.
+- Widget được làm từ box (`Context.open`/`leaf`), lấy style từ theme và animate bằng `Context.animate`. Widget nào thay đổi state của app khi tương tác thì đặt `c.changed`, để frame được dựng lại.
+- Mọi hành vi đều có test: widget trong `src/ui/tests*.zig` qua Tester, ánh xạ kiểu IPC trong `tsgen.zig`, renderer so với renderer CPU.
+- Những gì app không dùng thì không được làm app nặng thêm. Tính năng được kéo vào qua các hàm app gọi, nên linker bỏ phần còn lại. Xem [kích thước binary](architecture-testing.md#binary-size).

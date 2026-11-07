@@ -1,14 +1,21 @@
 <a id="shaders"></a>
 
-# Trình đổ bóng
+# Shader
 
-Một khung nhìn có thể lấp đầy một hộp bằng một shader của riêng nó: một hàm từ một điểm của hộp đến một màu, chạy cho mọi pixel. Bạn viết nó một lần, bằng ZSL, một ngôn ngữ nhỏ theo cú pháp của Zig và `ui.shader.compile` biên dịch nó tại thời điểm biên dịch thành HLSL (Direct3D 11), GLSL (OpenGL 3.3, OpenGL ES 3.0 và WebGL 2), Metal và một bản đối chiếu CPU của Zig mã vẽ các pixel giống nhau, trong phạm vi làm tròn, nơi không có GPU vẽ: bộ kết xuất CPU và `ui.Tester`. Vì vậy, shader hoạt động trên mọi nền tảng và trong các kiểm thử, và lỗi trong đó là lỗi biên dịch của ứng dụng.
+Một view có thể tô một box bằng shader của riêng nó: một hàm nhận một điểm trong box và trả về một màu, chạy cho từng pixel. Bạn viết nó một lần bằng ZSL, một ngôn ngữ nhỏ theo cú pháp Zig. `ui.shader.compile` biên dịch nó ngay lúc compile thành:
+
+- HLSL (Direct3D 11);
+- GLSL (OpenGL 3.3, OpenGL ES 3.0 và WebGL 2);
+- Metal;
+- một bản song sinh chạy trên CPU bằng code Zig, vẽ ra đúng các pixel đó (sai khác do làm tròn), dùng ở nơi không có GPU vẽ: CPU renderer và `ui.Tester`.
+
+Vì vậy một shader chạy được trên mọi nền tảng và trong test, và một lỗi trong shader là lỗi compile của app.
 
 <!-- demo: shaders height=288 -->
 
-![Shader waves trong hướng dẫn, được render bằng bản CPU của myzig.](../../images/ui/shaders.png)
+![Shader waves trong hướng dẫn này, render bằng bản song sinh CPU của myzig.](../../images/ui/shaders.png)
 
-*Shader waves trong hướng dẫn, được render bằng bản CPU của myzig.*
+*Shader waves trong hướng dẫn này, render bằng bản song sinh CPU của myzig.*
 
 ```zig
 const waves = ui.shader.compile("waves",
@@ -25,21 +32,30 @@ fn view(_: *State, c: *ui.Context) void {
 }
 ```
 
-Các shader dài hơn tồn tại trong các tệp riêng của chúng, `.zsl`, được nhúng:
+Shader dài hơn nằm trong file riêng, đuôi `.zsl`, rồi được nhúng vào:
 
 ```zig
 pub const shader = ui.shader.compile("wind", @embedFile("wind.zsl"));
 ```
 
-Các ví dụ được tạo từ các shader: `blackhole` (ánh sáng truyền qua trọng lực, lực cản quay quanh máy ảnh), `wind` (kết cấu các ký tự bị gió khuấy động), `chat-glow` (quả cầu, vòng tròn, ánh sáng ở cạnh và ánh sáng lung linh, chia sẻ bảng màu), `effort-slider`, `mayoi` và thư viện. Chạy chúng với `zig build run-blackhole`, v.v.
+Các ví dụ được làm từ shader. Chạy bằng `zig build run-blackhole` và tương tự:
+
+- `blackhole`: ánh sáng được dò đường qua trọng lực; kéo chuột để xoay camera quanh nó.
+- `wind`: một mặt các ký tự bị gió khuấy động.
+- `chat-glow`: một quả cầu, một vòng tròn, ánh sáng viền và hiệu ứng lấp lánh, dùng chung một bảng màu.
+- `effort-slider`, `mayoi` và gallery.
 
 <a id="shader-boxes"></a>
 
-## Hộp đổ bóng
+## Shader box
 
-`ui.shaderBox(c, &shader, values, style)` mở một hộp được tạo kiểu bởi `style`, được đổ bóng lấp đầy; con của nó theo sau cho đến `c.end()`. Trình đổ bóng thay thế nền của hộp và được cắt bớt các góc tròn của hộp. `values` là một cấu trúc có các trường đặt đồng phục của shader (bên dưới). `ui.shaderBoxWith(c, &shader, values, style, options)` lấy `ui.ShaderBoxOptions`, có `blur` làm mờ nội dung bên dưới hộp trước khi shader đọc nó bằng `backdrop(p)`.
+`ui.shaderBox(c, &shader, values, style)` mở một box có style là `style`, được tô bằng shader. Các phần tử con theo sau cho tới `c.end()`.
 
-`ui.shaderEffect(c, &shader, values, last_rect, options)` tạo hiệu ứng đổ bóng cho `Style.effect` của bất kỳ hộp nào, được phân bổ cho khung này: một hộp được vẽ từ những gì bên dưới nó, giống như kính mờ ([Biến đổi và hiệu ứng](transforms.md#backdrop-effects)). `last_rect` là hình vuông của hộp trong bố cục cuối cùng, dành cho đồng phục `pointer`.
+- Shader thay cho nền của box, bị cắt theo các góc bo tròn của nó.
+- `values` là một struct, mỗi trường đặt một uniform của shader (xem bên dưới).
+- `ui.shaderBoxWith(c, &shader, values, style, options)` nhận thêm `ui.ShaderBoxOptions`. Trường `blur` của nó làm mờ phần bên dưới box trước khi shader đọc nó bằng `backdrop(p)`.
+
+`ui.shaderEffect(c, &shader, values, last_rect, options)` biến shader thành một effect cho `Style.effect` của box bất kỳ, cấp phát cho frame này. Box được vẽ từ những gì nằm dưới nó, giống kính mờ ([Biến đổi và hiệu ứng](transforms.md#backdrop-effects)). `last_rect` là rect của box ở lần layout trước, dùng cho uniform `pointer`.
 
 ```zig
 const id = c.peekId("lens");
@@ -50,61 +66,73 @@ c.end();
 
 <a id="the-fragment-function"></a>
 
-## Chức năng phân đoạn
+## Hàm fragment
 
 ```zig
 pub fn fragment(pos: vec2) vec4 { ... }
 ```
 
-`pos` là điểm trong hộp, tính theo số điểm tính từ góc trên cùng bên trái của nó. Hàm trả về màu của pixel, được nhân trước (`vec4(r * a, g * a, b * a, a)`), được vẽ trên phần bên dưới hộp: alpha 0 giữ nguyên màu đó.
+- `pos` là điểm trong box, tính bằng điểm từ góc trên bên trái.
+- Hàm trả về màu của pixel, đã nhân trước alpha: `vec4(r * a, g * a, b * a, a)`.
+- Màu được vẽ đè lên những gì nằm dưới box. Alpha 0 để nguyên phần bên dưới.
 
 <a id="uniforms"></a>
 
-## Đồng phục
+## Uniform
 
-`uniform name: type;` ở trên cùng khai báo giá trị mà view cung cấp cho mỗi frame:
+`uniform name: type;` ở đầu khai báo một giá trị mà view đưa vào mỗi frame:
 
 ```zig
 const root = ui.shaderBox(c, &shader, .{
     .seed = w.seed,                               // u32
     .time = t,                                    // f32
     .heading = [2]f32{ @cos(w.heading), @sin(w.heading) }, // vec2
-    .tap = s.tap,                                 // vec3, as [3]f32
+    .tap = s.tap,                                 // vec3, dạng [3]f32
 }, .{ .width = .fill, .height = .fill });
 defer c.end();
 ```
 
-Các trường là số cho `f32`, `i32` và `u32`, `bool`s và mảng hoặc vectơ số float cho vectơ; a `ui.Color` đặt `vec3` hoặc `vec4`, `ui.Point` a `vec2`. Trường đặt tên không đồng nhất là lỗi biên dịch; một bộ đồng phục bị bỏ đi là con số 0, với hai trường hợp ngoại lệ:
+| uniform | trường |
+|---|---|
+| `f32`, `i32`, `u32` | một số |
+| `bool` | một `bool` |
+| vector | một mảng hoặc vector số thực |
+| `vec3`, `vec4` | hoặc một `ui.Color` |
+| `vec2` | hoặc một `ui.Point` |
 
-- `time`, một `f32` bị bỏ lại, là đồng hồ của ngữ cảnh (`c.time`) và hộp sẽ vẽ mọi frame. Hãy tự mình cung cấp `time` để đóng băng nó (như các bài kiểm tra thực hiện) hoặc bắt đầu ở mức 0.
-- `pointer`, một `vec2` bị bỏ sót, là vị trí của con trỏ, trong các điểm của hộp. Đặt `c.wants_moves = true` cho các khung khi con trỏ di chuyển.
+Trường không ứng với uniform nào là lỗi compile. Uniform bị bỏ qua thì bằng 0, trừ hai trường hợp:
 
-Đồng phục chia sẻ mười sáu điểm nổi của hiệu ứng: mười lăm điểm nổi là của họ (`vec3` mất ba điểm) và điểm cuối cùng giữ các pixel tại một điểm. `ui.shader.params(&shader, values, scale)` gói các giá trị vào các tham số của hiệu ứng, cho `ui.Effect` được tạo thủ công.
+- `time`, một `f32`, nếu bỏ qua thì lấy đồng hồ của context (`c.time`), và khi đó box vẽ lại mọi frame. Tự đưa `time` vào để đóng băng nó (như test làm) hoặc để nó bắt đầu từ 0.
+- `pointer`, một `vec2`, nếu bỏ qua thì là vị trí con trỏ, tính bằng điểm của box. Đặt `c.wants_moves = true` để có frame mỗi khi con trỏ di chuyển.
+
+Các uniform dùng chung mười sáu số thực của effect. Mười lăm số là của chúng (một `vec3` chiếm ba), số cuối giữ số pixel trên một điểm. `ui.shader.params(&shader, values, scale)` đóng gói các giá trị vào tham số của effect, cho một `ui.Effect` tự dựng bằng tay.
 
 <a id="the-language"></a>
 
 ## Ngôn ngữ
 
-ZSL là cú pháp của Zig cho những gì shader cần:
+ZSL là cú pháp Zig cho những gì một shader cần:
 
-- Ở trên cùng: `uniform name: type;`, `const name = value;` và các hàm (`fn name(a: f32, b: vec2) f32 { ... }`, nhiều nhất là tám tham số), trong đó có `pub fn fragment`. Các hàm có thể gọi nhau theo bất kỳ thứ tự nào, nhưng không gọi chính chúng: shader không lặp lại.
-- Các loại: `bool`, `i32`, `u32`, `f32`, `vec2`, `vec3`, `vec4`.
-- Câu lệnh: `const` và `var` địa phương, bài tập (`=`, `+=` và các phần khác, các thành phần như `v.xy = ...`), `if` / `else`, `while (c) : (i += 1)`, `for (0..n) |i|`, `break`, `continue`, `return`.
-- Các số không có loại sẽ chọn loại mà chúng cần sử dụng, chẳng hạn như Zig. Chuyển đổi là `f32(x)`, `i32(x)`, `u32(x)`.
-- Các vectơ được tạo dưới dạng `vec3(v.xy, 1)` hoặc `vec3(0)`; một vô hướng float trộn với các vectơ (`v * 0.5`); `.xyzw` và `.rgba` xèo xèo.
-- Bọc số nguyên; `<<`, `>>`, `&`, `|`, `^`, `~` và `%` là của họ, và `mod()` phao'. Băm của `u32`s (PCG và tương tự) hoạt động giống nhau trên mọi chương trình phụ trợ.
-- Bình luận là `//`.
+- Ở cấp trên cùng: `uniform name: type;`, `const name = value;` và các hàm, trong đó có `pub fn fragment`.
+- Một hàm có dạng `fn name(a: f32, b: vec2) f32 { ... }`, tối đa tám tham số. Các hàm gọi nhau theo thứ tự nào cũng được, nhưng không tự gọi chính nó: shader không đệ quy.
+- Kiểu: `bool`, `i32`, `u32`, `f32`, `vec2`, `vec3`, `vec4`.
+- Câu lệnh: biến cục bộ `const` và `var`, phép gán (`=`, `+=` và các phép khác, gán từng thành phần như `v.xy = ...`), `if` / `else`, `while (c) : (i += 1)`, `for (0..n) |i|`, `break`, `continue`, `return`.
+- Số không có kiểu sẽ nhận kiểu mà chỗ dùng cần, như trong Zig. Chuyển kiểu bằng `f32(x)`, `i32(x)`, `u32(x)`.
+- Tạo vector bằng `vec3(v.xy, 1)` hoặc `vec3(0)`. Một số thực đơn lẻ dùng chung được với vector (`v * 0.5`). `.xyzw` và `.rgba` để swizzle.
+- Số nguyên tràn thì quay vòng. `<<`, `>>`, `&`, `|`, `^`, `~` và `%` dành cho số nguyên, còn `mod()` dành cho số thực.
+- Hàm băm trên `u32` (PCG và tương tự) cho cùng kết quả trên mọi backend.
+- Comment là `//`.
 
-Nội dung tích hợp: `sin` của GLSL, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `exp`, `exp2`, `log`, `log2`, `pow`, `sqrt`, `inversesqrt`, `abs`, `sign`, `floor`, `ceil`, `fract`, `round`, `trunc`, `mod`, `min`, `max`, `clamp`, `mix`, `step`, `smoothstep`, `length`, `distance`, `dot`, `cross`, `normalize`, `reflect`; và của myzig:
+Các hàm có sẵn gồm của GLSL: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `exp`, `exp2`, `log`, `log2`, `pow`, `sqrt`, `inversesqrt`, `abs`, `sign`, `floor`, `ceil`, `fract`, `round`, `trunc`, `mod`, `min`, `max`, `clamp`, `mix`, `step`, `smoothstep`, `length`, `distance`, `dot`, `cross`, `normalize`, `reflect`; và của myzig:
 
-| dựng sẵn | là |
+| hàm | là |
 |---|---|
-| `size()` | kích thước của hộp, tính bằng điểm |
-| `pixel_scale()` | các pixel trong một điểm |
-| `pixel()` | tâm của pixel, trong pixel của cửa sổ |
-| `backdrop(p)` | những gì được vẽ bên dưới hộp tại điểm của nó `p`, bị làm mờ bởi `blur` của hộp, được nhân trước |
+| `size()` | kích thước của box, tính bằng điểm |
+| `pixel_scale()` | số pixel trên một điểm |
+| `pixel()` | tâm của pixel, tính bằng pixel của cửa sổ |
+| `backdrop(p)` | những gì được vẽ dưới box tại điểm `p` của nó, đã làm mờ theo `blur` của box, đã nhân trước alpha |
 
-Một ví dụ ngắn về hầu hết nó, từ phần đầu của ví dụ về gió:
+Một ví dụ ngắn dùng phần lớn những thứ trên, lấy từ phần đầu ví dụ wind:
 
 ```zig
 uniform seed: u32;
@@ -129,36 +157,47 @@ pub fn fragment(pos: vec2) vec4 {
 }
 ```
 
-Tiền tố là một cách để chia sẻ mã: `chat-glow` biên dịch từng shader của nó từ `palette ++ @embedFile("orb.zsl")`, một tệp chứa các chức năng mà tất cả chúng đều sử dụng.
+Ghép tiền tố là một cách dùng chung code. `chat-glow` compile từng shader của nó từ `palette ++ @embedFile("orb.zsl")`, trong đó palette là một file chứa các hàm mà mọi shader đều dùng.
 
 <a id="errors"></a>
 
 ## Lỗi
 
-Lỗi là lỗi biên dịch của ứng dụng, với tên, dòng và cột của shader:
+Lỗi là lỗi compile của app, kèm tên shader, dòng và cột:
 
 ```
 shader 'waves':3:24: mismatched types i32 and f32
 ```
 
-Các loại được kiểm tra khi Zig kiểm tra chúng (không có chuyển đổi ngầm giữa `i32`, `u32` và `f32`, ngoài các số chưa được nhập), tên phải được khai báo, shader quá dài cho các bảng của nó là lỗi (`shader 'x' is too long`) và đệ quy cũng vậy. `ui.shader.checkSource(&program, src, msg)` biên dịch trong thời gian chạy, để kiểm tra trình biên dịch.
+- Kiểu được kiểm tra như Zig kiểm tra. Không có chuyển đổi ngầm giữa `i32`, `u32` và `f32`, ngoài các số chưa có kiểu.
+- Tên phải được khai báo.
+- Shader quá dài so với các bảng của nó là lỗi (`shader 'x' is too long`), đệ quy cũng vậy.
+- `ui.shader.checkSource(&program, src, msg)` compile lúc chạy, dùng cho test của trình biên dịch.
 
 <a id="how-it-is-drawn"></a>
 
-## Nó được vẽ như thế nào
+## Cách nó được vẽ
 
-Hộp đổ bóng là một hiệu ứng phông nền ([Biến đổi và hiệu ứng](transforms.md)): sơn đánh dấu nó theo thứ tự sơn và mỗi bộ kết xuất, tại điểm đánh dấu, sẽ đọc những gì nó đã vẽ cho đến nay xung quanh hộp (được làm mờ nếu được yêu cầu) và vẽ hộp bằng bóng đổ trước khi vẽ tiếp. Direct3D, OpenGL, WebGL và Metal biên dịch nguồn được tạo một lần cho mỗi shader, lần đầu tiên họ vẽ nó; bộ kết xuất CPU chạy song song, một hàm được tạo từ cùng một chương trình tại thời điểm biên dịch. Các nguồn được tạo nằm ở `shader.effect` (`hlsl`, `glsl`, `msl`) và bố cục của đồng phục ở `shader.uniforms`.
+Shader box là một backdrop effect ([Biến đổi và hiệu ứng](transforms.md)):
 
-Một hộp đổ bóng có `time` được để lại cho đồng hồ sẽ yêu cầu mọi frame, do đó, hộp đổ bóng này sẽ tiếp tục vẽ ứng dụng trong khi hiển thị; một cái không có nó sẽ được vẽ bằng các khung mà phần còn lại của view yêu cầu, giống như bất kỳ hộp nào.
+1. Bước paint đánh dấu nó theo thứ tự vẽ.
+2. Tới chỗ đánh dấu, mỗi renderer đọc những gì nó đã vẽ quanh box, làm mờ nếu được yêu cầu.
+3. Nó vẽ box bằng shader, rồi vẽ tiếp.
+
+- Direct3D, OpenGL, WebGL và Metal compile mã nguồn đã sinh một lần cho mỗi shader, ở lần đầu vẽ nó.
+- CPU renderer chạy bản song sinh, một hàm sinh ra từ cùng chương trình đó lúc compile.
+- Mã nguồn đã sinh nằm trong `shader.effect` (`hlsl`, `glsl`, `msl`). Cách bố trí các uniform nằm trong `shader.uniforms`.
+
+Shader box để `time` theo đồng hồ sẽ xin mọi frame, nên app cứ vẽ liên tục khi nó đang hiện. Shader box không dùng đồng hồ thì được vẽ cùng những frame mà phần còn lại của view xin, như mọi box khác.
 
 <a id="testing-shaders"></a>
 
-## Kiểm tra shader
+## Test shader
 
-Bộ đôi CPU thu hút Trình kiểm tra, do đó, quá trình kiểm tra sẽ hiển thị view và xem xét các pixel của nó; đóng băng `time` bằng cách cho nó:
+Bản song sinh CPU vẽ được trong `ui.Tester`, nên test có thể render view và xem các pixel của nó. Đóng băng `time` bằng cách tự đưa giá trị vào:
 
 ```zig
-var s: Pane = .{ .frozen = 4 }; // its view passes .time = s.frozen
+var s: Pane = .{ .frozen = 4 }; // view của nó truyền .time = s.frozen
 var t: ui.Tester = undefined;
 try t.init(gpa, .init(&s, Pane.view), .{ .width = 240, .height = 160, .scale = 1 });
 defer t.deinit();
@@ -168,4 +207,6 @@ defer px.deinit(gpa);
 // px.bytes: BGRA, px.width × px.height
 ```
 
-View của các ví dụ được kiểm tra theo cách này (`zig build test` chạy kiểm thử trong `examples/blackhole`, `wind`, `chat-glow`, `effort-slider` và `mayoi`). `src/ui/shader/tests_gpu.zig` vẽ các shader sử dụng mọi phần của ngôn ngữ với Direct3D 11 (trên Windows) và OpenGL (thông qua EGL, trên Linux) và kiểm tra xem chúng có khớp với bản đối chiếu CPU trong một hoặc hai cấp độ hay không; `ui.gpu_testing` đưa ra sự so sánh tương tự với các kiểm thử của plugin.
+- View của các ví dụ được test theo cách này. `zig build test` chạy test trong `examples/blackhole`, `wind`, `chat-glow`, `effort-slider` và `mayoi`.
+- `src/ui/shader/tests_gpu.zig` vẽ các shader dùng mọi phần của ngôn ngữ bằng Direct3D 11 (trên Windows) và OpenGL (qua EGL, trên Linux). Nó kiểm tra kết quả khớp với bản song sinh CPU, sai khác không quá một hai mức.
+- `ui.gpu_testing` cung cấp phép so sánh này cho test của plugin.

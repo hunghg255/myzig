@@ -1,12 +1,14 @@
 # watch
 
 File watching: `watch.Watcher` from Zig and native UI, and `watch(name)`
-for pages, on the roots the app names, never on paths a page chooses.
+for pages. Pages watch only the roots the app names, never paths a page
+chooses.
 
-The package is `plugins/watch` (module `watch`); it depends on
-[mainthread](mainthread.md). See [Plugins](../plugins.md) for adding it to
-an app. (myzig's core has a smaller watcher for one document's file,
-`myzig.file_watch`; see [System](../system.md).)
+- The package is `plugins/watch` (module `watch`). It depends on
+  [mainthread](mainthread.md).
+- See [Plugins](../plugins.md) for adding it to an app.
+- myzig's core has a smaller watcher for one document's file,
+  `myzig.file_watch`. See [System](../system.md).
 
 ## From Zig
 
@@ -25,32 +27,35 @@ while (true) { // on a thread or an Io task of its own
 }
 ```
 
-- An event's `path` is relative to what is watched, with slashes; `.` is
-  the watched path itself. What is there when the watch starts is not
-  reported.
-- The system's notifications are only hints: the watch then waits for
-  quiet, looks again and reports what differs from what it saw. A file
-  written many times is one `write`; one created and removed in between is
-  nothing; a remove and a create of the same file id is a `rename`. Treat
-  events as hints to read the files again.
-- It does not look again until `next` is called: nothing piles up while
-  the app is busy, and nothing is lost.
-- A file is watched through its directory: written or replaced (as editors
-  save) is a `write` of `.`, removed a `remove`. When what is watched (or a
-  file's directory) is removed or replaced, the last batch has a `remove`
-  of `.`, then `next` returns `error.EndOfStream`.
-- `close()` (from any thread) ends a waiting `next`; `next` is also
-  cancelable through `Io`.
-
-`watch.Options`:
-
-| field | default | |
+| `watch.Options` | Default | |
 |---|---|---|
 | `recursive` | false | watch the directories inside too |
 | `ignore`, `ignore_ctx` | null | `fn (ctx, path, is_dir) bool`: leaves paths out (an ignored directory is never opened) |
 | `max_entries` | 8192 (65536 on macOS) | the most files and directories a watch covers |
 | `debounce_ms` | 0 (50 ms) | quiet to wait for; negative reports at once |
 | `max_delay_ms` | 500 | the longest changes wait while more keep coming |
+
+**Behavior**
+
+- An event's `path` is relative to what is watched, with slashes. `.` is
+  the watched path itself.
+- What is there when the watch starts is not reported.
+- The system's notifications are only hints. The watch waits for quiet,
+  looks again and reports what differs from what it saw:
+  - a file written many times is one `write`;
+  - a file created and removed in between is nothing;
+  - a remove and a create of the same file id is a `rename`.
+
+  Treat events as hints to read the files again.
+- It does not look again until `next` is called. Nothing piles up while
+  the app is busy, and nothing is lost.
+- A file is watched through its directory. Written or replaced, as
+  editors save, it is a `write` of `.`; removed, a `remove`.
+- When what is watched, or a file's directory, is removed or replaced,
+  the last batch has a `remove` of `.`. Then `next` returns
+  `error.EndOfStream`.
+- `close()`, from any thread, ends a waiting `next`. `next` is also
+  cancelable through `Io`.
 
 `watch.scan` and `watch.diff` are the snapshots and their comparison that
 the watcher is built on.
@@ -84,40 +89,44 @@ for await (const events of watcher) {
 // watcher.close(), break, or { signal }; watcher.closed settles once Zig stopped it
 ```
 
-- A `watch.Root` has a `name` (lowercase letters, digits and dashes,
-  starting with a letter), an absolute `path` that must exist (`init`
-  fails otherwise), `recursive`, and its own `ignore`.
-- A page's `path` is in the root, with slashes; it can't leave it nor go
-  through a symbolic link. Recursive watches, and watches of a directory
-  in the root, need a root with `recursive`.
-- Errors are `WatchError`s with a `code`: `denied`, `not-found`, `limit`
-  (too many watches, or too many entries), `path-encoding`, `io`.
-- Zig takes the next batch once the page took the last.
-- A window's watches stop once it has closed (on the service's next call
-  or batch).
-
-`watch.ServiceOptions`:
-
-| field | default | |
+| `watch.ServiceOptions` | Default | |
 |---|---|---|
 | `roots` | none | what pages may watch |
 | `allow`, `allow_ctx` | null | `fn (ctx, window, name, path, recursive) bool`, asked before each watch |
 | `max_watches_per_page` | 8 | |
 | `max_watches` | 128 | in all windows |
 
+A `watch.Root` has:
+
+- a `name`: lowercase letters, digits and dashes, starting with a letter;
+- an absolute `path` that must exist, or `init` fails;
+- `recursive`, and its own `ignore`.
+
+**Behavior**
+
+- A page's `path` is in the root, with slashes. It can't leave the root
+  nor go through a symbolic link.
+- Recursive watches, and watches of a directory in the root, need a root
+  with `recursive`.
+- Errors are `WatchError`s with a `code`: `denied`, `not-found`, `limit`
+  (too many watches, or too many entries), `path-encoding`, `io`.
+- Zig takes the next batch once the page took the last.
+- A window's watches stop once it has closed, on the service's next call
+  or batch.
+
 ## Not yet
 
-- mygo's `Resolve` (roots granted while the app runs): add roots to
-  `roots` before `init`.
-- Windows: renaming the watched directory itself is seen only at the next
-  change in it (mygo also watches its parent).
+- mygo's `Resolve`, roots granted while the app runs. Add roots to
+  `roots` before `init` instead.
+- Windows: renaming the watched directory itself is seen only at the
+  next change in it. mygo also watches its parent.
 - The macOS and Linux hints compile on every platform, but have run less
   than Windows'.
 
 ## Example and tests
 
 `example/` watches a sandbox in the temporary directory, which the page
-changes through Zig; `zig build run` shows it.
+changes through Zig. `zig build run` shows it.
 
 ```sh
 cd plugins/watch
@@ -126,5 +135,5 @@ zig build test -Dpage=false
 zig build check -Dtarget=x86_64-linux-gnu
 ```
 
-The tests never sleep: they change files, then take batches until the
-event they expect came (with debouncing off).
+The tests never sleep. They change files, then take batches until the
+event they expect came, with debouncing off.

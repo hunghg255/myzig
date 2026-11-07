@@ -1,97 +1,105 @@
 <a id="grid"></a>
 
-# Lưới
+# Grid
 
-`ui.grid` sắp xếp các phần tử con của nó theo hàng và cột, sau lưới CSS và mygo của `ui.Grid`: phần tử con điền vào các ô của nó theo hàng hoặc đi đến nơi chúng được đặt, bao trùm các cột và hàng. Sử dụng nó cho các biểu mẫu (nhãn trong một cột, các trường trong cột kia), bảng thông tin và ngăn cài đặt. Một lưới xây dựng tất cả các con của nó; đối với nhiều mục chỉ được tạo khi chúng hiển thị, hãy sử dụng [`ui.gridView`](lists.md#grid-views).
+`ui.grid` xếp các phần tử con theo hàng và cột, theo kiểu CSS grid và `ui.Grid` của mygo. Các phần tử con lấp các ô lần lượt theo từng hàng, hoặc nằm ở chỗ được chỉ định, có thể trải qua nhiều cột và hàng. Dùng nó cho form (label ở một cột, ô nhập ở cột kia), dashboard và trang cài đặt.
+
+Grid dựng tất cả phần tử con của nó. Với nhiều mục chỉ được dựng khi hiện ra, dùng [`ui.gridView`](lists.md#grid-views).
 
 <!-- demo: grid height=304 -->
 
-![Biểu mẫu hồ sơ dùng cột fit và fr; tiêu đề trải rộng cả hai cột.](../../images/ui/grid.png)
+![Một form hồ sơ dùng track fit và track phân số; tiêu đề trải qua cả hai cột.](../../images/ui/grid.png)
 
-*Biểu mẫu hồ sơ dùng cột fit và fr; tiêu đề trải rộng cả hai cột.*
+*Một form hồ sơ dùng track fit và track phân số; tiêu đề trải qua cả hai cột.*
 
 ```zig
 var g = ui.grid(c, .{ .columns = &.{ .fit, .{ .fr = 1 } }, .gap_x = 16, .gap_y = 8 });
-g.cell(.{ .col_span = -1 }); // across every column
+g.cell(.{ .col_span = -1 }); // trải qua mọi cột
 ui.text(c, "Profile", .{ .weight = .bold });
 ui.end(c);
-ui.text(c, "Name", .{}); // a child outside a cell takes the next one
+ui.text(c, "Name", .{}); // phần tử con nằm ngoài cell thì lấy ô kế tiếp
 _ = ui.textField(c, &s.name, .{});
 ui.text(c, "Email", .{});
 _ = ui.textField(c, &s.email, .{});
 g.end();
 ```
 
-`ui.grid(c, opts)` mở lưới; con của nó theo sau thì `end()`.
+`ui.grid(c, opts)` mở grid; tiếp theo là các phần tử con, rồi `end()`.
 
 <a id="tracks"></a>
 
-## Bài hát
+## Track
 
-Cột và hàng là `ui.GridTrack`s:
+Cột và hàng là các `ui.GridTrack`:
 
-| Theo dõi | Kích thước |
+| Track | Kích thước |
 |---|---|
-| `.fit` | lớn như nội dung của nó |
-| `.{ .px = 220 }` | chính xác là nhiều điểm |
-| `.{ .fr = 1 }` | một phần phòng mà các bài hát khác để lại (CSS's `minmax(0, 1fr)`); trong đó kích thước của lưới không được đặt, lớn bằng nội dung của nó |
+| `.fit` | vừa đúng nội dung |
+| `.{ .px = 220 }` | đúng bấy nhiêu điểm |
+| `.{ .fr = 1 }` | một phần của khoảng trống mà các track khác để lại (`minmax(0, 1fr)` của CSS); khi kích thước grid chưa được đặt thì vừa đúng nội dung |
 
-`.{ .fr = 2 }` chiếm gấp đôi số phòng của `.{ .fr = 1 }`. `rows` đưa ra các hàng đầu tiên; những cái sau chúng phù hợp với nội dung của chúng, vì vậy hầu hết các lưới chỉ cung cấp `columns`. Một lưới có tối đa 32 cột và 32 hàng nhất định.
+- `.{ .fr = 2 }` chiếm gấp đôi chỗ so với `.{ .fr = 1 }`.
+- `rows` đặt cho các hàng đầu tiên. Các hàng sau đó vừa với nội dung, nên phần lớn grid chỉ cần `columns`.
+- Một grid có tối đa 32 cột và 32 hàng được đặt sẵn.
 
 `ui.GridOptions`:
 
-| trường | Mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `columns` | `&.{.{ .fr = 1 }}` | bài hát cột |
-| `rows` | `&.{}` | bài hát của hàng đầu tiên |
-| `gap_x`, `gap_y` | 0 | giữa các cột, giữa các hàng |
-| `justify_items` | `.stretch` | nơi trẻ đi qua các ô của mình: `.stretch`, `.start`, `.center` hoặc `.end` |
-| `align_items` | `.stretch` | nơi trẻ đi xuống các ô của mình hoặc `.baseline`: các dòng văn bản đầu tiên của các mục trong mỗi hàng xếp thành hàng, như trong một [hàng](layout.md#alignment), hàng cao nhất có thể |
-| `style` | `.{ .width = .fill }` | hộp riêng của lưới: phần đệm, nền, kích thước |
+| `columns` | `&.{.{ .fr = 1 }}` | các track cột |
+| `rows` | `&.{}` | track của các hàng đầu tiên |
+| `gap_x`, `gap_y` | 0 | khoảng cách giữa các cột, giữa các hàng |
+| `justify_items` | `.stretch` | vị trí phần tử con theo chiều ngang của ô: `.stretch`, `.start`, `.center` hoặc `.end` |
+| `align_items` | `.stretch` | vị trí phần tử con theo chiều dọc của ô, hoặc `.baseline`: dòng chữ đầu tiên của các mục trong mỗi hàng thẳng hàng nhau, như trong một [row](layout.md#alignment), và hàng cao đủ để làm vậy |
+| `style` | `.{ .width = .fill }` | box của chính grid: padding, nền, kích thước |
 
 <a id="cells"></a>
 
-## Tế bào
+## Cell
 
-Một đứa trẻ được xây dựng thẳng trong lưới sẽ lấy ô trống tiếp theo. Để đặt một ô con, kéo dài các rãnh hoặc tự căn chỉnh nó, hãy mở một ô có `Grid.cell(opts)`: các ô con của ô đó theo sau, sau đó là `ui.end(c)`. Ô là một hộp cột lấp đầy vị trí của nó khi lưới của nó căn chỉnh nó.
+Phần tử con dựng thẳng trong grid sẽ lấy ô trống kế tiếp. Muốn đặt một phần tử con vào chỗ cụ thể, cho nó trải qua nhiều track hoặc căn riêng, hãy mở một cell bằng `Grid.cell(opts)`. Tiếp theo là các phần tử con, rồi `ui.end(c)`. Cell là một box cột, lấp đầy chỗ của nó theo cách grid căn.
 
 `ui.GridCell`:
 
-| trường | Mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `col`, `row` | 0 | cột và hàng nó bắt đầu, từ 1; 0 đặt nó vào ô trống tiếp theo |
-| `col_span`, `row_span` | 1 | nó trải dài bao nhiêu cột và hàng; trải dài âm đến cột cuối cùng (hoặc hàng cuối cùng mà lưới đưa ra) |
-| `justify`, `align` | null | căn chỉnh riêng của nó, trên `justify_items` và `align_items` của lưới |
-| `style` | không có | hộp của tế bào |
+| `col`, `row` | 0 | cột và hàng mà nó bắt đầu, đếm từ 1; 0 thì đặt vào ô trống kế tiếp |
+| `col_span`, `row_span` | 1 | số cột và hàng nó trải qua; số âm thì trải tới cột cuối (hoặc hàng cuối mà grid đặt sẵn) |
+| `justify`, `align` | null | cách căn riêng của nó, thay cho `justify_items` và `align_items` của grid |
+| `style` | không có | box của cell |
 
 ```zig
 var g = ui.grid(c, .{ .columns = &.{ .fit, .{ .px = 50 }, .{ .fr = 1 } }, .gap_x = 4 });
-g.cell(.{ .col_span = -1 }); // a header across the three columns
+g.cell(.{ .col_span = -1 }); // tiêu đề trải qua cả ba cột
 ui.text(c, "Totals", .{ .weight = .bold });
 ui.end(c);
 ui.text(c, "Apples", .{});
 ui.text(c, "12", .{});
-g.cell(.{ .justify = .end, .@"align" = .center }); // pushed to its cell's end
+g.cell(.{ .justify = .end, .@"align" = .center }); // đẩy về cuối ô
 ui.text(c, "$4.80", .{ .mono = true });
 ui.end(c);
-g.cell(.{ .col = 3, .row = 3, .row_span = 2 }); // given a place, two rows tall
+g.cell(.{ .col = 3, .row = 3, .row_span = 2 }); // đặt chỗ sẵn, cao hai hàng
 ui.text(c, "Notes", .{});
 ui.end(c);
 g.end();
 ```
 
-Các ô được đặt với `col` và `row` giữ nguyên vị trí của chúng và các ô con sau chúng sẽ di chuyển xung quanh các ô mà chúng chiếm giữ.
+Cell được đặt bằng `col` và `row` giữ nguyên chỗ của nó, và các phần tử con phía sau chảy vòng qua những ô nó chiếm.
 
 <a id="sizing"></a>
 
-## Định cỡ
+## Kích thước
 
-Lưới rộng như `style` cho biết (`.fill` theo mặc định) và cao bằng các hàng của nó: những gì theo sau nó trong cột sẽ theo sau. Các cột của `.fit` có chiều rộng bằng cột con rộng nhất của chúng, các cột `px` được cố định và các cột `fr` chia sẻ những gì còn lại. Một đứa trẻ trải dài trên nhiều bản nhạc sẽ lan truyền những gì nó thiếu trên các bản nhạc phù hợp mà nó trải dài (hoặc, khi nó trải dài `fr` các bản nhạc, trên phần chia sẻ của chúng). Trong trường hợp không xác định được kích thước của lưới, các bản nhạc `fr` sẽ phù hợp với nội dung của chúng, tương ứng với tỷ lệ chia sẻ của chúng. Chỉ những cột con được đọc mới được đo theo chiều rộng của lưới: những cột trong cột cố định hoặc trong `fr` cột có chiều rộng đã biết (như CSS's `minmax(0, 1fr)`), được đo một lần, ở chiều rộng mà ô của chúng cung cấp.
+- Grid rộng theo `style` của nó (mặc định `.fill`) và cao bằng tổng các hàng. Những gì đứng sau nó trong cột sẽ nằm bên dưới.
+- Cột `.fit` rộng bằng phần tử con rộng nhất của nó. Cột `px` cố định. Các cột `fr` chia nhau phần còn lại.
+- Phần tử con trải qua nhiều track sẽ chia phần còn thiếu cho các track vừa-nội-dung mà nó trải qua. Nếu nó trải qua các track `fr`, phần thiếu được chia theo tỉ lệ của chúng.
+- Khi chưa biết kích thước grid, các track `fr` vừa với nội dung, theo tỉ lệ của chúng.
+- Chỉ những phần tử con mà các cột cần đọc mới được đo theo chiều rộng của grid. Phần tử nằm trong cột cố định, hoặc trong cột `fr` đã biết chiều rộng (như `minmax(0, 1fr)` của CSS), chỉ được đo một lần, theo chiều rộng của ô.
 
-Từ phải sang trái, các cột của lưới đi từ bên phải (xem [Phải sang trái](right-to-left.md)).
+Ở chế độ phải sang trái, các cột của grid bắt đầu từ bên phải (xem [Phải sang trái](right-to-left.md)).
 
 <a id="flexbox-or-grid"></a>
 
-## Flexbox hoặc lưới
+## Flexbox hay grid
 
-Các hàng và cột của [layout](layout.md) là một chiều: mỗi hàng có kích thước riêng cho các hàng con của nó, do đó các nhãn trong các hàng riêng biệt không xếp hàng trừ khi mỗi hàng có chiều rộng cố định. Lưới có kích thước các ô của mỗi hàng theo cùng một rãnh: cột `.fit` có chiều rộng bằng nhãn dài nhất trong mỗi hàng.
+Hàng và cột của [layout](layout.md) chỉ có một chiều. Mỗi hàng tự tính kích thước phần tử con của nó, nên label ở các hàng khác nhau chỉ thẳng hàng khi mỗi label có chiều rộng cố định. Grid tính kích thước ô của mọi hàng theo cùng các track: một cột `.fit` chứa label sẽ rộng bằng label dài nhất, ở mọi hàng.

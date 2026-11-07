@@ -1,29 +1,35 @@
 <a id="dates-times-and-colors"></a>
 
-# Ngày, giờ và màu sắc
+# Ngày, giờ và màu
 
-Lịch, trường ngày và giờ trong ngày cũng như bộ chọn màu. Mỗi chỉnh sửa một giá trị trạng thái của bạn thông qua một con trỏ và trả về true khi người dùng thay đổi nó.
-
-<a id="dates"></a>
+Lịch, ô nhập ngày và giờ trong ngày, và bộ chọn màu. Mỗi control sửa một giá trị trong state của bạn qua con trỏ. Nó trả về true khi người dùng đổi giá trị.
 
 <!-- demo: dates-and-colors height=520 -->
 
-![Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.](../../images/ui/dates-and-colors.png)
+![Lịch, ô nhập ngày và giờ, color well và bộ chọn màu.](../../images/ui/dates-and-colors.png)
 
-*Lịch, ô nhập ngày giờ, ô màu và bộ chọn màu.*
+*Lịch, ô nhập ngày và giờ, color well và bộ chọn màu.*
+
+<a id="dates"></a>
 
 ## Ngày
 
-`ui.Date` là một ngày trong lịch Gregorian tiên sinh: `year` (một `i32`), `month` (1 đến 12) và `day` (1 đến tháng cuối cùng). Nó không có múi giờ và không có thời gian trong ngày.
+`ui.Date` là một ngày theo lịch Gregory mở rộng về quá khứ (proleptic):
 
-| phương pháp | nó làm gì |
+- `year`, một `i32`;
+- `month`, từ 1 đến 12;
+- `day`, từ 1 đến ngày cuối của tháng.
+
+Nó không có múi giờ và không có giờ trong ngày.
+
+| Phương thức | Tác dụng |
 |---|---|
-| `toDays()`, `fromDays(n)` | ngày kể từ ngày 01-01-1970 và trở lại |
-| `addDays(n)` | `n` ngày sau (sớm hơn nếu âm tính) |
-| `addMonths(n)` | `n` tháng sau, cùng ngày hoặc ngày cuối cùng của tháng: ngày 31 tháng 1 và một tháng là ngày cuối cùng của tháng 2 |
-| `weekday()` | 0 cho Chủ Nhật đến 6 cho Thứ Bảy |
-| `eql(b)` | cùng ngày |
-| `valid()` | tháng và ngày trong giới hạn của họ |
+| `toDays()`, `fromDays(n)` | số ngày kể từ 1970-01-01, và chiều ngược lại |
+| `addDays(n)` | `n` ngày sau (trước, nếu âm) |
+| `addMonths(n)` | `n` tháng sau, vào cùng ngày hoặc ngày cuối tháng: 31 tháng 1 cộng một tháng là ngày cuối của tháng 2 |
+| `weekday()` | 0 là Chủ nhật đến 6 là thứ Bảy |
+| `eql(b)` | cùng một ngày |
+| `valid()` | tháng và ngày nằm trong giới hạn |
 
 ```zig
 const due: ui.Date = .{ .year = 2026, .month = 11, .day = 2 };
@@ -31,30 +37,32 @@ const week_later = due.addDays(7);
 const days_left = due.toDays() - today.toDays();
 ```
 
-Các vật dụng không đọc đồng hồ: hôm nay ứng dụng sẽ đi đến nơi nó cần. Để hiển thị ngày theo ngôn ngữ của người dùng viết chúng, hãy xem [i18n](../i18n.md).
+Các widget không đọc đồng hồ: app tự truyền ngày hôm nay vào chỗ cần. Để hiện ngày theo cách viết của ngôn ngữ người dùng, xem [i18n](../i18n.md).
 
 <a id="calendars"></a>
 
 ## Lịch
 
-`ui.calendar(c, &date, options)` hiển thị một tháng và chọn một ngày làm công cụ chọn ngày theo đồ họa của SwiftUI. Một cú nhấp chuột sẽ chọn một ngày, giống như các mũi tên thực hiện khi nó tập trung vào bàn phím; Page Up và Page Down, hoặc các nút của nó, di chuyển theo tháng; Home và End đi đến ngày đầu tiên và ngày cuối cùng của tháng. Nó trả về true khi ngày thay đổi:
-
 ```zig
 _ = ui.calendar(c, &s.day, .{ .today = s.today, .first_weekday = 1 });
 ```
 
-`ui.CalendarOptions`:
+`ui.calendar(c, &date, options)` hiện một tháng và cho chọn một ngày, như date picker dạng đồ họa của SwiftUI. Nó trả về true khi ngày thay đổi.
 
-| lĩnh vực | mặc định | nó làm gì |
+- Bấm để chọn một ngày. Phím mũi tên cũng vậy khi lịch có focus bàn phím.
+- Page Up và Page Down, hoặc các nút của lịch, chuyển theo tháng.
+- Home và End tới ngày đầu và ngày cuối của tháng.
+
+| `ui.CalendarOptions` | Mặc định | |
 |---|---|---|
-| `first_weekday` | 0 | ngày đầu tuần: 0 cho Chủ nhật (Hoa Kỳ), 1 cho Thứ Hai (hầu hết Châu Âu) |
-| `today` | null | hôm nay, được đánh dấu bằng một chiếc nhẫn; không có khi null |
+| `first_weekday` | 0 | ngày đầu tuần: 0 là Chủ nhật (Mỹ), 1 là thứ Hai (phần lớn châu Âu) |
+| `today` | null | ngày hôm nay, đánh dấu bằng một vòng tròn; null thì không có |
+| `min`, `max`, `disabled` | null | không chọn được ngày nằm ngoài chúng, hoặc ngày mà `disabled(day)` là true |
+| `browse` | `false` | di chuyển chỉ xem ngày khác mà không chọn; chỉ bấm, Enter hoặc Space mới chọn |
 
 <a id="date-inputs"></a>
 
-## Đầu vào ngày
-
-`ui.dateInput(c, &date, options)` là một trường hiển thị ngày ở dạng số và lịch bên dưới nó sẽ thay đổi. Một cú nhấp chuột, Enter hoặc Space sẽ mở ra lịch, trong đó một cú nhấp chuột sẽ chọn một ngày, giống như các mũi tên và Enter; Page Up và Page Down, hoặc các nút của nó, di chuyển theo tháng; Thoát hoặc một cú nhấp chuột bên ngoài sẽ đóng nó lại. Nó trả về true khi ngày thay đổi:
+## Ô nhập ngày
 
 ```zig
 ui.row(c, .{ .gap = 8, .align_items = .center });
@@ -63,34 +71,45 @@ ui.text(c, "Due", .{ .color = c.theme.muted });
 _ = ui.dateInput(c, &s.due, .{ .format = .day_month_year, .calendar = .{ .first_weekday = 1 } });
 ```
 
-`ui.DateInputOptions`: `format`, `ui.DateFormat`, và `calendar`, các tùy chọn lịch của nó.
+`ui.dateInput(c, &date, options)` là một ô hiện ngày bằng số. Một cuốn lịch bên dưới dùng để đổi ngày. Nó trả về true khi ngày thay đổi.
 
-| `ui.DateFormat` | hiển thị ngày 5 tháng 1 năm 2026 là |
+- Bấm, Enter hoặc Space mở lịch.
+- Trong lịch, bấm để chọn một ngày, phím mũi tên và Enter cũng vậy.
+- Page Up và Page Down, hoặc các nút của lịch, chuyển theo tháng.
+- Escape hoặc bấm ra ngoài thì đóng lịch.
+
+`ui.DateInputOptions`: `format`, một `ui.DateFormat`, và `calendar`, các tùy chọn của lịch.
+
+| `ui.DateFormat` | hiện ngày 5 tháng 1 năm 2026 là |
 |---|---|
-| `.month_day_year` (mặc định) | 5/1/2026, như ở Hoa Kỳ |
-| `.day_month_year` | 01/05/2026, như ở Vương quốc Anh |
-| `.year_month_day` | 5/1/2026, như ở Trung Quốc |
+| `.month_day_year` (mặc định) | 1/5/2026, như ở Mỹ |
+| `.day_month_year` | 05/01/2026, như ở Anh |
+| `.year_month_day` | 2026/1/5, như ở Trung Quốc |
 
 <a id="times-of-day"></a>
 
-## Thời gian trong ngày
-
-`ui.Time` là thời gian trong ngày: `hour` (0 đến 23) và `minute` (0 đến 59).
-
-`ui.timeInput(c, &time, options)` chỉnh sửa một phần trong các phân đoạn. Up và Down bước phân đoạn với trọng tâm suốt ngày đêm; các chữ số đã gõ sẽ thiết lập nó, chuyển sang số phút sau khi số giờ được gõ; A hoặc P chọn nửa ngày; Di chuyển trái và phải giữa các phân đoạn; một cú nhấp chuột tập trung một. Nó trả về true khi thời gian thay đổi:
+## Giờ trong ngày
 
 ```zig
 _ = ui.timeInput(c, &s.alarm, .{});
 _ = ui.timeInput(c, &s.meeting, .{ .twelve_hour = true });
 ```
 
-`ui.TimeInputOptions`: `twelve_hour` (3:04 chiều thay vì 15:04), và `am` và `pm`, các từ của hai nửa trong ngày (`"AM"` và `"PM"`), đối với các ngôn ngữ khác.
+`ui.Time` là một giờ trong ngày: `hour` (0 đến 23) và `minute` (0 đến 59). `ui.timeInput(c, &time, options)` sửa nó theo từng phần. Nó trả về true khi giờ thay đổi.
+
+- Up và Down tăng giảm phần đang có focus, vòng quanh đồng hồ.
+- Gõ số để đặt phần đó. Gõ xong giờ thì nó chuyển sang phút.
+- A hoặc P chọn buổi sáng hay chiều.
+- Left và Right chuyển giữa các phần; bấm vào một phần để focus nó.
+
+| `ui.TimeInputOptions` | Mặc định | |
+|---|---|---|
+| `twelve_hour` | `false` | 3:04 PM thay vì 15:04 |
+| `am`, `pm` | `"AM"`, `"PM"` | chữ cho hai buổi trong ngày, dùng cho ngôn ngữ khác |
 
 <a id="color-pickers"></a>
 
 ## Bộ chọn màu
-
-`ui.colorPicker(c, &color, &picker)` chỉnh sửa `ui.Color`, dưới dạng bảng màu của AppKit: một hình vuông chọn độ bão hòa (ngang) và độ sáng (lên) của màu sắc mà thanh trượt bên dưới nó chọn; một thanh trượt độ mờ; màu ở dạng hex mà người dùng chỉnh sửa; và các mẫu màu. Các mũi tên di chuyển qua hình vuông trong khi tiêu điểm là bàn phím. Nó trả về true khi màu thay đổi:
 
 ```zig
 const State = struct {
@@ -101,15 +120,29 @@ const State = struct {
 if (ui.colorPicker(c, &s.tint, &s.picker)) s.recolor();
 ```
 
-`ui.ColorPicker` là những gì bộ chọn giữ trên các khung, ở trạng thái của bạn: màu xám giữ nguyên (do đó, kéo sang màu trắng và quay lại sẽ giữ màu sắc), hex được nhập và liệu bộ chọn giếng có mở hay không. Khi ứng dụng tự thay đổi màu, bộ chọn sẽ bắt đầu từ màu đó.
+`ui.colorPicker(c, &color, &picker)` sửa một `ui.Color`, như color panel của AppKit. Nó trả về true khi màu thay đổi. Nó gồm:
 
-`ui.parseHex(s)` đọc `#rgb`, `#rrggbb` hoặc `#rrggbbaa` (`#` tùy chọn) thành một màu hoặc null, đối với các màu được lưu trong cài đặt dưới dạng văn bản.
+- một hình vuông chọn độ bão hòa (theo chiều ngang) và độ sáng (theo chiều dọc);
+- bên dưới, một slider chọn hue;
+- một slider độ mờ đục;
+- màu dạng hex, người dùng sửa được;
+- các ô màu mẫu.
+
+Khi hình vuông có focus bàn phím, phím mũi tên di chuyển trong nó.
+
+`ui.ColorPicker` là những gì bộ chọn giữ qua các frame, trong state của bạn:
+
+- hue mà một màu xám giữ lại, nên kéo về trắng rồi kéo ra vẫn giữ hue;
+- chuỗi hex đang gõ;
+- picker của một color well có đang mở hay không.
+
+Khi app tự đổi màu, bộ chọn bắt đầu lại từ màu đó.
+
+`ui.parseHex(s)` đọc `#rgb`, `#rrggbb` hoặc `#rrggbbaa` thành một màu, hoặc null. Dấu `#` có thể bỏ. Dùng nó cho màu lưu trong cài đặt dưới dạng chữ.
 
 <a id="color-wells"></a>
 
-## Giếng màu
-
-`ui.colorWell(c, &color, &picker)` là một mẫu màu mở ra một bộ chọn bên dưới nó, giống như ô màu của AppKit: một cú nhấp chuột, Enter hoặc Space sẽ mở nó và Escape hoặc một cú nhấp chuột bên ngoài sẽ đóng nó lại. Nó trả về true khi màu thay đổi:
+## Color well
 
 ```zig
 ui.row(c, .{ .gap = 8, .align_items = .center });
@@ -118,6 +151,10 @@ ui.text(c, "Accent", .{ .color = c.theme.muted });
 _ = ui.colorWell(c, &s.tint, &s.well);
 ```
 
-Cung cấp cho mỗi giếng một `ui.ColorPicker` riêng.
+`ui.colorWell(c, &color, &picker)` là một ô màu, bấm vào thì mở bộ chọn màu bên dưới, như color well của AppKit. Nó trả về true khi màu thay đổi.
 
-Để làm cho màu đã chọn làm điểm nhấn của ứng dụng, hãy xem [`ui.preferences.setAccent`](styling.md#the-desktops-preferences) hoặc [`ui.themes.withAccent`](styling.md#named-themes).
+- Bấm, Enter hoặc Space mở bộ chọn.
+- Escape hoặc bấm ra ngoài thì đóng.
+- Mỗi well cần một `ui.ColorPicker` riêng.
+
+Để dùng màu đã chọn làm màu accent của app, xem [`ui.preferences.setAccent`](styling.md#the-desktops-preferences) hoặc [`ui.themes.withAccent`](styling.md#named-themes).

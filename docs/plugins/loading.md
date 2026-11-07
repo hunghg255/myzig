@@ -1,8 +1,8 @@
 # Loading
 
-The `loading` package provides 29 loading.dev indicators for native UI on
-macOS, Linux, Windows and browsers. It uses myzig's canvas; there is no
-service to bind or JavaScript dependency.
+The `loading` package draws 29 loading.dev indicators in native UI on
+macOS, Linux, Windows and browsers. It uses myzig's canvas: no service to
+bind, no JavaScript dependency.
 
 ## Setup
 
@@ -17,13 +17,14 @@ const loading = b.dependency("loading", .{
 exe.root_module.addImport("loading", loading);
 ```
 
-Keep a separate `loading.Indicator` in app state for each instance. Call
-`show` once per instance per view build; it returns a node index that can
-also be passed to `c.interact` or styled through `c.node`.
+Keep one `loading.Indicator` in app state for each instance:
 
-Each instance has its own elapsed clock. Pausing one does not pause another,
-and rebuilding the view several times in the same frame adds no extra time.
-Doubling `duration` takes twice as long to reach the same animation phase.
+- Call `show` once per instance per view build.
+- It returns a node index. Pass it to `c.interact` or style it through
+  `c.node`.
+- Each instance has its own clock. Pausing one does not pause another.
+- Building the view several times in one frame adds no time.
+- Doubling `duration` takes twice as long to reach the same phase.
 
 ```zig
 const loading = @import("loading");
@@ -60,15 +61,28 @@ const State = struct {
 | `origin` | Wave: `.center` or `.bottom`. |
 | `label` | Accessible name; defaults to the design's name. |
 
-Desktop reduced motion draws a stable resting pose and requests no ongoing
-animation frames. An indicator clipped out of view stops requesting frames;
-visibility is known from the previous paint. Each is exposed as an
-indeterminate progress indicator. Canvas masks may be rasterized again as
-shapes animate; this port does not promise pixel identity or the same
-rendering cost as mygo's optimized plugin.
+**Behavior**
 
-The [gallery](../../examples/loading/README.md) uses this package. Run
-`zig build test-loading -j1` from the repository, or `zig build test -j1`
-inside `plugins/loading`, for offscreen pixel, clock and accessibility tests.
-These tests compare rendered phases at different durations and check
-independent clocks, repeated builds, pause/resume and offscreen behavior.
+- With reduced motion on the desktop, it draws a still pose and asks for
+  no animation frames.
+- Clipped out of view, it stops asking for frames. Visibility comes from
+  the previous paint.
+- Screen readers get an indeterminate progress indicator.
+
+The [gallery](../../examples/loading/README.md) uses this package.
+
+<details>
+<summary>Tests and differences from mygo</summary>
+
+Run `zig build test-loading -j1` from the repository, or
+`zig build test -j1` inside `plugins/loading`. The offscreen tests check
+pixels, clocks and accessibility:
+
+- rendered phases at different durations;
+- independent clocks and repeated builds;
+- pause/resume and offscreen behavior.
+
+Canvas masks may be rasterized again as shapes animate. This port does
+not promise the same pixels or rendering cost as mygo's optimized plugin.
+
+</details>

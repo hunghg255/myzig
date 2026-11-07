@@ -2,13 +2,17 @@
 
 # View
 
-View là một chức năng từ trạng thái ứng dụng của bạn đến giao diện của nó. myzig gọi nó trên luồng chính để tạo khung sau khi nhập, thay đổi kích thước, trong khi nội dung nào đó hoạt ảnh và khi ứng dụng yêu cầu. Nó đưa một con trỏ tới trạng thái của bạn và `*ui.Context` của cửa sổ:
+View là một hàm biến state của app thành giao diện. Nó nhận con trỏ tới state của bạn và `*ui.Context` của cửa sổ. myzig gọi nó trên main thread để dựng một frame:
+
+- sau input hoặc khi đổi kích thước;
+- khi có thứ đang chạy animation;
+- khi app yêu cầu.
 
 <!-- demo: tasks height=371 -->
 
-![View dựng từ trạng thái ứng dụng: danh sách công việc đã xong và đang chờ.](../../images/ui/tasks.png)
+![Một view dựng từ state của app: danh sách việc cần làm, có việc đã xong và việc chưa xong.](../../images/ui/tasks.png)
 
-*View dựng từ trạng thái ứng dụng: danh sách công việc đã xong và đang chờ.*
+*Một view dựng từ state của app: danh sách việc cần làm, có việc đã xong và việc chưa xong.*
 
 ```zig
 const Todos = struct {
@@ -41,22 +45,21 @@ const Todos = struct {
 };
 ```
 
-Tạo trạng thái một lần khi ứng dụng khởi động và đưa view của nó ra cửa sổ:
+Tạo state một lần khi app khởi động, rồi đưa view của nó cho cửa sổ:
 
 ```zig
 var state: Todos = .{};
 _ = try app.newWindow(.{ .title = "To-dos", .content = .{ .view = .init(&state, Todos.view) } });
 ```
 
-`ui.View.init(&state, Todos.view)` ghép con trỏ với hàm: mọi `fn (ptr: *T, c: *ui.Context) void` đều hoạt động, vì vậy một khung nhìn có thể là một phương thức hoặc một hàm tự do. `ui.View` tương tự có thể được cấp cho một số cửa sổ; mỗi cửa sổ có ngữ cảnh riêng, do đó tiêu điểm, độ lệch cuộn và giá trị hoạt ảnh riêng của nó.
+- `ui.View.init(&state, Todos.view)` ghép con trỏ với hàm. Hàm nào có dạng `fn (ptr: *T, c: *ui.Context) void` cũng được, nên view có thể là method hoặc hàm tự do.
+- Một `ui.View` có thể đưa cho nhiều cửa sổ. Mỗi cửa sổ có context riêng, nên có focus, vị trí scroll và giá trị animation riêng.
 
-Các ví dụ trong các hướng dẫn này là các phần của một view như vậy: `c` là `*ui.Context` của view và `s` con trỏ tới trạng thái của bạn. Các giá trị cuối cùng, chẳng hạn như [bộ định tuyến](navigation.md), `ui.TextBuffer` hoặc cấu trúc trạng thái của widget, là các trường của trạng thái, không bao giờ là cục bộ của view, chạy cho mọi frame.
+Các ví dụ trong những hướng dẫn này là từng phần của một view như thế: `c` là `*ui.Context` của view và `s` là con trỏ tới state của bạn. Những giá trị cần tồn tại lâu, như [router](navigation.md), `ui.TextBuffer` hay struct state của một widget, là trường của state. Chúng không bao giờ là biến cục bộ của view, vì view chạy lại ở mỗi frame.
 
 <a id="boxes-opened-and-ended"></a>
 
-## Hộp, mở và kết thúc
-
-Một khung nhìn là một cây hộp. Các thùng chứa mở một hộp mà các lệnh gọi tiếp theo sẽ đi vào cho đến khi nó kết thúc:
+## Box, mở và đóng
 
 ```zig
 ui.row(c, .{ .gap = 8 });
@@ -66,25 +69,34 @@ ui.spacer(c);
 _ = ui.button(c, "Edit", .{});
 ```
 
-`ui.column`, `ui.row`, `ui.card`, `ui.scroll` và `ui.pressable` mỗi người mở một hộp có `ui.end` đóng lại; `ui.div(c)` trả về `ui.Div` có `end` đóng nó. Các widget con chứa các widget con của riêng chúng (trường của biểu mẫu, bảng điều khiển của cửa sổ bật lên, trang của tab) cũng trả về một giá trị bằng phương thức `end`. `defer` giữ cho mỗi đầu luôn mở; đối với một hộp ở giữa một hàm, một khối `{ ... }` có `defer` bên trong sẽ bao quanh nó.
+View là một cây box. Container mở một box, các lời gọi sau đó đi vào box này cho tới khi nó được đóng.
+
+- `ui.column`, `ui.row`, `ui.card`, `ui.scroll` và `ui.pressable` đều mở một box mà `ui.end` đóng lại.
+- `ui.div(c)` trả về một `ui.Div`, đóng bằng chính `end` của nó.
+- Widget có phần tử con riêng cũng trả về một giá trị có method `end`: field của form, panel của popover, trang của tab.
+- `defer` giữ mỗi lần đóng ngay cạnh lần mở. Với một box ở giữa hàm, dùng một block `{ ... }` có `defer` bên trong để giới hạn phạm vi.
 
 <a id="interactions-and-the-second-build"></a>
 
-## Tương tác và bản dựng thứ hai
+## Tương tác và lần dựng thứ hai
 
-Widget phản hồi dựa trên bố cục của frame trước. Khi nhấn con trỏ, myzig kiểm tra điểm nhấn trên các box theo bố cục gần nhất. Vì vậy, `ui.button(...).clicked` có giá trị true trong lần dựng xử lý thao tác nhấn, trước khi bố cục của frame mới được tính.
+Widget trả lời dựa trên layout của frame trước. Khi con trỏ nhấn xuống, myzig hit-test các box theo layout gần nhất. Vì vậy `ui.button(...).clicked` là true ngay trong lần dựng xử lý cú bấm, trước khi frame mới được layout.
 
-Một widget có tương tác thay đổi trạng thái của ứng dụng sẽ đặt `c.changed`. Khi kết thúc quá trình xây dựng, nếu `c.changed` được đặt, myzig sẽ tạo lại khung (với các cạnh của đầu vào, cú nhấp chuột và phím, đã được sử dụng) và chỉ sau đó mới bố trí và vẽ nó. Do đó, màn hình luôn hiển thị trạng thái sau sự kiện. `c.stats.passes` đếm số bản dựng của khung cuối cùng.
+Widget nào có tương tác làm đổi state của app thì đặt `c.changed`:
 
-Mã của riêng bạn thay đổi trạng thái để phản hồi với đầu vào (`ui.Div`'s `clicked`, một phím tắt) nhận được bản dựng thứ hai miễn phí; nếu bạn tự đọc dữ liệu đầu vào và thay đổi trạng thái, hãy đặt `c.changed = true`.
+1. Cuối lần dựng, nếu `c.changed` được đặt, myzig dựng lại frame. Các cạnh của input, tức cú bấm và phím, đã được dùng.
+2. Chỉ sau đó nó mới layout và vẽ frame.
+3. Nên màn hình luôn hiển thị state sau sự kiện.
+
+`c.stats.passes` đếm số lần dựng của frame vừa rồi.
+
+Code của bạn đổi state để đáp lại input thì được lần dựng thứ hai miễn phí, như `clicked` của một `ui.Div` hay một shortcut. Nếu bạn tự đọc input và đổi state, hãy đặt `c.changed = true`.
 
 <a id="ids-and-keys"></a>
 
-## Id và khóa
+## Id và key
 
-Mỗi hộp có một id, được tạo từ id cha và vị trí của nó giữa các hộp anh chị em của nó. Tiêu điểm, di chuột, độ lệch cuộn, giá trị hoạt ảnh và dấu mũ trường văn bản được giữ bằng id giữa các khung, vì vậy id phải ổn định.
-
-Khi các hộp đến và đi trước các hộp khác (danh sách được lọc, sắp xếp hoặc chỉnh sửa), hãy đặt cho mỗi mục một khóa: `ui.key(c, k)` đặt tên cho hộp tiếp theo và id của nó sau đó được tạo từ khóa thay vì vị trí của nó. Chìa khóa là chuỗi; sử dụng cái gì đó để xác định mục, không phải chỉ mục của nó:
+Mỗi box có một id, tạo từ id của phần tử cha và vị trí của nó giữa các box anh em. Focus, hover, vị trí scroll, giá trị animation và con trỏ soạn thảo của text field được giữ theo id giữa các frame, nên id phải ổn định.
 
 ```zig
 for (s.files) |f| {
@@ -93,7 +105,7 @@ for (s.files) |f| {
 }
 ```
 
-`c.keyed(value)` (hoặc `ui.keyed(c, value)`) khóa hộp tiếp theo theo bất kỳ giá trị nào Zig so sánh, vì `std.meta.eql` phân biệt hai giá trị này, với các giá trị thuộc các loại khác nhau: một con trỏ khóa đối tượng mà nó trỏ tới, bất kể đối tượng đó giữ gì, do đó, con trỏ của một mục đóng vai trò là khóa của nó giống như id; một số nguyên, một enum hoặc một cấu trúc của các khóa theo giá trị của nó mà không cần định dạng chuỗi:
+Gắn key cho từng mục khi có box xuất hiện và biến mất trước các box khác, như một danh sách bị lọc, sắp xếp hay chỉnh sửa. `ui.key(c, k)` đặt tên cho box kế tiếp, và id của nó được tạo từ key thay vì vị trí. Key là chuỗi: dùng thứ định danh được mục đó, không phải chỉ số của nó.
 
 ```zig
 for (s.todos.items) |*todo| {
@@ -102,67 +114,85 @@ for (s.todos.items) |*todo| {
 }
 ```
 
-Điều tương tự cũng xảy ra với một hộp duy nhất đôi khi chỉ hiển thị (một dấu khi di chuột) trước một nút: nó di chuyển id của nút và lần nhấn ở giữa sẽ bị mất. Nhấn nút hoặc luôn tạo hộp và ẩn nó bằng giao diện của nó ([widget tùy chỉnh](custom-widgets.md#a-box-that-comes-or-goes-moves-the-ids-after-it)). Bản dựng gỡ lỗi sẽ ghi lại cảnh báo khi nhấn bị mất và khi id của hộp cuộn thay đổi để phần bù của nó bắt đầu lại hoặc nhảy.
+`c.keyed(value)` (hoặc `ui.keyed(c, value)`) gắn key cho box kế tiếp bằng bất kỳ giá trị nào Zig so sánh được, không cần định dạng thành chuỗi:
 
-`c.peekId(null)` trả về id mà hộp tiếp theo sẽ nhận được, dành cho các vật dụng cần nó trước khi chúng mở hộp.
+- Hai giá trị khác nhau khi `std.meta.eql` phân biệt được chúng. Giá trị khác kiểu thì khác nhau.
+- Con trỏ là key của đối tượng nó trỏ tới, dù đối tượng chứa gì. Nên con trỏ của một mục dùng làm key tốt như một id.
+- Số nguyên, enum, hay struct gồm những thứ đó làm key theo giá trị.
+
+**Box chỉ thỉnh thoảng hiện.** Một box đơn lẻ chỉ thỉnh thoảng hiện ở trước một nút, như dấu hiện khi hover, sẽ làm dịch id của nút. Một cú bấm xảy ra giữa chừng sẽ bị mất.
+
+- Gắn key cho nút, hoặc luôn dựng box rồi ẩn nó bằng giao diện ([custom widget](custom-widgets.md#a-box-that-comes-or-goes-moves-the-ids-after-it)).
+- Bản build debug ghi cảnh báo khi một cú bấm bị mất như vậy.
+- Nó cũng cảnh báo khi id của một box đang scroll thay đổi khiến vị trí scroll về đầu hoặc nhảy.
+
+`c.peekId(null)` trả về id mà box kế tiếp sẽ nhận, cho widget cần biết trước khi mở box.
 
 <a id="the-context"></a>
 
-## Bối cảnh
+## Context
 
-`ui.Context` là của cửa sổ và tồn tại chừng nào nó còn tồn tại. Các khung nhìn trường có nội dung:
+`ui.Context` thuộc về cửa sổ, và sống lâu bằng cửa sổ. Các trường view đọc:
 
-| lĩnh vực | nó là gì |
+| Trường | Là gì |
 |---|---|
-| `theme` | màu sắc và phông chữ của khung ([kiểu dáng](styling.md)) |
-| `size` | kích thước nội dung của cửa sổ, tính bằng điểm |
-| `scale` | pixel mỗi điểm |
-| `dt` | giây kể từ frame trước đó |
-| `time` | giây kể từ frame đầu tiên, đồng hồ hoạt ảnh của view sẽ tự điều khiển |
-| `frame` | số của khung |
-| `input` | đầu vào của sự kiện này: con trỏ, nút, phím, văn bản, bánh xe |
-| `stats` | frame cuối cùng có giá bao nhiêu (`ui.FrameStats`) |
+| `theme` | màu và font của frame ([styling](styling.md)) |
+| `size` | kích thước nội dung cửa sổ, tính bằng điểm |
+| `scale` | số pixel mỗi điểm |
+| `dt` | số giây từ frame trước |
+| `time` | số giây từ frame đầu tiên, là đồng hồ cho animation mà view tự điều khiển |
+| `frame` | số thứ tự của frame |
+| `input` | input của sự kiện này: con trỏ, nút chuột, phím, chữ, con lăn |
+| `stats` | chi phí của frame vừa rồi (`ui.FrameStats`) |
 
-Và những lượt xem được đặt:
+Và các trường view đặt:
 
-| trường hoặc phương thức | nó làm gì |
+| Trường hoặc method | Tác dụng |
 |---|---|
-| `changed = true` | xây dựng lại khung trước khi vẽ nó |
-| `c.animationFrame()` | yêu cầu frame khác ở lần làm mới tiếp theo |
-| `c.frameIn(seconds)` | yêu cầu khung trong `seconds` (giây tiếp theo của đồng hồ) |
-| `wants_moves = true` | mỗi lần di chuyển con trỏ sẽ vẽ một khung (hình chữ thập của đồ thị); xóa từng frame |
-| `wants_keys = true` | các lần nhấn và nhả phím có dạng `input.key_down` / `input.key_up` (trò chơi) |
-| `wants_wheel = true` | bánh xe xuất hiện dưới dạng `input.scroll` nơi không có gì cuộn |
-| `cursor = .resize_left_right` | hình dạng của con trỏ (`ui.Cursor`) |
-| `title_bar_height` | phần trên cùng di chuyển một cửa sổ có thanh tiêu đề ẩn bao nhiêu |
-| `c.setZoom(z)` | chia tỷ lệ mọi văn bản theo `z` (0,5 đến 3), dưới dạng ⌘= và ⌘- của ứng dụng |
+| `changed = true` | dựng lại frame trước khi vẽ |
+| `c.animationFrame()` | xin thêm một frame ở lần refresh kế tiếp |
+| `c.frameIn(seconds)` | xin một frame trong vòng `seconds` (giây kế tiếp của đồng hồ) |
+| `wants_moves = true` | mỗi lần con trỏ di chuyển đều vẽ một frame (đường chữ thập của đồ thị); bị xóa mỗi frame |
+| `wants_keys = true` | nhấn và nhả phím đến dưới dạng `input.key_down` / `input.key_up` (game) |
+| `wants_wheel = true` | con lăn đến dưới dạng `input.scroll` ở chỗ không có gì scroll |
+| `cursor = .resize_left_right` | hình dạng con trỏ (`ui.Cursor`) |
+| `title_bar_height` | phần phía trên dùng để kéo cửa sổ khi thanh tiêu đề bị ẩn |
+| `c.setZoom(z)` | phóng mọi chữ theo `z` (0.5 đến 3), như ⌘= và ⌘- của một app |
 
-`c.print(fmt, args)` định dạng vào bộ nhớ của khung và `c.alloc()` cung cấp chính bộ cấp phát đó; cả hai đều được giải phóng khi khung tiếp theo bắt đầu.
+`c.print(fmt, args)` định dạng vào bộ nhớ của frame, và `c.alloc()` trả về chính allocator đó. Cả hai được giải phóng khi frame kế tiếp bắt đầu.
 
 <a id="shortcuts"></a>
 
-## Phím tắt
+## Shortcut
 
-`c.shortcut` lấy tổ hợp phím khi diễn ra sự kiện này:
+`c.shortcut` nhận một tổ hợp phím khi sự kiện này đúng là tổ hợp đó:
 
 ```zig
 if (c.shortcut(.{ .key = 'k', .cmd = true })) s.clear();
 if (c.shortcut(.{ .key = ui.Shortcut.escape })) s.closePanel();
 ```
 
-Lệnh có nghĩa là Tắt macOS, do đó, một phím tắt sẽ phục vụ mọi nền tảng. Ký tự là chữ thường; các khóa khác là các hằng số như `ui.Shortcut.up`, `.enter` và `.tab`. Một phím tắt mà view sẽ không đi xa hơn trong khung (`c.shortcut_taken` được đặt). `ui.keys.label` viết một tổ hợp, được đưa ra tại thời điểm biên dịch với các ký hiệu của Mac, giống như nền tảng thực hiện (`"⌘P"` trở thành `"Ctrl+P"` trên Linux và Windows), cho `ui.kbd`. Để biết các phím tắt có tên, mục menu và mục nhập bảng màu, hãy xem [`ui.Actions`](navigation.md).
+- Command nghĩa là Control khi không phải macOS, nên một shortcut dùng được cho mọi nền tảng.
+- Ký tự viết thường. Các phím khác là hằng như `ui.Shortcut.up`, `.enter` và `.tab`.
+- Shortcut mà view đã nhận thì không đi tiếp trong frame (`c.shortcut_taken` được đặt).
+- `ui.keys.label` viết một tổ hợp phím cho `ui.kbd`, theo cách của nền tảng. Tổ hợp được cho lúc compile bằng ký hiệu của Mac: `"⌘P"` thành `"Ctrl+P"` trên Linux và Windows.
+
+Với shortcut có tên, mục menu và mục trong command palette, xem [`ui.Actions`](navigation.md).
 
 <a id="focus-and-the-keyboard"></a>
 
-## Tập trung và bàn phím
+## Focus và bàn phím
 
-Các điều khiển lấy tiêu điểm bàn phím khi được nhấn, đồng thời Tab và Shift-Tab di chuyển tiêu điểm qua chúng theo thứ tự chúng được tạo. Điều khiển được tập trung từ bàn phím sẽ vẽ một vòng có màu nhấn (`c.focus_visible`). Enter và Space nhấp vào nút, hộp kiểm hoặc công tắc có tiêu điểm; các mũi tên di chuyển thanh trượt, nhóm radio và xếp hạng.
+- Control nhận focus bàn phím khi được bấm.
+- Tab và Shift-Tab chuyển focus qua các control theo thứ tự chúng được dựng.
+- Control được focus bằng bàn phím vẽ một vòng màu accent (`c.focus_visible`).
+- Enter và Space bấm nút, checkbox hoặc switch đang có focus. Các phím mũi tên di chuyển slider, nhóm radio và rating.
 
 <a id="changing-the-state-from-outside"></a>
 
-## Thay đổi trạng thái từ bên ngoài
+## Đổi state từ bên ngoài
 
-View đọc trạng thái của bạn trên luồng chính. Công việc được thực hiện ở nơi khác (bộ hẹn giờ, đầu ra của quy trình, phản hồi mạng) sẽ thay đổi trạng thái trên luồng chính và sau đó yêu cầu cửa sổ cung cấp khung có `Window.redraw`:
+View đọc state của bạn trên main thread. Việc làm ở nơi khác, như timer, output của một process hay phản hồi mạng, đổi state trên main thread. Sau đó nó xin cửa sổ một frame bằng `Window.redraw`:
 
 ```zig
 fn tick(ctx: ?*anyopaque) callconv(.c) void {
@@ -172,14 +202,21 @@ fn tick(ctx: ?*anyopaque) callconv(.c) void {
     myzig.App.after(1000, ctx, tick);
 }
 
-// In main, after the window is made:
+// Trong main, sau khi tạo cửa sổ:
 myzig.App.after(1000, &state, tick);
 ```
 
-`App.after` chạy một chức năng trên luồng chính sau một khoảng thời gian trễ. Từ các luồng khác, trước tiên hãy giao công việc cho luồng chính: [mainthread](../plugins/mainthread.md) đăng công việc lên hàng đợi riêng của luồng chính trên mọi nền tảng. Trong view, hãy ưu tiên `c.frameIn(seconds)` cho những thay đổi trong lịch trình (đồng hồ, vòng quay): nó chỉ yêu cầu khung đó mà không vẽ mỗi lần làm mới ở giữa.
+- `App.after` chạy một hàm trên main thread sau một khoảng trễ.
+- Từ thread khác, chuyển việc sang main thread trước. [Plugin mainthread](../plugins/mainthread.md) đẩy việc vào hàng đợi riêng của main thread trên mọi nền tảng.
+- Trong view, nên dùng `c.frameIn(seconds)` cho thứ đổi theo lịch (đồng hồ, spinner). Nó chỉ xin đúng frame đó, không vẽ mọi lần refresh ở giữa.
 
 <a id="text-and-input-that-a-view-takes-itself"></a>
 
-## Văn bản và dữ liệu đầu vào mà view tự thực hiện
+## Chữ và input mà view tự xử lý
 
-Một widget chỉnh sửa văn bản theo cách riêng của nó sẽ đọc `c.input.ops`, các thao tác văn bản của sự kiện (`ui.TextOp`: văn bản được chèn, thành phần của phương thức nhập, các lệnh như `.delete_backward` hoặc `.move_word_left`) và đặt `c.focused_text` để cho phương thức nhập biết vị trí của dấu mũ. Xem [nhập văn bản](text-input.md) và [widget tùy chỉnh](custom-widgets.md).
+Một widget tự sửa chữ theo cách riêng:
+
+- đọc `c.input.ops`, các thao tác chữ của sự kiện (`ui.TextOp`): chữ được chèn, chuỗi đang soạn của bộ gõ, các lệnh như `.delete_backward` hay `.move_word_left`;
+- đặt `c.focused_text` để báo cho bộ gõ biết con trỏ soạn thảo đang ở đâu.
+
+Xem [nhập chữ](text-input.md) và [custom widget](custom-widgets.md).

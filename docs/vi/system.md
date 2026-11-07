@@ -1,16 +1,27 @@
 <a id="the-system-around-the-app"></a>
 
-# Hệ thống xung quanh ứng dụng
+# Hệ thống quanh app
 
-Ngoài cửa sổ, một ứng dụng sẽ giao tiếp với máy tính để bàn mà nó chạy trên đó: nó yêu cầu người dùng cung cấp các tệp, mở liên kết trong trình duyệt, giữ dữ liệu ở nơi mỗi hệ thống muốn, theo dõi giao diện của hệ thống, lưu trữ mật khẩu trong móc khóa của hệ thống, ghi lại các tài liệu gần đây, mở khi đăng nhập, giữ cho máy tính luôn hoạt động trong khi hoạt động và xem các tệp mà các ứng dụng khác thay đổi. Mỗi lệnh gọi này là một lệnh gọi thực hiện đúng trên macOS, Linux và Windows, cũng như một lệnh gọi nào đó hợp lý (hoặc `error.Unsupported`) trong trình duyệt.
+Ngoài cửa sổ, app còn làm việc với desktop mà nó chạy trên đó. App:
 
-Các cuộc gọi chạy theo phương thức (hộp thoại) hoặc chạm vào hệ thống cửa sổ sẽ chạy trên luồng chính, từ một cú nhấp chuột vào menu, một phương thức liên kết hoặc một dạng xem; xem [ứng dụng](app.md) để biết luồng.
+- hỏi người dùng chọn file;
+- mở link trong trình duyệt;
+- lưu dữ liệu ở nơi mỗi hệ thống muốn;
+- theo giao diện sáng tối của hệ thống;
+- lưu mật khẩu trong keychain của hệ thống;
+- ghi lại tài liệu gần đây và mở khi đăng nhập;
+- giữ máy thức khi đang làm việc;
+- theo dõi file mà app khác thay đổi.
+
+Mỗi việc là một lời gọi. Nó làm đúng việc trên macOS, Linux và Windows, và làm điều hợp lý (hoặc trả `error.Unsupported`) trên trình duyệt.
+
+Lời gọi chạy dạng modal (hộp thoại) hoặc đụng tới hệ thống cửa sổ thì chạy trên main thread: từ một cú bấm menu, một method được bind hoặc một view. Xem [App](app.md) về thread.
 
 <a id="dialogs"></a>
 
 ## Hộp thoại
 
-`myzig.dialog` có bảng điều khiển và hộp thông báo mở và lưu của hệ thống. Họ chặn cho đến khi người dùng trả lời và trả lời:
+`myzig.dialog` có các panel mở, lưu file và hộp thông báo của hệ thống. Chúng chặn cho tới khi người dùng trả lời, rồi trả về câu trả lời:
 
 ```zig
 const myzig = @import("myzig");
@@ -21,7 +32,7 @@ fn importImages(gpa: std.mem.Allocator) !void {
         .button = "Import",
         .multiple = true,
         .extensions = &.{ "png", "jpg" },
-    })) orelse return; // canceled
+    })) orelse return; // đã hủy
     defer myzig.dialog.freePaths(gpa, paths);
     for (paths) |p| std.log.info("import {s}", .{p});
 }
@@ -29,13 +40,23 @@ fn importImages(gpa: std.mem.Allocator) !void {
 fn exportAs(gpa: std.mem.Allocator) !void {
     const path = (try myzig.dialog.save(gpa, .{ .name = "Untitled.md", .extensions = &.{"md"} })) orelse return;
     defer gpa.free(path);
-    // write the file at `path`
+    // ghi file ở `path`
 }
 ```
 
-`dialog.OpenOptions` có `title`, `button` (nhãn của nút mặc định), `message`, `directory` (nơi bảng điều khiển bắt đầu), `files` và `directories` (có thể chọn nội dung nào; chỉ các thư mục có `.files = false, .directories = true`), `multiple`, `extensions` (không có dấu chấm) và `show_hidden`. `dialog.SaveOptions` có `title`, `button`, `message`, `directory`, `name` (tên tệp bắt đầu bằng), `extensions`, `show_hidden` và `create_directories`.
+| `dialog.OpenOptions` | |
+|---|---|
+| `title`, `message` | |
+| `button` | label của nút mặc định |
+| `directory` | thư mục panel mở ra lúc đầu |
+| `files`, `directories` | được chọn gì; chỉ chọn thư mục với `.files = false, .directories = true` |
+| `multiple` | |
+| `extensions` | không có dấu chấm |
+| `show_hidden` | |
 
-Hộp thông báo trả về chỉ mục của nút được nhấn, nút đầu tiên là mặc định và hộp kiểm của nó có được chọn hay không:
+`dialog.SaveOptions` có `title`, `button`, `message`, `directory`, `extensions`, `show_hidden` và `create_directories`, cùng `name`: tên file điền sẵn lúc đầu.
+
+Hộp thông báo trả về chỉ số của nút được bấm, và checkbox của nó có được đánh dấu không. Nút đầu tiên là nút mặc định.
 
 ```zig
 const r = myzig.dialog.message(.{
@@ -51,34 +72,46 @@ if (r.checked) prefs.ask_before_delete = false;
 
 | | macOS | Linux | Windows | trình duyệt |
 |---|---|---|---|---|
-| mở, lưu | `NSOpenPanel`, `NSSavePanel` | Trình chọn tệp gốc của GTK (có cổng thông tin dành cho máy tính để bàn) | hộp thoại tập tin chung | `error.Unsupported` |
-| tin nhắn | `NSAlert`, với hộp kiểm | Hộp thoại tin nhắn của GTK | một hộp tin nhắn | `alert` cho một nút, nếu không thì `confirm` |
+| mở, lưu | `NSOpenPanel`, `NSSavePanel` | hộp chọn file native của GTK (của desktop portal nếu có) | các hộp thoại file chung | `error.Unsupported` |
+| thông báo | `NSAlert`, có checkbox | hộp thông báo của GTK | một message box | `alert` nếu một nút, ngược lại `confirm` |
 
-Trên Windows hộp thoại đang mở hiện tại chọn một tệp duy nhất và chưa có hộp thoại nào lọc theo `extensions`. Giao diện native cũng có các hộp thoại riêng, được vẽ bên trong cửa sổ: xem [lớp phủ](ui/overlays.md).
+- Trên Windows, hộp thoại lưu chưa lọc theo `extensions`.
+- Native UI cũng có hộp thoại riêng, vẽ bên trong cửa sổ: xem [overlay](ui/overlays.md).
 
 <a id="opening-things-in-other-apps"></a>
 
-## Mở mọi thứ trong các ứng dụng khác
+## Mở bằng app khác
 
-`myzig.shell` cung cấp URL và tệp cho ứng dụng mà người dùng đã chọn cho chúng:
+`myzig.shell` giao URL và file cho app mà người dùng đã chọn cho chúng:
 
 ```zig
-_ = myzig.shell.openUrl("https://ziglang.org"); // any scheme: https:, mailto:, ...
-_ = myzig.shell.openPath("/Users/ada/report.pdf"); // in its default app
-myzig.shell.showInFolder("/Users/ada/report.pdf"); // in Finder or the file manager
-_ = myzig.shell.trash("/Users/ada/old.txt"); // to the Trash
-myzig.shell.beep(); // the system's alert sound
+_ = myzig.shell.openUrl("https://ziglang.org"); // scheme nào cũng được: https:, mailto:, ...
+_ = myzig.shell.openPath("/Users/ada/report.pdf"); // trong app mặc định của nó
+myzig.shell.showInFolder("/Users/ada/report.pdf"); // trong Finder hoặc trình quản lý file
+_ = myzig.shell.trash("/Users/ada/old.txt"); // vào Thùng rác
+myzig.shell.beep(); // âm báo của hệ thống
 ```
 
-`openUrl`, `openPath` và `trash` trả về xem họ có làm điều đó hay không. `showInFolder` chọn tệp trong cửa sổ Finder trên macOS và mở thư mục của nó ở nơi khác. Trên Linux họ chạy `xdg-open`; trên Windows động từ mở của shell. `trash` hoạt động trên macOS (Thùng rác) và Windows (thùng rác, thông qua `IFileOperation`; đường dẫn tương đối là thư mục làm việc) và trả về false ở nơi khác cho đến nay; `beep` hoạt động trên macOS và trong trình duyệt. Trong trình duyệt `openUrl` mở một tab mà trình duyệt có thể chặn bên ngoài một cú nhấp chuột.
+- `openUrl`, `openPath` và `trash` trả về việc đã làm được hay chưa.
+- `showInFolder` chọn file trong một cửa sổ Finder trên macOS, và mở thư mục chứa nó ở nơi khác.
+- Trên Linux chúng chạy `xdg-open`; trên Windows, lệnh open của shell.
+- Trên trình duyệt, `openUrl` mở một tab. Trình duyệt có thể chặn nó nếu không nằm trong một cú bấm.
+- `beep` chạy trên macOS và trình duyệt.
 
-`trash` không bao giờ xóa vĩnh viễn: nếu mục đó không thể chuyển vào thùng rác, nó sẽ trả về false và để mục đó ở nguyên đó. Trên Windows là một mục quá lớn đối với thùng rác hoặc trên một ổ đĩa không có thùng rác, vì các chia sẻ mạng và nhiều ổ đĩa di động, mà Windows sẽ xóa mà không cần hỏi.
+**`trash`** chạy trên macOS (Thùng rác) và Windows (Recycle Bin, qua `IFileOperation`). Trên Windows, đường dẫn tương đối tính từ thư mục làm việc. Ở nơi khác, hiện nó trả về false.
+
+`trash` không bao giờ xóa hẳn. Nếu mục đó không vào thùng rác được, nó trả về false và để nguyên mục đó. Trên Windows, đó là:
+
+- mục quá lớn so với Recycle Bin;
+- mục nằm trên ổ không có Recycle Bin, như ổ mạng và nhiều ổ di động.
+
+Nếu không, Windows sẽ xóa những mục này mà không hỏi.
 
 <a id="the-app-s-directories"></a>
 
-## Thư mục của ứng dụng
+## Các thư mục của app
 
-`myzig.appPath` cung cấp các thư mục riêng của ứng dụng, nơi mỗi hệ thống muốn có chúng và tạo chúng (tất cả trừ `temp`) khi chúng bị thiếu:
+`myzig.appPath` trả về các thư mục riêng của app, ở nơi mỗi hệ thống muốn. Nó tạo chúng (trừ `temp`) nếu chưa có:
 
 ```zig
 const logs = try myzig.appPath(gpa, .logs, "Notes");
@@ -93,44 +126,47 @@ defer gpa.free(logs);
 | `logs` | `~/Library/Logs/Name` | `$XDG_STATE_HOME/Name/logs` (`~/.local/state/Name/logs`) | `%LOCALAPPDATA%\Name\Logs` |
 | `temp` | `$TMPDIR` | `$TMPDIR` hoặc `/tmp` | `%TEMP%` |
 
-Các biến XDG không phải là đường dẫn tuyệt đối sẽ bị bỏ qua, như thông số kỹ thuật cho biết.
+Biến XDG nào không phải đường dẫn tuyệt đối thì bị bỏ qua, đúng như đặc tả.
 
-`myzig.path` cũng biết các thư mục tiêu chuẩn của người dùng. Phải mất `myzig.Directory`: `data` và `cache` (của riêng ứng dụng, được tạo), `home`, `documents`, `downloads`, `desktop` và `temp`:
+`myzig.path` cũng biết các thư mục chuẩn của người dùng. Nó nhận một `myzig.Directory`: `data` và `cache` (của riêng app, được tạo sẵn), `home`, `documents`, `downloads`, `desktop` hoặc `temp`:
 
 ```zig
 const downloads = try myzig.path(gpa, .downloads, app.options.name);
 defer gpa.free(downloads);
 ```
 
-Trong trình duyệt, cả hai đều trả lời bằng các thư mục của hệ thống tệp WASI trong bộ nhớ mà trang lưu trữ (`/home`, `/tmp`, `/home/.local/share/Name`), tồn tại trong suốt thời gian của trang.
+Trên trình duyệt, cả hai trả về thư mục trong hệ thống file WASI trong bộ nhớ mà trang cung cấp: `/home`, `/tmp`, `/home/.local/share/Name`. Hệ thống file này tồn tại bằng thời gian của trang.
 
 <a id="appearance"></a>
 
-## Ngoại hình
+## Giao diện sáng tối
 
-`myzig.isDark()` cho biết liệu hệ thống có hiển thị chế độ tối hay không và `myzig.accentColor()` trả về màu nhấn mà người dùng đã chọn, như sRGB `[3]f32`. Giao diện native tự tuân theo cả hai (xem [kiểu dáng](ui/styling.md)); đây là những ứng dụng vẽ hoặc chọn màu của riêng chúng.
+- `myzig.isDark()` cho biết hệ thống có đang ở dark mode không.
+- `myzig.accentColor()` trả về màu accent người dùng đã chọn, dạng sRGB `[3]f32`.
 
-- macOS: giao diện hiệu quả của ứng dụng và `controlAccentColor`.
-- Linux: tối khi `GTK_THEME` đặt tên cho chủ đề tối; giọng là một màu xanh cố định.
-- Windows: cài đặt "ứng dụng sử dụng giao diện sáng".
-- Trình duyệt: `prefers-color-scheme` hoặc `data-myzig-theme="dark"` hoặc `"light"` của chính trang đó trên phần tử gốc của nó.
+Native UI tự theo cả hai (xem [styling](ui/styling.md)). Các hàm này dành cho app tự vẽ hoặc tự chọn màu.
+
+- macOS: giao diện thực tế của app và `controlAccentColor`.
+- Linux: tối khi `GTK_THEME` là một theme tối; màu accent là một màu xanh cố định.
+- Windows: cài đặt "apps use light theme".
+- Trình duyệt: `prefers-color-scheme`, hoặc `data-myzig-theme="dark"` hay `"light"` mà trang đặt trên phần tử gốc.
 
 <a id="locale-and-languages"></a>
 
-## Địa điểm và ngôn ngữ
+## Locale và ngôn ngữ
 
-`myzig.system` trả lời bằng ngôn ngữ và ngôn ngữ của người dùng, đối với các ứng dụng tự định dạng hoặc dịch ([i18n](i18n.md) thực hiện cả hai):
+`myzig.system` trả về locale và các ngôn ngữ của người dùng, cho app tự định dạng hoặc tự dịch. [i18n](i18n.md) làm cả hai việc này:
 
 ```zig
 const tag = try myzig.system.locale(gpa); // "en-US", BCP 47
 defer gpa.free(tag);
 const region = try myzig.system.region(gpa); // "US"
 defer gpa.free(region);
-const langs = try myzig.system.languages(gpa); // most preferred first
+const langs = try myzig.system.languages(gpa); // ưu tiên nhất đứng đầu
 defer myzig.system.freeList(gpa, langs);
 ```
 
-Trên Linux chúng đến từ `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LC_TIME` và `LANG`, được chuyển thành thẻ BCP 47; trong trình duyệt từ `navigator.languages`.
+Trên Linux chúng lấy từ `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LC_TIME` và `LANG`, đổi thành tag BCP 47. Trên trình duyệt chúng lấy từ `navigator.languages`.
 
 <a id="recent-documents"></a>
 
@@ -143,9 +179,20 @@ defer myzig.system.freeList(app.gpa, recent);
 myzig.system.clearRecentDocuments(app);
 ```
 
-`addRecentDocument` ghi lại một tệp trong danh sách của hệ thống (menu Mở gần đây và menu Dock của macOS, Windows' Các mục gần đây và danh sách nhảy của ứng dụng, các tệp được sử dụng gần đây của Linux) và trong chính ứng dụng, được lưu giữ trong `recent-documents.txt` trong thư mục dữ liệu của nó. `recentDocuments` trả về danh sách riêng của ứng dụng, mới nhất đầu tiên, nhiều nhất là mười, chỉ những tệp vẫn tồn tại. `clearRecentDocuments` quên chúng; trên Linux, các tệp gần đây khác của người dùng vẫn được giữ nguyên. [Tài liệu](documents.md) ghi lại những gì họ mở và hiển thị danh sách trong menu Tệp của họ.
+`addRecentDocument` ghi một file vào hai danh sách:
 
-Trên Windows, `system.setJumpList(app, tasks)` đặt Nhiệm vụ trong danh sách nhảy của ứng dụng (nhấp chuột phải vào nút trên thanh tác vụ), mỗi danh sách `JumpTask` có `title`, `description`, `path`, `args` và một biểu tượng. Windows giữ danh sách sau khi thoát ứng dụng: đặt danh sách một lần khi khởi động. Tác vụ tốt nhất nên chạy URL của lược đồ riêng của ứng dụng, đạt tới `on_open_url`. Ở nơi khác nó không làm gì cả.
+- của hệ thống: menu Open Recent và menu Dock của macOS, Recent items và jump list của app trên Windows, danh sách file dùng gần đây của Linux;
+- của riêng app, lưu trong `recent-documents.txt` ở thư mục data của app.
+
+`recentDocuments` trả về danh sách riêng của app: mới nhất trước, tối đa mười mục, chỉ các file còn tồn tại. `clearRecentDocuments` xóa danh sách đó. Trên Linux, các file gần đây khác của người dùng vẫn giữ nguyên.
+
+[Tài liệu](documents.md) ghi lại những gì chúng mở và hiện danh sách trong menu File.
+
+**Jump list.** Trên Windows, `system.setJumpList(app, tasks)` đặt các Task trong jump list của app, hiện khi bấm chuột phải vào nút của app trên taskbar. Ở nơi khác nó không làm gì.
+
+- Mỗi task là một `JumpTask` có `title`, `description`, `path`, `args` và một icon.
+- Windows giữ danh sách sau khi app thoát: đặt một lần lúc khởi động.
+- Tốt nhất task nên chạy một URL thuộc scheme riêng của app, URL này tới `on_open_url`.
 
 <a id="open-at-login"></a>
 
@@ -155,66 +202,100 @@ Trên Windows, `system.setJumpList(app, tasks)` đặt Nhiệm vụ trong danh s
 try myzig.system.setOpenAtLogin(app, true);
 const on = myzig.system.openAtLogin(app);
 if (myzig.system.wasOpenedAtLogin(app)) {
-    // started by the system: stay in the tray, show no window
+    // do hệ thống khởi động: ở yên trong tray, không hiện cửa sổ
 }
 ```
 
-Ứng dụng sẽ mở khi đăng nhập với mục Chạy trên Windows, mục tự khởi động XDG trên Linux và mục đăng nhập trên macOS 13 trở lên (đối với các ứng dụng đi kèm). `wasOpenedAtLogin` phân biệt lần khởi chạy như vậy trên Windows và Linux, trong đó mục nhập vượt qua `--myzig-login`.
+| Nền tảng | App mở khi đăng nhập nhờ |
+|---|---|
+| Windows | một mục Run |
+| Linux | một mục XDG autostart |
+| macOS 13 trở lên | một login item (cho app đã đóng gói bundle) |
 
-Trên Windows, mục Run khởi động ứng dụng với token thường (không nâng quyền) của người dùng, kể cả khi người dùng là quản trị viên: ứng dụng không tạo được card mạng, không đổi được proxy của hệ thống và không ghi được vào thư mục được bảo vệ. Ứng dụng cần quyền quản trị thì đăng ký một tác vụ khi đăng nhập trong Task Scheduler với mức chạy `HighestAvailable` (`schtasks /Create /SC ONLOGON /RL HIGHEST`), tác vụ này khởi động nó với quyền cao mà không hỏi, và không gọi `setOpenAtLogin`. Tạo tác vụ cũng cần quyền quản trị, nên ứng dụng xin quyền một lần, khi người dùng bật cài đặt. `wasOpenedAtLogin` không phân biệt được lần khởi chạy đó: hãy cho lệnh của tác vụ một đối số riêng của ứng dụng.
+`wasOpenedAtLogin` nhận ra lần khởi động như vậy trên Windows và Linux, nơi mục đó truyền `--myzig-login`.
+
+<details>
+<summary>Quyền administrator khi đăng nhập trên Windows</summary>
+
+Mục Run khởi động app bằng token bình thường (không nâng quyền) của người dùng, kể cả khi người dùng là administrator. Vì vậy app không tạo được network adapter, không đổi được proxy của hệ thống và không ghi được vào các thư mục được bảo vệ.
+
+App cần quyền administrator thì không gọi `setOpenAtLogin`:
+
+- Thay vào đó, nó đăng ký một logon task trong Task Scheduler với run level `HighestAvailable` (`schtasks /Create /SC ONLOGON /RL HIGHEST`). Task này khởi động app với quyền cao mà không hỏi.
+- Bản thân việc tạo task cũng cần quyền administrator. Nên app xin quyền một lần, khi người dùng bật cài đặt này.
+- `wasOpenedAtLogin` không nhận ra lần khởi động như vậy. Hãy cho lệnh của task một tham số riêng của app để làm việc đó.
+
+</details>
 
 <a id="url-schemes-and-file-types"></a>
 
-## Lược đồ URL và loại tệp
+## URL scheme và loại file
 
-Ứng dụng sẽ mở các URL riêng (`notes://open?id=4`) và các tệp thuộc loại của nó khi hệ thống chuyển giao chúng, thông qua `AppOptions.on_open_url` và `on_open_file` (xem [ứng dụng](app.md) để biết trình xử lý và `url_schemes` và `file_extensions` để đặt tên cho chúng):
+App mở URL riêng của nó (`notes://open?id=4`) và file thuộc các loại của nó khi hệ thống giao cho. Chúng tới `AppOptions.on_open_url` và `on_open_file`. Xem [App](app.md) về các handler, và về `url_schemes` và `file_extensions` để khai báo chúng.
 
 ```zig
-try myzig.system.registerUrlScheme(app, "notes"); // cheap: at every launch
+try myzig.system.registerUrlScheme(app, "notes"); // rẻ: gọi mỗi lần khởi động
 if (!myzig.system.isUrlSchemeRegistered(app, "notes")) {}
 try myzig.system.unregisterUrlScheme(app, "notes");
 try myzig.system.registerFileType(app, "md", "Markdown Document");
 try myzig.system.unregisterFileType(app, "md");
 ```
 
-`registerUrlScheme` đặt ứng dụng làm trình xử lý lược đồ của người dùng: trong sổ đăng ký trên Windows, trong mục nhập trên máy tính để bàn được đặt làm mặc định trong `mimeapps.list` trên Linux (như `xdg-mime default` thực hiện) và trên macOS làm trình xử lý mặc định của lược đồ mà `Info.plist` của gói phải khai báo ([phân phối](distribution.md) viết nó). `unregisterUrlScheme` hoàn tác nó trên Windows và Linux. `registerFileType` thêm ứng dụng vào danh sách Mở bằng của tiện ích mở rộng tệp trên Windows; macOS khai báo loại tệp trong gói và Linux trong mục nhập trên màn hình của ứng dụng, nơi nó trả về `error.Unsupported`.
+`registerUrlScheme` đặt app làm trình xử lý scheme cho người dùng:
+
+| Nền tảng | Cách làm |
+|---|---|
+| Windows | trong registry |
+| Linux | trong một desktop entry được đặt làm mặc định trong `mimeapps.list`, như `xdg-mime default` |
+| macOS | làm trình xử lý mặc định của một scheme mà `Info.plist` của bundle phải khai báo ([phân phối](distribution.md) ghi nó) |
+
+`unregisterUrlScheme` hoàn tác việc này trên Windows và Linux.
+
+`registerFileType` thêm app vào danh sách Open with của một phần mở rộng file trên Windows. macOS khai báo loại file trong bundle, còn Linux trong desktop entry của app. Ở hai nơi đó nó trả về `error.Unsupported`.
 
 <a id="keeping-the-system-awake"></a>
 
-## Giữ cho hệ thống luôn tỉnh táo
+## Giữ máy thức
 
 ```zig
 const awake = try myzig.system.preventSleep(app, "Exporting the video", .system);
 defer awake.release();
 ```
 
-`.system` giữ cho máy tính không ở chế độ ngủ khi không hoạt động (màn hình vẫn có thể tắt); `.display` vẫn bật màn hình. Nó sử dụng các yêu cầu nguồn điện trên Windows, xác nhận nguồn điện trên macOS và trên Linux, sự ức chế của trình bảo vệ màn hình đối với bus phiên, giúp cả hai luôn hoạt động.
+- `.system` giữ máy không ngủ khi rảnh. Màn hình vẫn có thể tắt.
+- `.display` giữ cả màn hình luôn bật.
+
+Nó dùng power request trên Windows và power assertion trên macOS. Trên Linux nó dùng cơ chế chặn screen saver qua session bus, giữ cả hai thức.
 
 <a id="secrets"></a>
 
-## Bí mật
+## Secret
 
-`myzig.secrets` lưu trữ mật khẩu và mã thông báo được hệ thống, dịch vụ và tài khoản mã hóa cho người dùng, giống như keytar:
+`myzig.secrets` lưu mật khẩu và token, được hệ thống mã hóa cho người dùng, theo service và account, như keytar:
 
 ```zig
 try myzig.secrets.set(gpa, "com.example.notes", "ada@example.com", token);
 if (try myzig.secrets.get(gpa, "com.example.notes", "ada@example.com")) |t| {
     defer gpa.free(t);
-    // use the token
+    // dùng token
 }
-_ = try myzig.secrets.delete("com.example.notes", "ada@example.com"); // false if there was none
+_ = try myzig.secrets.delete("com.example.notes", "ada@example.com"); // false nếu không có
 ```
 
-- macOS: mật khẩu chung trong Chuỗi khóa.
-- Windows: thông tin xác thực chung của Trình quản lý thông tin xác thực, mục tiêu `service/account`, được mã hóa bằng DPAPI.
-- Linux: khóa của người dùng (Khóa Gnome, KWallet, KeePassXC) thông qua libsecret, được tải với `dlopen`, với lược đồ của keytar; bí mật là văn bản ở đó (không có byte NUL). Không có libsecret, `error.Unsupported`.
+- macOS: generic password trong Keychain.
+- Windows: generic credential của Credential Manager, target là `service/account`, mã hóa bằng DPAPI.
+- Linux: keyring của người dùng (GNOME Keyring, KWallet, KeePassXC) qua libsecret, nạp bằng `dlopen`, với schema của keytar. Ở đây secret là chữ (không có byte NUL). Không có libsecret thì trả `error.Unsupported`.
 - Trình duyệt: `error.Unsupported`.
 
 <a id="watching-files"></a>
 
-## Xem tập tin
+## Theo dõi file
 
-`myzig.file_watch.watch` gọi trình xử lý trên luồng chính khi một tệp có thể đã thay đổi: được ghi, thay thế, đổi tên hoặc xóa bởi một ứng dụng khác. Một thay đổi đối với một tệp khác trong thư mục của nó cũng có thể đánh thức nó, vì vậy trình xử lý sẽ xem xét chính tệp đó. Nó sử dụng kqueue trên macOS, inotify trên Linux và thay đổi thông báo trên Windows; không có polling nào. Trình duyệt không có đồng hồ (`error.Unsupported`).
+`myzig.file_watch.watch` gọi một handler trên main thread khi một file có thể đã thay đổi: bị app khác ghi, thay thế, đổi tên hoặc xóa.
+
+- Thay đổi ở một file khác trong cùng thư mục cũng có thể đánh thức nó, nên handler tự kiểm tra file.
+- Nó dùng kqueue trên macOS, inotify trên Linux và change notification trên Windows. Không có gì polling.
+- Trình duyệt không theo dõi được (`error.Unsupported`).
 
 ```zig
 const Doc = struct {
@@ -222,7 +303,7 @@ const Doc = struct {
 
     fn onChange(ctx: ?*anyopaque) callconv(.c) void {
         const d: *Doc = @ptrCast(@alignCast(ctx));
-        _ = d; // stat d.path, read it again if it changed
+        _ = d; // stat d.path, đọc lại nếu nó đã đổi
     }
 };
 
@@ -230,13 +311,13 @@ const w = try myzig.file_watch.watch(doc.path, &doc, Doc.onChange);
 defer w.cancel();
 ```
 
-[Tài liệu](documents.md) xem tập tin của họ theo cách này. [watch](plugins/watch.md) theo dõi toàn bộ cây thư mục.
+[Tài liệu](documents.md) theo dõi file của chúng theo cách này. [Plugin watch](plugins/watch.md) theo dõi cả cây thư mục.
 
 <a id="pipes-and-processes"></a>
 
-## Đường ống và quy trình
+## Pipe và process
 
-`myzig.fdwatch` chạy trình xử lý trên luồng chính khi bộ mô tả tệp (ống, terminal giả) có byte để đọc và khi quá trình con thoát ra mà không có luồng của riêng ứng dụng và không có vòng polling:
+`myzig.fdwatch` chạy một handler trên main thread khi một file descriptor (pipe, pseudo-terminal) có byte để đọc, và khi một process con kết thúc. Nó không cần thread riêng của app, và không polling:
 
 ```zig
 const out = try myzig.fdwatch.readable(pipe_fd, &job, Job.onOutput);
@@ -245,4 +326,7 @@ const done = try myzig.fdwatch.exited(pid, &job, Job.onExit);
 defer done.cancel();
 ```
 
-Trình xử lý có cùng chữ ký với tệp xem, `fn (ctx: ?*anyopaque) callconv(.c) void` và đọc nội dung ở đó; nó cũng chạy một lần ở cuối tập tin. macOS sử dụng các nguồn libdispatch, Linux GLib. Thay vào đó, các ứng dụng Windows chờ trên các tay cầm và hiện tại cả hai đều trả về `error.Unsupported` ([terminal](plugins/terminal.md) sử dụng ConPTY ở đó).
+- Handler có cùng chữ ký với handler theo dõi file, `fn (ctx: ?*anyopaque) callconv(.c) void`. Nó đọc những gì đang có.
+- Nó cũng chạy một lần khi tới cuối file.
+- macOS dùng source của libdispatch, Linux dùng source của GLib.
+- App Windows thì chờ trên handle. Ở đó cả hai hiện trả về `error.Unsupported`; [plugin terminal](plugins/terminal.md) dùng ConPTY.

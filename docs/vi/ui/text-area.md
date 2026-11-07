@@ -1,16 +1,21 @@
 <a id="text-area"></a>
 
-# Vùng văn bản
+# Text area
 
-`ui.textArea` chỉnh sửa văn bản nhiều dòng: gói hoặc cuộn sang một bên, bằng các phím của nền tảng, con trỏ, bảng tạm, hoàn tác và phương thức nhập. Văn bản của nó là `ui.TextArea` mà ứng dụng lưu giữ, có tài liệu là một sợi dây, do đó, văn bản gồm một trăm nghìn dòng sẽ chỉnh sửa nhanh như một trong mười và chỉ những dòng trong view mới được hiển thị. [Trình chỉnh sửa mã](code-editor.md) được xây dựng trên cùng một phần.
+`ui.textArea` sửa văn bản nhiều dòng, có ngắt dòng hoặc scroll ngang. Nó có đủ phím của nền tảng, con trỏ, clipboard, undo và bộ gõ.
 
-Đối với một dòng văn bản, hãy sử dụng `ui.textField` ([Nhập văn bản](text-input.md)).
+- Văn bản của nó là một `ui.TextArea` do app giữ.
+- Tài liệu là một rope: sửa văn bản trăm nghìn dòng cũng nhanh như sửa văn bản mười dòng.
+- Chỉ các dòng đang hiện mới được tính layout.
+- [Code editor](code-editor.md) được dựng từ chính những phần này.
+
+Với văn bản một dòng, dùng `ui.textField` ([Nhập chữ](text-input.md)).
 
 <!-- demo: text-area height=248 -->
 
-![Ô soạn thảo nhiều dòng, kèm số byte và dòng chứa con trỏ.](../../images/ui/text-area.png)
+![Một text area nhiều dòng, kèm số byte và dòng của con trỏ nhập.](../../images/ui/text-area.png)
 
-*Ô soạn thảo nhiều dòng, kèm số byte và dòng chứa con trỏ.*
+*Một text area nhiều dòng, kèm số byte và dòng của con trỏ nhập.*
 
 ```zig
 const Notes = struct {
@@ -26,7 +31,7 @@ var notes: Notes = .{ .body = .init(gpa, "Hello") };
 defer notes.body.deinit();
 ```
 
-`zig build run-text-buffer` chỉnh sửa 100 000 dòng (`examples/text-buffer`); trang Văn bản của thư viện và `examples/code-editor` cũng hiển thị các vùng văn bản.
+`zig build run-text-buffer` sửa 100 000 dòng (`examples/text-buffer`). Trang Text của gallery và `examples/code-editor` cũng có text area.
 
 <a id="options"></a>
 
@@ -34,60 +39,84 @@ defer notes.body.deinit();
 
 `ui.TextAreaOptions`:
 
-| lĩnh vực | mặc định | ý nghĩa |
+| trường | mặc định | ý nghĩa |
 |---|---|---|
-| `width` | `.fill` | chiều rộng của nó |
-| `height` | 140 điểm | chiều cao của nó |
-| `lines` | null | phát triển cùng với văn bản của nó từ các hàng `lines[0]` đến `lines[1]`, qua đó nó cuộn, giống như trường thông báo (thay cho `height`) |
-| `size` | 14 | kích thước của văn bản |
-| `mono` | false | phông chữ đơn cách |
-| `wrap` | true | quấn hàng dài; false cuộn chúng sang một bên bằng thanh cuộn |
-| `placeholder` | `""` | hiển thị trong khi nó trống |
-| `read_only` | false | có thể lựa chọn và sao chép, không thể chỉnh sửa |
-| `tab` | false | Tab gõ một tab, thay vì di chuyển tiêu điểm |
-| `bare` | false | không có hộp riêng (viền, tô màu, vòng lấy nét): dành cho người soạn thảo điền vào cửa sổ |
+| `width` | `.fill` | chiều rộng |
+| `height` | 140 điểm | chiều cao |
+| `lines` | null | cao dần theo văn bản, từ `lines[0]` hàng tới `lines[1]` hàng, quá đó thì scroll, như ô soạn tin nhắn (thay cho `height`) |
+| `size` | 14 | cỡ chữ |
+| `mono` | false | font monospace |
+| `wrap` | true | ngắt dòng dài; false thì scroll ngang, có thanh scroll |
+| `placeholder` | `""` | hiện khi còn trống |
+| `read_only` | false | chọn và copy được, không sửa được |
+| `tab` | false | Tab gõ ra ký tự tab, thay vì chuyển focus |
+| `bare` | false | không có box riêng (viền, nền, vòng focus): cho editor chiếm cả cửa sổ |
 
-Nó trả về `ui.TextAreaResult`: `changed` (văn bản đã thay đổi khung này), `focused`, `first_line` và `last_line`, các dòng mà nó đã tạo, với `lines` (mỗi dòng được tạo và trên cùng của nó tính từ đầu view, khi nó được cuộn, trong bộ nhớ khung) và `row_h`, cho những gì ứng dụng đặt lên các dòng.
+Nó trả về một `ui.TextAreaResult`:
+
+| trường | |
+|---|---|
+| `changed` | văn bản đã đổi trong frame này |
+| `focused` | nó đang có focus |
+| `first_line`, `last_line` | các dòng nó đã dựng |
+| `lines` | mỗi dòng đã dựng và mép trên của nó tính từ mép trên view, theo vị trí scroll, nằm trong bộ nhớ của frame |
+| `row_h` | chiều cao một hàng |
+
+`lines` và `row_h` dùng cho những gì app vẽ đè lên các dòng.
 
 <a id="editing"></a>
 
 ## Chỉnh sửa
 
-Mọi thứ mà trường văn bản của nền tảng thực hiện:
+Mọi thứ mà ô nhập chữ của nền tảng làm được:
 
-- Mũi tên, có phím Shift để chọn; bằng các từ có Tùy chọn (macOS) hoặc Kiểm soát (Linux, Windows); đến đầu dòng bằng Command hoặc Home và End; đến cuối văn bản; Trang lên và trang xuống. Lên và xuống giữ cột họ bắt đầu từ.
-- Phím lùi và xóa theo ký tự, từ và đến đầu dòng.
-- Chọn tất cả, sao chép, cắt và dán qua bảng nhớ tạm của hệ thống (của riêng Người kiểm tra trong các bài kiểm tra).
-- Hoàn tác và làm lại. Các ký tự được gõ liên tiếp, trong vòng một giây, là một bước; việc xóa liên tiếp cũng vậy.
-- Phương thức nhập (tiếng Trung, tiếng Nhật, tiếng Hàn, phím chết): thành phần được hiển thị được gạch chân trong văn bản cho đến khi được cam kết.
-- Con trỏ: một cú nhấp chuột sẽ đặt dấu mũ, một thao tác kéo sẽ chọn, một cú nhấp đúp sẽ chọn một từ và nhấp ba lần vào một dòng, kéo theo từ hoặc dòng từ đó; Shift-click sẽ mở rộng vùng chọn.
+- Phím mũi tên, giữ Shift để chọn. Theo từng từ với Option (macOS) hoặc Control (Linux, Windows). Tới hai đầu dòng với Command hoặc Home và End. Tới hai đầu văn bản. Page Up và Page Down.
+- Lên và xuống giữ nguyên cột lúc bắt đầu.
+- Backspace và Delete, theo ký tự, theo từ, và tới đầu dòng.
+- Chọn tất cả, copy, cut và paste qua clipboard của hệ thống (trong test là clipboard riêng của `ui.Tester`).
+- Undo và redo. Các ký tự gõ liền nhau trong vòng một giây là một bước. Các lần xóa liền nhau cũng vậy.
+- Bộ gõ (tiếng Trung, Nhật, Hàn, dead key). Phần đang soạn được gạch chân trong văn bản cho tới khi xác nhận.
+- Con trỏ: bấm để đặt con trỏ nhập, kéo để chọn. Bấm đúp chọn một từ, bấm ba lần chọn một dòng; kéo tiếp từ đó thì chọn theo từ hoặc dòng. Shift-bấm mở rộng vùng chọn.
 
-Trên macOS các phím đi qua hệ thống nhập văn bản (`NSTextInputClient`), do đó, các ràng buộc phím riêng của người dùng sẽ được áp dụng; ở nơi khác chúng được ánh xạ khi nền tảng liên kết chúng (`src/ui/textarea_keys.zig`).
+**Nhiều con trỏ nhập** (`src/ui/textarea_multi.zig`):
+
+- Control-Alt (Command-Option) với Lên hoặc Xuống thêm một con trỏ ở dòng trên hoặc dưới.
+- Control-D (Command-D) chọn từ tại con trỏ, rồi lần lượt từng chỗ khớp tiếp theo.
+- Control-bấm (Command-bấm) thêm một con trỏ ở chỗ bấm.
+- Khi đó gõ, xóa, Tab, Enter, cut và phím mũi tên tác động ở mọi con trỏ, gộp thành một bước undo. Escape quay về một con trỏ.
+- Con trỏ chính nằm trong `sel`, các con trỏ khác trong `TextArea.extra`.
+
+Trên macOS, phím đi qua hệ thống nhập văn bản (`NSTextInputClient`), nên các phím tắt riêng của người dùng vẫn có tác dụng. Ở nơi khác, phím được ánh xạ theo cách nền tảng đó gán (`src/ui/textarea_keys.zig`).
 
 <a id="the-state"></a>
 
-## Nhà nước
+## State
 
-`ui.TextArea` chứa tài liệu (`doc`, `ui.TextDoc`), lựa chọn (`sel`, `ui.TextSel`: `anchor` và `caret` độ lệch byte), thành phần của phương thức nhập và nội dung mà view giữ giữa các khung. Tạo nó bằng `ui.TextArea.init(gpa, text)`, giải phóng nó bằng `deinit()`.
+Một `ui.TextArea` giữ:
 
-Ứng dụng đọc và thay đổi nó giữa các khung:
+- tài liệu: `doc`, một `ui.TextDoc`;
+- vùng chọn: `sel`, một `ui.TextSel` gồm hai offset byte `anchor` và `caret`;
+- phần đang soạn của bộ gõ;
+- những gì view giữ lại giữa các frame.
 
-| phương pháp | làm |
+Tạo bằng `ui.TextArea.init(gpa, text)`, giải phóng bằng `deinit()`. App đọc và thay đổi nó giữa các frame:
+
+| method | việc nó làm |
 |---|---|
-| `text(gpa)` | toàn bộ văn bản, để tưởng nhớ `gpa` |
-| `len()` | chiều dài của nó tính bằng byte |
-| `setText(s)` | thay thế văn bản dưới dạng chỉnh sửa, việc hoàn tác sẽ lấy lại |
-| `reset(s)` | thay thế nó dưới dạng một tài liệu mới, không có lịch sử (một tệp đã được mở) |
-| `select(anchor, caret)`, `collapse(at)` | thiết lập lựa chọn |
-| `selectedText(gpa)` | văn bản của lựa chọn |
-| `caretLine()` | dòng dấu mũ, từ 0 |
-| `insert(s)` | gõ `s` vào dấu mũ, giống như bàn phím |
-| `replaceSelection(s, kind)`, `replaceRange(a, b, s, kind)` | thay thế văn bản, như một bước hoàn tác |
-| `deleteTo(at)` | xóa lựa chọn hoặc từ dấu mũ tới `at` |
+| `text(gpa)` | toàn bộ văn bản, trong bộ nhớ của `gpa` |
+| `len()` | độ dài tính bằng byte |
+| `setText(s)` | thay văn bản như một lần sửa, undo được |
+| `reset(s)` | thay bằng một tài liệu mới, không có lịch sử (như khi mở file) |
+| `select(anchor, caret)`, `collapse(at)` | đặt vùng chọn |
+| `selectedText(gpa)` | văn bản trong vùng chọn |
+| `caretLine()` | dòng của con trỏ nhập, đếm từ 0 |
+| `insert(s)` | gõ `s` tại con trỏ nhập, như bàn phím |
+| `replaceSelection(s, kind)`, `replaceRange(a, b, s, kind)` | thay văn bản, thành một bước undo |
+| `deleteTo(at)` | xóa vùng chọn, hoặc từ con trỏ nhập tới `at` |
 | `undo()`, `redo()` | |
-| `takeChanged()` | liệu văn bản có thay đổi kể từ cuộc gọi cuối cùng không |
-| `wordAt(i)`, `lineRange(line)` | phạm vi của một từ và một dòng |
-| `prevChar`, `nextChar`, `prevWord`, `nextWord` | ranh giới từ một byte |
+| `takeChanged()` | văn bản có đổi từ lần gọi trước hay không |
+| `wordAt(i)`, `lineRange(line)` | khoảng của một từ và một dòng |
+| `prevChar`, `nextChar`, `prevWord`, `nextWord` | ranh giới tính từ một byte |
 
 ```zig
 if (ui.button(c, "Insert date", .{}).clicked) {
@@ -96,43 +125,65 @@ if (ui.button(c, "Insert date", .{}).clicked) {
 if (ui.button(c, "Clear", .{ .disabled = s.body.len() == 0 }).clicked) s.body.setText("");
 ```
 
-Độ lệch là byte UTF-8; dấu mũ không bao giờ dừng lại bên trong một ký tự.
+Offset là byte của UTF-8. Con trỏ nhập không bao giờ dừng giữa một ký tự.
 
 <a id="the-document"></a>
 
 ## Tài liệu
 
-`ui.TextDoc` là văn bản mà vùng văn bản hoặc trình chỉnh sửa mã chỉnh sửa: một sợi dây, lịch sử hoàn tác của nó và nhật ký các dòng mà mỗi lần chỉnh sửa được thay thế, các view này đọc để cập nhật những gì chúng giữ trên mỗi dòng (các hàng được bao bọc, trạng thái đánh dấu) mà không cần xem phần còn lại của tài liệu. Nó có thể được sử dụng một mình:
+`ui.TextDoc` là văn bản mà text area hoặc code editor sửa. Nó giữ:
+
+- một rope;
+- lịch sử undo;
+- nhật ký các dòng mà mỗi lần sửa đã thay. View đọc nhật ký này để cập nhật những gì nó giữ theo từng dòng (các hàng đã ngắt, state tô màu cú pháp) mà không phải xem phần còn lại của tài liệu.
+
+Có thể dùng nó riêng:
 
 ```zig
 var doc = ui.TextDoc.init(gpa, source);
 defer doc.deinit();
-doc.replace(0, 0, "// Generated.\n"); // one step of undo
-const first = doc.line(gpa, 0);        // without its newline
+doc.replace(0, 0, "// Generated.\n"); // một bước undo
+const first = doc.line(gpa, 0);        // không kèm ký tự xuống dòng
 ```
 
-- Số đọc: `len()`, `lineCount()`, `lineStart(i)`, `lineEnd(i)`, `lineOf(offset)`, `byteAt(i)`, `line(gpa, i)`, `slice(gpa, a, b)`, `text(gpa)`.
-- Chỉnh sửa: `replace(a, b, s)` và `set(s)` là một bước hoàn tác từng bước; `reset(s)` làm tài liệu mới. Một số chỉnh sửa nối một bước giữa `begin(kind, sel, time)` và `end(sel)`, mỗi chỉnh sửa được thực hiện bằng `edit(a, b, s)`.
-- Lịch sử: `undo()` và `redo()` trả về lựa chọn để khôi phục; `canUndo()`, `canRedo()`; `max_undo` (1000 bước) và `group_seconds` (1 giây, trong đó việc gõ sẽ nối với bước trước); `breakGroup()` biến lần gõ tiếp theo thành một bước riêng.
-- Thay đổi: `version` bị ảnh hưởng bởi mỗi lần chỉnh sửa. `spliceSeq()` là một số thứ tự, và `splicesSince(seen)` các mối nối kể từ một (mỗi dòng một dòng, nó thay thế bao nhiêu dòng và bao nhiêu dòng được đặt ở đó), hoặc null khi chúng biến mất và người đọc phải đọc lại mọi thứ.
+- Đọc: `len()`, `lineCount()`, `lineStart(i)`, `lineEnd(i)`, `lineOf(offset)`, `byteAt(i)`, `line(gpa, i)`, `slice(gpa, a, b)`, `text(gpa)`.
+- Sửa: `replace(a, b, s)` và `set(s)` mỗi lệnh là một bước undo. `reset(s)` bắt đầu một tài liệu mới.
+- Nhiều lần sửa gộp thành một bước giữa `begin(kind, sel, time)` và `end(sel)`, mỗi lần sửa dùng `edit(a, b, s)`.
+- Lịch sử: `undo()` và `redo()` trả về vùng chọn cần khôi phục. Có thêm `canUndo()` và `canRedo()`.
+- `max_undo` là 1000 bước. `group_seconds` là 1 giây: gõ trong khoảng đó thì gộp vào bước trước. `breakGroup()` làm lần gõ kế tiếp thành một bước riêng.
+- Thay đổi: mỗi lần sửa tăng `version`. `spliceSeq()` là một số thứ tự.
+- `splicesSince(seen)` cho các splice kể từ một số thứ tự: mỗi splice là một dòng, số dòng nó đã thay và số dòng nó đặt vào. Nó là null khi các splice đó đã bị bỏ, và bên đọc phải đọc lại tất cả.
 
 <a id="the-rope"></a>
 
-## Sợi dây
+## Rope
 
-`ui.Rope` là văn bản dưới dạng cây cân bằng (AVL) gồm các đoạn UTF-8, sau sợi dây của Zed: các lá của nó sở hữu tối đa 2 KB mỗi lá và các nhánh của nó đếm số byte và dòng mới bên dưới chúng. Một chỉnh sửa chạm vào các lá mà nó thay đổi và đường dẫn đến chúng, đồng thời điểm bắt đầu của một dòng, một dòng byte và một phạm vi văn bản được tìm thấy trong O(log n). `replace(a, b, s)`, `lineStart(line)`, `lineOf(at)`, `slice(gpa, a, b)`, `chunks(from)` và `lines(gpa, first)` lặp lại nó. Không giống như sợi dây của mygo, cây được thay đổi tại chỗ: thao tác hoàn tác sẽ giữ lại các chỉnh sửa chứ không phải phiên bản.
+`ui.Rope` là văn bản dưới dạng cây cân bằng (AVL) gồm các đoạn UTF-8, theo rope của Zed.
+
+- Mỗi lá giữ tối đa 2 KB. Mỗi nhánh đếm số byte và số ký tự xuống dòng bên dưới nó.
+- Một lần sửa chỉ chạm tới các lá nó đổi và đường đi tới chúng.
+- Đầu một dòng, dòng chứa một byte và một khoảng văn bản đều tìm được trong O(log n).
+- `replace(a, b, s)`, `lineStart(line)`, `lineOf(at)`, `slice(gpa, a, b)`, `chunks(from)` và `lines(gpa, first)` duyệt qua nó.
+- Khác rope của mygo, cây được sửa tại chỗ. Undo giữ các lần sửa, không giữ các phiên bản.
 
 <a id="large-texts"></a>
 
 ## Văn bản lớn
 
-Chỉ các hàng trong view mới được tạo, với một vài hàng ở trên và dưới, vì vậy chi phí của một frame chỉ bằng giá của một màn hình. Các hàng được bao bọc được đo một lần và giữ nguyên trên mỗi dòng (được cập nhật từ các phần nối của tài liệu), do đó thanh cuộn biết chiều cao của văn bản mà không cần đặt nó ra ngoài. Với `wrap = false` các dòng dài cuộn sang một bên và dòng rộng nhất được hiển thị cho đến nay có kích thước thanh cuộn ngang.
+- Chỉ các hàng đang hiện được dựng, thêm vài hàng phía trên và dưới. Một frame chỉ tốn bằng một màn hình.
+- Các hàng đã ngắt được đo một lần và giữ theo từng dòng, cập nhật từ các splice của tài liệu. Thanh scroll biết chiều cao văn bản mà không phải tính layout toàn bộ.
+- Với `wrap = false`, dòng dài scroll ngang. Dòng rộng nhất đã hiện tới giờ quyết định kích thước thanh scroll ngang.
 
-Một dòng có kích thước từ 4 KB trở lên (mã được rút gọn, nhật ký không có ngắt, megabyte dữ liệu trên một dòng) được trình bày thành từng phần có tối đa 256 byte và được giữ với các hàng của nó trên các khung (`textlayout_long.zig`): một khung định hình và bao bọc tối đa 32 KB các dòng dài mà nó hiển thị, do đó, một dòng lớn hiển thị các hàng đầu tiên cùng một lúc và phần còn lại trên các khung tiếp theo, thay vì dừng khung hiển thị nó. Một bản chỉnh sửa sẽ giữ lại các phần trước nó, do đó, việc gõ một dòng dài sẽ định hình phần trong đó và các phần sau đó. Của một dòng không ngắt dòng, những gì hiển thị sẽ được vẽ chứ không phải toàn bộ văn bản của nó.
+**Dòng dài.** Dòng từ 4 KB trở lên là code đã minify, log không xuống dòng, một megabyte dữ liệu trên một dòng. Nó được tính layout theo từng mẩu tối đa 256 byte, giữ cùng các hàng của nó qua các frame (`textlayout_long.zig`):
+
+- Mỗi frame shape và ngắt tối đa 32 KB của các dòng dài mà nó hiện.
+- Một dòng cực dài hiện ngay vài hàng đầu, phần còn lại hiện dần trong các frame sau, thay vì làm treo frame hiện nó.
+- Một lần sửa giữ nguyên các mẩu phía trước. Gõ trong một dòng dài chỉ shape lại mẩu đang gõ và các mẩu sau đó.
+- Với dòng không ngắt, chỉ phần đang hiện được vẽ, không phải cả dòng.
 
 <a id="testing"></a>
 
-## Kiểm tra
+## Test
 
 ```zig
 var s: Notes = .{ .body = .init(gpa, "") };
@@ -140,11 +191,11 @@ defer s.body.deinit();
 var t: ui.Tester = undefined;
 try t.init(gpa, .init(&s, Notes.view), .{});
 defer t.deinit();
-try t.clickText("Notes");     // the placeholder: focuses it
+try t.clickText("Notes");     // placeholder: bấm vào để focus
 t.typeText("Hello\nworld");
 const text = s.body.text(gpa);
 defer gpa.free(text);
 try std.testing.expectEqualStrings("Hello\nworld", text);
 ```
 
-Trình kiểm tra nhập các ký tự, phím, tổ hợp phím (`t.shortcut`) và các thao tác của phương thức nhập (`t.textOps`) và giữ một bảng tạm của riêng nó. Xem `src/ui/tests_textarea.zig` và [Thử nghiệm](testing.md).
+`ui.Tester` gõ ký tự, phím, tổ hợp phím (`t.shortcut`) và các thao tác của bộ gõ (`t.textOps`). Nó có clipboard riêng. Xem `src/ui/tests_textarea.zig` và [Test](testing.md).

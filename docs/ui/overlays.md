@@ -1,15 +1,18 @@
 # Overlays
 
-Overlays are boxes drawn over everything else in the window: popovers
-beside an element, tooltips, dialogs over the dimmed window, alert dialogs
-and toasts. Menus and selects are overlays too; they have
+Overlays are boxes drawn over everything else in the window:
+
+- popovers beside an element;
+- tooltips;
+- dialogs over the dimmed window, and alert dialogs;
+- toasts.
+
+Menus and selects are overlays too; they have
 [a page of their own](menus.md).
 
-An overlay is built where it belongs in the view, next to what opens it,
-but it is laid out over the window (`Context.openOverlay`), and it takes
-the pointer before the boxes under it. Whether one shows is the app's
-state: an `ui.OverlayState` kept in the app's struct, which the app opens
-and the widget closes when the user dismisses it.
+An overlay is built where it belongs in the view, next to what opens it.
+It is laid out over the window (`Context.openOverlay`), and it takes the
+pointer before the boxes under it.
 
 <!-- demo: popover height=520 -->
 
@@ -27,18 +30,18 @@ const State = struct {
 };
 ```
 
-`OverlayState` has `show`, `close` and `toggle`, and the field `open`. In
-the frame the user closed it (Escape, a press outside) its `dismissed`
-flag is set: an overlay that must stay open sets `open` back to `true`
-then. As it opens it remembers the keyboard focus, and gives it back as it
-closes, so Tab goes on from the button that opened it.
+Whether an overlay shows is the app's state: a `ui.OverlayState` kept in
+the app's struct. The app opens it, and the widget closes it when the
+user dismisses it.
+
+- `OverlayState` has `show`, `close` and `toggle`, and the field `open`.
+- In the frame the user closed it (Escape, a press outside), its
+  `dismissed` flag is set. An overlay that must stay open sets `open`
+  back to `true` then.
+- As it opens it remembers the keyboard focus. It gives the focus back as
+  it closes, so Tab goes on from the button that opened it.
 
 ## Popovers
-
-`ui.popover(c, &state, anchor, opts)` shows a panel beside the element
-`anchor` (any `ui.Interaction`: a button's, a `ui.pressable`'s) while
-`state.open`, and returns null while it is closed. Its children follow,
-then the panel's `end`:
 
 ```zig
 const more = ui.button(c, "Edit name…", .{});
@@ -51,12 +54,19 @@ if (ui.popover(c, &s.pop, more, .{})) |p| {
 }
 ```
 
-A press outside the popover or Escape closes it, and the press goes on to
-what is under the pointer, as the web's popovers do: a press on another
-button closes the popover and presses that button, and a press on the
-anchor closes it as the anchor toggles it. Escape goes first to what is
-inside the panel (a select's open list, a field's own popover), then to
-the panel.
+`ui.popover(c, &state, anchor, opts)` shows a panel beside the element
+`anchor` while `state.open`. The anchor is any `ui.Interaction`: a
+button's, a `ui.pressable`'s. It returns null while closed. Its children
+follow, then the panel's `end`.
+
+**Closing**
+
+- A press outside the popover or Escape closes it. The press goes on to
+  what is under the pointer, as the web's popovers do.
+- So a press on another button closes the popover and presses that
+  button. A press on the anchor closes it as the anchor toggles it.
+- Escape goes first to what is inside the panel (a select's open list, a
+  field's own popover), then to the panel.
 
 `ui.PopoverOptions`:
 
@@ -71,13 +81,13 @@ the panel.
 | `max_width` | 360 | |
 | `bare` | false | no look of its own: style it with `Panel.style()` |
 
-Where there is no room on `side`, the panel goes on the other side; along
-it, it lines up at the start (or the end, where the start would leave the
-window) and is then moved inside the window, 4 points from its edges. The
-panel fades in over its first frames.
+**Placing**
 
-A bare popover has no background, border, radius or shadow. Its
-`Panel.style()` returns the panel box's `*ui.Style`, to give it your own:
+- Where there is no room on `side`, the panel goes on the other side.
+- Along that side, it lines up at the start, or at the end where the start
+  would leave the window.
+- It is then moved inside the window, 4 points from its edges.
+- The panel fades in over its first frames.
 
 ```zig
 if (ui.popover(c, &s.pop, more, .{ .bare = true })) |p| {
@@ -90,31 +100,39 @@ if (ui.popover(c, &s.pop, more, .{ .bare = true })) |p| {
 }
 ```
 
-## Tooltips
+A bare popover has no background, border, radius or shadow. Its
+`Panel.style()` returns the panel box's `*ui.Style`, to give it your own.
 
-`ui.tooltip(c, anchor, tip)` shows `tip` above the element `anchor`
-(below it where there is no room above), centered, once the pointer has
-rested on it for `0.6` seconds, or at once when it has the keyboard focus
-or another tip went less than `0.4` seconds ago, so moving along a
-toolbar shows each tip at once. It goes as the pointer leaves; a press on
-the element or Escape hides it until the pointer leaves and comes back.
-The pointer goes through it. The theme's `tooltip_delay` (seconds) changes
-the wait: 0 keeps 0.6 seconds, a negative delay shows tips at once, and the
-warm time follows at two thirds of it. Set it on `c.theme` around part of
-the view, as a toolbar, and those elements' tips wait as it says.
+## Tooltips
 
 ```zig
 const share = ui.button(c, "Share", .{});
 ui.tooltip(c, share, "Share with others");
 ```
 
-The tip is read to assistive technology after the element's name, shown
-or not. Its time is the context's clock, so a test advances the Tester's
-clock rather than waiting (see [Testing](testing.md)).
+`ui.tooltip(c, anchor, tip)` shows `tip` above the element `anchor`,
+centered. Where there is no room above, it shows below.
 
-A tip of your own: `ui.tooltipBase(c, anchor)` opens the tip's box and
-returns its node index while it shows, null otherwise; add its content,
-then `ui.tooltipEnd(c, anchor)`, which places it by its element.
+- It shows once the pointer has rested on the element for `0.6` seconds.
+- It shows at once when the element has the keyboard focus.
+- It also shows at once when another tip went less than `0.4` seconds
+  ago. So moving along a toolbar shows each tip at once.
+- It goes as the pointer leaves. A press on the element or Escape hides
+  it until the pointer leaves and comes back.
+- The pointer goes through it.
+- The tip is read to assistive technology after the element's name, shown
+  or not.
+- Its time is the context's clock, so a test advances the Tester's clock
+  rather than waiting (see [Testing](testing.md)).
+
+The theme's `tooltip_delay`, in seconds, changes the wait:
+
+- 0 keeps 0.6 seconds;
+- a negative delay shows tips at once;
+- the warm time follows at two thirds of it.
+
+Set it on `c.theme` around part of the view, as a toolbar. Those
+elements' tips then wait as it says.
 
 ```zig
 const info = ui.button(c, "Shortcuts", .{});
@@ -127,6 +145,10 @@ if (ui.tooltipBase(c, info)) |box| {
 }
 ```
 
+A tip of your own: `ui.tooltipBase(c, anchor)` opens the tip's box and
+returns its node index while it shows, null otherwise. Add its content,
+then call `ui.tooltipEnd(c, anchor)`, which places it by its element.
+
 ## Dialogs
 
 <!-- demo: overlays height=300 -->
@@ -134,10 +156,6 @@ if (ui.tooltipBase(c, info)) |box| {
 ![The Rename dialog above a dimmed view.](../images/ui/dialog.png)
 
 *The Rename dialog above a dimmed view.*
-
-`ui.dialog(c, &state, opts)` shows a panel centered over the dimmed
-window while `state.open`, and returns a `ui.Dialog` (null while closed),
-whose children follow, then `end`:
 
 ```zig
 if (ui.button(c, "Rename…", .{}).clicked) s.rename.show();
@@ -152,14 +170,20 @@ if (ui.dialog(c, &s.rename, .{})) |d| {
 }
 ```
 
-A dialog keeps the window to itself: its backdrop takes the pointer, a
-press on the backdrop closes the dialog unless `dismissible` is false,
-and Escape closes it (unless `escape` is false) once nothing inside took
-Escape first. The focus behind it is dropped as it opens and given back
-as it closes.
+`ui.dialog(c, &state, opts)` shows a panel centered over the dimmed
+window while `state.open`. It returns a `ui.Dialog`, null while closed.
+Its children follow, then `end`.
 
-Tab and Shift+Tab stay among its enabled controls. Set `trap_focus` to
-false only when the app supplies its own focus handling.
+A dialog keeps the window to itself:
+
+- Its backdrop takes the pointer.
+- A press on the backdrop closes the dialog, unless `dismissible` is
+  false.
+- Escape closes it, unless `escape` is false, once nothing inside took
+  Escape first.
+- The focus behind it is dropped as it opens and given back as it closes.
+- Tab and Shift+Tab stay among its enabled controls. Set `trap_focus` to
+  false only when the app supplies its own focus handling.
 
 `ui.DialogOptions`:
 
@@ -176,12 +200,6 @@ false only when the app supplies its own focus handling.
 
 ## Alert dialogs
 
-`ui.alertDialog(c, &state, title, message, buttons)` asks about something
-important, as AppKit's alerts do: a title, a message and a row of
-buttons, the last of which is the default, drawn in the accent color,
-which Enter clicks. Escape closes it choosing none; a press outside does
-nothing. Choosing a button closes it. It answers a `ui.AlertResult`:
-
 ```zig
 if (ui.button(c, "Delete…", .{ .variant = .danger }).clicked) s.alert.show();
 switch (ui.alertDialog(c, &s.alert, "Delete “Groceries”?", "You can't undo this.", &.{ "Cancel", "Delete" })) {
@@ -191,11 +209,24 @@ switch (ui.alertDialog(c, &s.alert, "Delete “Groceries”?", "You can't undo t
 }
 ```
 
-`.chosen` carries the index of the button clicked (the last one, for
-Enter); `.dismissed` means Escape closed it, as canceling does.
+`ui.alertDialog(c, &state, title, message, buttons)` asks about something
+important, as AppKit's alerts do. It shows a title, a message and a row
+of buttons.
 
-For the system's own message boxes, which block until answered and are
-drawn by the operating system, see `myzig.dialog` in [System](../system.md).
+- The last button is the default. It is drawn in the accent color, and
+  Enter clicks it.
+- Choosing a button closes the alert.
+- Escape closes it choosing none. A press outside does nothing.
+
+It answers a `ui.AlertResult`:
+
+- `.chosen` carries the index of the button clicked (the last one, for
+  Enter).
+- `.dismissed` means Escape closed it, as canceling does.
+
+For the system's own message boxes, see `myzig.dialog` in
+[System](../system.md). The operating system draws them, and they block
+until answered.
 
 ## Toasts
 
@@ -276,24 +307,34 @@ _ = s.toasts.add(.{ .title = "report.pdf uploaded", .kind = .success, .key = "up
 ## Building overlays of your own
 
 Popovers, menus, selects and comboboxes are made of the pieces in
-`ui.overlays` (`overlay_base.zig`), which a widget of your own can use:
+`ui.overlays` (`overlay_base.zig`). A widget of your own can use them.
+
+**Opening a box over the window**
 
 - `overlays.overlay(c, style, seed)` opens a box over the window
-  (`Context.openOverlay`) whose id comes from `seed`, so that the boxes
-  built after it keep their ids while it comes and goes: a tip showing
-  must not change the id of the button beside it. `overlays.seedOf(&state)`
-  makes a seed of the state's address.
+  (`Context.openOverlay`) whose id comes from `seed`.
+- So the boxes built after it keep their ids while it comes and goes. A
+  tip showing must not change the id of the button beside it.
+- `overlays.seedOf(&state)` makes a seed of the state's address.
+
+**Its state**
+
 - `OverlayState.sync(c)` notes the frame it opens in and gives the focus
-  back as it closes; it returns whether it shows. `justOpened(c)` is true
-  in its first frame, `record(c, lo)` notes the boxes it built, and
-  `pressedOutside(c, anchor_id)` says whether this frame's press landed
-  outside them and outside the anchor; `dismiss(c)` closes it as the user
-  did.
+  back as it closes. It returns whether it shows.
+- `justOpened(c)` is true in its first frame.
+- `record(c, lo)` notes the boxes it built.
+- `pressedOutside(c, anchor_id)` says whether this frame's press landed
+  outside them and outside the anchor.
+- `dismiss(c)` closes it as the user did.
+
+**Placing, keys and fading**
+
 - `overlays.attach(anchor, size, window, side, align, gap)` computes where
-  a panel goes, and `overlays.place(c, index, anchor, side, align, gap)`
-  measures the overlay box and moves it there, as a panel does as it ends;
-  one that scrolls is first cut to the room on the anchor's larger side
-  (`overlays.roomAlong`), where it scrolls.
+  a panel goes.
+- `overlays.place(c, index, anchor, side, align, gap)` measures the
+  overlay box and moves it there, as a panel does as it ends.
+- A panel that scrolls is first cut to the room on the anchor's larger
+  side (`overlays.roomAlong`), where it scrolls.
 - `overlays.takeKey(c, key)` takes a key from this event, so what is built
   later does not see it: the overlay on top takes Escape first.
 - `overlays.fadeIn(c, id, opened)` is the opacity of a panel fading in.

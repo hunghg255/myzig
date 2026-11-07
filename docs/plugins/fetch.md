@@ -1,8 +1,8 @@
 # fetch
 
-HTTP and HTTPS requests made by Zig (`std.http.Client`), for pages through
-a standard `fetch`, and from Zig with `fetch.perform`. Because the requests
-leave from Zig rather than from the webview:
+HTTP and HTTPS requests made by Zig (`std.http.Client`). Pages use a
+standard `fetch`; Zig uses `fetch.perform`. The requests leave from Zig
+rather than from the webview, so:
 
 - they are not subject to CORS: any server answers, and every response
   header is readable except `Set-Cookie`;
@@ -11,7 +11,7 @@ leave from Zig rather than from the webview:
 - the body streams to the page as Zig reads it, and aborting cancels the
   request in Zig.
 
-The package is `plugins/fetch` (module `fetch`); it depends on
+The package is `plugins/fetch` (module `fetch`). It depends on
 [mainthread](mainthread.md). See [Plugins](../plugins.md) for adding it to
 an app.
 
@@ -42,17 +42,17 @@ const reader = res.body.pipeThrough(new TextDecoderStream()).getReader(); // str
 ```
 
 - It takes `fetch`'s arguments (a URL, a `Request`, the options) and
-  returns a `Response`. Request bodies are read whole before the request
-  starts.
-- `redirect`: `"follow"` (the default, up to 20 redirects, setting
-  `redirected` and `url`), `"manual"` (the redirect response itself) or
-  `"error"`.
+  returns a `Response`.
+- Request bodies are read whole before the request starts.
+- `redirect` is `"follow"`, `"manual"` or `"error"`. `"follow"` is the
+  default: up to 20 redirects, setting `redirected` and `url`.
+  `"manual"` gives the redirect response itself.
 - A failed request (unreachable, TLS, too many redirects) rejects with a
-  `TypeError` whose message says why; a response of any status resolves.
+  `TypeError` whose message says why. A response of any status resolves.
 - Aborting the `signal` cancels the request, before or after its response
-  came; so does `res.body.cancel()`.
-- Zig reads no faster than the page: it waits while the page has more than
-  `window_bytes` of the body yet to read.
+  came. So does `res.body.cancel()`.
+- Zig reads no faster than the page. It waits while the page has more
+  than `window_bytes` of the body yet to read.
 - URLs that are not `http:` or `https:` go to the webview's own `fetch`.
 
 ### Options
@@ -75,12 +75,14 @@ A refused request rejects in the page (`NotAllowed`).
 
 ### How it works
 
-Each request runs on a task of the app's `Io` (`io.concurrent`). Its head,
-body chunks and end come back as `myzig-fetch` events, handed to the main
-thread with [mainthread](mainthread.md) and given to the window that asked,
-if it is still open. A page that navigates, reloads or closes cancels its
-requests, even one waiting for it to read its body. Cancelation
-is `Io`'s, so a request blocked on the network stops at once.
+- Each request runs on a task of the app's `Io` (`io.concurrent`).
+- Its head, body chunks and end come back as `myzig-fetch` events. They
+  are handed to the main thread with [mainthread](mainthread.md), then
+  to the window that asked, if it is still open.
+- A page that navigates, reloads or closes cancels its requests, even
+  one waiting for it to read its body.
+- Cancelation is `Io`'s, so a request blocked on the network stops at
+  once.
 
 ## From Zig
 
@@ -97,12 +99,18 @@ try fetch.perform(&client, arena, .{
 });
 ```
 
-A `fetch.Request` has `url`, `method` (GET, HEAD, POST, PUT, DELETE,
-OPTIONS, PATCH, TRACE, QUERY, in any case), `headers`, `body`, `redirect`
-(`.follow`, `.manual`, `.@"error"`) and `max_redirects` (20). The `Sink`'s
-`head` and `chunk` take its `ctx` as `*anyopaque`; header names come in
-lower case. `perform` blocks: run it on a thread or with `io.concurrent`,
-whose `cancel` stops it.
+| `fetch.Request` | |
+|---|---|
+| `url` | |
+| `method` | GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, QUERY, in any case |
+| `headers`, `body` | |
+| `redirect` | `.follow`, `.manual`, `.@"error"` |
+| `max_redirects` | 20 |
+
+- The `Sink`'s `head` and `chunk` take its `ctx` as `*anyopaque`.
+- Header names come in lower case.
+- `perform` blocks. Run it on a thread or with `io.concurrent`, whose
+  `cancel` stops it.
 
 ## Not yet
 
@@ -115,7 +123,7 @@ whose `cancel` stops it.
 ## Example and tests
 
 `example/` runs a small API on 127.0.0.1 (`example/api.zig`) and a page
-that fetches from it; `zig build run` shows it.
+that fetches from it. `zig build run` shows it.
 
 ```sh
 cd plugins/fetch
@@ -124,8 +132,13 @@ zig build test -Dpage=false  # without the page
 zig build check -Dtarget=x86_64-linux-gnu
 ```
 
-The tests cover headers (`Set-Cookie` dropped), bodies, the three redirect
-modes and redirect loops, streaming (the first chunk arrives before the
-server sends the second), cancelation while the server is silent, large
-bodies, unreachable servers and `HEAD`; the page test covers the same
-through the webview, with abort and backpressure.
+The tests cover:
+
+- headers (`Set-Cookie` dropped) and bodies;
+- the three redirect modes, and redirect loops;
+- streaming: the first chunk arrives before the server sends the second;
+- cancelation while the server is silent;
+- large bodies, unreachable servers and `HEAD`.
+
+The page test covers the same through the webview, with abort and
+backpressure.

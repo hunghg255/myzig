@@ -1,38 +1,47 @@
 <a id="the-frontend"></a>
 
-# Giao diện người dùng
+# Frontend
 
-Giao diện người dùng của trang là HTML, CSS và JavaScript, được viết bằng tay hoặc được xây dựng bằng bất kỳ công cụ nào (Vite, esbuild, của riêng một khung). myzig không yêu cầu gì ngoài những gì nó phục vụ: các tệp và client được tạo tại `/myzig.js`. Trang này nói về frontend của trang: thời gian chạy trang, cách frontend truy cập vào ứng dụng, máy chủ nhà phát triển, thanh tiêu đề và trình kiểm tra. Những gì ứng dụng thực hiện với một trang nằm trong [Trang](pages.md) và gọi Zig trong [Bindings](bindings.md).
+Frontend của một trang là HTML, CSS và JavaScript, viết tay hoặc build bằng bất kỳ công cụ nào (Vite, esbuild, công cụ riêng của một framework). myzig không đòi hỏi gì ở nó ngoài những thứ myzig phục vụ: các file, và client được sinh ở `/myzig.js`.
+
+Trang này nói về phía frontend của một trang: runtime của trang, cách đưa frontend vào app, dev server, thanh tiêu đề, và inspector. App làm gì với một trang thì xem ở [Trang](pages.md). Gọi Zig thì xem ở [Binding](bindings.md).
 
 <a id="the-page-runtime"></a>
 
-## Thời gian chạy trang
+## Runtime của trang
 
-Mọi tài liệu trong khung chính của trang đều nhận được cầu nối (`src/bridge.js`) trước khi chạy tập lệnh của chính nó. Nó định nghĩa `window.myzig`:
+Mọi document trong main frame của trang đều được nạp bridge (`src/bridge.js`) trước khi script của chính nó chạy. Bridge định nghĩa `window.myzig`:
 
 | | |
 |---|---|
-| `myzig.call(method, ...args)` | gọi `"Service.method"`; lời hứa về kết quả ([Bindings](bindings.md)) |
-| `myzig.on(event, fn)` | lắng nghe một sự kiện; trả về một hàm dừng nghe |
-| `myzig.once(event, fn)` | tương tự, chỉ dành cho cái tiếp theo |
-| `myzig.Channel` | `new myzig.Channel(onmessage?)` tạo một kênh để truyền tới một phương thức |
-| `myzig.onChannel(kind, fn)` | mở các kênh thuộc loại Zig |
-| `myzig.log(...values)` | in `page: ...` vào stderr của ứng dụng (các chuỗi như hiện tại, phần còn lại là JSON) |
+| `myzig.call(method, ...args)` | gọi `"Service.method"`; trả về promise của kết quả ([Binding](bindings.md)) |
+| `myzig.on(event, fn)` | lắng nghe một event; trả về hàm để ngừng lắng nghe |
+| `myzig.once(event, fn)` | như trên, nhưng chỉ cho lần kế tiếp |
+| `myzig.Channel` | `new myzig.Channel(onmessage?)` tạo một channel để truyền vào method |
+| `myzig.onChannel(kind, fn)` | nhận các channel thuộc một loại mà Zig mở ra |
+| `myzig.log(...values)` | in `page: ...` ra stderr của app (chuỗi giữ nguyên, phần còn lại dạng JSON) |
 | `myzig.window.close()`, `.minimize()`, `.toggleMaximize()`, `.setTitle(title)` | cửa sổ của trang |
 | `myzig.platform` | `"macos"`, `"linux"` hoặc `"windows"` |
-| `myzig.version` | Phiên bản của myzig |
+| `myzig.version` | phiên bản của myzig |
 
-`window.myzig` bị đóng băng và không thể thay thế được. Ứng dụng khách được tạo sẽ xuất lại nó (`import { myzig, Channel } from "/myzig.js"`) bên cạnh các dịch vụ, sự kiện và loại kênh của ứng dụng, vì vậy mô-đun không cần gì khác. `myzig.d.ts` tuyên bố tất cả.
+- `window.myzig` đã bị đóng băng và không thay thế được.
+- Client được sinh re-export nó (`import { myzig, Channel } from "/myzig.js"`) cùng với các service, event và loại channel của app. Module không cần import gì thêm.
+- `myzig.d.ts` khai báo toàn bộ những thứ đó.
 
-Cây cầu này cũng cho ứng dụng biết khi nào DOM sẵn sàng (`dom_ready`, sau đó các sự kiện được tổ chức sẽ đến), tìm văn bản cho `Page.findInPage`, giải quyết các tập lệnh của `evalResult` và di chuyển các cửa sổ không khung theo [vùng kéo](#title-bars) của chúng.
+Bridge còn:
 
-Các trang của ứng dụng có thể cho biết họ đang sử dụng nền tảng nào và có điểm gì khác biệt: sơ đồ của ứng dụng là `myzig://localhost/` trên macOS và Linux và `http://myzig.localhost/` trên Windows ([Trang](pages.md#schemes-of-the-app)). URL tương đối hoạt động ở mọi nơi và đơn giản nhất.
+- báo cho app khi DOM sẵn sàng (`dom_ready`, sau đó các event đang giữ mới được gửi tới);
+- tìm chữ cho `Page.findInPage`;
+- hoàn tất các script của `evalResult`;
+- di chuyển cửa sổ không viền qua các [vùng kéo](#title-bars).
+
+Scheme của app khác nhau theo nền tảng: `myzig://localhost/` trên macOS và Linux, `http://myzig.localhost/` trên Windows ([Trang](pages.md#schemes-of-the-app)). Trang có thể biết mình đang chạy trên nền tảng nào, cho những chỗ khác nhau. URL tương đối chạy được ở mọi nơi và đơn giản nhất.
 
 <a id="a-frontend-of-plain-files"></a>
 
-## Giao diện người dùng của các tập tin đơn giản
+## Frontend chỉ gồm file tĩnh
 
-Giao diện người dùng nhỏ nhất là các tệp được nhúng trong hệ nhị phân, như `examples/hello` thực hiện:
+Frontend nhỏ nhất là các file nhúng vào binary, như `examples/hello`:
 
 ```zig
 const assets = [_]myzig.Asset{
@@ -52,18 +61,19 @@ _ = try app.newWindow(.{ .title = "Hello", .content = .{ .page = .{ .url = "/", 
 import { Greeter } from "/myzig.js";
 ```
 
-Ứng dụng này tự phục vụ `/myzig.js` nên nó không phải là tài sản. Quá trình nhập mô-đun của trình duyệt, `fetch`, công nhân và WebAssembly đều hoạt động chống lại sơ đồ của ứng dụng, vốn là một nguồn gốc an toàn.
+- App tự phục vụ `/myzig.js`, nên nó không phải là asset.
+- Scheme của app là một origin an toàn. Module import, `fetch`, worker và WebAssembly của trình duyệt đều chạy được trên đó.
 
 <a id="a-built-frontend"></a>
 
-## Một frontend được xây dựng
+## Frontend có bước build
 
-Một ứng dụng được tạo bằng `myzig init --template web` ([Bắt đầu](getting-started.md)) nhúng toàn bộ thư mục: `build.zig` của nó nhập một mô-đun, `assets`, từ `<frontend>/myzig_assets.zig`, liệt kê mọi tệp của thư mục có `@embedFile` và ứng dụng chuyển `&assets.files`:
+App tạo bằng `myzig init --template web` ([Bắt đầu](getting-started.md)) nhúng cả một thư mục:
 
 ```zig
 const assets = @import("assets");
 
-// `myzig dev` points the window at the dev server, when there is one.
+// `myzig dev` trỏ cửa sổ tới dev server, nếu có.
 const url = init.environ_map.get("MYZIG_DEV_URL") orelse "/";
 _ = try app.newWindow(.{
     .title = "My App",
@@ -71,52 +81,75 @@ _ = try app.newWindow(.{
 });
 ```
 
-CLI ghi `myzig_assets.zig` bất cứ khi nào tệp thay đổi (`myzig generate`, `dev` và `build`), vì vậy, việc thêm tệp vào frontend không cần Zig. Nó loại bỏ chính mô-đun, client được tạo, tệp dấu chấm và `node_modules`.
+- `build.zig` của nó import một module, `assets`, từ `<frontend>/myzig_assets.zig`. Module này liệt kê mọi file trong thư mục bằng `@embedFile`.
+- App truyền vào `&assets.files`.
+- CLI viết lại `myzig_assets.zig` mỗi khi file thay đổi (`myzig generate`, `dev` và `build`). Thêm file vào frontend không cần đụng tới Zig.
+- Nó bỏ qua chính module này, client được sinh, file bắt đầu bằng dấu chấm và `node_modules`.
 
-Với công cụ xây dựng, `myzig.zon` của ứng dụng cho biết nguồn của frontend ở đâu, nơi xây dựng nó và cách chạy cả hai:
+Khi dùng công cụ build, `myzig.zon` của app cho biết mã nguồn frontend ở đâu, bản build ra đâu, và cách chạy cả hai:
 
 ```zig
 .{
     .name = "My App",
-    .frontend = "frontend",            // the sources (the client is written here)
-    .frontend_dist = "frontend/dist",  // what build.zig embeds (-Dfrontend=...)
+    .frontend = "frontend",            // mã nguồn (client được viết vào đây)
+    .frontend_dist = "frontend/dist",  // thứ build.zig nhúng vào (-Dfrontend=...)
     .dev_url = "http://localhost:5173",
     .dev_command = "bun run dev",
     .build_command = "bun run build",
 }
 ```
 
-`myzig build` chạy `build_command` trước, sau đó nhúng `frontend_dist`. Các trường được mô tả trong [Cấu hình](configuration.md).
+`myzig build` chạy `build_command` trước, rồi nhúng `frontend_dist`. Các trường được mô tả ở [Cấu hình](configuration.md).
 
-Các ứng dụng một trang có định tuyến phía client hoạt động như cũ: một đường dẫn không có phần mở rộng và không có tệp (`/settings/profile`) được trả lời bằng `/index.html`. Sử dụng đường dẫn tuyệt đối cho nội dung (`/assets/app.js`) hoặc cơ sở của gói `/`.
+App một trang có routing phía client chạy được ngay:
+
+- Đường dẫn không có phần mở rộng và không phải file (`/settings/profile`) được trả lời bằng `/index.html`.
+- Dùng đường dẫn tuyệt đối cho asset (`/assets/app.js`), hoặc đặt base của bundler là `/`.
 
 <a id="dev-servers"></a>
 
-## Máy chủ nhà phát triển
+## Dev server
 
-Trong khi bạn làm việc ở frontend, máy chủ nhà phát triển sẽ tải lại nó khi bạn chỉnh sửa. Một trang có máy chủ nhà phát triển tải các đường dẫn của frontend từ trang đó: `"/"` là gốc của máy chủ và `"/settings"` `/settings` của nó, trong khi các URL tuyệt đối vẫn tải như cũ. Máy chủ dev đến từ:
+Khi bạn làm frontend, dev server tự reload mỗi khi bạn sửa. Trang có dev server nạp các đường dẫn của frontend từ server đó:
 
-- biến môi trường `MYZIG_DEV_URL`, mà `myzig dev` đặt từ `dev_url` sau khi khởi động `dev_command` và chờ máy chủ trả lời;
-- khác `PageOptions.dev_url`.
+- `"/"` là gốc của server, và `"/settings"` là `/settings` của nó.
+- URL tuyệt đối vẫn nạp như bình thường.
 
-Nguồn gốc của máy chủ nhà phát triển là [đáng tin cậy](pages.md#trust), vì vậy các trang của nó gọi các dịch vụ bị ràng buộc như cách làm của chính ứng dụng. Các mô-đun của nó cũng nhập client dưới dạng `/myzig.js`: `myzig dev` ghi nó vào `frontend`, nơi máy chủ phục vụ nó. Với máy chủ nhà phát triển, `myzig dev` để lại các tệp của frontend cho nó, đồng thời chỉ xây dựng lại và khởi động lại ứng dụng khi Zig thay đổi ([CLI](cli.md)).
+Dev server được lấy từ, theo thứ tự ưu tiên:
 
-Nếu không có máy chủ, `MYZIG_ASSETS_DIR` (hoặc `PageOptions.assets_dir`) sẽ phục vụ một thư mục của ổ đĩa trước nội dung được nhúng, do đó, việc tải lại trang sẽ chọn các tệp đã chỉnh sửa mà không cần xây dựng lại ứng dụng.
+1. biến môi trường `MYZIG_DEV_URL`. `myzig dev` đặt nó từ `dev_url` sau khi chạy `dev_command` và chờ server trả lời;
+2. `PageOptions.dev_url`.
+
+Cách nó hoạt động:
+
+- Origin của dev server được [tin cậy](pages.md#trust). Trang của nó gọi các service đã bind giống như trang của chính app.
+- Module của nó cũng import client qua `/myzig.js`. `myzig dev` viết file này vào `frontend`, nơi server phục vụ nó.
+- Khi có dev server, `myzig dev` để server lo các file frontend. Nó chỉ build lại và khởi động lại app khi Zig thay đổi ([CLI](cli.md)).
+
+Khi không có server, `MYZIG_ASSETS_DIR` (hoặc `PageOptions.assets_dir`) phục vụ một thư mục trên đĩa, ưu tiên hơn asset đã nhúng. Khi đó reload trang là thấy file đã sửa mà không cần build lại app.
 
 <a id="title-bars"></a>
 
 ## Thanh tiêu đề
 
-Một cửa sổ có `.title_bar = .hidden` cho phép trang lấp đầy cửa sổ, dưới các điều khiển cửa sổ của hệ thống; một cái có `.title_bar = .frameless` không có thanh tiêu đề và không có điều khiển nào cả ([Cửa sổ](windows.md)). Dù bằng cách nào, trang sẽ vẽ thanh tiêu đề của riêng mình và cho biết phần nào của nó di chuyển cửa sổ với thuộc tính tùy chỉnh CSS `--app-region`:
+| `title_bar` | |
+|---|---|
+| `.hidden` | trang phủ kín cửa sổ, nằm dưới các nút điều khiển cửa sổ của hệ thống |
+| `.frameless` | không có thanh tiêu đề và không có nút điều khiển nào ([Cửa sổ](windows.md)) |
+
+Trong cả hai trường hợp, trang tự vẽ thanh tiêu đề. Thuộc tính CSS tùy biến `--app-region` cho biết phần nào kéo được cửa sổ:
 
 ```css
-header { --app-region: drag; height: 38px; padding-left: 80px; /* clear of macOS's traffic lights */ }
+header { --app-region: drag; height: 38px; padding-left: 80px; /* chừa chỗ cho các nút đèn giao thông của macOS */ }
 header button, header input { --app-region: no-drag; }
 ```
 
-Việc nhấn nút chính trên một phần tử có tổ tiên gần nhất (hoặc chính nó) với `--app-region` cho biết `drag` sẽ di chuyển cửa sổ và nhấp đúp sẽ phóng to nó như thanh tiêu đề; `no-drag` giữ các điều khiển bên trong vùng kéo có thể nhấp được. Thuộc tính tùy chỉnh kế thừa, do đó, một quy tắc sẽ bao trùm toàn bộ thanh.
+- Bấm nút chính sẽ kéo cửa sổ khi phần tử đó, hoặc phần tử cha gần nhất có `--app-region`, ghi `drag`.
+- Bấm đúp ở đó sẽ phóng to cửa sổ, như thanh tiêu đề thật.
+- `no-drag` giữ cho các control trong vùng kéo vẫn bấm được.
+- Thuộc tính tùy biến được kế thừa, nên một quy tắc là đủ cho cả thanh.
 
-Các nút riêng của cửa sổ không khung gọi thời gian chạy:
+Các nút riêng của cửa sổ không viền gọi runtime:
 
 ```html
 <button onclick="myzig.window.minimize()">–</button>
@@ -124,42 +157,56 @@ Các nút riêng của cửa sổ không khung gọi thời gian chạy:
 <button onclick="myzig.window.close()">×</button>
 ```
 
-`myzig.window.setTitle(title)` đặt tiêu đề của cửa sổ (những gì Dock, thanh tác vụ và bộ chuyển đổi cửa sổ hiển thị) và `<title>` của tài liệu cũng vậy thông qua sự kiện `title_changed` khi ứng dụng lắng nghe nó.
+`myzig.window.setTitle(title)` đặt tiêu đề cửa sổ: thứ mà Dock, taskbar và trình chuyển cửa sổ hiển thị. `<title>` của document cũng làm vậy, qua event `title_changed`, khi app lắng nghe event này.
 
 <a id="appearance"></a>
 
-## Ngoại hình
+## Giao diện sáng/tối
 
-Các lượt xem web tuân theo giao diện sáng hoặc tối của hệ thống: khai báo `color-scheme: light dark` và sử dụng `prefers-color-scheme` truy vấn phương tiện, đồng thời trang sẽ thay đổi theo hệ thống. Ứng dụng có thể đọc nó bằng `myzig.isDark()` và màu nhấn bằng `myzig.accentColor()` ([System](system.md)) và chuyển chúng trong một sự kiện.
+Webview theo giao diện sáng hoặc tối của hệ thống. Khai báo `color-scheme: light dark` và dùng media query `prefers-color-scheme`, trang sẽ đổi theo hệ thống.
+
+App đọc được giao diện bằng `myzig.isDark()` và màu accent bằng `myzig.accentColor()` ([Hệ thống](system.md)). App có thể gửi chúng sang trang qua một event.
 
 <a id="links-and-new-windows"></a>
 
 ## Liên kết và cửa sổ mới
 
-`window.open` và các liên kết với `target="_blank"` tiếp cận ứng dụng dưới dạng sự kiện trang `new_window`. Trừ khi người nghe xử lý nó, các URL `http` và `https` sẽ mở trong trình duyệt của hệ thống, đây là điều mà hầu hết các ứng dụng đều muốn có đối với các liên kết bên ngoài. Thay vào đó, người nghe có thể mở một cửa sổ riêng hoặc hủy điều hướng của chính trang đó bằng `will_navigate` ([Trang](pages.md#page-events)).
+`window.open` và liên kết có `target="_blank"` tới app dưới dạng event `new_window` của trang.
+
+- Nếu không có listener xử lý, URL `http` và `https` mở trong trình duyệt của hệ thống. Phần lớn app muốn vậy với liên kết ngoài.
+- Listener có thể mở một cửa sổ riêng thay vào đó.
+- `will_navigate` có thể hủy việc điều hướng của chính trang ([Trang](pages.md#page-events)).
 
 <a id="scripts-of-the-app"></a>
 
-## Kịch bản của ứng dụng
+## Script của app
 
-`PageOptions.user_scripts` và `Page.addUserScript` thêm tập lệnh mỗi tài liệu chạy, sau cầu nối và trước tập lệnh riêng của tài liệu (hoặc khi DOM của nó đã sẵn sàng, với `at_document_end`): dành cho các kiểu được đưa vào một trang từ xa hoặc toàn cầu mà frontend mong đợi.
+`PageOptions.user_scripts` và `Page.addUserScript` thêm script mà mọi document đều chạy:
+
+- sau bridge và trước script của chính document;
+- hoặc khi DOM sẵn sàng, với `at_document_end`.
+
+Dùng chúng để chèn style vào một trang từ xa, hoặc tạo biến toàn cục mà frontend cần.
 
 <a id="the-web-inspector"></a>
 
-## Thanh tra web
+## Web inspector
 
-Các trang có thể được kiểm tra trừ khi `PageOptions.inspectable` là false: nhấp chuột phải > Kiểm tra phần tử sẽ mở trình kiểm tra của công cụ (Trình kiểm tra web trên macOS, WebKit trên Linux, Edge DevTools trên Windows) và `page.openDevTools()` mở nó từ Zig. Trên macOS đi qua API riêng tư của WebKit, API này có thể biến mất. Tắt nó trong các bản phát hành không nên có nó.
+Trang có thể inspect được, trừ khi `PageOptions.inspectable` là false.
 
-`console.log` đến gặp thanh tra; `myzig.log` đi tới stderr của ứng dụng, nơi các bài kiểm tra sẽ đọc nó.
+- Chuột phải > Inspect Element mở inspector của engine: Web Inspector trên macOS, inspector của WebKit trên Linux, Edge DevTools trên Windows.
+- `page.openDevTools()` mở nó từ Zig. Trên macOS việc này đi qua một API riêng của WebKit, có thể bị gỡ bỏ.
+- Hãy tắt nó trong các bản release không nên có.
+- `console.log` ghi vào inspector. `myzig.log` ghi ra stderr của app, nơi test đọc.
 
 <a id="testing-the-frontend"></a>
 
-## Kiểm tra frontend
-
-Chạy ứng dụng với `--myzig-eval=JS`: mỗi trang đánh giá `JS` sau khi DOM của nó sẵn sàng, không có cửa sổ trên màn hình và quá trình chạy kết thúc khi trang gọi `myzig.window.close()`.
+## Test frontend
 
 ```sh
 zig-out/bin/hello --myzig-eval='import("/myzig.js").then(async ({ Greeter }) => { myzig.log(await Greeter.greet("Ada")); myzig.window.close() })'
 ```
 
-`zig build test-pages` chạy `examples/hello` theo cách này và `examples/pages` với `--myzig-hidden`, mỗi lần kiểm tra `page: ok` trong stderr ([Trang](pages.md#testing-pages)).
+Chạy app với `--myzig-eval=JS`. Mỗi trang chạy `JS` khi DOM sẵn sàng, không có cửa sổ nào trên màn hình. Lần chạy kết thúc khi trang gọi `myzig.window.close()`.
+
+`zig build test-pages` chạy `examples/hello` theo cách này, và `examples/pages` với `--myzig-hidden`. Mỗi lần chạy kiểm tra có `page: ok` trong stderr ([Trang](pages.md#testing-pages)).

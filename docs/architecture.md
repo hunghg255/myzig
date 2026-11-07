@@ -1,13 +1,12 @@
 # myzig architecture
 
-This guide describes how myzig is put together: its layers, how it picks a
-platform, its threading model, how it calls native code without C, and the
-rules every file follows. Read it before changing code. Three companion
-pages go deeper:
+How myzig is put together: its layers, how it picks a platform, its
+threading model, how it calls native code without C, and the rules every
+file follows. Read it before changing code. Three pages go deeper:
 
 - [IPC and TypeScript generation](architecture-ipc.md): the wire protocol
-  between a page's runtime (`src/bridge.js`) and Zig, the outbox, channels,
-  the app's schemes, and the client generated from Zig types.
+  between a page's runtime (`src/bridge.js`) and Zig, the outbox,
+  channels, the app's schemes, and the client generated from Zig types.
 - [Rendering](architecture-rendering.md): native UI's pipeline (context,
   layout, paint, frame), the renderers (Metal, Direct3D 11, OpenGL,
   WebGL 2 and the CPU), the CPU twin that proves them, text, atlases and
@@ -21,46 +20,51 @@ pages go deeper:
 
 ![Framework layers: application, public API, shared behavior, two UI paths and platform adapters. Plugins use the public API; the CLI is separate tooling.](images/architecture-overview.svg)
 
-Start at the top: your app calls `src/myzig.zig`, which exposes shared
-contracts and the backend selected at compile time. Below the shared
-code, follow the window's content: a **web page** uses typed IPC and the
-system webview; a **native view** uses myzig's own layout and renderer.
-These are cooperating components, not a chain every API call traverses:
-desktop services such as menus and dialogs go directly to their platform
-adapters. Plugins consume the public API; the CLI creates and builds apps.
+- Your app calls `src/myzig.zig`. It exposes shared contracts and the
+  backend selected at compile time.
+- Below the shared code, the path depends on the window's content. A
+  **web page** uses typed IPC and the system webview. A **native view**
+  uses myzig's own layout and renderer.
+- These are cooperating components, not a chain every call traverses.
+  Desktop services such as menus and dialogs go straight to their
+  platform adapters.
+- Plugins consume the public API. The CLI creates and builds apps.
 
 The browser target runs native UI through `src/web/host.js` and WebGL 2.
 The desktop webview IPC path is not a browser backend feature. A desktop
-app can have both page windows and native UI windows, and native UI can
-also embed a webview with the [web view widget](ui/web-view.md).
+app can have both page windows and native UI windows. Native UI can also
+embed a webview with the [web view widget](ui/web-view.md).
 
 For the details, follow [a page calling Zig](architecture-ipc.md) or
 [a native view becoming pixels](architecture-rendering.md). The
-[standalone diagram sheet](public/architecture-diagrams.html) contains all
-three diagrams in one HTML file that can be opened offline.
+[standalone diagram sheet](public/architecture-diagrams.html) holds all
+three diagrams in one HTML file that opens offline.
 
 ## Goals and constraints
 
-- **One Zig program per app.** An app is a single binary (about 0.7 MB for
-  the counter in `ReleaseSmall`) with no runtime to install beyond what
-  the system has: AppKit and WebKit on macOS, GTK 3 (and WebKitGTK for
-  pages) on Linux, Win32 (and the WebView2 Runtime for pages) on Windows,
-  a browser for the web target.
-- **No C.** No `@cImport`, no `.c` or `.m` files, no shims. Native code is
-  declared in Zig (`extern`) or loaded at run time (`dlopen`/`dlsym`,
-  `GetProcAddress`), so Linux and Windows build from any machine with
-  `-Dtarget=...` (macOS links its frameworks from the SDK).
+- **One Zig program per app.** An app is a single binary, about 0.7 MB
+  for the counter in `ReleaseSmall`. It needs no runtime beyond what the
+  system has:
+  - macOS: AppKit and WebKit.
+  - Linux: GTK 3, and WebKitGTK for pages.
+  - Windows: Win32, and the WebView2 Runtime for pages.
+  - The web target: a browser.
+- **No C.** No `@cImport`, no `.c` or `.m` files, no shims. Native code
+  is declared in Zig (`extern`) or loaded at run time (`dlopen`/`dlsym`,
+  `GetProcAddress`). So Linux and Windows build from any machine with
+  `-Dtarget=...`. macOS links its frameworks from the SDK.
 - **Nothing polls.** Frames are drawn on input, on resize, or while an
-  animation runs; replies and events reach pages in one batch per turn of
-  the main loop; an idle app uses no CPU.
-- **Zig 0.17.** `build.zig.zon` says `minimum_zig_version = "0.17.0"`;
-  code uses its APIs (`std.process.Init`, `std.Io`, `std.lang.Type`'s
-  `field_names`, `field_types` and `decl_names`).
-- **Every file is at most 600 lines**, sources, scripts, shaders and these
-  docs alike. `zig build lines` (`tools/lines.zig`) checks it. A file that
-  would grow past the limit is split by responsibility first: a widget
-  set, a backend concern, a layout pass. The only exception is upstream
-  license text kept verbatim in `third_party/licenses/`.
+  animation runs. Replies and events reach pages in one batch per turn
+  of the main loop. An idle app uses no CPU.
+- **Zig 0.17.** `build.zig.zon` says `minimum_zig_version = "0.17.0"`.
+  Code uses its APIs: `std.process.Init`, `std.Io`, and `std.lang.Type`'s
+  `field_names`, `field_types` and `decl_names`.
+- **Every file is at most 600 lines**: sources, scripts, shaders and
+  these docs alike. `zig build lines` (`tools/lines.zig`) checks it.
+  - A file that would grow past the limit is split by responsibility
+    first: a widget set, a backend concern, a layout pass.
+  - The only exception is upstream license text kept verbatim in
+    `third_party/licenses/`.
 
 ## Layers
 
@@ -73,31 +77,34 @@ From the app down:
    `file_watch`, and so on. It holds no behavior of its own.
 2. **Shared, platform-free code.** What every backend does the same way
    lives in files named after the concern, with no OS calls:
-   `app_types.zig` and `app_common.zig` (options, handlers, the launch's
-   arguments), `window_types.zig` (window and page options, `Asset`,
-   events, title bars), `page_types.zig`, `page_core.zig`,
-   `page_channel.zig`, `page_serve.zig` and `page_find.zig` (what pages
-   share: trust, evaluation, channels, serving schemes, finding),
-   `ipc.zig`, `bindings.zig`, `channel.zig` and `tsgen.zig` (typed IPC),
-   `menu_types.zig`, `dialog_types.zig`, `tray_types.zig`,
-   `documents.zig` and the `document_*.zig` files, `transfer.zig`,
-   `window_state.zig`, `paths.zig`, `i18n/`, `l10n/` and `audio/`'s mixer.
+   - `app_types.zig` and `app_common.zig`: options, handlers, the
+     launch's arguments.
+   - `window_types.zig`: window and page options, `Asset`, events, title
+     bars.
+   - `page_types.zig`, `page_core.zig`, `page_channel.zig`,
+     `page_serve.zig` and `page_find.zig`: what pages share. That is
+     trust, evaluation, channels, serving schemes and finding.
+   - `ipc.zig`, `bindings.zig`, `channel.zig` and `tsgen.zig`: typed IPC.
+   - `menu_types.zig`, `dialog_types.zig`, `tray_types.zig`,
+     `documents.zig` and the `document_*.zig` files, `transfer.zig`,
+     `window_state.zig`, `paths.zig`, `i18n/`, `l10n/` and `audio/`'s
+     mixer.
 3. **Native UI**, `src/ui/`. Views, the box tree, layout, paint and the
-   renderers. It knows nothing of windows: a frame is built from a
-   `ui.View`, a size, a scale and a theme (`ui/frame.zig`), and the same
+   renderers. It knows nothing of windows. A frame is built from a
+   `ui.View`, a size, a scale and a theme (`ui/frame.zig`). The same
    function serves windows and the headless `ui.Tester`.
 4. **The platform backends**, which translate the shared types into
    native calls:
    - macOS: files at the top of `src/` (`app.zig`, `window.zig`,
      `page.zig`, `menu.zig`, `tray.zig`, `dialog.zig`, `desktop.zig`,
-     `*_mac.zig`) and `ui/surface.zig`, `ui/metal.zig`, `ui/text_mac.zig`,
-     `ui/access_mac.zig`.
+     `*_mac.zig`) and `ui/surface.zig`, `ui/metal.zig`,
+     `ui/text_mac.zig`, `ui/access_mac.zig`.
    - Linux: `src/linux/` (GTK 3, WebKitGTK, D-Bus, AT-SPI, xdg).
    - Windows: `src/windows/` (Win32, COM, WebView2, UI Automation, OLE
      drag and drop, the registry, jump lists).
    - Browsers: `src/web/` (wasm32-wasi; the page's host in `host.js`).
-   - `platform.zig` holds the few things below the UI that differ by OS
-     (running the loop for a while, the clipboard for the Tester's peers).
+   - `platform.zig` holds the few things below the UI that differ by OS:
+     running the loop for a while, the clipboard for the Tester's peers.
 5. **Plugins**, `plugins/<name>`: packages of their own (`build.zig.zon`
    depending on myzig) that use only the public API: fetch, websocket,
    sqlite, watch, updater, terminal, glass, game and mainthread. See
@@ -105,10 +112,10 @@ From the app down:
 6. **The CLI**, `cli/`: `myzig init`, `dev`, `build`, `generate`, `icon`,
    `doctor`, a program of its own. See [the CLI](cli.md).
 
-New behavior goes into the shared layer first; a backend only does what
+New behavior goes into the shared layer first. A backend only does what
 must be native. A feature that exists on one platform gets a declaration
-on the others too (doing nothing, or returning `null` or `false`), so
-apps compile everywhere.
+on the others too, doing nothing or returning `null` or `false`. So apps
+compile everywhere.
 
 ### Choosing the platform
 
@@ -136,14 +143,15 @@ pub const App = plat.app.App;
 pub const Window = plat.window.Window;
 ```
 
-Each backend's `App` and `Window` therefore have the same public methods
-and the same options types (they come from `app_types.zig` and
-`window_types.zig`), and `myzig.App` is a concrete type, not an
-interface: calls are direct and the linker drops what an app never calls.
-Where a backend lacks a part, the public API says so in its type:
-`myzig.FlyoutOptions` is `void` where `App` has no `FlyoutOptions`;
-`myzig.systemDrag(win)` returns `null` where there is no system drag
-source; `myzig.objc` is an empty struct off macOS.
+- Each backend's `App` and `Window` have the same public methods and the
+  same option types, from `app_types.zig` and `window_types.zig`.
+- `myzig.App` is a concrete type, not an interface. Calls are direct,
+  and the linker drops what an app never calls.
+- Where a backend lacks a part, the public API says so in its type:
+  - `myzig.FlyoutOptions` is `void` where `App` has no `FlyoutOptions`.
+  - `myzig.systemDrag(win)` returns `null` where there is no system drag
+    source.
+  - `myzig.objc` is an empty struct off macOS.
 
 Native UI chooses its text and renderer the same way. `ui/text.zig` sets
 
@@ -151,66 +159,77 @@ Native UI chooses its text and renderer the same way. `ui/text.zig` sets
 pub const portable = options.portable or builtin.os.tag != .macos;
 ```
 
-so macOS uses CoreText and Metal, and everything else (and macOS built
-with `-Dportable=true`) uses myzig's TrueType reader (`ui/tt/`), the
-glyph atlas in memory (`ui/atlas_tt.zig`) and line icons
-(`ui/icons.zig`). The build option `inspector` (on in Debug) decides
-whether the native UI inspector is compiled in at all.
+- macOS uses CoreText and Metal.
+- Everything else, and macOS built with `-Dportable=true`, uses myzig's
+  TrueType reader (`ui/tt/`), the glyph atlas in memory
+  (`ui/atlas_tt.zig`) and line icons (`ui/icons.zig`).
+- The build option `inspector` (on in Debug) decides whether the native
+  UI inspector is compiled in at all.
 
 ## Threading model
 
-AppKit, WebKit, GTK, Win32 windows and the native UI all run on **the main
-thread**, and so does everything myzig calls on the app's behalf: bound
-service methods, event and window callbacks, menu clicks, views. App state
-needs no locks as long as other threads hand their results to the main
-thread rather than touching it.
+AppKit, WebKit, GTK, Win32 windows and the native UI all run on **the
+main thread**. So does everything myzig calls on the app's behalf: bound
+service methods, event and window callbacks, menu clicks, views. App
+state needs no locks, as long as other threads hand their results to the
+main thread rather than touching it.
 
 What crosses threads:
 
 - `Event.emit(window, payload)` is safe from any thread. It encodes the
   payload where it is called and posts it to the window's thread:
-  `objc.dispatchMain` on macOS, `g_idle_add` on Linux, `PostMessageW` to
-  the window on Windows (`Window.sendOwned`). `Event.broadcast` and
-  `Channel` are main thread only.
+  - macOS: `objc.dispatchMain`.
+  - Linux: `g_idle_add`.
+  - Windows: `PostMessageW` to the window (`Window.sendOwned`).
+
+  `Event.broadcast` and `Channel` are main thread only.
 - The `mainthread` plugin gives plugins and apps one queue onto the main
-  thread from anywhere (`mainthread.post(job, Job.run)`): libdispatch's
-  main queue, GLib's default context, or a message-only window. Jobs run
-  in order; nothing polls. The fetch, websocket, sqlite and watch plugins
-  deliver their threads' results through it.
-- Audio output runs on the system's audio thread (AudioQueue, PulseAudio,
-  WASAPI); `audio/mixer.zig` is what crosses between it and the app.
+  thread from anywhere: `mainthread.post(job, Job.run)`.
+  - It uses libdispatch's main queue, GLib's default context, or a
+    message-only window.
+  - Jobs run in order; nothing polls.
+  - The fetch, websocket, sqlite and watch plugins deliver their
+    threads' results through it.
+- Audio output runs on the system's audio thread (AudioQueue,
+  PulseAudio, WASAPI). `audio/mixer.zig` is what crosses between it and
+  the app.
 
-Never block the main thread waiting for work that needs it: a bound
-method that has to wait (an HTTP response, a child process) returns at
-once and answers through an event or a channel later.
+Never block the main thread waiting for work that needs it. A bound
+method that has to wait, for an HTTP response or a child process, returns
+at once. It answers later through an event or a channel.
 
-Objects a callback may still reach after they are torn down free
-themselves when that callback runs: a page with a flush scheduled sets
-`dead` and is destroyed by the flush (`page.zig`), and a `Surface` with a
-frame in flight does the same.
+Some objects can still be reached by a callback after they are torn
+down. They free themselves when that callback runs:
+
+- A page with a flush scheduled sets `dead` and is destroyed by the
+  flush (`page.zig`).
+- A `Surface` with a frame in flight does the same.
 
 `myzig.runFor(seconds)` runs the platform's loop for a while
-(`CFRunLoopRunInMode`, `g_main_context_iteration`, `PeekMessageW`): headless
-tests use it between frames so replies, timers and processes are handled.
+(`CFRunLoopRunInMode`, `g_main_context_iteration`, `PeekMessageW`).
+Headless tests use it between frames so replies, timers and processes
+are handled.
 
 ## Native interop without C
 
 ### macOS: the Objective-C runtime, called directly
 
-`src/objc.zig` declares the runtime's functions (`objc_getClass`,
-`sel_registerName`, `objc_msgSend`, `objc_allocateClassPair`,
-`class_addMethod`, `class_addIvar`, autorelease pools) as `extern "c"`
-and builds on them:
+`src/objc.zig` declares the runtime's functions as `extern "c"`:
+`objc_getClass`, `sel_registerName`, `objc_msgSend`,
+`objc_allocateClassPair`, `class_addMethod`, `class_addIvar`, autorelease
+pools. It builds on them:
 
-- `objc.msg(R, target, "selector:with:", .{ a, b })` sends a message. The
-  exact function type of each call is built at compile time from the
-  return type and the argument tuple and `objc_msgSend` is cast to it,
-  because arm64 requires calling it with the callee's real signature
-  (variadic calls pass arguments in the wrong registers).
-- `objc.defineClass(.{ ... })` registers a class at run time whose methods
-  are Zig functions: window, application and web view delegates, the
-  native view of native UI, the text input client. One pointer ivar ties
-  each instance to its Zig object (`objc.setZig`, `objc.getZig`).
+- `objc.msg(R, target, "selector:with:", .{ a, b })` sends a message.
+  - The exact function type of each call is built at compile time from
+    the return type and the argument tuple. `objc_msgSend` is cast to it.
+  - arm64 requires calling it with the callee's real signature. Variadic
+    calls pass arguments in the wrong registers.
+- `objc.defineClass(.{ ... })` registers a class at run time whose
+  methods are Zig functions.
+  - Used for window, application and web view delegates, the native view
+    of native UI, and the text input client.
+  - One pointer ivar ties each instance to its Zig object (`objc.setZig`,
+    `objc.getZig`).
 - `objc.Block(Ctx, Args)` makes blocks for APIs that take them
   (completion handlers), laid out as the block ABI says.
 - `objc.dispatchMain` and `objc.dispatchAfter` call libdispatch
@@ -218,27 +237,31 @@ and builds on them:
   `callconv(.c)` function.
 - `objc.Pool` wraps `objc_autoreleasePoolPush`/`Pop`.
 
-The C frameworks (CoreText, CoreGraphics, CoreFoundation in `ui/cf.zig`,
-Metal through `objc.msg`, ImageIO) are `extern` declarations next to the
-code that uses them. `build.zig` links the frameworks and `libobjc` for
-macOS targets; the macOS SDK is needed to link there, nothing else.
-Frameworks only some apps need are opened with `dlopen` when first used,
-so they cost the others nothing: Security for the Keychain
-(`secrets_mac.zig`), UserNotifications (`notify_mac.zig`).
+The C frameworks are `extern` declarations next to the code that uses
+them: CoreText, CoreGraphics, CoreFoundation in `ui/cf.zig`, Metal
+through `objc.msg`, ImageIO.
 
-Memory follows Cocoa's rules: objects from `alloc`/`new` are owned and
-must be released (`objc.release`); code that makes temporary objects runs
+- `build.zig` links the frameworks and `libobjc` for macOS targets. The
+  macOS SDK is needed to link there, nothing else.
+- Frameworks only some apps need are opened with `dlopen` when first
+  used, so they cost the others nothing. These are Security for the
+  Keychain (`secrets_mac.zig`) and UserNotifications (`notify_mac.zig`).
+
+Memory follows Cocoa's rules. Objects from `alloc`/`new` are owned and
+must be released (`objc.release`). Code that makes temporary objects runs
 inside an `objc.Pool`.
 
 ### Linux: dlopen
 
 Nothing is linked on Linux but libc. GTK 3 is loaded when the app starts:
-`linux/gtk.zig`'s `load()` opens `libgtk-3.so.0` with `std.c.dlopen` and
-fills a struct of function pointers by name with `dlsym`; `linux/gtk_more.zig`,
-`gtkmenu.zig` and `window_extras.zig` load more of it the same way.
+
+- `linux/gtk.zig`'s `load()` opens `libgtk-3.so.0` with `std.c.dlopen`.
+  It fills a struct of function pointers by name with `dlsym`.
+- `linux/gtk_more.zig`, `gtkmenu.zig` and `window_extras.zig` load more
+  of it the same way.
+
 Other libraries come the same way, each only when a feature first needs
-it, and each missing one turns its feature off instead of failing the
-app:
+it. A missing one turns its feature off instead of failing the app:
 
 | library | for |
 |---|---|
@@ -249,66 +272,82 @@ app:
 | `libgio-2.0.so.0` | network status |
 | `libX11.so.6` | global hotkeys |
 
-D-Bus (notifications, single instance, the AT-SPI accessibility bus, the
-launcher entry) is spoken by myzig itself over the session bus's socket
-(`linux/dbus.zig`, `dbus_conn.zig`, `atspi_proto.zig`), not through
-libdbus. Callbacks GTK calls are `callconv(.c)` Zig functions passed with
-`gtk.connect(instance, "signal", handler, data)`.
-
-Zig's own x86_64 backend miscompiles calls into WebKitGTK's
-JavaScriptCore, so `build.zig` builds Linux examples with LLVM
-(`.use_llvm = true`).
+- myzig speaks D-Bus itself over the session bus's socket, not through
+  libdbus (`linux/dbus.zig`, `dbus_conn.zig`, `atspi_proto.zig`). That
+  covers notifications, single instance, the AT-SPI accessibility bus
+  and the launcher entry.
+- Callbacks GTK calls are `callconv(.c)` Zig functions passed with
+  `gtk.connect(instance, "signal", handler, data)`.
+- Zig's own x86_64 backend miscompiles calls into WebKitGTK's
+  JavaScriptCore. So `build.zig` builds Linux examples with LLVM
+  (`.use_llvm = true`).
 
 ### Windows: extern and COM
 
-Win32 functions are `extern "user32"`, `"kernel32"`, `"gdi32"` and so on,
-`callconv(.winapi)`, declared in `windows/win32.zig` and next to their
-users. COM needs no headers either: `windows/com.zig` calls an object's
-methods through its vtable by index, parses GUIDs at compile time
-(`GUID.parse("...")`), and makes the handler objects WebView2 takes for
-its events and completions (IUnknown plus one `Invoke`). Direct3D 11
-(`ui/d3d11_api.zig`), UI Automation (`windows/uia*.zig`), OLE drag and
-drop (`windows/oledrag.zig`), the Credential Manager, jump lists and the
-taskbar are COM or flat APIs declared this way.
+Win32 functions are `extern "user32"`, `"kernel32"`, `"gdi32"` and so
+on, `callconv(.winapi)`. They are declared in `windows/win32.zig` and
+next to their users.
 
-WebView2 is found the way `WebView2Loader.dll` finds it, without that DLL:
-`windows/webview2.zig` reads the installed runtime's location
-(`WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, else the Stable, Beta, Dev and
-Canary channels in the registry), loads its client DLL and creates one
-environment for every page, on first use. Without the runtime, pages log
-where to download it.
+COM needs no headers either. `windows/com.zig`:
+
+- calls an object's methods through its vtable by index;
+- parses GUIDs at compile time (`GUID.parse("...")`);
+- makes the handler objects WebView2 takes for its events and
+  completions (IUnknown plus one `Invoke`).
+
+Direct3D 11 (`ui/d3d11_api.zig`), UI Automation (`windows/uia*.zig`),
+OLE drag and drop (`windows/oledrag.zig`), the Credential Manager, jump
+lists and the taskbar are COM or flat APIs declared this way.
+
+WebView2 is found the way `WebView2Loader.dll` finds it, without that
+DLL. `windows/webview2.zig`:
+
+1. reads the installed runtime's location:
+   `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER`, else the Stable, Beta, Dev and
+   Canary channels in the registry;
+2. loads its client DLL;
+3. creates one environment for every page, on first use.
+
+Without the runtime, pages log where to download it.
 
 Examples embed `windows/myzig.manifest`, which declares Windows 8 and
-later: the caption buttons of hidden title bars are layered child windows,
-which need it, and Windows then reports its real version to the app.
+later. The caption buttons of hidden title bars are layered child
+windows, which need it. Windows then reports its real version to the
+app.
 
 ### Browsers: WebAssembly imports
 
-Built for `wasm32-wasi`, myzig has no libc: Zig's standard library talks
-WASI, which `web/host_wasi.js` answers. What the page does for the app is
-a set of functions imported from the module `"myzig"`
-(`extern "myzig" fn window_open(...)` in `web/js.zig`), and what the app
-does for the page is a set of exports (`web/exports.zig`): the browser's
-events for a window, timers and the appearance. Strings cross as a
-pointer and a length into the module's memory. See [browsers](browsers.md).
+Built for `wasm32-wasi`, myzig has no libc. Zig's standard library talks
+WASI, which `web/host_wasi.js` answers.
+
+- What the page does for the app is a set of functions imported from the
+  module `"myzig"` (`extern "myzig" fn window_open(...)` in
+  `web/js.zig`).
+- What the app does for the page is a set of exports
+  (`web/exports.zig`): the browser's events for a window, timers and the
+  appearance.
+- Strings cross as a pointer and a length into the module's memory.
+
+See [browsers](browsers.md).
 
 ## Conventions that keep this working
 
 - Implement a platform method in every backend: macOS, `linux/`,
   `windows/`, `web/`. `myzig.zig`'s test block calls
   `std.testing.refAllDecls` on each backend's modules and on every page
-  method, so a method that compiles on one platform and not another is
+  method. A method that compiles on one platform and not another is
   caught by `zig build test` and by building for the other targets.
-- Keep the public API concrete and comptime-driven: bound services,
-  events and channels are typed at compile time (`tsgen.zig`), handlers
-  are `myzig.Handler(T).of(&state, State.method)` pairs of a pointer and
-  a function, never interfaces resolved at run time.
+- Keep the public API concrete and comptime-driven.
+  - Bound services, events and channels are typed at compile time
+    (`tsgen.zig`).
+  - Handlers are `myzig.Handler(T).of(&state, State.method)` pairs of a
+    pointer and a function, never interfaces resolved at run time.
 - Widgets are made of boxes (`Context.open`/`leaf`), styled from the
-  theme and animated with `Context.animate`; one whose interaction
+  theme and animated with `Context.animate`. One whose interaction
   changes app state sets `c.changed`, so the frame is built again.
 - Every behavior gets a test: widgets in `src/ui/tests*.zig` through the
   Tester, IPC type mappings in `tsgen.zig`, renderers against the CPU
   renderer.
-- What an app does not use must not grow it: features are reached through
-  the functions an app calls, so the linker drops the rest. See
+- What an app does not use must not grow it. Features are reached
+  through the functions an app calls, so the linker drops the rest. See
   [binary size](architecture-testing.md#binary-size).

@@ -2,11 +2,13 @@
 
 Assistive technology reads a window of native UI as it reads other apps:
 VoiceOver on macOS, Orca on Linux, and Narrator, NVDA or JAWS on Windows.
-It sees the widgets with their roles, names, values and states, the
-texts, and the elements that take the focus, and hears what changes. It
-acts on them as the keyboard and the pointer would: it presses buttons,
-checks boxes, moves sliders, replaces the text of text fields and moves
-the focus.
+
+- It sees the widgets with their roles, names, values and states.
+- It sees the texts and the elements that take the focus.
+- It hears what changes.
+- It acts as the keyboard and the pointer would. It presses buttons,
+  checks boxes, moves sliders, replaces the text of text fields and moves
+  the focus.
 
 | Platform | What myzig speaks | Where |
 |---|---|---|
@@ -16,31 +18,41 @@ the focus.
 | Browsers | not yet: the canvas is all assistive technology sees | |
 
 None of it costs anything until assistive technology asks for the window.
-Until then descriptions are dropped as widgets make them, and no tree is
-built. On Linux the app connects to the accessibility bus once the session
-says assistive technology is on; `MYZIG_A11Y=1` connects regardless, to try
-it.
+Until then, widgets' descriptions are dropped as they are made, and no tree
+is built.
+
+On Linux the app connects to the accessibility bus once the session says
+assistive technology is on. `MYZIG_A11Y=1` connects regardless, to try it.
 
 ## How it works
 
-Widgets describe their boxes as they build them, with `c.describe(id,
-description)`. Once the frame is laid out, `src/ui/access_tree.zig` turns
-the boxes and their descriptions into a tree of elements, each with a
-role, a name, a value, states, the actions it takes and its rectangle in
-the window. The surface hands that tree to the platform and, after each
-frame, compares it with the previous one to tell listeners what changed:
-the focus, names, values, states, children, and announcements.
+1. Widgets describe their boxes as they build them, with
+   `c.describe(id, description)`.
+2. Once the frame is laid out, `src/ui/access_tree.zig` turns the boxes and
+   their descriptions into a tree of elements. Each has a role, a name, a
+   value, states, the actions it takes and its rectangle in the window.
+3. The surface hands that tree to the platform.
+4. After each frame, it compares the tree with the previous one. It tells
+   listeners what changed: the focus, names, values, states, children, and
+   announcements.
 
 When assistive technology acts on an element, `ui.access.perform` turns
 the action into what the keyboard or the pointer would do in the next
-frame: pressing clicks, focusing focuses as Tab would, incrementing a
-slider presses Right (a stepper, Up), and setting a text field's value
-selects all of its text and types the new one, and inserting text into it
-(`.insert_text`: macOS's selected text, which dictation, Voice Control and
-automation type with) types it over the selection, at the caret without
-one. So a widget needs nothing
-of its own to be operated: what works with the keyboard works for
-assistive technology.
+frame:
+
+| action | becomes |
+|---|---|
+| press | a click |
+| focus | the focus, as Tab would move it |
+| increment | Right on a slider, Up on a stepper |
+| set a text field's value | select all of its text and type the new one |
+| insert text (`.insert_text`) | type it over the selection, or at the caret without one |
+
+`.insert_text` is macOS's selected text, which dictation, Voice Control and
+automation type with.
+
+So a widget needs nothing of its own to be operated. What works with the
+keyboard works for assistive technology.
 
 ## Names
 
@@ -53,9 +65,9 @@ _ = ui.slider(c, &s.volume, .{ .label = "Volume" });
 _ = ui.textField(c, &s.name, .{ .label = "Name", .placeholder = "Your name" });
 ```
 
-A button of an icon alone is named by its symbol's name; give it a better
-one by describing it after it is built. Descriptions of one box merge, the
-fields set last winning:
+A button of an icon alone is named by its symbol's name. Give it a better
+name by describing it after it is built. Descriptions of one box merge,
+and the fields set last win:
 
 ```zig
 const del = ui.button(c, "", .{ .icon = "trash" });
@@ -66,9 +78,13 @@ if (del.clicked) s.deleteSelection();
 ## Roles
 
 Boxes that no widget describes get a role from what they are (`.auto`):
-text is text, a box that is clicked and takes the focus is a button, a
-scrolling box is a scroll area, and a box with a label or the focus is a
-group. Other boxes are left out, their children going to their parent.
+
+- text is text;
+- a box that is clicked and takes the focus is a button;
+- a scrolling box is a scroll area;
+- a box with a label or the focus is a group;
+- other boxes are left out, and their children go to their parent.
+
 `.none` leaves a described box out but keeps its children.
 
 `ui.AccessRole` (`ui.access.Role`) has the roles of myzig's widgets:
@@ -119,24 +135,19 @@ as ARIA's states do on the web. Fields left null are found from the box:
 | `selection` | a text field's selection, in bytes of its value |
 | `disabled`, `read_only`, `password`, `multiline`, `invalid`, `vertical`, `modal` | as named; `modal` makes what is behind a dialog inert |
 
-The tree's elements also carry the actions they take (`ui.access.Actions`:
-press, focus, increment, decrement, set value, scroll into view, expand),
-from their role and states: a disabled button takes none.
+The tree's elements also carry the actions they take (`ui.access.Actions`):
+press, focus, increment, decrement, set value, scroll into view, expand.
+They come from the role and the states: a disabled button takes none.
 
 ## Lists and tables
 
-A virtual [list](lists.md)'s rows say which of all the rows they are,
-although the list builds only those in view; a table's rows and cells are
-named by the text inside them. Assistive technology moving to an element
-out of view asks for `scroll_into_view`, which scrolls the boxes around it.
+- A virtual [list](lists.md)'s rows say which of all the rows they are,
+  although the list builds only those in view.
+- A table's rows and cells are named by the text inside them.
+- To move to an element out of view, assistive technology asks for
+  `scroll_into_view`. That scrolls the boxes around it.
 
 ## Announcements
-
-News that does not move the focus, as a search done or a file saved,
-reaches assistive technology with `c.announce(text)`: it reads it once,
-after what it is reading (VoiceOver's announcements, AT-SPI's, and a
-polite live region on Windows). A frame built again does not announce
-twice. [Toasts](overlays.md) are `status` elements, read as they show.
 
 ```zig
 if (ui.button(c, "Save", .{}).clicked) {
@@ -145,10 +156,19 @@ if (ui.button(c, "Save", .{}).clicked) {
 }
 ```
 
+`c.announce(text)` tells assistive technology news that does not move the
+focus, as a search done or a file saved.
+
+- It is read once, after what is being read.
+- It uses VoiceOver's announcements, AT-SPI's, and a polite live region on
+  Windows.
+- A frame built again does not announce twice.
+- [Toasts](overlays.md) are `status` elements, read as they show.
+
 ## Testing it
 
-A [Tester](testing.md) builds the same tree, so a test can check what
-assistive technology sees and act as it does. Turn descriptions on, run a
+A [Tester](testing.md) builds the same tree. A test can check what
+assistive technology sees, and act as it does. Turn descriptions on, run a
 frame, and build the tree:
 
 ```zig
@@ -173,8 +193,14 @@ tree.build(&t.ctx);
 try std.testing.expectEqualStrings("Saved", tree.announcements[0]);
 ```
 
-`tree.find(id)`, `tree.byName(role, name)`, `tree.count(role)` and
-`tree.at(point)` find elements; `tree.focus` is the id of the focused one.
-`src/ui/tests_access.zig` and `tests_access_widgets.zig` test every widget
-this way; `src/linux/atspi_test.zig` and `atspi_bus_test.zig` test the
-AT-SPI server, and `src/windows/uia_test.zig` the UI Automation provider.
+- `tree.find(id)`, `tree.byName(role, name)`, `tree.count(role)` and
+  `tree.at(point)` find elements.
+- `tree.focus` is the id of the focused one.
+
+Where the tests are:
+
+- `src/ui/tests_access.zig` and `tests_access_widgets.zig` test every
+  widget this way.
+- `src/linux/atspi_test.zig` and `atspi_bus_test.zig` test the AT-SPI
+  server.
+- `src/windows/uia_test.zig` tests the UI Automation provider.

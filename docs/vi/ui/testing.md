@@ -1,18 +1,16 @@
 <a id="testing"></a>
 
-# Kiểm tra
+# Testing
 
-myzig kiểm tra giao diện native không có cửa sổ và các ứng dụng không hiển thị cửa sổ. Không có gì chạm tới màn hình, chuột, bàn phím hoặc khay nhớ tạm của hệ thống: bài kiểm tra không thể làm phiền người ở máy tính và đọc kết quả tương tự trên máy bận cũng như trên máy không hoạt động.
+myzig test UI native mà không cần cửa sổ, và test app mà không hiện cửa sổ nào. Không có gì chạm tới màn hình, chuột, bàn phím hay clipboard của hệ thống. Test không làm phiền người đang ngồi trước máy, và cho cùng kết quả dù máy đang bận hay rảnh.
 
-- **View** chạy trong `ui.Tester`: cùng các khung mà cửa sổ chạy, dữ liệu đầu vào được mô phỏng trong quá trình, thời gian được nâng cao bằng tay, các khung được hiển thị ngoài màn hình thành tệp PNG.
-- **Ứng dụng** chạy headless với cờ `--myzig-*`: ảnh chụp nhanh của cửa sổ gốc đầu tiên sau tập lệnh gồm các bước hoặc JavaScript được đánh giá trong trang của chúng.
-- **Trình kết xuất** được kiểm tra dựa trên bộ kết xuất CPU, từ pixel đến pixel đến làm tròn (xem [Kết xuất](rendering.md)).
+- **View** chạy trong `ui.Tester`: cùng các frame mà cửa sổ chạy, input giả lập ngay trong process, thời gian do test tự cho chạy, frame được render offscreen ra file PNG.
+- **App** chạy headless với các cờ `--myzig-*`: chụp cửa sổ native đầu tiên sau một kịch bản các bước, hoặc chạy JavaScript trong các trang của app.
+- **Renderer** được test so với renderer CPU, khớp từng pixel trong phạm vi sai số làm tròn (xem [Rendering](rendering.md)).
+
+<a id="ui-tester"></a>
 
 ## ui.Tester
-
-`t.pinch(x, y, scale)` gửi pinch tới callback `handleInput` và trả về việc
-sự kiện có được nhận hay không. `t.scroll` và `t.wheel` cũng gửi sự kiện
-qua handler trước khi cuộn container. Xem [Cuộn và thu phóng](gestures.md).
 
 ```zig
 const std = @import("std");
@@ -40,106 +38,129 @@ test "the counter counts" {
 }
 ```
 
-Trình kiểm tra được khởi tạo tại chỗ (ngữ cảnh của nó trỏ vào đó) và chạy khung đầu tiên. `ui.TesterOptions` có `width` và `height` theo điểm (480 × 360 theo mặc định), `scale` (2), `dark` và `theme`, các màu riêng do tùy chọn `theme` của cửa sổ cung cấp.
+`ui.Tester` được khởi tạo tại chỗ, vì context của nó trỏ vào bên trong nó. `init` chạy frame đầu tiên.
+
+| `ui.TesterOptions` | Mặc định | |
+|---|---|---|
+| `width`, `height` | 480 × 360 | tính bằng điểm |
+| `scale` | 2 | |
+| `dark` | `false` | giao diện tối |
+| `theme` | `null` | bộ màu riêng, như tùy chọn `theme` của cửa sổ |
 
 <a id="input"></a>
 
-### Đầu vào
+### Input
 
-| Gọi | Nó làm gì |
+| Lệnh gọi | Tác dụng |
 |---|---|
-| `click(x, y)`, `clickText(s)` | nhấn và nhả tại một điểm hoặc ở giữa văn bản `s` (`error.TextNotFound` khi không có văn bản nào là `s`) |
-| `doubleClick(x, y)` | hai lần nhấp chuột, lần thứ hai được tính là một lần nhấp đúp |
-| `rightClick(x, y)` | nhấn nút phụ, sẽ mở menu ngữ cảnh |
-| `middleClick(x, y)` | nhấn nút giữa (`c.input.middle_pressed`), để đóng tab của trình duyệt |
-| `moveTo(x, y)` | di chuyển con trỏ: di chuột |
-| `pinch(x, y, scale)` | gửi hệ số zoom tới handler dưới điểm đó; trả về việc sự kiện có được nhận hay không |
-| `drag(x1, y1, x2, y2)` | nhấn, di chuyển theo tám bước, thả ra |
-| `scroll(x, y, dy)` | cuộn hộp bên dưới điểm cùng một lúc, giống như bàn di chuột, hoặc đưa bánh xe tới view đưa nó (`c.wants_wheel`) |
-| `wheel(x, y, dy)` | một khía của bánh xe chuột: hộp lướt tới đó khi đồng hồ tiến lên (`advance`), hộp bao quanh một cái ở đầu của nó lấy nó |
-| `typeText(s)` | nhập văn bản vào trường tập trung |
-| `textOps(ops)` | gửi các thao tác nhập văn bản (`ui.TextOp`), dưới dạng phương thức nhập hoặc các liên kết khóa của AppKit sẽ: phần chèn, lệnh, thành phần |
-| `key(k)` | nhấn một phím (`ui.Context`'s `Key`: `.enter`, `.tab`, `.escape`, `.left`, `.f12`, ...) |
-| `shortcut(s)` | cung cấp tổ hợp phím (`ui.Shortcut{ .key = 's', .cmd = true }`), giống như cửa sổ thực hiện trước khi chỉnh sửa văn bản; true nếu lượt xem chấp nhận |
-| `keyEdge(code, down)` | phím đi xuống hoặc lên, dành cho các view theo sau phím (`c.wants_keys`): trò chơi |
-| `resize(w, h)` | thay đổi kích thước cửa sổ và chạy một khung |
+| `click(x, y)`, `clickText(s)` | bấm và nhả tại một điểm, hoặc tại giữa chữ `s` (`error.TextNotFound` khi không có chữ nào là `s`) |
+| `doubleClick(x, y)` | hai cú bấm, cú thứ hai được tính là double click |
+| `rightClick(x, y)` | bấm nút phụ, thường mở context menu |
+| `middleClick(x, y)` | bấm nút giữa (`c.input.middle_pressed`), thường đóng tab trình duyệt |
+| `moveTo(x, y)` | di chuyển con trỏ: hover |
+| `pinch(x, y, scale)` | đưa một mức zoom nhân cho handler dưới điểm đó; trả về việc nó có được nhận hay không |
+| `drag(x1, y1, x2, y2)` | bấm, di chuyển qua tám bước, rồi nhả |
+| `scroll(x, y, dy)` | scroll ngay box dưới điểm đó, như touchpad, hoặc chuyển bánh xe cho view nào nhận nó (`c.wants_wheel`) |
+| `wheel(x, y, dy)` | một nấc bánh xe chuột: box trượt tới đó khi đồng hồ chạy (`advance`); khi box đã ở cuối, box bao ngoài nhận tiếp |
+| `typeText(s)` | gõ chữ vào ô đang có focus |
+| `textOps(ops)` | gửi các thao tác nhập chữ (`ui.TextOp`), như bộ gõ hoặc key binding của AppKit: chèn, lệnh, đoạn đang soạn |
+| `key(k)` | nhấn một phím (`Key` của `ui.Context`: `.enter`, `.tab`, `.escape`, `.left`, `.f12`, ...) |
+| `shortcut(s)` | đưa một tổ hợp phím (`ui.Shortcut{ .key = 's', .cmd = true }`), như cửa sổ làm trước khi soạn chữ; true nếu view nhận nó |
+| `keyEdge(code, down)` | một phím được nhấn xuống hoặc nhả ra, cho view theo dõi phím (`c.wants_keys`): game |
+| `resize(w, h)` | đổi kích thước cửa sổ và chạy một frame |
 
 <a id="what-it-shows"></a>
 
-### Những gì nó cho thấy
+### Những gì nó hiển thị
 
-`findText(s)` trả về hình chữ nhật của văn bản `s` trong khung cuối cùng, `hasText(s)` liệu nó có ở đó không và `containsText(s)` liệu văn bản được vẽ có chứa `s` (hàng của terminal, một đoạn văn) hay không. `t.ctx` là `ui.Context` của view, dành cho nội dung mà bài kiểm tra đọc về nó: tiêu điểm, các hộp và hình chữ nhật của chúng (`t.ctx.nodes`, `t.ctx.rects`), số liệu thống kê của khung. Nội dung sao chép và cắt được viết trong `t.clipboard`: các bài kiểm tra không bao giờ chạm vào hệ thống.
-
-Những gì công nghệ hỗ trợ nhìn thấy cũng được kiểm tra thông qua Trình kiểm tra: xem [Khả năng tiếp cận](accessibility.md#testing-it).
+- `findText(s)` trả về hình chữ nhật của chữ `s` trong frame vừa rồi.
+- `hasText(s)` cho biết chữ đó có ở đó không.
+- `containsText(s)` cho biết có đoạn chữ nào được vẽ chứa `s` không, như một hàng của terminal hay một đoạn văn.
+- `t.ctx` là `ui.Context` của view, cho những gì test cần đọc: focus, các box và hình chữ nhật của chúng (`t.ctx.nodes`, `t.ctx.rects`), thống kê của frame.
+- Những gì copy và cut đã ghi nằm trong `t.clipboard`. Test không bao giờ đụng tới clipboard của hệ thống.
+- Những gì công nghệ hỗ trợ thấy cũng được test qua `ui.Tester`: xem [Accessibility](accessibility.md#testing-it).
 
 <a id="time"></a>
 
 ### Thời gian
 
-Người kiểm tra có đồng hồ riêng, `t.time`, tăng thêm `t.dt` (1/60 giây) mỗi frame. Hoạt ảnh, nhấp đúp, dấu mũ nhấp nháy, chú giải công cụ, toast và `c.time` theo sau nó, không bao giờ là đồng hồ treo tường.
-
 ```zig
 try t.clickText("More");
-t.advance(0.1);   // a tenth of a second of frames: half way through an animation
-t.settle(2);      // frames until nothing animates, at most two seconds of them
+t.advance(0.1);   // một phần mười giây frame: giữa chừng một animation
+t.settle(2);      // chạy frame cho tới khi không còn gì chuyển động, tối đa hai giây
 try std.testing.expect(!t.ctx.animating);
 ```
 
-`t.frame()` chạy một frame cho những gì đã thay đổi bên ngoài view; `t.advance(seconds)` chạy các frame bấy lâu nay; `t.settle(max)` chạy các frame cho đến khi hoạt ảnh ổn định. Đừng bao giờ ngủ quên trong bài kiểm tra để để điều gì đó xảy ra: tăng tốc đồng hồ.
+`ui.Tester` có đồng hồ riêng, `t.time`, tăng thêm `t.dt` (1/60 giây) mỗi frame. Animation, double click, con trỏ soạn thảo nhấp nháy, tooltip, toast và `c.time` đều theo đồng hồ này, không bao giờ theo giờ thật.
+
+| Lệnh gọi | Chạy |
+|---|---|
+| `t.frame()` | một frame, cho những gì thay đổi bên ngoài view |
+| `t.advance(seconds)` | số frame ứng với khoảng thời gian đó |
+| `t.settle(max)` | các frame cho tới khi animation dừng hẳn |
+
+Đừng bao giờ sleep trong test để chờ việc gì xảy ra: hãy cho đồng hồ chạy tới.
+
+Cử chỉ:
+
+- `t.pinch(x, y, scale)` đưa một cú zoom touchpad cho [callback `handleInput`](gestures.md), và trả về việc nó có được nhận hay không.
+- `t.scroll` và `t.wheel` đưa event scroll cho các handler đó trước khi scroll các container bao quanh.
 
 <a id="pictures"></a>
 
-### Hình Ảnh
-
-`t.screenshot(path)` hiển thị khung cuối cùng ngoài màn hình và ghi PNG: với Metal trên macOS, với bộ kết xuất CPU trong đó văn bản là của chính myzig (Linux, Windows, trình duyệt và macOS được xây dựng bằng `-Dportable=true`). `t.render(gpa)` trả về các pixel thay thế (`gpu.Pixels`: BGRA, được nhân trước; miễn phí với `deinit`) để so sánh chúng và `t.rasterize(bytes)` đưa vào bộ nhớ của `t.pixelSize()` bằng bộ kết xuất CPU.
+### Ảnh
 
 ```zig
 const px = try t.render(std.testing.allocator);
 defer px.deinit(std.testing.allocator);
-// px.bytes[(y * px.width + x) * 4 ..][0..4] is B, G, R, A
+// px.bytes[(y * px.width + x) * 4 ..][0..4] là B, G, R, A
 ```
+
+- `t.screenshot(path)` render frame vừa rồi offscreen và ghi ra PNG. Trên macOS nó dùng Metal. Nó dùng renderer CPU ở nơi chữ do myzig tự vẽ: Linux, Windows, trình duyệt, và macOS khi build với `-Dportable=true`.
+- `t.render(gpa)` trả về pixel thay vì ghi file, để so sánh. Đó là `gpu.Pixels`: BGRA, premultiplied; giải phóng bằng `deinit`.
+- `t.rasterize(bytes)` vẽ vào vùng nhớ kích thước `t.pixelSize()` bằng renderer CPU.
 
 <a id="scripts"></a>
 
-### Tập lệnh
+### Kịch bản
 
-`t.runScript(steps)` chạy các bước được phân tách bằng `;`, theo sau là các khung cho đến khi hoạt ảnh ổn định:
+`t.runScript(steps)` chạy các bước cách nhau bởi `;`. Sau mỗi bước là các frame cho tới khi animation dừng.
 
-| Bước | Nó làm gì |
+| Bước | Tác dụng |
 |---|---|
-| `click:TEXT`, `move:TEXT` | nhấp chuột hoặc di chuột vào giữa văn bản |
-| `visible:TEXT` | không thành công trừ khi văn bản hiển thị toàn bộ trong cửa sổ (`move:` cũng tìm thấy nó ở bên ngoài) |
-| `rclick:TEXT` | nhấp chuột phải vào giữa văn bản (hoặc `X,Y` theo điểm), giống như đối với menu ngữ cảnh của nó |
-| `type:TEXT` | các loại văn bản |
-| `key:NAME` | nhấn phím: `enter`, `backspace`, `tab`, `escape`, `left`, `right`, `up`, `down`, ... |
-| `shortcut:KEYS` | một tổ hợp phím chẳng hạn như `ctrl+shift+p` (`cmd`, `ctrl`, `alt`, `shift`, sau đó là một ký tự, một mũi tên, `enter`, `tab`, `escape` hoặc `f1` tới `f12`) |
-| `scroll:DY` | cuộn tại con trỏ |
-| `wheel:DY` | cuộn con trỏ giống như các rãnh của bánh xe chuột, lướt nhẹ (`frames:N` để xem) |
-| `drag:FROM>TO` | kéo từ một văn bản (hoặc `X,Y`) sang văn bản khác |
-| `wait:SECONDS` | tiến bộ đồng hồ mô phỏng |
-| `frames:N` | chạy N frame, sau đó không xử lý: ảnh chụp nhanh ở giữa hoạt ảnh |
-| `live:SECONDS` | trong khi đó chạy vòng lặp sự kiện thực: trả lời, xử lý, tính giờ |
-| `resize:WxH` | thay đổi kích thước cửa sổ |
+| `click:TEXT`, `move:TEXT` | bấm hoặc hover vào giữa một đoạn chữ |
+| `visible:TEXT` | thất bại nếu đoạn chữ không hiện trọn trong cửa sổ (`move:` tìm được cả chữ nằm ngoài) |
+| `rclick:TEXT` | bấm chuột phải vào giữa đoạn chữ (hoặc `X,Y` tính bằng điểm), như để mở context menu |
+| `type:TEXT` | gõ chữ |
+| `key:NAME` | nhấn một phím: `enter`, `backspace`, `tab`, `escape`, `left`, `right`, `up`, `down`, ... |
+| `shortcut:KEYS` | một tổ hợp phím như `ctrl+shift+p` (`cmd`, `ctrl`, `alt`, `shift`, rồi một ký tự, phím mũi tên, `enter`, `tab`, `escape` hoặc `f1` đến `f12`) |
+| `scroll:DY` | scroll tại vị trí con trỏ |
+| `wheel:DY` | scroll tại con trỏ như các nấc bánh xe chuột, có trượt (`frames:N` để xem) |
+| `drag:FROM>TO` | kéo từ một đoạn chữ (hoặc `X,Y`) tới đoạn khác |
+| `wait:SECONDS` | cho đồng hồ giả lập chạy tới |
+| `frames:N` | chạy N frame, rồi không chờ dừng: chụp giữa chừng animation |
+| `live:SECONDS` | chạy event loop thật trong khoảng đó: phản hồi, process, timer |
+| `resize:WxH` | đổi kích thước cửa sổ |
 
-Tập lệnh là thứ `--myzig-script` chạy trong ứng dụng thực.
+Kịch bản chính là thứ `--myzig-script` chạy trong một app thật.
 
 <a id="apps-headless"></a>
 
-## Ứng dụng, headless
+## App, chạy headless
 
-Mọi ứng dụng được tạo bằng `myzig.App` đều đọc các cờ này (`src/dev.zig`):
+Mọi app tạo bằng `myzig.App` đều đọc các cờ sau (`src/dev.zig`):
 
-| Cờ | Nó làm gì |
+| Cờ | Tác dụng |
 |---|---|
-| `--myzig-snapshot=PNG` | hiển thị cửa sổ đầu tiên của giao diện native ngoài màn hình thành PNG và thoát |
-| `--myzig-script=STEPS` | với ảnh chụp nhanh: các bước chạy trước, dưới dạng `runScript` |
-| `--myzig-dark` | với một ảnh chụp nhanh: vẻ ngoài tối tăm |
-| `--myzig-wait=SECONDS` | với ảnh chụp nhanh: chạy vòng lặp sự kiện với thời gian dài trước tiên để các quy trình, bộ tính giờ và phản hồi mà ứng dụng chờ đến |
-| `--myzig-eval=JS` | đánh giá JavaScript trong mỗi trang khi DOM của nó đã sẵn sàng; các trang báo cáo với `myzig.log()` và kết thúc bằng `myzig.window.close()` |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
-| `--myzig-generate=DIR` | ghi client được tạo (`myzig.js`, `myzig.d.ts`) và thoát |
+| `--myzig-snapshot=PNG` | render cửa sổ UI native đầu tiên offscreen ra PNG, rồi thoát |
+| `--myzig-script=STEPS` | đi kèm snapshot: chạy các bước trước, như `runScript` |
+| `--myzig-dark` | đi kèm snapshot: giao diện tối |
+| `--myzig-wait=SECONDS` | đi kèm snapshot: chạy event loop chừng ấy thời gian trước, để process, timer và phản hồi mà app chờ kịp tới |
+| `--myzig-eval=JS` | chạy JavaScript trong mỗi trang khi DOM sẵn sàng; trang báo kết quả bằng `myzig.log()` và kết thúc bằng `myzig.window.close()` |
+| `--myzig-hidden` | không bao giờ hiện cửa sổ; các thư mục của app là thư mục tạm (headless) |
+| `--myzig-generate=DIR` | ghi ra client sinh tự động (`myzig.js`, `myzig.d.ts`) rồi thoát |
 
-Một ảnh chụp nhanh, một đánh giá hoặc một thế hệ ngụ ý các cửa sổ ẩn.
+Snapshot, eval hoặc generate đều ngầm hiểu là ẩn cửa sổ.
 
 ```sh
 zig-out/bin/gallery --myzig-snapshot=/tmp/g.png --myzig-script="click:Tasks;type:Hi;key:enter"
@@ -150,45 +171,54 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 ## Trang web
 
-`zig build test-pages` chạy các trang ẩn, thông qua webview thực và cầu nối của nền tảng: ví dụ xin chào gọi Zig (cuộc gọi, lỗi, sự kiện, client được tạo) và ví dụ về trang (`examples/pages`), trong đó trang ẩn và Zig kiểm tra lẫn nhau: lược đồ, kênh, sự kiện, quyền, tải xuống, eval, tìm, PDF, cookie và tin cậy. Mỗi lần trôi qua khi trang ghi nhật ký `page: ok`.
+`zig build test-pages` chạy các trang ở chế độ ẩn, qua webview và bridge thật của nền tảng:
+
+- ví dụ hello gọi Zig: lệnh gọi, lỗi, một event, client sinh tự động;
+- ví dụ pages (`examples/pages`), nơi một trang ẩn và Zig kiểm tra lẫn nhau: scheme, channel, event, quyền, tải xuống, eval, tìm kiếm, PDF, cookie và trust.
+
+Mỗi phần đạt khi trang log ra `page: ok`.
 
 <a id="examples-with-tests"></a>
 
-## Ví dụ với các bài kiểm tra
+## Ví dụ có test
 
-Các ví dụ blackhole, chat-glow, wind, effort-slider, mayoi và loading có
-test riêng, chạy bởi `zig build test`: view được dựng qua Tester, shader
-được vẽ trên CPU và so với kết quả mong đợi. `zig build test-loading -j1`
-chạy riêng plugin và gallery loading, gồm thời lượng, đồng hồ độc lập,
-rebuild cùng frame và giảm chuyển động.
+Một ví dụ có thể chứa các khối `test` riêng, chạy bởi `zig build test`. Đó là danh sách `tested_examples` trong `build.zig`: blackhole, chat-glow, wind, effort-slider, mayoi và loading.
+
+- View của chúng chạy qua `ui.Tester`.
+- Shader của chúng được vẽ trên CPU và kiểm tra xem có vẽ đúng thứ cần vẽ không.
+
+`zig build test-loading -j1` chỉ chạy plugin loading và gallery. Nó kiểm tra thời lượng, các đồng hồ độc lập, build lặp lại và giảm chuyển động.
 
 <a id="browsers"></a>
 
 ## Trình duyệt
 
-`zig build test-web` build counter, gallery và gestures cho trình duyệt,
-rồi chạy headless dưới Node (`src/web/test_node.mjs`). Test kiểm tra frame,
-trạng thái idle, nhấp chuột, pinch và pan. Lệnh này cần `node`.
-`src/web/test_browser_run.mjs` kiểm tra trang trong Chrome/Edge headless,
-bao gồm so sánh pixel WebGL 2 với CPU; `src/web/test_wasm.mjs` chạy unit
-test biên dịch cho wasm32-wasi. Xem [Trình duyệt](../browsers.md).
+`zig build test-web` build counter, gallery và gestures cho trình duyệt. Nó chạy chúng headless dưới Node (`src/web/test_node.mjs`), và cần `node`. Nó kiểm tra:
 
-Để kiểm tra cả listener `WheelEvent` DOM thật của host:
+- một frame được vẽ, và không vẽ gì khi rảnh;
+- bấm vào một đoạn chữ thì hiện đoạn khác;
+- pinch và pan làm thay đổi ví dụ gesture.
+
+Các runner khác:
+
+- `src/web/test_browser_run.mjs` chạy cùng phép kiểm tra trong Chromium headless (Chrome hoặc Edge, ẩn). Nó so WebGL 2 với pixel của renderer CPU.
+- `src/web/test_wasm.mjs` chạy unit test của myzig biên dịch cho wasm32-wasi.
+
+Xem [Browsers](../browsers.md).
+
+Để kiểm tra thêm listener `WheelEvent` thật của DOM trên host:
 
 ```sh
 zig build test-web -j1 -Dweb-browser="/path/to/chrome-or-edge"
 ```
 
-Ví dụ trên Windows:
-`-Dweb-browser="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`.
-Trình duyệt chạy headless. Test kiểm tra delta theo pixel/dòng/trang,
-Ctrl-pinch và chỉ chặn hành vi mặc định khi view nhận sự kiện.
+Ví dụ trên Windows, dùng `-Dweb-browser="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`. Trình duyệt chạy headless. Các test này bao gồm delta theo pixel, dòng và trang, Ctrl-pinch, và việc chỉ chặn hành vi mặc định khi view xử lý event.
 
 <a id="other-platforms"></a>
 
 ## Nền tảng khác
 
-Linux và Windows xây dựng từ bất kỳ máy nào. Các kiểm thử của Linux chạy trong vùng chứa GTK 3, WebKitGTK, phông chữ, Mesa và màn hình ảo (`tools/linux.Dockerfile`):
+Linux và Windows build được từ máy bất kỳ. Test của Linux chạy trong một container có GTK 3, WebKitGTK, font, Mesa và màn hình ảo (`tools/linux.Dockerfile`):
 
 ```sh
 zig build test-bin -Dtarget=aarch64-linux-gnu --prefix zig-out/linux
@@ -196,14 +226,14 @@ docker build -t myzig-linux -f tools/linux.Dockerfile tools
 docker run --rm -v "$PWD/zig-out/linux:/work" myzig-linux xvfb-run ./bin/myzig-tests
 ```
 
-Windows chương trình chạy trong Wine trên màn hình ảo (`tools/wine.Dockerfile` cho bản dựng arm64, `tools/wine-amd64.Dockerfile` cho bản dựng x86_64 trên máy Mac arm64). `zig build test -Dportable=true` chạy trên máy Mac, bộ kết xuất văn bản và CPU của Linux và Windows.
+- Chương trình Windows chạy dưới Wine trên màn hình ảo: `tools/wine.Dockerfile` cho bản build arm64, `tools/wine-amd64.Dockerfile` cho bản build x86_64 trên máy Mac arm64.
+- `zig build test -Dportable=true` chạy, trên Mac, phần chữ và renderer CPU của Linux và Windows.
 
 <a id="documentation-images"></a>
 
-## Ảnh minh họa UI
+## Ảnh trong tài liệu
 
-Các hướng dẫn UI dùng ảnh PNG của widget đang chạy, được render ngoài màn
-hình bằng `ui.Tester`. Từ thư mục gốc repository, tạo lại ảnh bằng:
+Các hướng dẫn UI dùng ảnh PNG của widget đang chạy, render offscreen bằng `ui.Tester`. Từ thư mục gốc của repository, tạo lại chúng bằng:
 
 ```sh
 cd docs
@@ -211,34 +241,37 @@ npm run images:ui
 npm run build
 ```
 
-`images:ui` chạy `zig build docs-ui -Doptimize=ReleaseFast -j1`, sau đó nén
-PNG không mất dữ liệu vào `docs/images/ui/`. Cần Zig 0.17 và Node, không cần
-công cụ ảnh khác. Docs tiếng Anh và tiếng Việt dùng chung ảnh; nhãn trong ảnh
-giữ tiếng Anh theo ví dụ Gallery.
+- `images:ui` chạy `zig build docs-ui -Doptimize=ReleaseFast -j1`.
+- Sau đó nó nén không mất dữ liệu các PNG vào `docs/images/ui/`.
+- Nó cần Zig 0.17 và Node, không cần công cụ xử lý ảnh nào khác.
+- Trang tiếng Anh và tiếng Việt dùng chung ảnh. Chữ trên ảnh theo ví dụ Gallery tiếng Anh.
 
-Để chỉ cập nhật một số ảnh đã render, chạy từ thư mục gốc repository:
+Để chỉ cập nhật một số ảnh sau khi render, chạy từ thư mục gốc của repository:
 
 ```sh
 node docs/scripts/ui-images.mjs items.png input-groups.png pagination.png
 ```
 
-[Công cụ tạo ảnh](../../../examples/gallery/snapshots.zig) dùng lại các view
-của Gallery, căn khung theo kích thước layout và mở menu, hộp thoại bằng input
-nội bộ của Tester. [Các ví dụ nền tảng](../../../examples/gallery/snapshot_foundations.zig)
-minh họa bố cục, grid, hướng đọc và shader trong hướng dẫn. Không mở cửa sổ
-hay chụp màn hình desktop. Bộ ảnh hiện tại được tạo trên Windows bằng CPU
-renderer và phông hệ thống; kích thước chữ có thể khác trên nền tảng khác.
-Ảnh chuyển động là khung hình tĩnh; công cụ này không chụp webview hệ thống
-nhúng trong native UI.
+Ảnh được tạo ra thế nào:
 
-Khi sửa widget có ảnh minh họa, hãy tạo lại ảnh, kiểm tra nội dung không bị
-cắt và cập nhật ảnh cùng docs. `npm run build` kiểm tra đường dẫn ảnh trên
-trang tài liệu.
+- [Snapshot runner](../../../examples/gallery/snapshots.zig) dùng lại các view của Gallery. Nó cắt khung từng thẻ theo layout đã tính, và mở menu, dialog bằng input giả lập của `ui.Tester` ngay trong process.
+- [Các cảnh nền tảng](../../../examples/gallery/snapshot_foundations.zig) minh họa layout, grid, hướng chữ và shader của hướng dẫn.
+- Không cửa sổ nào hiện ra và không pixel nào của desktop bị chụp.
+- Ảnh đã commit được tạo trên Windows bằng renderer CPU và font hệ thống. Thông số font có thể khác trên nền tảng khác.
+- Ảnh chuyển động chỉ là khung hình tĩnh. Công cụ này không chụp được webview hệ thống nhúng trong app.
+
+Sau khi đổi một widget có ảnh minh họa:
+
+1. tạo lại ảnh;
+2. xem ảnh có bị cắt nội dung không;
+3. commit ảnh cùng với tài liệu.
+
+`npm run build` kiểm tra xem ảnh có tìm thấy được trên trang tài liệu không.
 
 <a id="rules"></a>
 
 ## Quy tắc
 
-- Các kiểm thử không bao giờ đạt hoặc không đạt theo thời gian trên đồng hồ treo tường: tăng đồng hồ của Người kiểm tra, chờ điều kiện bằng vòng lặp sự kiện (`myzig.runFor`), đo công việc theo số lượng.
-- Các cuộc kiểm tra không bao giờ chạm đến trạng thái của người dùng: không có bảng tạm hệ thống, không có tệp bên ngoài thư mục tạm thời, không có giá trị mặc định.
-- Mọi hành vi của widget đều được kiểm tra (`src/ui/tests*.zig`); xem [hướng dẫn kiến ​​trúc](../architecture-testing.md).
+- Test không bao giờ đạt hay trượt vì giờ thật. Hãy cho đồng hồ của `ui.Tester` chạy tới, chờ điều kiện bằng event loop (`myzig.runFor`), đo công việc bằng số đếm.
+- Test không bao giờ đụng tới state của người dùng: không clipboard hệ thống, không file ngoài thư mục tạm, không defaults.
+- Mọi hành vi của widget đều có test (`src/ui/tests*.zig`); xem [hướng dẫn kiến trúc](../architecture-testing.md).

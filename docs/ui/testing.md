@@ -2,7 +2,7 @@
 
 myzig tests native UI without a window, and apps without showing one.
 Nothing reaches the screen, the mouse, the keyboard or the system's
-clipboard: a test cannot disturb the person at the computer, and reads the
+clipboard. A test cannot disturb the person at the computer, and reads the
 same on a busy machine as on an idle one.
 
 - **Views** run in a `ui.Tester`: the same frames a window runs, input
@@ -42,10 +42,15 @@ test "the counter counts" {
 }
 ```
 
-A Tester is initialized in place (its context points into it) and runs
-the first frame. `ui.TesterOptions` has `width` and `height` in points
-(480 × 360 by default), `scale` (2), `dark`, and `theme`, colors of its
-own as a window's `theme` option gives.
+A Tester is initialized in place, since its context points into it. `init`
+runs the first frame.
+
+| `ui.TesterOptions` | Default | |
+|---|---|---|
+| `width`, `height` | 480 × 360 | in points |
+| `scale` | 2 | |
+| `dark` | `false` | the dark appearance |
+| `theme` | `null` | colors of its own, as a window's `theme` option gives |
 
 ### Input
 
@@ -69,21 +74,19 @@ own as a window's `theme` option gives.
 
 ### What it shows
 
-`findText(s)` returns the rectangle of the text `s` in the last frame,
-`hasText(s)` whether it is there, and `containsText(s)` whether a text
-drawn contains `s` (a terminal's row, a paragraph). `t.ctx` is the view's
-`ui.Context`, for what a test reads of it: the focus, the boxes and their
-rectangles (`t.ctx.nodes`, `t.ctx.rects`), the frame's stats. What copy
-and cut wrote is in `t.clipboard`: tests never touch the system's.
-
-What assistive technology sees is tested through the Tester too: see
-[Accessibility](accessibility.md#testing-it).
+- `findText(s)` returns the rectangle of the text `s` in the last frame.
+- `hasText(s)` tells whether it is there.
+- `containsText(s)` tells whether a text drawn contains `s`, as a
+  terminal's row or a paragraph.
+- `t.ctx` is the view's `ui.Context`, for what a test reads of it: the
+  focus, the boxes and their rectangles (`t.ctx.nodes`, `t.ctx.rects`),
+  the frame's stats.
+- What copy and cut wrote is in `t.clipboard`. Tests never touch the
+  system's.
+- What assistive technology sees is tested through the Tester too: see
+  [Accessibility](accessibility.md#testing-it).
 
 ### Time
-
-A Tester has a clock of its own, `t.time`, advanced by `t.dt` (1/60 of a
-second) each frame. Animations, double clicks, the caret's blinking,
-tooltips, toasts and `c.time` follow it, never the wall clock.
 
 ```zig
 try t.clickText("More");
@@ -92,25 +95,26 @@ t.settle(2);      // frames until nothing animates, at most two seconds of them
 try std.testing.expect(!t.ctx.animating);
 ```
 
-`t.frame()` runs one frame, for what changed outside the view;
-`t.advance(seconds)` runs the frames of that much time; `t.settle(max)`
-runs frames until animations settle. Never sleep in a test to let
-something happen: advance the clock.
+A Tester has a clock of its own, `t.time`, advanced by `t.dt` (1/60 of a
+second) each frame. Animations, double clicks, the caret's blinking,
+tooltips, toasts and `c.time` follow it, never the wall clock.
 
-`t.pinch(x, y, scale)` offers a touchpad zoom to a
-[`handleInput` callback](gestures.md), and returns whether it was taken.
-`t.scroll` and `t.wheel` offer scroll events to those handlers before
-scrolling the surrounding containers.
+| Call | Runs |
+|---|---|
+| `t.frame()` | one frame, for what changed outside the view |
+| `t.advance(seconds)` | the frames of that much time |
+| `t.settle(max)` | frames until animations settle |
+
+Never sleep in a test to let something happen: advance the clock.
+
+Gestures:
+
+- `t.pinch(x, y, scale)` offers a touchpad zoom to a
+  [`handleInput` callback](gestures.md), and returns whether it was taken.
+- `t.scroll` and `t.wheel` offer scroll events to those handlers before
+  scrolling the surrounding containers.
 
 ### Pictures
-
-`t.screenshot(path)` renders the last frame offscreen and writes a PNG:
-with Metal on macOS, with the CPU renderer where text is myzig's own
-(Linux, Windows, browsers, and macOS built with `-Dportable=true`).
-`t.render(gpa)` returns the pixels instead (`gpu.Pixels`: BGRA,
-premultiplied; free with `deinit`), for comparing them, and
-`t.rasterize(bytes)` draws into memory of `t.pixelSize()` with the CPU
-renderer.
 
 ```zig
 const px = try t.render(std.testing.allocator);
@@ -118,10 +122,18 @@ defer px.deinit(std.testing.allocator);
 // px.bytes[(y * px.width + x) * 4 ..][0..4] is B, G, R, A
 ```
 
+- `t.screenshot(path)` renders the last frame offscreen and writes a PNG.
+  It uses Metal on macOS. It uses the CPU renderer where text is myzig's
+  own: Linux, Windows, browsers, and macOS built with `-Dportable=true`.
+- `t.render(gpa)` returns the pixels instead, for comparing them. They are
+  `gpu.Pixels`: BGRA, premultiplied; free them with `deinit`.
+- `t.rasterize(bytes)` draws into memory of `t.pixelSize()` with the CPU
+  renderer.
+
 ### Scripts
 
-`t.runScript(steps)` runs steps separated by `;`, each followed by frames
-until animations settle:
+`t.runScript(steps)` runs steps separated by `;`. Each is followed by
+frames until animations settle.
 
 | Step | What it does |
 |---|---|
@@ -164,32 +176,48 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 ## Pages
 
-`zig build test-pages` runs pages hidden, through the real webview and
-bridge of the platform: the hello example calling Zig (calls, errors, an
-event, the generated client), and the pages example (`examples/pages`),
-where a hidden page and Zig check each other: schemes, channels, events,
-permissions, downloads, eval, find, PDF, cookies and trust. Each passes
-when the page logs `page: ok`.
+`zig build test-pages` runs pages hidden, through the platform's real
+webview and bridge:
+
+- the hello example calling Zig: calls, errors, an event, the generated
+  client;
+- the pages example (`examples/pages`), where a hidden page and Zig check
+  each other: schemes, channels, events, permissions, downloads, eval,
+  find, PDF, cookies and trust.
+
+Each passes when the page logs `page: ok`.
 
 ## Examples with tests
 
-An example may hold `test` blocks of its own, run by `zig build test`
-(the list `tested_examples` of `build.zig`: blackhole, chat-glow, wind,
-effort-slider, mayoi and loading): their views through a Tester, their shaders
-drawn on the CPU and checked for what they must draw.
-`zig build test-loading -j1` runs just the loading plugin and gallery,
-including duration, independent clocks, repeated builds and reduced motion.
+An example may hold `test` blocks of its own, run by `zig build test`.
+They are the list `tested_examples` of `build.zig`: blackhole, chat-glow,
+wind, effort-slider, mayoi and loading.
+
+- Their views run through a Tester.
+- Their shaders are drawn on the CPU and checked for what they must draw.
+
+`zig build test-loading -j1` runs just the loading plugin and gallery. It
+covers duration, independent clocks, repeated builds and reduced motion.
 
 ## Browsers
 
-`zig build test-web` builds counter, gallery and gestures for browsers and runs them
-headless under Node (`src/web/test_node.mjs`): a frame draws, nothing
-draws while idle, clicking a text shows another, and pinch and pan change
-the gesture example. It needs `node`.
-`src/web/test_browser_run.mjs` runs the same check in a headless Chromium
-(Chrome or Edge, hidden), with WebGL 2 against the CPU renderer's pixels,
-and `src/web/test_wasm.mjs` runs myzig's unit tests compiled for
-wasm32-wasi. See [Browsers](../browsers.md).
+`zig build test-web` builds counter, gallery and gestures for browsers. It
+runs them headless under Node (`src/web/test_node.mjs`), and needs `node`.
+It checks that:
+
+- a frame draws, and nothing draws while idle;
+- clicking a text shows another;
+- pinch and pan change the gesture example.
+
+More runners:
+
+- `src/web/test_browser_run.mjs` runs the same check in a headless
+  Chromium (Chrome or Edge, hidden). It compares WebGL 2 with the CPU
+  renderer's pixels.
+- `src/web/test_wasm.mjs` runs myzig's unit tests compiled for
+  wasm32-wasi.
+
+See [Browsers](../browsers.md).
 
 To also check the host's real DOM `WheelEvent` listener:
 
@@ -199,8 +227,9 @@ zig build test-web -j1 -Dweb-browser="/path/to/chrome-or-edge"
 
 On Windows, for example, use
 `-Dweb-browser="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`.
-The browser runs headlessly. These tests cover pixel, line and page deltas,
-Ctrl-pinch and preventing defaults only when the view handles the event.
+The browser runs headlessly. These tests cover pixel, line and page
+deltas, Ctrl-pinch, and preventing defaults only when the view handles the
+event.
 
 ## Other platforms
 
@@ -214,15 +243,16 @@ docker build -t myzig-linux -f tools/linux.Dockerfile tools
 docker run --rm -v "$PWD/zig-out/linux:/work" myzig-linux xvfb-run ./bin/myzig-tests
 ```
 
-Windows programs run under Wine on a virtual display
-(`tools/wine.Dockerfile` for arm64 builds, `tools/wine-amd64.Dockerfile`
-for x86_64 builds on an arm64 Mac). `zig build test -Dportable=true`
-runs, on a Mac, the text and CPU renderer of Linux and Windows.
+- Windows programs run under Wine on a virtual display:
+  `tools/wine.Dockerfile` for arm64 builds, `tools/wine-amd64.Dockerfile`
+  for x86_64 builds on an arm64 Mac.
+- `zig build test -Dportable=true` runs, on a Mac, the text and CPU
+  renderer of Linux and Windows.
 
 ## Documentation images
 
-The UI guides use PNGs of running widgets, rendered offscreen by `ui.Tester`.
-From the repository root, regenerate them with:
+The UI guides use PNGs of running widgets, rendered offscreen by
+`ui.Tester`. From the repository root, regenerate them with:
 
 ```sh
 cd docs
@@ -230,33 +260,43 @@ npm run images:ui
 npm run build
 ```
 
-`images:ui` runs `zig build docs-ui -Doptimize=ReleaseFast -j1`, then
-losslessly compresses the PNG data into `docs/images/ui/`. It needs Zig 0.17
-and Node, with no additional image tools. The English and Vietnamese pages
-share the images; their labels follow the English Gallery example.
+- `images:ui` runs `zig build docs-ui -Doptimize=ReleaseFast -j1`.
+- Then it compresses the PNG data losslessly into `docs/images/ui/`.
+- It needs Zig 0.17 and Node, and no other image tools.
+- The English and Vietnamese pages share the images. Their labels follow
+  the English Gallery example.
 
-To update only selected images after rendering, run from the repository root:
+To update only selected images after rendering, run from the repository
+root:
 
 ```sh
 node docs/scripts/ui-images.mjs items.png input-groups.png pagination.png
 ```
 
-[The snapshot runner](../../examples/gallery/snapshots.zig) reuses Gallery
-views, frames each card from its computed layout and opens menus and dialogs
-with in-process Tester input. [The foundation scenes](../../examples/gallery/snapshot_foundations.zig)
-illustrate layout, grid, direction and the guide's shader. No window is shown
-and no desktop pixels are captured. The committed images were generated on
-Windows with the CPU renderer and system fonts; font metrics can differ on
-other platforms. Motion images are still frames, and embedded system webviews
-are not captured by this tool.
+How the images are made:
 
-After changing a pictured widget, regenerate the images, inspect them for
-clipped content and check them in alongside the docs. `npm run build` checks
-that the images resolve on the documentation site.
+- [The snapshot runner](../../examples/gallery/snapshots.zig) reuses
+  Gallery views. It frames each card from its computed layout, and opens
+  menus and dialogs with in-process Tester input.
+- [The foundation scenes](../../examples/gallery/snapshot_foundations.zig)
+  illustrate layout, grid, direction and the guide's shader.
+- No window is shown and no desktop pixels are captured.
+- The committed images were generated on Windows with the CPU renderer and
+  system fonts. Font metrics can differ on other platforms.
+- Motion images are still frames. Embedded system webviews are not
+  captured by this tool.
+
+After changing a pictured widget:
+
+1. regenerate the images;
+2. inspect them for clipped content;
+3. check them in alongside the docs.
+
+`npm run build` checks that the images resolve on the documentation site.
 
 ## Rules
 
-- Tests never pass or fail on wall-clock time: advance a Tester's clock,
+- Tests never pass or fail on wall-clock time. Advance a Tester's clock,
   wait for a condition with the event loop (`myzig.runFor`), measure work
   by counts.
 - Tests never touch the user's state: no system clipboard, no files

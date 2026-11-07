@@ -1,28 +1,40 @@
 # updater
 
-Cập nhật: kiểm tra bảng kê khai, tải xuống tệp thực thi mới xác minh SHA-256 và chữ ký của nó, đồng thời đặt nó vào vị trí của tệp đang chạy (nó chạy ở lần khởi chạy tiếp theo hoặc bây giờ với `relaunch`), theo tùy chọn của người dùng; dịch vụ dành cho biểu ngữ hoặc cửa sổ cập nhật trong một trang; và cửa sổ cập nhật mà người dùng Mac biết đến từ Sparkle, trong giao diện native, trên mọi nền tảng.
+Cập nhật cho app, trên mọi nền tảng:
 
-Gói này là `plugins/updater` (mô-đun `updater`); nó phụ thuộc vào [mainthread](mainthread.md). Xem [Plugin](../plugins.md) để thêm plugin vào ứng dụng và [Updates](../updates.md) để ký và xuất bản các bản cập nhật với `myzig build`.
+- kiểm tra một manifest;
+- tải file thực thi mới, có xác minh SHA-256 và chữ ký;
+- đặt nó vào chỗ của file đang chạy. Bản mới chạy ở lần mở sau, hoặc ngay lập tức với `relaunch`.
+
+Plugin lưu tùy chọn của người dùng, có một service cho banner hay cửa sổ cập nhật trong trang, và vẽ bằng native UI cửa sổ cập nhật quen thuộc với người dùng Mac từ Sparkle.
+
+Package là `plugins/updater` (module `updater`); nó phụ thuộc vào [mainthread](mainthread.md). Xem [Plugin](../plugins.md) để thêm nó vào app, và [Cập nhật](../updates.md) để ký và phát hành bản cập nhật bằng `myzig build`.
 
 <a id="the-manifest"></a>
 
-## Bản kê khai
-
-Mỗi nền tảng (và kiến trúc) có tệp kê khai riêng, tệp JSON được cung cấp qua HTTPS, `myzig build` ghi:
+## Manifest
 
 ```json
 { "version": "2.0.0", "url": "app-2.0.0", "sha256": "<64 hex digits>", "signature": "<base64>", "notes": "Markdown", "date": "2026-10-19T08:00:00Z", "size": 1234567 }
 ```
 
-- `url` là tuyệt đối hoặc tương đối với URL của tệp kê khai.
-- Các phiên bản có ngữ nghĩa (`1.2.3`, `v1.2.3`, `2.0.0-beta.1`); chỉ có bản mới hơn là bản cập nhật (`updater.isNewer`).
-- `signature` là chữ ký Ed25519 của SHA-256, trong base64, bằng khóa của [`myzig keygen`](../cli.md#myzig-keygen). Trình cập nhật được cung cấp khóa chung (`public_key`) từ chối một bảng kê khai không có khóa và bản tải xuống không ký.
-- `notes`, `date` và `size` là tùy chọn; tải xuống lớn hơn `size` hoặc lớn hơn `max_size` (1 GiB), không thành công.
-- Xuất bản tệp thực thi trước và tệp kê khai cuối cùng để ứng dụng không bao giờ nhìn thấy tệp kê khai chưa có tệp ở đó (`myzig build --upload`).
+Mỗi nền tảng và kiến trúc có manifest riêng: một file JSON phục vụ qua HTTPS, do `myzig build` viết ra.
+
+| Trường | |
+|---|---|
+| `version` | theo semantic versioning (`1.2.3`, `v1.2.3`, `2.0.0-beta.1`); chỉ bản mới hơn mới là bản cập nhật (`updater.isNewer`) |
+| `url` | tuyệt đối, hoặc tương đối so với URL của manifest |
+| `sha256` | của file thực thi, 64 chữ số hex |
+| `signature` | chữ ký Ed25519 của SHA-256, dạng base64, bằng khóa của [`myzig keygen`](../cli.md#myzig-keygen) |
+| `notes`, `date`, `size` | không bắt buộc |
+
+- Updater có public key (`public_key`) sẽ từ chối manifest không có chữ ký, và bản tải về mà khóa đó không ký.
+- Bản tải về lớn hơn `size`, hoặc lớn hơn `max_size` (1 GiB), sẽ thất bại.
+- Phát hành file thực thi trước, manifest sau cùng. Nhờ vậy app không bao giờ thấy một manifest mà file của nó chưa có. `myzig build --upload` làm đúng như vậy.
 
 <a id="from-zig"></a>
 
-## Sử dụng từ Zig
+## Từ Zig
 
 ```zig
 const updater = @import("updater");
@@ -38,15 +50,26 @@ if (try u.check(arena)) |update| { // update.version, .notes, .size
 }
 ```
 
-- `download` nhận một tùy chọn `updater.Progress` (`ctx` và `func(ctx, done, total)`, với `total` null khi máy chủ không nói).
-- `install` thay thế tệp thực thi (`exe_path`, tệp đang chạy khi null). Windows cho phép đổi tên một tệp thực thi đang chạy nhưng không được thay thế, do đó, nó chuyển sang `<exe>.old` trước tiên (và quay lại nếu việc di chuyển tệp mới không thành công), mà `cleanup` sẽ loại bỏ ở lần khởi động tiếp theo; trên macOS và Linux việc đổi tên sẽ thay thế nó cùng một lúc. Ứng dụng đang chạy vẫn tiếp tục như cũ.
-- Nếu không có `public_key`, SHA-256 của tệp kê khai là sự tin cậy: phân phối nó qua HTTPS.
-- Lỗi: `error.BadManifest`, `BadVersion`, `HttpStatus`, `ChecksumMismatch`, `TooLarge`, `SizeMismatch`, `Unsigned`, `BadSignature`, `BadPublicKey` và mạng.
-- `updater.Prefs` giữ các lựa chọn của người dùng ở `updater.json`: `automaticChecks` (bật), `automaticDownloads` (tắt), `skippedVersion`, `lastCheck`; `Prefs.load`, `save`, `due(now, interval)`, `dueAt(now, interval, checked_since_launch)` và `offers(version)`.
+- `download` nhận một `updater.Progress` không bắt buộc: `ctx`, và `func(ctx, done, total)`. `total` là null khi server không báo.
+- `install` thay file thực thi: `exe_path`, hoặc file đang chạy khi là null. App đang chạy vẫn tiếp tục như cũ.
+- Không có `public_key` thì SHA-256 trong manifest là thứ duy nhất để tin: hãy phục vụ nó qua HTTPS.
+- Lỗi: `error.BadManifest`, `BadVersion`, `HttpStatus`, `ChecksumMismatch`, `TooLarge`, `SizeMismatch`, `Unsigned`, `BadSignature`, `BadPublicKey`, và lỗi mạng.
+- `updater.Prefs` lưu lựa chọn của người dùng trong `updater.json`:
+  - `automaticChecks` (bật), `automaticDownloads` (tắt), `skippedVersion`, `lastCheck`;
+  - `Prefs.load`, `save`, `due(now, interval)`, `dueAt(now, interval, checked_since_launch)` và `offers(version)`.
+
+<details>
+<summary>Cách install thay một file thực thi đang chạy</summary>
+
+- Trên macOS và Linux, thao tác rename thay nó ngay lập tức.
+- Windows cho phép đổi tên file thực thi đang chạy (`MoveFileExW`; `Io.Dir.rename` thì từ chối) nhưng không cho thay thế. Vì vậy file cũ được dời sang `<exe>.old` trước, và dời lại nếu việc đưa file mới vào thất bại.
+- `cleanup` xóa `<exe>.old` ở lần khởi động sau.
+
+</details>
 
 <a id="the-service"></a>
 
-## Dịch vụ
+## Service
 
 ```zig
 var service: updater.Service = try .init(gpa, app, .{ .manifest_url = url, .current = version, .public_key = key });
@@ -54,24 +77,29 @@ defer service.deinit();
 service.startBackgroundChecks(10_000); // in 10 s, then once a day, if the user lets it
 ```
 
-Kiểm tra nền sẽ chạy 10 giây sau khi khởi chạy, bất cứ khi nào có lần kiểm tra cuối cùng, sau đó mỗi ngày một lần khi ứng dụng chạy, do đó, phiên bản xuất hiện kể từ lần cuối ứng dụng chạy sẽ hiển thị khi ứng dụng mở lại. Họ không cung cấp phiên bản bị bỏ qua (nhưng phiên bản tiếp theo) và với tính năng tải xuống tự động, họ sẽ cài đặt mà không cần hỏi. Việc kiểm tra và tải xuống chạy theo nhiệm vụ của `Io` của ứng dụng; trạng thái của chúng đạt tới luồng chính ([mainthread](mainthread.md)), mọi trang và code native theo sau dịch vụ (`service.listener`, `updater.Listener`: cửa sổ cập nhật).
-
-`updater.ServiceOptions`:
-
-| lĩnh vực | mặc định | |
+| `updater.ServiceOptions` | Mặc định | |
 |---|---|---|
 | `manifest_url` | bắt buộc | |
 | `current` | bắt buộc | phiên bản đang chạy |
-| `public_key` | null | nội dung của `myzig-update.pub`: chỉ cập nhật nó có dấu hiệu cài đặt |
-| `exe_path` | null | tệp thực thi để thay thế; cái đang chạy |
-| `prefs_dir` | null | nơi `updater.json` sống; thư mục dữ liệu của ứng dụng |
-| `interval_s` | 1 ngày | giây giữa các lần kiểm tra lý lịch |
+| `public_key` | null | nội dung của `myzig-update.pub`: chỉ bản cập nhật do nó ký mới được cài |
+| `exe_path` | null | file thực thi cần thay; mặc định là file đang chạy |
+| `prefs_dir` | null | nơi chứa `updater.json`; mặc định là thư mục dữ liệu của app |
+| `interval_s` | 1 ngày | số giây giữa các lần kiểm tra nền |
+
+**Kiểm tra nền**
+
+- Lần đầu chạy 10 giây sau khi mở app, bất kể lần kiểm tra trước là khi nào. Phiên bản ra mắt từ lần chạy trước sẽ hiện ra khi app mở lại.
+- Sau đó mỗi ngày một lần khi app còn chạy.
+- Chúng không đề xuất phiên bản đã bị bỏ qua, nhưng vẫn đề xuất phiên bản kế tiếp.
+- Khi bật tải tự động, chúng cài luôn mà không hỏi.
+
+Kiểm tra và tải về chạy trên một task của `Io` của app. State của chúng được đưa về main thread ([mainthread](mainthread.md)) và tới mọi trang. Code native theo dõi service qua `service.listener`, một `updater.Listener`: cửa sổ cập nhật dùng cách này.
 
 <a id="the-update-window"></a>
 
 ## Cửa sổ cập nhật
 
-`updater.Window` là cửa sổ cập nhật của mygo trong giao diện native, vì vậy nó không cần webview, trong các ứng dụng của giao diện native và các trang tương tự. Khi có phiên bản mới, nó sẽ hiển thị ghi chú phát hành (Đánh dấu, với các liên kết mở trong trình duyệt) và cung cấp **Cài đặt bản cập nhật**, **Nhắc tôi sau** và **Bỏ qua phiên bản này**, với "Tự động tải xuống và cài đặt các bản cập nhật trong tương lai"; quá trình cài đặt hiển thị quá trình tải xuống kèm theo thanh tiến trình, sau đó đề nghị khởi chạy lại. Thoát và Nhập câu trả lời bằng các nút hủy và mặc định của cửa sổ.
+`updater.Window` là cửa sổ cập nhật của mygo viết bằng native UI. Nó không cần webview, nên dùng được cả trong app native UI lẫn app dùng trang.
 
 ```zig
 var window: updater.Window = undefined;
@@ -79,19 +107,37 @@ window.init(&service, .{}); // follows the service; .language, .width, .height
 defer window.deinit();
 ```
 
-Mục "Kiểm tra bản cập nhật..." trong menu của ứng dụng, được gắn nhãn `updater.menuItemLabel("")` (bằng ngôn ngữ mà ứng dụng hiển thị), gọi `window.checkForUpdates()`: nó kiểm tra khi người dùng yêu cầu, do đó, cửa sổ hiển thị ngay lập tức và cho biết khi nào ứng dụng được cập nhật hoặc kiểm tra không thành công; nó cũng hiển thị các bản cập nhật mà người dùng đã bỏ qua. Trong khi quá trình kiểm tra đang được tiến hành, việc gọi lại sẽ đưa cửa sổ của nó lên phía trước. `updater.WindowView` chỉ là view của cửa sổ mà `ui.Tester` điều khiển.
+- Khi có phiên bản mới, nó hiện release notes: Markdown, link mở trong trình duyệt.
+- Nó đưa ra **Install Update**, **Remind Me Later** và **Skip This Version**, kèm "Automatically download and install updates in the future".
+- Khi cài, nó hiện quá trình tải với thanh tiến trình, rồi đề nghị khởi động lại.
+- Escape và Enter tương ứng với nút hủy và nút mặc định của cửa sổ.
+
+**Mục menu "Check for Updates…".** Đặt label cho nó bằng `updater.menuItemLabel("")`, theo ngôn ngữ app đang hiển thị. Mục này gọi `window.checkForUpdates()`, kiểm tra theo yêu cầu của người dùng:
+
+- cửa sổ hiện ra ngay;
+- nó báo khi app đã là bản mới nhất hoặc khi kiểm tra thất bại;
+- nó hiện cả những bản cập nhật người dùng đã bỏ qua;
+- khi đang kiểm tra mà gọi lại thì cửa sổ được đưa lên trước.
+
+`updater.WindowView` chỉ là view của cửa sổ, do `ui.Tester` điều khiển.
 
 <a id="languages"></a>
 
 ### Ngôn ngữ
 
-Cửa sổ nói ngôn ngữ của người dùng khi plugin có: tiếng Anh, tiếng Trung (Giản thể và Phồn thể), tiếng Hà Lan, tiếng Pháp, tiếng Đức, tiếng Ý, tiếng Nhật, tiếng Hàn, tiếng Ba Lan, tiếng Bồ Đào Nha (Brazil), tiếng Nga, tiếng Tây Ban Nha, tiếng Thổ Nhĩ Kỳ và tiếng Ukraina, với dấu thập phân của ngôn ngữ ("1,5 MB"); các ngôn ngữ khác có được tiếng Anh. Văn bản của nó là một danh mục `src/locales/*.json`, được kiểm tra tại thời điểm biên dịch ([Ngôn ngữ](../i18n.md)); `updater.Texts` nói vậy.
+Cửa sổ dùng ngôn ngữ của người dùng nếu plugin có ngôn ngữ đó. Các ngôn ngữ khác dùng tiếng Anh. Các ngôn ngữ có sẵn:
 
-Một cửa sổ nói ngôn ngữ mà ứng dụng hiển thị (`i18n.locale()` hoặc `WindowOptions.language`) khi quá trình kiểm tra bắt đầu và giữ cửa sổ đó khi cửa sổ mở. Sau `i18n.setLocale`, cửa sổ tiếp theo sẽ có cửa sổ mới, cũng như `menuItemLabel`: một ứng dụng xây dựng lại menu khi ngôn ngữ của nó thay đổi sẽ nhận được "Kiểm tra cập nhật..." trong cửa sổ mới.
+- tiếng Anh, tiếng Trung (giản thể và phồn thể), tiếng Hà Lan, Pháp, Đức, Ý, Nhật, Hàn, Ba Lan, Bồ Đào Nha (Brazil), Nga, Tây Ban Nha, Thổ Nhĩ Kỳ và Ukraina;
+- kèm dấu thập phân theo locale của từng ngôn ngữ ("1,5 MB").
+
+Chữ của nó là một catalog trong `src/locales/*.json`, được kiểm tra lúc biên dịch ([Ngôn ngữ](../i18n.md)). `updater.Texts` cung cấp các chữ này.
+
+- Một cửa sổ lấy ngôn ngữ app đang hiển thị (`i18n.locale()`, hoặc `WindowOptions.language`) khi lần kiểm tra của nó bắt đầu. Nó giữ ngôn ngữ đó khi còn mở.
+- Sau `i18n.setLocale`, cửa sổ kế tiếp lấy ngôn ngữ mới, và `menuItemLabel` cũng vậy. App dựng lại menu khi đổi ngôn ngữ sẽ có "Check for Updates…" bằng ngôn ngữ mới.
 
 <a id="from-pages"></a>
 
-## Sử dụng từ trang web
+## Từ trang
 
 ```zig
 try app.bind(&service);
@@ -106,23 +152,25 @@ myzig.on("myzig-updater", (s) => {
 await myzig.call("Updater.check");   // as the user asked: skipped versions too
 await myzig.call("Updater.install"); // what the check found
 await myzig.call("Updater.skip");    // background checks won't offer it again
-await myzig.call("Updater.availableVersion"); // phiên bản lần kiểm tra cuối tìm thấy, "" nếu không có (huy hiệu, dòng cài đặt)
+await myzig.call("Updater.availableVersion"); // what the last check found, "" for nothing (a badge, a settings row)
 await myzig.call("Updater.relaunch");
 await myzig.call("Updater.setAutomaticChecks", false); // also setAutomaticDownloads, preferences()
 ```
 
 <a id="not-yet"></a>
 
-## Chưa hỗ trợ
+## Chưa có
 
-- macOS `.app` gói: trình cập nhật thay thế một tệp thực thi, không phải một gói (xem [Cập nhật](../updates.md#not-yet)), cũng như delta.
-- Biểu tượng ứng dụng của cửa sổ và ghi chú phát hành được sắp xếp từ phải sang trái trong một cửa sổ không có.
+- Bundle `.app` của macOS: updater thay một file thực thi, không phải cả bundle (xem [Cập nhật](../updates.md#not-yet)).
+- Cập nhật delta.
+- Icon app trong cửa sổ.
+- Release notes viết từ phải sang trái trong một cửa sổ không theo chiều đó.
 
 <a id="example-and-tests"></a>
 
-## Ví dụ và kiểm thử
+## Ví dụ và test
 
-`example/` là phiên bản 1.0.0 của một ứng dụng có biểu ngữ cập nhật và máy chủ phát hành trên 127.0.0.1 (`example/releases.zig`) xuất bản 2.0.0. Nó cập nhật một tệp thực thi giả vờ trong thư mục tạm thời, không bao giờ là chính nó.
+`example/` là phiên bản 1.0.0 của một app có banner cập nhật. Một server phát hành trên 127.0.0.1 (`example/releases.zig`) công bố bản 2.0.0. Ví dụ này cập nhật một file thực thi giả trong thư mục tạm, không bao giờ cập nhật chính nó.
 
 ```sh
 cd plugins/updater

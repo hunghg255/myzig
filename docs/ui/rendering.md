@@ -5,19 +5,22 @@ a [Tester](testing.md) (`src/ui/frame.zig`):
 
 1. **Build.** The view runs and opens boxes into the context's tree. When
    an interaction changes state (`c.changed`), the view is built again
-   before anything is drawn, up to three more times, so the screen never
+   before anything is drawn, up to three more times. So the screen never
    lags the state.
-2. **Layout.** Flexbox measures and arranges the tree (`layout.zig`); right
+2. **Layout.** Flexbox measures and arranges the tree (`layout.zig`). Right
    to left, it is then [mirrored](right-to-left.md).
 3. **Paint.** The tree becomes instances in paint order (`paint.zig`):
-   quads that are rounded rectangles with borders, glyphs and icons from
-   the glyph atlas, Gaussian shadows, and pictures from the image atlas,
-   each clipped to a rectangle whose corners may be rounded. Boxes out of
-   their clip are culled. Transforms, gradients, blurs and effects add rows
-   of data after the instances (`gpu.Frame`).
-4. **Draw.** A renderer draws the instances: on the GPU in one instanced
-   draw call (split only where a backdrop effect or a blurred layer must
-   read what is under it), or on the CPU.
+   - quads: rounded rectangles with borders;
+   - glyphs and icons from the glyph atlas;
+   - Gaussian shadows;
+   - pictures from the image atlas.
+
+   Each is clipped to a rectangle whose corners may be rounded. Boxes out
+   of their clip are culled. Transforms, gradients, blurs and effects add
+   rows of data after the instances (`gpu.Frame`).
+4. **Draw.** A renderer draws the instances: on the CPU, or on the GPU in
+   one instanced draw call. The call is split only where a backdrop effect
+   or a blurred layer must read what is under it.
 
 ## The renderers
 
@@ -32,14 +35,16 @@ shader, written once for Metal and translated line for line:
 | Browsers | WebGL 2 (`webgl.zig`, the context held by `web/host_gl.js`) | `gl.glsl` in GLSL ES 3.0 | the window's canvas, in animation frames |
 | Everywhere | the CPU renderer (`raster.zig`) | its own Zig, the same arithmetic | cairo on Linux, GDI on Windows, a 2D canvas in browsers |
 
-The shader computes rounded rectangles, borders and shadows from the
-distance to their edges, so they stay sharp at any size and scale.
-Shadows are Gaussian, after GPUI's shader. Text comes from a glyph atlas
-that grows as glyphs are needed and uploads only when it changes: glyphs
-rasterized by CoreText on macOS, and by myzig's own TrueType reader
-(`src/ui/tt/`) elsewhere. Icons are SF Symbols on macOS and line icons
-drawn by myzig (`icons.zig`) elsewhere. Pictures are decoded once and
-packed into a BGRA atlas (`images.zig`).
+- **Shapes.** The shader computes rounded rectangles, borders and shadows
+  from the distance to their edges. So they stay sharp at any size and
+  scale. Shadows are Gaussian, after GPUI's shader.
+- **Text** comes from a glyph atlas. It grows as glyphs are needed and
+  uploads only when it changes. CoreText rasterizes the glyphs on macOS;
+  myzig's own TrueType reader (`src/ui/tt/`) does elsewhere.
+- **Icons** are SF Symbols on macOS, and line icons drawn by myzig
+  (`icons.zig`) elsewhere.
+- **Pictures** are decoded once and packed into a BGRA atlas
+  (`images.zig`).
 
 ## The CPU twin
 
@@ -65,28 +70,35 @@ blending's rounding:
   CPU renderer's in a headless Chromium.
 
 Because the pixels are the same, a window that cannot draw on the GPU
-shows the same frames drawn on the CPU, and a test's snapshot drawn on the
+shows the same frames drawn on the CPU. And a test's snapshot drawn on the
 CPU is what the GPU shows.
 
-The CPU renderer draws a frame in bands of 64 rows, on several cores when
-the frame is large (threads started once, which wait between frames);
-every pixel is what drawing it alone gives, so bands draw the same pixels
-in any order. The clear skips what an opaque background drawn first
-covers. Within an instance, what is the same
-along a row or a column is found once, a solid fill is copied, and empty
-texels are skipped (`raster_lanes.zig` does eight pixels at a time). Each
-of these fast paths gives the very value the general path gives, and
-`hillclimb --hash` checks that a faster renderer leaves every frame's
-pixels as they were.
+**How the CPU renderer is fast.**
 
-Backdrop effects ([frosted glass](transforms.md), [shaders](shaders.md))
-and blurred layers draw between a frame's parts: the renderer reads what
-it drew so far around the shape, blurs it (averaged down for large blurs,
-then a Gaussian along rows and columns, rounded to 8 bits at each step as
-textures hold them; `backdrop.zig`), and draws the box from it. The GPUs
-do it in passes over textures (`metal_fx.zig`, `d3d11_fx.zig`,
-`gl_fx.zig`), the CPU renderer with the same steps (`raster_fx.zig`), and
-an effect's shader runs as HLSL, GLSL or Metal on the GPUs and as its CPU
+- It draws a frame in bands of 64 rows. A large frame uses several cores,
+  on threads started once that wait between frames.
+- Every pixel is what drawing it alone gives, so bands draw the same
+  pixels in any order.
+- The clear skips what an opaque background drawn first covers.
+- Within an instance, what is the same along a row or a column is found
+  once. A solid fill is copied, and empty texels are skipped.
+  `raster_lanes.zig` does eight pixels at a time.
+- Each of these fast paths gives the very value the general path gives.
+  `hillclimb --hash` checks that a faster renderer leaves every frame's
+  pixels as they were.
+
+**Effects.** Backdrop effects ([frosted glass](transforms.md),
+[shaders](shaders.md)) and blurred layers draw between a frame's parts:
+
+1. The renderer reads what it drew so far around the shape.
+2. It blurs it (`backdrop.zig`): averaged down for large blurs, then a
+   Gaussian along rows and columns. Each step rounds to 8 bits, as
+   textures hold them.
+3. It draws the box from it.
+
+The GPUs do this in passes over textures (`metal_fx.zig`, `d3d11_fx.zig`,
+`gl_fx.zig`). The CPU renderer takes the same steps (`raster_fx.zig`). An
+effect's shader runs as HLSL, GLSL or Metal on the GPUs, and as its CPU
 twin (`Shader.cpu`) on the CPU.
 
 ## Choosing the renderer
@@ -94,41 +106,54 @@ twin (`Shader.cpu`) on the CPU.
 - **macOS** draws with Metal. `zig build -Dportable=true` builds the
   text and CPU renderer of Linux and Windows instead, to test that path on
   a Mac.
-- **Windows** starts making a Direct3D 11 device on hardware, on a thread,
-  with the first frame a window shows: that frame and those until the device
-  is there are drawn on the CPU, so a driver slow to start never holds the
-  window back. Without one (no hardware device, or no swap chain), or once its device is lost, the window draws on the CPU and GDI
-  copies the frame to it; the log says why (`myzig: no Direct3D (...)`).
+- **Windows** starts making a Direct3D 11 device on hardware, on a
+  thread, with the first frame a window shows.
+  - Until the device is there, frames are drawn on the CPU. So a driver
+    slow to start never holds the window back.
+  - Without a device (no hardware device, or no swap chain), or once its
+    device is lost, the window draws on the CPU and GDI copies the frame
+    to it. The log says why (`myzig: no Direct3D (...)`).
 - **Linux** draws with OpenGL in a GtkGLArea (GTK 3.16 and later) when a
-  GPU is there. On a display-only DRM driver (virtual machines' and
-  servers': `simpledrm`, `bochs`, `vboxvideo`, `hyperv_drm` and the like) it draws on the
-  CPU, as Mesa's llvmpipe would be slower than myzig's CPU renderer, and
-  cairo shows the frame. `MYZIG_GPU=0` keeps frames on the CPU,
-  `MYZIG_GPU=1` draws with OpenGL even where it would not.
+  GPU is there.
+  - On a display-only DRM driver it draws on the CPU, and cairo shows the
+    frame. These are the drivers of virtual machines and servers:
+    `simpledrm`, `bochs`, `vboxvideo`, `hyperv_drm` and the like. Mesa's
+    llvmpipe would be slower there than myzig's CPU renderer.
+  - `MYZIG_GPU=0` keeps frames on the CPU. `MYZIG_GPU=1` draws with
+    OpenGL even where it would not.
 - **Browsers** draw with WebGL 2, or on the CPU into a 2D canvas where the
   browser has none (`start({ webgl: false })` forces it). A lost WebGL
   context draws again once the browser restores it.
 
 ## When frames are drawn
 
-Nothing polls. A frame is built and drawn on input, on a resize, when the
-app asks for one from outside the view, and while an animation runs
-(`c.animating`): at the display's refresh on macOS (the display link), the
-frame clock on Linux (a tick callback), a 60 Hz timer on Windows, and
-`requestAnimationFrame` in browsers. An idle window draws nothing, and an
-idle app uses no CPU. While a window is out of sight (on macOS hidden,
-minimized, on another Space or covered by other windows, by its
-`occlusionState`; in browsers a tab in the background), no frames are
-drawn for it at all, until some of it shows again (see
-[Out of sight](performance.md#out-of-sight)).
+Nothing polls. A frame is built and drawn:
 
-When a frame changes what is under a still pointer, another frame follows,
-so hover follows content that moved.
+- on input;
+- on a resize;
+- when the app asks for one from outside the view;
+- while an animation runs (`c.animating`).
+
+Animation frames come at the display's refresh on macOS (the display
+link), from the frame clock on Linux (a tick callback), from a 60 Hz timer
+on Windows, and from `requestAnimationFrame` in browsers.
+
+- An idle window draws nothing, and an idle app uses no CPU.
+- A window out of sight gets no frames at all, until some of it shows
+  again (see [Out of sight](performance.md#out-of-sight)). On macOS that
+  is hidden, minimized, on another Space or covered by other windows, by
+  its `occlusionState`. In browsers it is a tab in the background.
+- When a frame changes what is under a still pointer, another frame
+  follows. So hover follows content that moved.
 
 ## Frame costs
 
-Each frame records its costs in `c.stats` (`ui.FrameStats`): the time to
-build, lay out and paint in milliseconds, how many times the view was
-built (`passes`), the boxes (`nodes`) and the renderer's `instances`. The
-[inspector](inspector.md) shows them for the last 60 frames, and
+Each frame records its costs in `c.stats` (`ui.FrameStats`):
+
+- the time to build, lay out and paint, in milliseconds;
+- how many times the view was built (`passes`);
+- the boxes (`nodes`);
+- the renderer's `instances`.
+
+The [inspector](inspector.md) shows them for the last 60 frames, and
 [hillclimb](performance.md) measures them headless.

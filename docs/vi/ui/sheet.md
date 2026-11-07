@@ -1,42 +1,42 @@
 # Sheet
 
-`ui.sheet` mở panel modal sát một cạnh cửa sổ. Dùng để xem chi tiết, cài
-đặt hoặc bộ lọc bên cạnh màn hình hiện tại.
+`ui.sheet` mở một panel modal sát một mép cửa sổ. Dùng nó cho phần chi tiết, cài đặt và bộ lọc nằm cạnh màn hình hiện tại.
 
 <!-- demo: panels height=520 -->
 
-![Chi tiết workspace trong panel bên phải.](../../images/ui/sheet.png)
+![Chi tiết workspace trong một panel ở mép phải.](../../images/ui/sheet.png)
 
 ```zig
-// Trong state: details: ui.OverlayState = .{},
-if (ui.button(c, "Chi tiết", .{}).clicked) s.details.show();
-if (ui.sheet(c, &s.details, .{ .label = "Chi tiết dự án" })) |panel| {
+// Trong state của app: details: ui.OverlayState = .{},
+if (ui.button(c, "Details", .{}).clicked) s.details.show();
+if (ui.sheet(c, &s.details, .{ .label = "Project details" })) |panel| {
     defer panel.end();
-    ui.heading(c, "Chi tiết dự án");
-    _ = ui.textField(c, &s.name, .{ .width = .fill, .label = "Tên" });
-    if (ui.button(c, "Lưu", .{}).clicked) {
+    ui.heading(c, "Project details");
+    _ = ui.textField(c, &s.name, .{ .width = .fill, .label = "Name" });
+    if (ui.button(c, "Save", .{}).clicked) {
         s.save();
         s.details.close();
     }
 }
 ```
 
-Giữ `OverlayState` trong state app. Panel chứa widget thông thường và
-cuộn khi nội dung dài hơn vùng hiển thị. Nó dùng chung nền modal, xử lý
-Escape và trả focus của [dialog](overlays.md). Phần nền không nhận input
-con trỏ; Tab và Shift+Tab chỉ di chuyển bên trong panel.
+Giữ `OverlayState` của nó trong state của app. Panel chứa widget bình thường và tự scroll khi nội dung cao hơn chỗ hiện có.
 
 | `SheetOptions` | Mặc định | Ý nghĩa |
 |---|---|---|
-| `side` | `.right` | `.left`, `.right`, `.top`, `.bottom`: cạnh vật lý của cửa sổ |
-| `size` | `360` | Chiều rộng trái/phải, chiều cao trên/dưới, theo point |
-| `label` | `"Sheet"` | Tên modal dialog cho accessibility |
-| `dismissible` | `true` | Bấm nền sẽ đóng |
-| `escape` | `true` | Escape đóng sau khi các điều khiển con xử lý trước |
+| `side` | `.right` | `.left`, `.right`, `.top` hoặc `.bottom`, là mép thật của cửa sổ |
+| `size` | `360` | Chiều rộng với trái/phải; chiều cao với trên/dưới, tính bằng điểm |
+| `label` | `"Sheet"` | Tên của dialog modal cho trình đọc màn hình |
+| `dismissible` | `true` | Bấm vào nền mờ thì đóng panel |
+| `escape` | `true` | Escape đóng nó, sau khi các control con đã xử lý phím |
 
-Kích thước được giới hạn theo cửa sổ, kể cả sau resize. Nội dung theo
-hướng chữ của app; `side` luôn chỉ cạnh vật lý. Khi mở, panel mờ dần và
-dịch nhẹ; Reduce Motion hiển thị ngay. Khi đóng, panel biến mất và trả
-focus về điều khiển trước đó.
+**Hành vi**
+
+- Dùng chung nền mờ, cách xử lý Escape và trả lại focus của [dialog](overlays.md).
+- Phần phía sau không nhận con trỏ. Tab và Shift+Tab chỉ đi trong panel.
+- Kích thước bị giới hạn trong cửa sổ, kể cả sau khi đổi kích thước.
+- Nội dung theo hướng chữ của app. `side` vẫn chỉ mép thật của cửa sổ.
+- Khi mở, nó mờ dần vào và dịch nhẹ. Khi bật giảm chuyển động, nó hiện ra ngay.
+- Khi đóng, panel biến mất và focus trở lại chỗ cũ.
 
 Xem trang **Feedback** trong [Gallery](../../../examples/gallery/feedback.zig).

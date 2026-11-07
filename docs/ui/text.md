@@ -1,7 +1,7 @@
 # Text
 
-`ui.text` shows a string in a `ui.TextStyle`; `ui.textf` formats it first,
-into the frame's memory:
+`ui.text` shows a string in a `ui.TextStyle`. `ui.textf` formats it
+first, into the frame's memory:
 
 <!-- demo: text height=479 -->
 
@@ -16,12 +16,13 @@ ui.text(c, "const mono = \"monospaced, for code\";", .{ .mono = true, .size = 13
 ui.textf(c, .{ .mono = true, .size = 12 }, "{d:.0}%", .{s.volume * 100});
 ```
 
-The string (and a rich text's spans) is copied into the frame's memory:
-layout measures it and paint draws it after the view returns, so the view
-may free or change its own copy right after `ui.text`, as two panes
-rebuilding one list of names in turn do. Strings in the frame's memory
-(`c.print`, `c.alloc()`) are copied too; for a text of many megabytes,
-show the part in view (as `ui.textArea` and `ui.codeEditor` do).
+- The string, and a rich text's spans, are copied into the frame's
+  memory. Layout measures it and paint draws it after the view returns.
+- So the view may free or change its own copy right after `ui.text`, as
+  two panes rebuilding one list of names in turn do.
+- Strings already in the frame's memory (`c.print`, `c.alloc()`) are
+  copied too. For a text of many megabytes, show the part in view, as
+  `ui.textArea` and `ui.codeEditor` do.
 
 ## Style
 
@@ -38,26 +39,28 @@ show the part in view (as `ui.textArea` and `ui.codeEditor` do).
 | `features` | `""` | OpenType features by commas: `"calt=0,ss01"`, `"-liga"`, `"+zero"` (DirectWrite and HarfBuzz) |
 | `weight_value` | 0 | a weight from 100 to 900 in place of `weight`'s; 0 for `weight` |
 
-Text that does not wrap is as wide as it is. Text that wraps takes the
-width its parent gives (`.fill`) and breaks at spaces onto as many lines as
-it needs; in a row with too little room it gives room back, so a label
-beside a button wraps rather than pushing the button out:
-
 ```zig
 ui.text(c, "Text wraps to the width its box gets. Resize the window to watch these lines break again.",
     .{ .wrap = true, .color = c.theme.muted, .leading = 1.4 });
 ```
 
-## Headings and labels
+- Text that does not wrap is as wide as it is.
+- Text that wraps takes the width its parent gives (`.fill`). It breaks
+  at spaces onto as many lines as it needs.
+- In a row with too little room, wrapping text gives room back. A label
+  beside a button wraps rather than pushing the button out.
 
-`ui.heading(c, str)` is a 22-point bold title, which assistive technology
-reads as a heading; `ui.label(c, str)` is 13-point text in the muted color,
-for captions and secondary information.
+## Headings and labels
 
 ```zig
 ui.heading(c, "Settings");
 ui.label(c, c.print("{d} of {d} left", .{ left, total }));
 ```
+
+- `ui.heading(c, str)` is a 22-point bold title. Assistive technology
+  reads it as a heading.
+- `ui.label(c, str)` is 13-point text in the muted color, for captions
+  and secondary information.
 
 ## Rich text
 
@@ -88,22 +91,17 @@ const spans = c.alloc().dupe(ui.Span, &.{
 ui.richText(c, s, spans, .{ .wrap = true });
 ```
 
-Spans that only color, fill or underline text keep the fast path of plain
-text; spans that change the font (a weight, italics, monospace) shape the
-paragraph as runs, wrapped across them. Both are cached across frames as
-plain text is.
+- Spans that only color, fill or underline text keep the fast path of
+  plain text.
+- Spans that change the font (a weight, italics, monospace) shape the
+  paragraph as runs, wrapped across them.
+- Both are cached across frames, as plain text is.
 
-For whole documents, see [Markdown](markdown.md), which draws headings,
-lists, code blocks and tables from Markdown text, and the
-[rich text editor](rich-text.md) for text the user styles.
+For whole documents, see [Markdown](markdown.md). It draws headings,
+lists, code blocks and tables from Markdown text. For text the user
+styles, see the [rich text editor](rich-text.md).
 
 ## Selectable text
-
-A box styled `selectable = true` lets the pointer select its texts, and
-its children's, as a terminal's or a page's: a press on text starts a
-selection, a drag extends it across lines and boxes in reading order, and
-Copy (⌘C or Ctrl+C, or the Edit menu) copies it, unless the focused text
-field has a selection of its own. A drag that selects is not a click.
 
 ```zig
 ui.column(c, .{ .selectable = true, .gap = 6 });
@@ -111,21 +109,19 @@ defer ui.end(c);
 for (s.log_lines) |line| ui.text(c, line, .{ .mono = true, .size = 12 });
 ```
 
-Controls inside a selectable box (`control = true`, as buttons, toggles and
-links are) keep their texts out of the selection, so the pointer is a hand
-all over them.
+A box styled `selectable = true` lets the pointer select its texts and
+its children's, as in a terminal or a web page:
+
+- A press on text starts a selection.
+- A drag extends it across lines and boxes, in reading order. A drag that
+  selects is not a click.
+- Copy (⌘C or Ctrl+C, or the Edit menu) copies it, unless the focused
+  text field has a selection of its own.
+- Controls inside it (`control = true`, as buttons, toggles and links
+  are) keep their texts out of the selection. The pointer is a hand all
+  over them.
 
 ## Fonts
-
-On macOS, text is shaped and measured by CoreText in the system's fonts
-(SF Pro and SF Mono). On Linux and Windows, and on macOS built with
-`-Dportable=true`, myzig shapes text itself from the installed TrueType and
-OpenType fonts (`src/ui/tt/`): the system's font folders are read once,
-each face known by its family, weight, italics and width, and loaded when
-first used, with kerning, and fallback fonts for characters a font lacks.
-Browsers get the fonts the site bundles (see [browsers](../browsers.md)).
-
-The theme names the families, null for the system's:
 
 ```zig
 var t = ui.Theme.light;
@@ -134,42 +130,67 @@ t.mono_font = "JetBrains Mono";
 _ = try app.newWindow(.{ .title = "Notes", .theme = t, .content = .{ .view = .init(&state, State.view) } });
 ```
 
-A family that is not installed falls back to the system's. Matching a
-style picks the family's nearest face: its bold for `.bold`, its italic
-for `.italic`, else the regular face slanted by about 11 degrees.
+The theme names the families, null for the system's.
+
+- A family that is not installed falls back to the system's.
+- Matching a style picks the family's nearest face: its bold for
+  `.bold`, its italic for `.italic`, else the regular face slanted by
+  about 11 degrees.
+
+Where the fonts come from:
+
+| Platform | Fonts |
+|---|---|
+| macOS | CoreText shapes and measures text in the system's fonts (SF Pro and SF Mono) |
+| Linux, Windows, macOS with `-Dportable=true` | myzig reads the installed TrueType and OpenType fonts itself (`src/ui/tt/`); shaping is [below](#how-text-is-drawn) |
+| Browsers | the fonts the site bundles (see [browsers](../browsers.md)) |
+
+Off macOS, the system's font folders are read once. Each face is known by
+its family, weight, italics and width, and loaded when first used, with
+kerning. Fallback fonts give the characters a font lacks.
 
 ## How text is drawn
 
-A run of text is shaped once into a layout (glyphs, positions and the fonts
-fallen back to) that measuring and painting share. Layouts are cached while
-they are used, so a label that stays the same costs nothing to lay out
-again. Glyphs are rasterized once into a glyph atlas at the display's scale
-and drawn as textured quads with every rectangle, border and shadow in the
-frame, so text that changes every frame (a counter, a clock) costs a
-shaping and no rasterizing. On macOS the exact fast path for printable
-ASCII (`src/ui/shaper.zig`) skips CoreText for most labels, and a test
-proves it lays text out as CoreText does.
+A run of text is shaped once into a layout: glyphs, positions and the
+fonts fallen back to. Measuring and painting share it.
 
-Shaping is the system's: CoreText on macOS, DirectWrite on Windows
-(`src/ui/text_dw*.zig`: script itemization, its font fallback, glyph
-placement, grayscale rasterization, color emoji), and HarfBuzz with
-FreeType and fontconfig on Linux (`src/ui/text_hb*.zig`, `text_ft.zig`,
-`text_fc.zig`, all loaded at run time; color emoji from their color
-bitmaps). Text in several directions is split into runs by the Unicode
-bidirectional algorithm (`src/ui/bidi.zig`, UAX #9) and laid out in visual
-order; carets move in logical order and selections across directions show
-as several ranges. Arabic letters join, ligatures a font has are used, and
-characters a font lacks (CJK, emoji) come from fallback fonts. Simple text
-whose characters were seen takes a fast path that gives the same layout.
-Where the libraries are missing (a bare Linux, browsers), myzig's own
-TrueType reader (`src/ui/tt/`) shapes text as before.
+- Layouts are cached while they are used, so a label that stays the same
+  costs nothing to lay out again.
+- Glyphs are rasterized once into a glyph atlas at the display's scale.
+  They are drawn as textured quads with every rectangle, border and
+  shadow in the frame.
+- So text that changes every frame (a counter, a clock) costs a shaping
+  and no rasterizing.
+- On macOS the exact fast path for printable ASCII (`src/ui/shaper.zig`)
+  skips CoreText for most labels. A test proves it lays text out as
+  CoreText does.
+
+Shaping is the system's:
+
+| Platform | Shaping |
+|---|---|
+| macOS | CoreText |
+| Windows | DirectWrite (`src/ui/text_dw*.zig`): script itemization, its font fallback, glyph placement, grayscale rasterization, color emoji |
+| Linux | HarfBuzz with FreeType and fontconfig (`src/ui/text_hb*.zig`, `text_ft.zig`, `text_fc.zig`), all loaded at run time; color emoji from their color bitmaps |
+| Without those libraries (a bare Linux, browsers) | myzig's own TrueType reader (`src/ui/tt/`) |
+
+- Text in several directions is split into runs by the Unicode
+  bidirectional algorithm (`src/ui/bidi.zig`, UAX #9). It is laid out in
+  visual order.
+- Carets move in logical order. Selections across directions show as
+  several ranges.
+- Arabic letters join, and ligatures a font has are used.
+- Characters a font lacks (CJK, emoji) come from fallback fonts.
+- Simple text whose characters were seen takes a fast path that gives the
+  same layout.
 
 ## Zoom
 
-`c.setZoom(z)` scales every text of the window by `z`, from 0.5 to 3, as an
-app's ⌘= and ⌘- do; boxes sized by their text grow with it. The desktop's
-text size comes through [`ui.preferences.apply`](styling.md#the-desktops-preferences),
-which sets the zoom.
+`c.setZoom(z)` scales every text of the window by `z`, from 0.5 to 3, as
+an app's ⌘= and ⌘- do. Boxes sized by their text grow with it. The
+desktop's text size comes through
+[`ui.preferences.apply`](styling.md#the-desktops-preferences), which sets
+the zoom.
 
 ## Icons
 

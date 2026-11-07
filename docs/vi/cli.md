@@ -2,7 +2,9 @@
 
 # CLI myzig
 
-`myzig` là công cụ dòng lệnh của các ứng dụng myzig, sau mygo's `mygo`: nó tạo các ứng dụng, chạy chúng khi bạn chỉnh sửa, ghi client TypeScript của các dịch vụ được ràng buộc của chúng, đồng thời xây dựng các bản phát hành và gói của chúng. Các ứng dụng không cần nó: mọi ứng dụng đều là một gói Zig mà `zig build` tự xây dựng và chạy, đồng thời CLI gọi `zig build` với các tùy chọn phù hợp.
+`myzig` là công cụ dòng lệnh cho app myzig, theo mẫu `mygo` của mygo. Nó tạo app, chạy app trong lúc bạn sửa code, sinh client TypeScript cho các service đã bind, và build bản release cùng các gói cài đặt.
+
+App không bắt buộc phải dùng nó. Mỗi app là một package Zig mà `zig build` tự build và chạy được. CLI chỉ gọi `zig build` với đúng các tùy chọn.
 
 ```
 myzig <command> [arguments]
@@ -16,13 +18,13 @@ myzig <command> [arguments]
   version         print the version
 ```
 
-`myzig <command> --help` in cờ của lệnh. Các ứng dụng được định cấu hình trong `myzig.zon` (hoặc `myzig.json`), được mô tả trong [Cấu hình](configuration.md).
+`myzig <command> --help` in ra các cờ của một lệnh. App được cấu hình trong `myzig.zon` (hoặc `myzig.json`), mô tả ở trang [Cấu hình](configuration.md).
 
 <a id="install"></a>
 
 ## Cài đặt
 
-CLI là một chương trình Zig trong `cli/` của kho lưu trữ myzig, một gói riêng phụ thuộc vào myzig bên cạnh nó. Xây dựng nó với Zig 0,17 và đặt nó trên `PATH`:
+CLI là một chương trình Zig trong thư mục `cli/` của repo myzig. Nó là một package riêng, phụ thuộc vào bản myzig nằm cạnh nó. Build bằng Zig 0.17 rồi đưa vào `PATH`:
 
 ```sh
 cd myzig/cli
@@ -30,7 +32,8 @@ zig build -Doptimize=ReleaseSafe --prefix ~/.local   # installs ~/.local/bin/myz
 myzig version
 ```
 
-`zig build run -- <command>` chạy nó mà không cần cài đặt. `ZIG` đặt tên cho Zig CLI xây dựng ứng dụng với (`zig` trên `PATH` theo mặc định).
+- `zig build run -- <command>` chạy CLI mà không cần cài.
+- `ZIG` chỉ định bản Zig mà CLI dùng để build app. Mặc định là `zig` trong `PATH`.
 
 ```sh
 cd myzig/cli
@@ -40,35 +43,46 @@ zig build e2e    # makes apps with `myzig init` (in .zig-cache/tmp) and builds t
 
 <a id="myzig-init"></a>
 
-## Myzig ban đầu
+## myzig init
 
 ```sh
 myzig init my-app                    # native UI drawn by myzig
 myzig init my-app --template web     # a web page calling Zig
 ```
 
-Tạo một ứng dụng trong một thư mục mới hoặc trống:
+Tạo app trong một thư mục mới hoặc thư mục rỗng:
 
-| tập tin | |
+| file | |
 |---|---|
-| `build.zig` | bản dựng của ứng dụng: các bước `run` và `test` cũng như các tùy chọn mà CLI đặt (`-Dstrip`, `-Dwin32-res`, `-Dwindows-gui` và `-Dfrontend` cho mẫu web) |
-| `build.zig.zon` | gói, tùy thuộc vào myzig, `minimum_zig_version = "0.17.0"` |
-| `src/main.zig` | một cửa sổ truy cập giao diện native với bài kiểm tra `ui.Tester`; hoặc một cửa sổ hiển thị `frontend/` có trang gọi `Greeter.greet` |
-| `myzig.zon` | tên, mã nhận dạng (`com.example.<name>`) và biểu tượng của ứng dụng; `.frontend` cho mẫu web |
-| `resources/icon.png` | Biểu tượng mặc định của myzig, PNG 512 pixel |
-| `frontend/` | mẫu web: `index.html`, `main.js`, `style.css`, `myzig_assets.zig` và client được tạo |
+| `build.zig` | build của app: các bước `run` và `test`, và các tùy chọn CLI đặt (`-Dstrip`, `-Dwin32-res`, `-Dwindows-gui`, và `-Dfrontend` cho template web) |
+| `build.zig.zon` | package, phụ thuộc vào myzig, `minimum_zig_version = "0.17.0"` |
+| `src/main.zig` | một cửa sổ counter bằng UI native kèm test `ui.Tester`; hoặc một cửa sổ hiển thị `frontend/` có trang gọi `Greeter.greet` |
+| `myzig.zon` | tên app, định danh (`com.example.<name>`) và icon; `.frontend` cho template web |
+| `resources/icon.png` | icon mặc định của myzig, PNG 512 pixel |
+| `frontend/` | template web: `index.html`, `main.js`, `style.css`, `myzig_assets.zig`, và client được sinh |
 | `.gitignore` | `.zig-cache/`, `zig-out/`, `.myzig/`, `dist/` |
 
 | cờ | |
 |---|---|
-| `--template native\|web` | giao diện native (mặc định) hoặc một trang web |
-| `--name NAME` | tên của ứng dụng (mặc định: của thư mục) |
-| `--myzig PATH\|URL` | kiểm tra myzig hoặc những gì `zig fetch` tìm nạp |
-| `--skip-generate` | không xây dựng mẫu web để viết client của nó |
+| `--template native\|web` | UI native (mặc định), hoặc trang web |
+| `--name NAME` | tên app (mặc định: tên thư mục) |
+| `--myzig PATH\|URL` | một bản checkout của myzig, hoặc thứ mà `zig fetch` tải về |
+| `--skip-generate` | không build template web để sinh client |
 
-Trong đó myzig đến từ: `--myzig`, khác `MYZIG_ROOT`, khác là kho lưu trữ myzig trên GitHub ở phiên bản CLI (`git+https://github.com/hunghg255/myzig#v0.1.19` cho CLI 0.1.19). Kiểm tra trở thành phần phụ thuộc đường dẫn (`.myzig = .{ .path = "../myzig" }`) khi có đường dẫn tương đối đến nó; một URL (hoặc bản checkout trên một ổ đĩa khác) được tìm nạp bằng `zig fetch --save=myzig`.
+myzig được lấy từ đâu, theo thứ tự ưu tiên:
 
-Bản dựng của mẫu web nhúng frontend thông qua `myzig_assets.zig`, một mô-đun mà CLI ghi để liệt kê các tệp của frontend, mỗi tệp có `@embedFile`, dưới dạng `pub const files = [_]myzig.Asset{...}`. Ứng dụng nhập nó dưới dạng `assets` và phục vụ `&assets.files`. CLI ghi lại nó bất cứ khi nào các tệp thay đổi (`generate`, `dev`, `build`), vì vậy việc thêm một trang không cần Zig; nó loại bỏ client đã tạo, các tệp dấu chấm và `node_modules`.
+1. `--myzig`;
+2. `MYZIG_ROOT`;
+3. repo myzig trên GitHub ở đúng phiên bản của CLI (`git+https://github.com/hunghg255/myzig#v0.1.19` với CLI 0.1.19).
+
+Bản checkout tới được bằng đường dẫn tương đối sẽ thành dependency dạng path (`.myzig = .{ .path = "../myzig" }`). URL, hoặc bản checkout nằm trên ổ đĩa khác, được tải bằng `zig fetch --save=myzig`.
+
+Build của template web nhúng frontend qua `myzig_assets.zig`:
+
+- CLI tự viết module này. Nó liệt kê các file của frontend, mỗi file qua `@embedFile`, dưới dạng `pub const files = [_]myzig.Asset{...}`.
+- App import nó với tên `assets` và phục vụ `&assets.files`.
+- CLI viết lại module mỗi khi file thay đổi (`generate`, `dev`, `build`). Thêm trang không cần đụng tới Zig.
+- Nó bỏ qua client được sinh, file bắt đầu bằng dấu chấm và `node_modules`.
 
 Sau đó:
 
@@ -82,34 +96,41 @@ myzig build      # the release and its package
 
 <a id="myzig-dev"></a>
 
-## Myzig nhà phát triển
+## myzig dev
 
 ```sh
 myzig dev [dir] [-- app arguments]
 ```
 
-Xây dựng ứng dụng (Gỡ lỗi), ghi client khi ứng dụng có frontend, chạy ứng dụng và xem các tệp của ứng dụng: một thay đổi sẽ xây dựng lại ứng dụng đó và bản dựng mới sẽ thay thế bản dựng đang chạy, bản dựng này sẽ thoát trước. Bản dựng bị lỗi sẽ giữ nguyên ứng dụng đang chạy và thông báo như vậy; sửa lỗi và lưu lại. Việc thoát khỏi ứng dụng kết thúc `myzig dev`.
+Build app (Debug), sinh client nếu app có frontend, chạy app, và theo dõi các file của nó.
 
-- **Đang xem** là của hệ thống (ReadDirectoryChangesW trên Windows, inotify trên Linux, kqueue trên macOS): không có polling nào. Các thay đổi sẽ ổn định trong 150 mili giây trước khi xây dựng lại, do đó, việc lưu của người chỉnh sửa hoặc chuyển đổi nhánh là một lần xây dựng lại. Toàn bộ thư mục ứng dụng được theo dõi ngoại trừ `.zig-cache`, `zig-out`, `.myzig`, `.git`, `node_modules`, thư mục đầu ra (`out`), các tệp CLI ghi (`myzig_assets.zig`, `myzig.js`, `myzig.d.ts`) và các tệp tạm thời của người chỉnh sửa.
-- **Hai tiền tố cài đặt** lần lượt (`.myzig/dev/a` và `.myzig/dev/b`): một bản dựng không bao giờ ghi đè lên tệp thực thi đang chạy, mà Windows vẫn bị khóa.
-- **Môi trường**: ứng dụng chạy với `MYZIG_DEV=1` và `MYZIG_DEV_URL` khi `dev_url` được đặt.
-- **Máy chủ nhà phát triển**: với `dev_command` (`bun run dev`, ...) và `dev_url`, CLI sẽ chạy lệnh trước, đợi cho đến khi URL trả lời và dừng lệnh khi lệnh đó kết thúc. Giao diện người dùng sau đó sẽ được máy chủ tải lại (tải lại nóng của Vite) và chỉ Zig thay đổi để xây dựng lại ứng dụng, có cửa sổ tải `MYZIG_DEV_URL`:
+- Có thay đổi thì build lại. Bản build mới thay cho bản đang chạy, bản cũ thoát trước.
+- Build lỗi thì app đang chạy vẫn giữ nguyên, và CLI báo lỗi. Sửa lỗi rồi lưu lại.
+- Thoát app thì `myzig dev` cũng kết thúc.
+- **Theo dõi file** dùng cơ chế của hệ thống: ReadDirectoryChangesW trên Windows, inotify trên Linux, kqueue trên macOS. Không polling.
+  - Thay đổi được gom trong 150 ms trước khi build lại. Một lần lưu của editor hay một lần đổi branch chỉ tốn một lần build.
+  - Cả thư mục app được theo dõi, trừ `.zig-cache`, `zig-out`, `.myzig`, `.git`, `node_modules`, thư mục output (`out`), các file CLI tự viết (`myzig_assets.zig`, `myzig.js`, `myzig.d.ts`) và file tạm của editor.
+- **Hai prefix cài đặt** dùng luân phiên (`.myzig/dev/a` và `.myzig/dev/b`). Build không bao giờ ghi đè file thực thi đang chạy, vốn bị Windows khóa.
+- **Biến môi trường**: app chạy với `MYZIG_DEV=1`, và `MYZIG_DEV_URL` khi có đặt `dev_url`.
+- **Dev server**: đặt `dev_command` (`bun run dev`, ...) và `dev_url`.
+  - CLI chạy lệnh đó trước, chờ tới khi URL trả lời, và dừng nó khi kết thúc.
+  - Server tự reload frontend (hot reload của Vite). Chỉ thay đổi ở Zig mới build lại app, và cửa sổ của app nạp `MYZIG_DEV_URL`:
 
   ```zig
   const url = init.environ_map.get("MYZIG_DEV_URL") orelse "/";
   _ = try app.newWindow(.{ .title = "App", .content = .{ .page = .{ .url = url, .assets = &assets.files } } });
   ```
 
-  Nếu máy chủ kết thúc, `myzig dev` cũng kết thúc theo đó.
+  Server dừng thì `myzig dev` cũng dừng theo.
 
 | cờ | |
 |---|---|
-| `--skip-dev-command` | đừng chạy `dev_command` (máy chủ của nó đã chạy rồi) |
-| `-- args` | đối số được truyền cho ứng dụng |
+| `--skip-dev-command` | không chạy `dev_command` (server đã chạy sẵn) |
+| `-- args` | tham số truyền cho app |
 
 <a id="myzig-build"></a>
 
-## Myzig xây dựng
+## myzig build
 
 ```sh
 myzig build [dir]
@@ -119,40 +140,71 @@ myzig build --platform macos --arch universal
 myzig build --platform web
 ```
 
-Xây dựng bản phát hành (ReleaseSmall và bị loại bỏ theo mặc định) và đóng gói nó trong `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...): `.app` và trên máy Mac, `.dmg`; Windows `.exe` với các tài nguyên biểu tượng, tệp kê khai và phiên bản, trong `.zip` di động chạy đã được giải nén và trình cài đặt có NSIS (`<slug>-setup-<version>-<arch>.exe`); thư mục Linux, `.tar.gz` và `.deb`. Linux và Windows phát hành bản dựng từ bất kỳ máy nào, vì Zig biên dịch chéo và myzig không liên kết gì với bản dựng của chúng; Các bản phát hành macOS cần có macOS SDK, `.dmg` và ký mã trên máy Mac. Xem [Phân phối](distribution.md) để biết nội dung mỗi gói chứa.
+Build bản release, mặc định là ReleaseSmall và đã strip. Kết quả được đóng gói vào `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...):
 
-Trước khi xây dựng, nó chạy `build_command` (bản dựng của frontend) và ghi `myzig_assets.zig` cho `frontend_dist`. Nó kiểm tra xem biểu tượng có phải là PNG hình vuông không và xây dựng chỉ với các tùy chọn mà ứng dụng `build.zig` khai báo (đọc từ `zig build --help`), do đó, `build.zig` của chính ứng dụng vẫn tiếp tục hoạt động: bản phát hành ứng dụng Windows nhận được `-Dwindows-gui=true` (không có bảng điều khiển), `-Dstrip=true`, `-Dwin32-res=<app.res>` và `-Dfrontend=<frontend_dist>` khi được khai báo.
+| nền tảng | gói |
+|---|---|
+| macOS | một `.app` và, nếu build trên Mac, một `.dmg` |
+| Windows | một `.exe` kèm icon, manifest và tài nguyên phiên bản; một `.zip` portable chạy được ngay sau khi giải nén; một bộ cài bằng NSIS (`<slug>-setup-<version>-<arch>.exe`) |
+| Linux | một thư mục, một `.tar.gz` và một `.deb` |
+
+- Bản release cho Linux và Windows build được từ bất kỳ máy nào. Zig cross-compile, và myzig không link thư viện nào của các hệ đó.
+- Bản release cho macOS cần macOS SDK. `.dmg` và việc ký code cần một máy Mac.
+
+Xem [Phân phối](distribution.md) để biết mỗi gói chứa gì.
+
+Trước khi build, nó:
+
+- chạy `build_command` (build của frontend);
+- viết `myzig_assets.zig` cho `frontend_dist`;
+- kiểm tra icon là PNG vuông.
+
+Nó build chỉ với các tùy chọn mà `build.zig` của app khai báo, đọc từ `zig build --help`. Nhờ vậy `build.zig` riêng của app vẫn chạy được. Bản release của app Windows nhận các tùy chọn sau nếu có khai báo: `-Dwindows-gui=true` (không có console), `-Dstrip=true`, `-Dwin32-res=<app.res>` và `-Dfrontend=<frontend_dist>`.
 
 | cờ | |
 |---|---|
-| `--platform macos\|windows\|linux\|web` | hệ thống để xây dựng (mặc định: hệ thống này); `web` xây dựng một trang web tĩnh cho các trình duyệt trong `<out>/web` (chỉ giao diện native; xem [Trình duyệt](browsers.md)) |
-| `--arch x86_64\|aarch64\|x86\|universal` | kiến trúc (mặc định: cái này); `x86` là 32-bit, cho Windows và Linux (cũng nhận `386`, `i386`); `universal` là của macOS, cả hai đều được nối thành một nhị phân |
-| `--optimize small\|fast\|safe` | ReleaseSmall (mặc định), ReleaseFast hoặc ReleaseSafe (`debug` cũng vậy) |
-| `--out DIR` | thư mục đầu ra (mặc định: `out` của `myzig.zon`, `dist`) |
-| `--skip-build-command` | đừng chạy `build_command` |
-| `--skip-dmg` | đừng tạo ảnh đĩa macOS |
-| `--skip-installer` | đừng tạo trình cài đặt Windows, cũng không tìm NSIS |
-| `--upload` | tải lên các gói và bản cập nhật đã ký trong đó `updates` chỉ ra: nhóm `updates.s3`, nếu không thì bản phát hành GitHub nháp của phiên bản (xem [Cập nhật](updates.md)) |
+| `--platform macos\|windows\|linux\|web` | hệ thống đích (mặc định: máy hiện tại); `web` build một site tĩnh cho trình duyệt vào `<out>/web` (chỉ UI native; xem [Trình duyệt](browsers.md)) |
+| `--arch x86_64\|aarch64\|x86\|universal` | kiến trúc (mặc định: máy hiện tại); `x86` là 32-bit, cho Windows và Linux (cũng nhận `386`, `i386`); `universal` là của macOS, gộp cả hai vào một binary |
+| `--optimize small\|fast\|safe` | ReleaseSmall (mặc định), ReleaseFast hoặc ReleaseSafe (có cả `debug`) |
+| `--out DIR` | thư mục output (mặc định: `out` trong `myzig.zon`, `dist`) |
+| `--skip-build-command` | không chạy `build_command` |
+| `--skip-dmg` | không tạo disk image cho macOS |
+| `--skip-installer` | không tạo bộ cài Windows, cũng không tìm NSIS |
+| `--upload` | tải các gói và bản cập nhật đã ký lên nơi `updates` trỏ tới: bucket của `updates.s3`, nếu không thì một bản nháp GitHub release của phiên bản đó (xem [Cập nhật](updates.md)) |
 
-Với `updates` trong `myzig.zon` và khóa ký (`MYZIG_UPDATER_PRIVATE_KEY` hoặc `updates.private_key`), nó cũng ghi bản cập nhật đã ký của nền tảng bên cạnh các gói: tệp thực thi, dưới dạng `<name>-<version>-<platform>-<arch>` và tệp kê khai của nó, `update-<platform>-<arch>.json`. Nếu không có khóa, nó sẽ không cảnh báo và ghi gì cả, và `--upload` dừng trước khi xây dựng: bản phát hành không có bảng kê khai là bản phát hành mà các ứng dụng đã cài đặt không thể cập nhật. Quá trình xây dựng macOS cũng dừng trước khi xây dựng khi `macos.provisioning_profile` được đặt và ứng dụng được ký đặc biệt.
+**Bản cập nhật đã ký.** Đặt `updates` trong `myzig.zon` và cung cấp khóa ký (`MYZIG_UPDATER_PRIVATE_KEY`, hoặc `updates.private_key`). Khi đó build viết thêm bản cập nhật đã ký của nền tảng cạnh các gói:
 
-Các mục tiêu là `<arch>-macos`, `<arch>-windows-gnu`, `<arch>-linux-gnu` và `wasm32-wasi`. Các tệp trung gian nằm trong `.myzig/build/`.
+- file thực thi, tên `<name>-<version>-<platform>-<arch>`;
+- manifest của nó, `update-<platform>-<arch>.json`.
 
-Mọi bản dựng đều bắt đầu từ con số không: trước khi bất kỳ bản dựng nào (`build_command` cũng vậy), `myzig build` xóa `<out>` và `.myzig/build/` và tạo lại `<out>`, vì vậy nó chỉ giữ gói của bản dựng này, của một nền tảng. Các gói của một số nền tảng được xây dựng lần lượt, mỗi gói được giữ ở nơi khác (`--out dist/mac`, ...). `<out>` là thư mục của ứng dụng hoặc chứa nó sẽ bị từ chối.
+Không có khóa thì nó cảnh báo và không viết gì cả. Khi đó `--upload` dừng trước khi build: app đã cài không thể cập nhật lên một bản release thiếu manifest. Build macOS cũng dừng trước khi build nếu có đặt `macos.provisioning_profile` mà app chỉ được ký ad hoc.
+
+Các target là `<arch>-macos`, `<arch>-windows-gnu`, `<arch>-linux-gnu` và `wasm32-wasi`. File trung gian nằm trong `.myzig/build/`.
+
+**Mỗi lần build bắt đầu từ con số không.** Trước khi build bất cứ thứ gì, kể cả `build_command`:
+
+- `myzig build` xóa `<out>` và `.myzig/build/` rồi tạo lại `<out>`. Thư mục này chỉ chứa gói của lần build này, cho một nền tảng.
+- Muốn có gói cho nhiều nền tảng thì build lần lượt, mỗi lần để ở chỗ khác (`--out dist/mac`, ...).
+- `<out>` trùng với thư mục app hoặc chứa thư mục app sẽ bị từ chối.
 
 <a id="myzig-generate"></a>
 
-## Myzig tạo ra
+## myzig generate
 
 ```sh
 myzig generate [dir]
 ```
 
-Xây dựng ứng dụng cho máy này (vào `.myzig/generate`) và chạy nó với `--myzig-generate=<frontend>`, ghi `myzig.js` và `myzig.d.ts`, client của các dịch vụ và sự kiện bị ràng buộc của nó, vào các nguồn của frontend và thoát ra mà không hiển thị cửa sổ. Nó cần `frontend` trong `myzig.zon` (hoặc thư mục `frontend/`) và một ứng dụng gọi `app.run()`. `dev` cũng ghi client trên mọi bản dựng. Xem [Bindings](bindings.md) để biết client.
+Build app cho máy hiện tại (vào `.myzig/generate`) và chạy nó với `--myzig-generate=<frontend>`. Lệnh này viết `myzig.js` và `myzig.d.ts`, client của các service và event đã bind, vào mã nguồn frontend. App thoát mà không hiện cửa sổ nào.
+
+- Cần có `frontend` trong `myzig.zon` (hoặc thư mục `frontend/`), và app phải gọi `app.run()`.
+- `dev` cũng sinh client ở mỗi lần build.
+
+Xem [Binding](bindings.md) về client.
 
 <a id="myzig-icon"></a>
 
-## Biểu tượng myzig
+## myzig icon
 
 ```sh
 myzig icon resources/icon.png              # icon.icns, icon.ico, icon-16.png ... icon-1024.png beside it
@@ -160,56 +212,65 @@ myzig icon logo.png --out resources/icons
 myzig icon --new resources/icon.png        # write myzig's default icon
 ```
 
-Hiển thị hình vuông PNG dưới dạng `icon.icns` (macOS), `icon.ico` (Windows) và PNG có kích thước 16, 32, 48, 64, 128, 256, 512 và 1024 pixel. `myzig build` tạo biểu tượng của nền tảng từ chính `myzig.zon` của `icon`; lệnh này dùng để xem chúng hoặc dùng cho các công cụ khác. Sử dụng PNG 1024 pixel để có kết quả sắc nét nhất.
+Chuyển một PNG vuông thành `icon.icns` (macOS), `icon.ico` (Windows) và các PNG 16, 32, 48, 64, 128, 256, 512 và 1024 pixel.
+
+- `myzig build` tự tạo icon cho các nền tảng từ `icon` trong `myzig.zon`. Lệnh này để bạn xem trước, hoặc dùng cho công cụ khác.
+- Dùng PNG 1024 pixel để có kết quả sắc nét nhất.
 
 <a id="myzig-keygen"></a>
 
-## Myzig chìa khóa
+## myzig keygen
 
 ```sh
 myzig keygen                 # into <config>/myzig/update-keys
 myzig keygen --out keys --force
 ```
 
-Tạo cặp khóa Ed25519 ký các bản cập nhật: `myzig-update.key`, bí mật và `myzig-update.pub`, đồng thời in `updates` để đặt vào `myzig.zon`. Thư mục cấu hình là `%APPDATA%` trên Windows, `~/Library/Application Support` trên macOS và `$XDG_CONFIG_HOME` (hoặc `~/.config`) trên Linux. Giữ khóa bí mật ra khỏi kho lưu trữ, trong trình quản lý mật khẩu và bí mật của CI: các ứng dụng đã cài đặt chỉ chấp nhận các bản cập nhật được ký với nó. `--force` thay thế các phím ở đó. Xem [Cập nhật](updates.md).
+Tạo cặp khóa Ed25519 để ký bản cập nhật: `myzig-update.key` là khóa bí mật, và `myzig-update.pub`. Lệnh in ra phần `updates` cần đưa vào `myzig.zon`.
+
+- Thư mục cấu hình là `%APPDATA%` trên Windows, `~/Library/Application Support` trên macOS và `$XDG_CONFIG_HOME` (hoặc `~/.config`) trên Linux.
+- Đừng để khóa bí mật trong repo; hãy giữ nó trong trình quản lý mật khẩu và secrets của CI. App đã cài chỉ nhận bản cập nhật ký bằng khóa này.
+- `--force` thay thế khóa đã có.
+
+Xem [Cập nhật](updates.md).
 
 <a id="myzig-doctor"></a>
 
-## Myzig bác sĩ
+## myzig doctor
 
-Kiểm tra những gì việc xây dựng và chạy ứng dụng myzig cần trên máy này:
+Kiểm tra những gì máy này cần để build và chạy app myzig:
 
 | | |
 |---|---|
-| tất cả | Zig 0,17 trở lên (`ZIG`, nếu không thì `zig` trên `PATH`) |
-| macOS | macOS 12 trở lên; SDK (`xcrun --show-sdk-path`, Công cụ dòng lệnh) |
+| tất cả | Zig 0.17 trở lên (`ZIG`, nếu không thì `zig` trong `PATH`) |
+| macOS | macOS 12 trở lên; SDK (`xcrun --show-sdk-path`, Command Line Tools) |
 | Linux | GTK 3 (`libgtk-3.so.0`) và WebKitGTK (`libwebkit2gtk-4.1.so.0` hoặc 4.0) |
-| Windows | WebView2 Runtime (các trang cần nó); không có SDK, Zig liên kết chính ứng dụng Windows |
-| tùy chọn | `hdiutil` (hình ảnh đĩa), `makensis` (trình cài đặt Windows), `bun` (frontend với máy chủ nhà phát triển), `git` (tìm nạp myzig trong `init`) |
+| Windows | WebView2 Runtime (trang web cần nó); không cần SDK, Zig tự link app Windows |
+| tùy chọn | `hdiutil` (disk image), `makensis` (bộ cài Windows), `bun` (frontend có dev server), `git` (tải myzig trong `init`) |
 
-Nó thoát ra với lỗi khi kiểm tra bắt buộc không thành công.
+Lệnh thoát với lỗi khi một mục bắt buộc không đạt.
 
 <a id="myzig-version"></a>
 
-## Myzig phiên bản
+## myzig version
 
-In phiên bản của CLI (`myzig --version`, `-v`), theo sau phiên bản của myzig (`myzig.version`).
+In ra phiên bản của CLI (`myzig --version`, `-v`). Phiên bản này theo phiên bản của myzig (`myzig.version`).
 
 <a id="the-flags-of-apps"></a>
 
-## Cờ của ứng dụng
+## Các cờ của app
 
-Mọi ứng dụng myzig đều hiểu những cờ này mà CLI và các bài kiểm tra sử dụng. Họ không bao giờ hiển thị một cửa sổ trên màn hình:
+Mọi app myzig đều hiểu các cờ sau, được CLI và test dùng. Chúng không bao giờ hiện cửa sổ lên màn hình:
 
 | cờ | |
 |---|---|
-| `--myzig-generate=DIR` | ghi client đã tạo (`myzig.js`, `myzig.d.ts`) vào DIR và thoát |
-| `--myzig-snapshot=PNG` | hiển thị cửa sổ giao diện native đầu tiên ngoài màn hình thành PNG và thoát |
-| `--myzig-script=STEPS` | với `--myzig-snapshot`: các bước chạy trước (`click:Tasks;type:Hi;key:enter`; xem [Thử nghiệm](ui/testing.md)) |
-| `--myzig-dark` | với `--myzig-snapshot`: bề ngoài tối tăm |
-| `--myzig-wait=SECONDS` | với `--myzig-snapshot`: chạy vòng lặp sự kiện dài như vậy trước tiên |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
-| `--myzig-eval=JS` | đánh giá JS trong mỗi trang khi DOM của nó đã sẵn sàng (ngụ ý bị ẩn); `myzig.log` in ra thiết bị lỗi chuẩn |
+| `--myzig-generate=DIR` | viết client được sinh (`myzig.js`, `myzig.d.ts`) vào DIR rồi thoát |
+| `--myzig-snapshot=PNG` | render cửa sổ UI native đầu tiên offscreen ra PNG rồi thoát |
+| `--myzig-script=STEPS` | đi kèm `--myzig-snapshot`: các bước chạy trước (`click:Tasks;type:Hi;key:enter`; xem [Test](ui/testing.md)) |
+| `--myzig-dark` | đi kèm `--myzig-snapshot`: giao diện tối |
+| `--myzig-wait=SECONDS` | đi kèm `--myzig-snapshot`: chạy event loop trong khoảng thời gian đó trước |
+| `--myzig-hidden` | không bao giờ hiện cửa sổ; các thư mục của app là thư mục tạm (headless) |
+| `--myzig-eval=JS` | chạy JS trong mỗi trang khi DOM sẵn sàng (ngầm định hidden); `myzig.log` in ra stderr |
 
 <a id="environment-variables"></a>
 
@@ -217,17 +278,22 @@ Mọi ứng dụng myzig đều hiểu những cờ này mà CLI và các bài k
 
 | biến | |
 |---|---|
-| `ZIG` | Zig CLI chạy |
-| `MYZIG_ROOT` | myzig `init` tùy thuộc vào thời điểm không cung cấp `--myzig` |
-| `MYZIG_DEV` | được đặt thành `1` trong ứng dụng `myzig dev` chạy |
-| `MYZIG_DEV_URL` | được đặt thành `dev_url` trong ứng dụng `myzig dev` chạy |
-| `MYZIG_DEBUG` | trong ứng dụng: ghi lại id và khung của cửa sổ, cho các công cụ và kiểm tra |
-| `MYZIG_UPDATER_PRIVATE_KEY` | khóa bí mật ký các bản cập nhật (trước `updates.private_key`) |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | thông tin xác thực `--upload` đặt các tệp vào `updates.s3` với |
-| `AWS_REGION`, `AWS_DEFAULT_REGION` | vùng của nhóm khi `updates.s3.region` không được đặt |
+| `ZIG` | bản Zig mà CLI chạy |
+| `MYZIG_ROOT` | bản myzig mà `init` phụ thuộc vào, khi không có `--myzig` |
+| `MYZIG_DEV` | đặt là `1` trong app do `myzig dev` chạy |
+| `MYZIG_DEV_URL` | đặt bằng `dev_url` trong app do `myzig dev` chạy |
+| `MYZIG_DEBUG` | trong app: log id và frame của cửa sổ, cho công cụ và test |
+| `MYZIG_UPDATER_PRIVATE_KEY` | khóa bí mật ký bản cập nhật (ưu tiên hơn `updates.private_key`) |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | thông tin đăng nhập mà `--upload` dùng để đưa file vào `updates.s3` |
+| `AWS_REGION`, `AWS_DEFAULT_REGION` | region của bucket, khi không đặt `updates.s3.region` |
 
 <a id="what-mygo-s-cli-has-that-this-one-doesn-t-yet"></a>
 
-## CLI của mygo có những gì mà cái này chưa có
+## Những gì CLI của mygo có mà CLI này chưa có
 
-`mygo install-skills`, `mygo i18n check`, bản cập nhật delta và bản cập nhật gói macOS (`mygo build` ký vào kho lưu trữ của toàn bộ ứng dụng), `-web` tải lại trực tiếp giao diện native trong trình duyệt, ký mã trên Windows và công chứng trên macOS, đồng thời đưa thư viện gốc của plugin vào ứng dụng.
+- `mygo install-skills`
+- `mygo i18n check`
+- cập nhật delta, và cập nhật cả bundle trên macOS (`mygo build` ký một archive chứa toàn bộ app)
+- live reload `-web` của UI native trong trình duyệt
+- ký code trên Windows và notarization trên macOS
+- đưa thư viện native của plugin vào app

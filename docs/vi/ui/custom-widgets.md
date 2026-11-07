@@ -1,124 +1,170 @@
 <a id="custom-widgets"></a>
 
-# Tiện ích tùy chỉnh
+# Widget tự làm
 
-Mỗi widget của myzig là một hàm Zig được tạo từ một vài phần giống nhau, một widget mà bạn sử dụng: các hộp được mở trên `ui.Context`, tương tác được đọc từ bố cục của khung cuối cùng, các giá trị được tạo hoạt ảnh trên các khung và mô tả về công nghệ hỗ trợ. Không có lớp widget nào để mở rộng và không có đối tượng nào được giữ lại để giữ lại: widget là một hàm trạng thái của ứng dụng, được gọi trên mọi frame.
+Mọi widget của myzig là một hàm Zig, dựng từ đúng vài thành phần mà widget của bạn cũng dùng:
+
+- các box mở trên `ui.Context`;
+- tương tác đọc từ layout của frame trước;
+- các giá trị animate qua nhiều frame;
+- phần mô tả cho công nghệ hỗ trợ.
+
+Không có class widget nào để kế thừa, cũng không có object nào phải giữ lại. Widget là một hàm của state của app, được gọi ở mọi frame.
 
 <a id="boxes"></a>
 
-## Hộp
-
-`c.open(style, key)` mở một hộp được tạo kiểu bằng `ui.Style` và trả về chỉ mục của nó trong danh sách nút của khung này; con của nó theo sau cho đến `c.end()`. `c.leaf(style, content, key)` thêm một hộp không có con, có nội dung là `.none`, văn bản, biểu tượng hoặc hình ảnh (các widget `ui.text`, `ui.icon` và `ui.image` tạo ra những thứ này). `c.node(index)` trả về `*Node`, để thay đổi kiểu của nó sau khi biết trạng thái của nó (màu di chuột, điểm đánh dấu).
+## Box
 
 ```zig
 const box = c.open(.{ .direction = .row, .gap = 8, .padding = .xy(10, 6), .radius = 999, .control = true }, null);
 defer c.end();
-// ... children ...
+// ... các phần tử con ...
 c.node(box).style.background = c.theme.accent;
 ```
 
-`ui.row`, `ui.column`, `ui.card` và `ui.div(c)` cũng mở các hộp với hướng hoặc hình thức được thiết lập (xem [View](views.md) và [Bố cục](layout.md)). `style.control = true` đánh dấu một điều khiển: nó lấy tiêu điểm bằng Tab và vẽ vòng lấy nét khi tiêu điểm đến từ bàn phím.
+- `c.open(style, key)` mở một box với style là một `ui.Style`. Nó trả về chỉ số của box trong danh sách node của frame này. Các phần tử con theo sau cho đến `c.end()`.
+- `c.leaf(style, content, key)` thêm một box không có phần tử con. Nội dung của nó là `.none`, một đoạn chữ, một icon hoặc một hình ảnh. Các widget `ui.text`, `ui.icon` và `ui.image` tạo ra những box này.
+- `c.node(index)` trả về `*Node`, để đổi style khi đã biết state của nó: màu khi hover, màu nổi bật.
+- `ui.row`, `ui.column`, `ui.card` và `ui.div(c)` cũng mở box, với hướng hoặc kiểu dáng đặt sẵn (xem [View](views.md) và [Layout](layout.md)).
+- `style.control = true` đánh dấu một control. Nó nhận focus bằng Tab, và vẽ vòng focus khi focus đến từ bàn phím.
 
 <a id="ids"></a>
 
 ## Id
 
-Mỗi hộp đều có một id, đó là cách trạng thái tồn tại từ frame này sang frame tiếp theo: bố cục, di chuột, hoạt ảnh, độ lệch cuộn, văn bản được chỉnh sửa. Id của hộp đến từ hộp cha và vị trí của nó trong số các hộp con của hộp cha hoặc từ một khóa:
+Mọi box đều có id. Nhờ id mà state sống qua từ frame này sang frame sau: layout, hover, animation, vị trí scroll, chữ đang được sửa. Id của box lấy từ id của phần tử cha và vị trí của nó giữa các phần tử con của cha, hoặc từ một key:
 
-- `key` (đối số cuối cùng của `open` và `leaf`) hoặc `ui.key(c, k)` trước một widget, đặt tên cho hộp tiếp theo: các hàng của danh sách được khóa theo id của mục sẽ giữ nguyên trạng thái khi các mục phía trên chúng đến và đi.
-- `c.next_key_int = i` thực hiện tương tự với một số.
-- `c.peekId(key)` là id mà phần tử con tiếp theo của hộp mở sẽ nhận được, đối với một widget phải biết id của nó trước khi mở hộp.
+- `key` (tham số cuối của `open` và `leaf`), hoặc `ui.key(c, k)` đặt trước một widget, đặt tên cho box kế tiếp. Các hàng của một danh sách có key theo id của item giữ được state khi các item phía trên xuất hiện hay biến mất.
+- `c.next_key_int = i` làm điều tương tự bằng một số.
+- `c.peekId(key)` là id mà phần tử con kế tiếp của box đang mở sẽ nhận. Nó dành cho widget cần biết id của mình trước khi mở box.
 
 <a id="a-box-that-comes-or-goes-moves-the-ids-after-it"></a>
 
-### Một hộp đến hoặc đi sẽ di chuyển các id sau nó
+### Box lúc có lúc không làm xê dịch id của các box sau nó
 
-Id được tạo từ một địa điểm sẽ thay đổi khi địa điểm đó thay đổi. Một hộp đôi khi chỉ hiển thị trước một nút (một dấu trong khi hàng được di chuột, một huy hiệu khi có nội dung mới) cung cấp cho nút một id khác trong các khung mà nó hiển thị và hộp đi kèm sẽ lấy id cũ của nút. Nhấn, thực hiện trên id, con trỏ đã ở khung cuối cùng, sau đó không tìm thấy nút nào để lấy nó: nhấp chuột bị mất mà không có lỗi.
+Id tạo từ vị trí sẽ đổi khi vị trí đổi. Lấy ví dụ một box chỉ thỉnh thoảng hiện ra trước một nút: một vạch đánh dấu khi hover lên hàng, một badge khi có thứ gì mới.
+
+- Trong những frame box đó hiện ra, nút nhận một id khác.
+- Box vừa xuất hiện lấy id cũ của nút.
+- Cú bấm được gán cho id mà con trỏ nằm trên ở frame trước. Nó không tìm thấy nút nào nhận, nên cú bấm mất, không có lỗi nào.
 
 ```zig
-// The mark comes with the hover, and the button's id goes with it.
+// Vạch đánh dấu xuất hiện theo hover, và id của nút đổi theo.
 if (s.hovered) _ = c.leaf(.{ .width = .{ .px = 3 } }, .none, null);
 const it = ui.button(c, project.name, .{});
 s.hovered = it.hovered;
 ```
 
-Hoặc giữ nguyên id:
+Có hai cách giữ id đứng yên:
 
-- nhấn nút (`c.keyed(project)` hoặc `ui.key(c, project.path)` trước nó): id có khóa không phụ thuộc vào vị trí của nó hoặc
-- luôn xây dựng hộp trước nó và ẩn nó bằng giao diện của nó (nền trong suốt, chiều rộng bằng 0), để các địa điểm vẫn giữ nguyên.
+- gắn key cho nút (`c.keyed(project)` hoặc `ui.key(c, project.path)` đặt trước nó): id có key không phụ thuộc vào vị trí, hoặc
+- luôn build box đứng trước, và ẩn nó bằng kiểu dáng (nền trong suốt, chiều rộng 0), để các vị trí giữ nguyên.
 
-Bản dựng gỡ lỗi cho biết điều đó: khi không có hộp nào trả lời id được nhấn trong khi con trỏ vẫn ở vị trí của hộp đó và hộp hiện ở bên dưới con trỏ không có khung trước đó, nhật ký sẽ cho biết một lần `myzig: the box pressed changed its id between frames (a box before it came or went?)`. Bản phát hành không kiểm tra.
+Build Debug sẽ báo chuyện này. Giả sử không box nào nhận id vừa bị bấm, con trỏ vẫn ở chỗ box đó từng nằm, và box đang ở dưới con trỏ không có mặt ở frame trước. Khi đó log báo một lần `myzig: the box pressed changed its id between frames (a box before it came or went?)`. Build Release không kiểm tra.
 
-Hộp cuộn mất nhiều hơn: phần bù của nó được giữ bởi id của nó, do đó, một hộp đến hoặc đi trước nó (một dòng cố định, một biểu ngữ) sẽ bắt đầu nó ở trên cùng và một hộp hiển thị mọi frame khác sẽ khiến nó nhảy giữa đầu và nơi người đọc rời khỏi nó. Bản dựng gỡ lỗi cũng cho biết điều đó (`scroll_check.zig`): khi một hộp cuộn từ trên cùng biến mất khỏi bố cục và một hộp cuộn của một id khác, có chiều rộng tương đương, sẽ thay thế nó, nhật ký sẽ thông báo một lần `myzig: a scrolled box changed its id between frames` hoặc `myzig: a scrolling box changes its id back and forth between frames` khi id cũ quay trở lại. Một thay đổi trên khung bằng một cú nhấp chuột hoặc một phím (chuyển tab) được coi là có ý nghĩa, trừ khi nó chuyển qua lại.
+Box scroll còn mất nhiều hơn, vì vị trí scroll được giữ theo id của nó:
 
-Chuỗi và khoảng của hộp văn bản được sao chép vào bộ nhớ của khung bởi `c.leaf`, cũng như các chuỗi `c.describe` lấy. Các slice khác mà hộp giữ lại (byte của ảnh, tên biểu tượng, độ dốc) được đọc sau khi view trả về: chuyển bộ nhớ của chính ứng dụng hoặc của khung (`c.print`, `c.alloc()`), không bao giờ là bộ đệm trên ngăn xếp.
+- Một box lúc có lúc không đứng trước nó (một dòng dính, một banner) khiến nó scroll lại từ đầu.
+- Một box cứ frame có frame không làm nó nhảy qua lại giữa đầu trang và chỗ người đọc đang xem.
+
+Build Debug cũng báo chuyện này (`scroll_check.zig`). Nó áp dụng khi một box đã scroll khỏi đầu biến mất khỏi layout, và một box scroll có id khác, rộng bằng nó, chiếm chỗ của nó.
+
+Khi đó log báo một lần `myzig: a scrolled box changed its id between frames`, hoặc `myzig: a scrolling box changes its id back and forth between frames` khi id cũ quay lại. Thay đổi ở frame có cú bấm hoặc phím (chuyển tab) được coi là cố ý, trừ khi nó đổi qua đổi lại.
+
+**Bộ nhớ mà box giữ.**
+
+- `c.leaf` sao chép chuỗi và span của box chữ vào bộ nhớ của frame. `c.describe` cũng làm vậy với các chuỗi của nó.
+- Các slice khác mà box giữ được đọc sau khi view trả về: byte của hình ảnh, tên icon, gradient. Hãy truyền bộ nhớ của chính app hoặc của frame (`c.print`, `c.alloc()`), không bao giờ truyền buffer nằm trên stack.
 
 <a id="interactions"></a>
 
 ## Tương tác
 
-`c.interact(index, opts)` cho biết con trỏ và bàn phím liên quan như thế nào với hộp `index`, từ bố cục của khung cuối cùng và làm cho nó lấy con trỏ. Nó trả về `ui.Interaction`:
+`c.interact(index, opts)` cho biết con trỏ và bàn phím liên quan thế nào tới box `index`, dựa trên layout của frame trước. Nó cũng làm box nhận con trỏ. Nó trả về một `ui.Interaction`:
 
-| trường | |
+| Trường | |
 |---|---|
-| `id` | id của hộp |
-| `rect` | nó ở đâu trong khung cuối cùng, null trong frame đầu tiên |
-| `hovered` | con trỏ ở trên nó hoặc trên một hộp bên trong nó, như CSS's `:hover` |
-| `pressed` | giữ xuống: nhấn vào nó và chưa được thả ra |
-| `clicked` | nhấn và thả trên đó hoặc nhấn bằng phím hoặc bằng công nghệ hỗ trợ |
-| `double_clicked` | lần nhấp thứ hai của lần nhấp đúp (đó cũng là lần nhấp) |
-| `focused` | nó có tiêu điểm bàn phím |
+| `id` | id của box |
+| `rect` | vị trí của nó ở frame trước, null ở frame đầu tiên |
+| `hovered` | con trỏ nằm trên nó, hoặc trên một box bên trong nó, như `:hover` của CSS |
+| `pressed` | đang được giữ: đã bấm xuống trên nó và chưa thả |
+| `clicked` | bấm và thả trên nó, hoặc được bấm bằng phím hay bởi công nghệ hỗ trợ |
+| `double_clicked` | cú bấm thứ hai của một cú double click (cũng tính là một cú bấm) |
+| `focused` | nó đang có focus bàn phím |
 
-Với `.focusable = true` hộp sẽ lấy tiêu điểm khi được nhấn và nối theo thứ tự của Tab; với `.keys = true`, Enter và Space nhấp vào nó trong khi nó có tiêu điểm, khi họ thực hiện nút hoặc hộp kiểm. Máy nhấn sẽ chuyển đến hộp tương tác trên cùng chỉ dưới con trỏ; di chuột cũng đi đến các hộp chứa nó.
+- Với `.focusable = true`, box nhận focus khi được bấm, và có mặt trong thứ tự Tab.
+- Với `.keys = true`, Enter và Space bấm nó khi nó có focus, như với nút hay checkbox.
+- Cú bấm chỉ đến box tương tác trên cùng nằm dưới con trỏ. Hover thì đến cả các box chứa nó.
 
-`ui.pressable(c, style, hover_color)` mở một hộp và tương tác với nó, bằng vòng lấy nét của điều khiển và được cung cấp màu sắc, nền sẽ dễ dàng hướng về phía hộp khi di chuột. Hầu hết các vật dụng đều bắt đầu ở đó.
+`ui.pressable(c, style, hover_color)` mở một box và tương tác với nó. Box có vòng focus của một control. Nếu có màu, nền của nó chuyển dần về màu đó khi hover. Phần lớn widget bắt đầu từ đây.
 
 <a id="state-changes"></a>
 
-## Thay đổi trạng thái
+## Thay đổi state
 
-Một widget có tương tác thay đổi trạng thái của ứng dụng sẽ đặt `c.changed`. Sau đó, khung sẽ được tạo lại trước khi được vẽ, do đó màn hình không bao giờ bị trễ trạng thái: hộp kiểm được nhấp vào sẽ hiển thị đã được chọn trong cùng một khung. Các widget lấy giá trị của ứng dụng bằng con trỏ (`*bool`, `*usize`, `*f32`) và trả về những gì đã xảy ra, `clicked`, `changed`, `submitted`, giống như các widget tích hợp sẵn.
+Widget mà tương tác làm đổi state của app thì đặt `c.changed`. Khi đó frame được build lại trước khi vẽ, nên màn hình không bao giờ chậm hơn state: checkbox vừa bấm hiện dấu tick ngay trong frame đó.
+
+Giống các widget có sẵn, widget của bạn nhận giá trị của app qua con trỏ (`*bool`, `*usize`, `*f32`). Chúng trả về chuyện đã xảy ra: `clicked`, `changed`, `submitted`.
 
 <a id="animated-values"></a>
 
-## Giá trị hoạt hình
-
-`c.animate(id, salt, target, speed)` di chuyển một số được giữ cho hộp `id` về phía `target` tại `speed` (lớn hơn là nhanh hơn) và trả về giá trị của nó ngay bây giờ: độ mờ của di chuột, núm của công tắc, lỗ mở. `salt` cho biết một số giá trị của một hộp riêng biệt. Trong khi một giá trị chưa đạt được mục tiêu, cửa sổ sẽ vẽ một khung khác; một khi tất cả đã có, nó dừng lại: không có polling nào.
+## Giá trị animate
 
 ```zig
 const t = c.animate(it.id, 0, if (on.*) 1 else 0, 16);
 c.node(track).style.background = c.theme.track.mix(c.theme.success, t);
 ```
 
-Để biết các lò xo, frame chính, dòng thời gian và chuyển tiếp của riêng chúng, hãy xem [Chuyển động](motion.md). `c.frameIn(seconds)` yêu cầu một frame trong vòng nhiều giây đó (bước tiếp theo của vòng quay, giây của đồng hồ) và `c.animationFrame()` cho một frame ngay khi màn hình có thể hiển thị frame đó, đối với các view hoạt hình từ `c.time` mọi frame. `c.dt` là thời gian kể từ frame cuối cùng và `c.time` số giây kể từ frame đầu tiên: đồng hồ của ngữ cảnh mà Người kiểm tra nâng cao trong các kiểm thử.
+`c.animate(id, salt, target, speed)` chuyển một số được giữ cho box `id` dần về `target`, và trả về giá trị hiện tại. Dùng nó cho hiệu ứng mờ khi hover, núm của switch, một phần mở ra.
 
-`ui.overlays.memo(c, id, salt, default)` giữ bất kỳ số nào cho một hộp trên các khung (khoảng chênh lệch khi kéo, thời điểm bắt đầu tiền boa), bị quên một lúc sau khi hộp không còn nữa.
+- `speed` càng lớn càng nhanh.
+- `salt` phân biệt nhiều giá trị của cùng một box.
+- Khi còn giá trị chưa tới target, cửa sổ vẽ thêm frame. Khi tất cả đã tới, nó dừng: không có gì chạy polling.
+
+Spring, keyframe, timeline và transition tự làm: xem [Chuyển động](motion.md). Đồng hồ và frame:
+
+- `c.frameIn(seconds)` xin một frame trong vòng chừng đó giây: bước kế tiếp của spinner, giây kế tiếp của đồng hồ.
+- `c.animationFrame()` xin một frame sớm nhất màn hình có thể hiện, cho view animate từ `c.time` ở mọi frame.
+- `c.dt` là thời gian từ frame trước. `c.time` là số giây từ frame đầu tiên: đồng hồ của context, mà `ui.Tester` điều khiển trong test.
+- `ui.overlays.memo(c, id, salt, default)` giữ một số bất kỳ cho box qua các frame: điểm nắm khi kéo, lúc tooltip bắt đầu. Nó bị quên một lúc sau khi box biến mất.
 
 <a id="input"></a>
 
-## Đầu vào
+## Input
 
-`c.input` là đầu vào của sự kiện này: con trỏ (`mouse`, `down`, `pressed`, `released`, `click_count`, và `right_pressed` và `middle_pressed` cho các nút khác), công cụ sửa đổi, khóa (`key`, `shortcut`) và văn bản được nhập (`chars`). Một widget trả lời một khóa sẽ lấy nó, do đó những gì được xây dựng sau này cũng không nhìn thấy nó: `c.shortcut(...)` lấy một tổ hợp phím và `ui.overlays.takeKey(c, k)` một khóa đơn giản. Kiểu nhập văn bản của riêng bạn (thiếu trình soạn thảo thuộc loại myzig) đọc `ui.TextOp`s; xem [Nhập văn bản](text-input.md).
+`c.input` là input của event này:
 
-Đặt `c.wants_moves` trong khi view đi theo con trỏ bên trong một hộp (hình chữ thập của biểu đồ), `c.wants_wheel` để lấy bánh xe ở nơi không có gì cuộn và `c.wants_keys` để nhận các phím đi xuống và lên (`input.key_down`, `input.key_up`) cho trò chơi. `c.cursor` yêu cầu con trỏ qua những gì các widget đã đặt (`.arrow`, `.hand`, `.text`, `.resize_left_right`, `.resize_up_down`).
+- con trỏ: `mouse`, `down`, `pressed`, `released`, `click_count`, và `right_pressed`, `middle_pressed` cho các nút chuột khác;
+- các phím bổ trợ;
+- phím: `key`, `shortcut`;
+- chữ được gõ: `chars`.
+
+Widget xử lý một phím thì lấy phím đó đi, để những gì build sau không thấy nó nữa. `c.shortcut(...)` lấy một tổ hợp phím, còn `ui.overlays.takeKey(c, k)` lấy một phím đơn. Input chữ tự làm, cho loại trình soạn thảo mà myzig chưa có, đọc các `ui.TextOp`; xem [Nhập chữ](text-input.md).
+
+| Đặt | để |
+|---|---|
+| `c.wants_moves` | theo con trỏ bên trong một box, như dấu chữ thập của đồ thị |
+| `c.wants_wheel` | nhận con lăn chuột ở chỗ không có gì scroll |
+| `c.wants_keys` | nhận phím nhấn xuống và nhả lên (`input.key_down`, `input.key_up`), cho game |
+| `c.cursor` | xin một kiểu con trỏ đè lên kiểu mà widget đặt: `.arrow`, `.hand`, `.text`, `.resize_left_right`, `.resize_up_down` |
 
 <a id="accessibility"></a>
 
-## Khả năng tiếp cận
+## Accessibility
 
-`c.describe(id, description)` cho công nghệ hỗ trợ biết hộp là gì: vai trò, nhãn, giá trị của nó, liệu nó được kiểm tra, mở rộng, chọn hay vô hiệu hóa. Các vật dụng tích hợp tự mô tả; một widget của riêng bạn cũng nên:
+`c.describe(id, description)` cho công nghệ hỗ trợ biết box là gì: vai trò, label, giá trị, và nó có đang được tick, mở rộng, chọn hay bị tắt không. Widget có sẵn tự mô tả mình; widget của bạn cũng nên vậy:
 
 ```zig
 c.describe(it.id, .{ .role = .switch_, .label = title, .checked = if (on.*) .on else .off });
 ```
 
-Xem [Khả năng truy cập](accessibility.md) để biết các vai trò và phần còn lại của `ui.AccessDescription`.
+Xem [Accessibility](accessibility.md) để biết các vai trò và phần còn lại của `ui.AccessDescription`.
 
 <a id="a-widget-of-your-own"></a>
 
-## Một widget của riêng bạn
+## Một widget tự làm
 
-Một viên thuốc chuyển đổi `*bool`, có màu nhấn khi bật, có thể lấy tiêu điểm, nhấn Enter và Space, nới lỏng và được mô tả dưới dạng nút chuyển đổi:
+Một viên pill bật tắt một `*bool`. Nó mang màu accent khi bật, nhận focus, bấm được bằng Enter và Space, chuyển màu mượt, và được mô tả là một nút bật tắt:
 
 ```zig
 const ui = @import("myzig").ui;
@@ -143,28 +189,34 @@ pub fn pill(c: *ui.Context, title: []const u8, on: *bool) bool {
 }
 ```
 
-Sử dụng nó như bất kỳ sản phẩm nào khác: `if (pill(c, "Wrap", &s.wrap)) s.relayout();` và kiểm tra nó bằng Bộ kiểm tra: `try t.clickText("Wrap")` (xem [Kiểm tra](testing.md)).
+Dùng nó như mọi widget khác: `if (pill(c, "Wrap", &s.wrap)) s.relayout();`. Test nó bằng `ui.Tester`: `try t.clickText("Wrap")` (xem [Test](testing.md)).
 
 <a id="widgets-without-a-look"></a>
 
-## Widget không cần nhìn
+## Widget không có kiểu dáng
 
-Một số widget có một biến thể không có giao diện riêng, biến thể này xử lý con trỏ, bàn phím và tiêu điểm, đồng thời để lại màu sắc và hình dạng cho bạn:
+Một số widget có biến thể không mang kiểu dáng riêng. Nó lo con trỏ, bàn phím và focus, còn màu sắc và hình dạng để bạn quyết định:
 
-| Không cần nhìn | |
+| Không có kiểu dáng | |
 |---|---|
-| `ui.popover(..., .{ .bare = true })` | tạo kiểu cho bảng điều khiển bằng `Panel.style()` ([Lớp phủ](overlays.md)) |
+| `ui.popover(..., .{ .bare = true })` | tạo style cho panel bằng `Panel.style()` ([Overlay](overlays.md)) |
 | `ui.dialog(..., .{ .bare = true })` | `Dialog.backdropStyle()` và `Dialog.panelStyle()` |
-| `ui.tooltipBase`, `ui.tooltipEnd` | một mẹo của riêng bạn bên cạnh một phần tử |
-| `ui.textField(..., .{ .bare = true })` | một trường không có đường viền, vòng điền hoặc tiêu điểm, bên trong khung của bạn (trình soạn thảo trò chuyện) |
-| `ui.textArea(..., .{ .bare = true })` | tương tự đối với văn bản nhiều dòng ([Vùng văn bản](text-area.md)) |
-| `ui.richTextEditorBase` | trình soạn thảo văn bản đa dạng thức không có hộp ([Rich text](rich-text.md)) |
-| `ui.shaderBox` | một hộp được vẽ bởi shader của bạn ([Shaders](shaders.md)) |
+| `ui.tooltipBase`, `ui.tooltipEnd` | tooltip tự làm bên cạnh một phần tử |
+| `ui.textField(..., .{ .bare = true })` | ô nhập không viền, không nền, không vòng focus, nằm trong khung của bạn (ô soạn tin chat) |
+| `ui.textArea(..., .{ .bare = true })` | tương tự cho chữ nhiều dòng ([Text area](text-area.md)) |
+| `ui.richTextEditorBase` | trình soạn rich text không có box bao ngoài ([Rich text](rich-text.md)) |
+| `ui.shaderBox` | box được vẽ bằng shader của bạn ([Shader](shaders.md)) |
 
-Đối với các menu, phần chọn và các lớp phủ khác của riêng bạn, các phần trong `ui.overlays` đặt một bảng bên cạnh điểm neo của nó, đóng nó lại để nhấn ra bên ngoài và đưa tiêu điểm trở lại (xem [Lớp phủ](overlays.md#building-overlays-of-your-own)). Các hàng, danh sách và trợ giúp lựa chọn trong `src/ui/structure.zig` (di chuyển lựa chọn bằng các mũi tên, phím Home, End và Page; chọn theo tiền tố đã nhập; màu hàng) là những gì mà danh sách tích hợp sẵn sử dụng.
+Với menu, select và các overlay tự làm khác, hãy dùng các thành phần trong `ui.overlays`. Chúng đặt panel cạnh phần tử neo, đóng nó khi bấm ra ngoài, và trả focus về (xem [Overlay](overlays.md#building-overlays-of-your-own)).
+
+Các danh sách có sẵn dùng những hàm phụ về hàng, danh sách và lựa chọn trong `src/ui/structure.zig`:
+
+- di chuyển lựa chọn bằng phím mũi tên, Home, End và Page;
+- chọn theo tiền tố gõ vào;
+- màu của hàng.
 
 <a id="theme"></a>
 
-## Chủ đề
+## Theme
 
-`c.theme` là `ui.Theme` của cửa sổ: `background`, `surface`, `surface_hover`, `text`, `muted`, `border`, `ring`, `accent`, `accent_hover`, `accent_text`, `track`, `knob`, `danger`, `success`, `shadow` và `dark`. Vẽ bằng màu sắc chứ không phải màu cố định để widget tuân theo ánh sáng và bóng tối cũng như chủ đề riêng của ứng dụng (xem [Tạo kiểu](styling.md)).
+`c.theme` là `ui.Theme` của cửa sổ: `background`, `surface`, `surface_hover`, `text`, `muted`, `border`, `ring`, `accent`, `accent_hover`, `accent_text`, `track`, `knob`, `danger`, `success`, `shadow`, và `dark`. Hãy vẽ bằng màu của theme, không dùng màu cố định. Khi đó widget theo được chế độ sáng, tối, và theme riêng của app (xem [Style](styling.md)).

@@ -2,7 +2,7 @@
 
 # Giao diện native trong trình duyệt
 
-Một ứng dụng giao diện native cũng chạy trong trình duyệt, được biên dịch thành WebAssembly cho `wasm32-wasi`: cửa sổ của nó hiển thị trên canvas của một trang, được vẽ bằng WebGL 2 bởi cùng một shader như trên Linux. Không có gì thay đổi trong ứng dụng: ví dụ truy cập được xây dựng cho các trình duyệt.
+App giao diện native cũng chạy được trong trình duyệt, biên dịch sang WebAssembly cho `wasm32-wasi`. App không cần sửa gì: ví dụ counter build cho trình duyệt nguyên như vậy.
 
 ```zig
 pub fn main(init: std.process.Init) !void {
@@ -14,13 +14,15 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-Không có libc trong trình duyệt: thư viện chuẩn của Zig nói về WASI, mà máy chủ của trang trả lời bằng JavaScript (`src/web/host_wasi.js`), với hệ thống tệp trong bộ nhớ. Phần phụ trợ của trình duyệt là `src/web/`, được `src/myzig.zig` chọn cho `.wasi` vì những phần khác dành cho hệ thống của họ.
+- Cửa sổ của app hiện trên các canvas của một trang, vẽ bằng WebGL 2 với cùng shader như trên Linux.
+- Trình duyệt không có libc. Thư viện chuẩn của Zig nói chuyện qua WASI, và host của trang trả lời bằng JavaScript (`src/web/host_wasi.js`), với một hệ thống file trong bộ nhớ.
+- Backend cho trình duyệt là `src/web/`. `src/myzig.zig` chọn nó cho `.wasi`, như chọn các backend khác cho hệ điều hành của chúng.
 
 <a id="building"></a>
 
-## Tòa nhà
+## Build
 
-Với CLI, `myzig build --platform web` xây dựng ứng dụng (ReleaseSmall trừ khi `--optimize` có quy định khác) thành `<out>/web`, một trang web tĩnh để phân phối từ mọi nơi (xem [CLI](cli.md)):
+Với CLI, `myzig build --platform web` build app vào `<out>/web`, một site tĩnh có thể phục vụ từ bất kỳ đâu (xem [CLI](cli.md)). Mặc định là ReleaseSmall, trừ khi `--optimize` chỉ định khác.
 
 ```
 index.html  host.js  host_gl.js  host_wasi.js   the page and its host
@@ -28,9 +30,9 @@ app.wasm                                        the app
 fonts/fonts.json  fonts/*.ttf                   the fonts it draws text with
 ```
 
-`build.zig` của ứng dụng (như `myzig init` viết nó) xuất các hàm mà máy chủ gọi bằng `if (target.result.os.tag == .wasi) exe.rdynamic = true;`.
+`build.zig` của app (như `myzig init` tạo ra) export các hàm mà host gọi bằng `if (target.result.os.tag == .wasi) exe.rdynamic = true;`.
 
-Nếu không có CLI, `addSite` của myzig's `build.zig` sẽ tạo cùng một trang web từ bản dựng của ứng dụng:
+Không dùng CLI thì `addSite` trong `build.zig` của myzig tạo ra cùng site đó từ build của app:
 
 ```zig
 const std = @import("std");
@@ -42,23 +44,26 @@ pub fn build(b: *std.Build) void {
         .name = "counter",
         .main = b.path("src/main.zig"),
         .myzig = dep.path("src"),
-        // .fonts = "fonts",            // a directory of .ttf/.ttc files to bundle
-        // .optimize = .ReleaseSmall,   // the default
+        // .fonts = "fonts",            // thư mục chứa các file .ttf/.ttc để đóng gói kèm
+        // .optimize = .ReleaseSmall,   // mặc định
     });
     b.step("web", "Build the app for browsers").dependOn(site.step);
 }
 ```
 
-Trang web được cài đặt vào `zig-out/web/<name>` (`install_subdir` thay đổi nó); `site.dir` là thư mục của nó trước khi cài đặt và `site.wasm` là bước biên dịch. Trong kho lưu trữ riêng của myzig:
+- Site được cài vào `zig-out/web/<name>`. `install_subdir` đổi chỗ này.
+- `site.dir` là thư mục của site trước khi cài, còn `site.wasm` là bước biên dịch.
+
+Trong repository của chính myzig:
 
 ```sh
-zig build web                    # counter, gallery, gestures into zig-out/web/<name>
-zig build web -Dweb-fonts=DIR    # with the fonts of DIR
-zig build test-web               # run headless under Node
-zig build test-web -Dweb-browser="/path/to/chrome-or-edge" # kiểm tra thêm wheel/pinch DOM ở chế độ headless
+zig build web                    # counter, gallery, gestures vào zig-out/web/<name>
+zig build web -Dweb-fonts=DIR    # với các font trong DIR
+zig build test-web               # chạy headless trên Node
+zig build test-web -Dweb-browser="/path/to/chrome-or-edge" # test thêm wheel/pinch của DOM, headless
 ```
 
-Cung cấp thư mục qua HTTP, với WebAssugging là `application/wasm`, như hầu hết các máy chủ đều làm. `index.html` khởi động ứng dụng:
+Phục vụ thư mục này qua HTTP, với WebAssembly có kiểu `application/wasm`, như phần lớn server vẫn làm. `index.html` khởi động app:
 
 ```html
 <script type="module">
@@ -67,59 +72,116 @@ Cung cấp thư mục qua HTTP, với WebAssugging là `application/wasm`, như 
 </script>
 ```
 
-`start` cũng lấy `container` (phần tử mà cửa sổ đi vào), `args` và `env` (dòng lệnh và môi trường của ứng dụng) và `webgl: false` để vẽ trên CPU.
+| Tùy chọn của `start` | |
+|---|---|
+| `wasm`, `fonts` | app và thư mục font |
+| `container` | phần tử chứa các cửa sổ |
+| `args`, `env` | dòng lệnh và biến môi trường của app |
+| `webgl: false` | vẽ bằng CPU |
+| `embed: true` | chạy app như một vị khách trong trang của bạn |
 
-### Trong một trang của riêng bạn
+<a id="in-a-page-of-your-own"></a>
 
-`embed: true` chạy app như khách trong một trang có đời sống riêng, như các bản thử của site này: trang giữ tiêu đề và bàn phím cho đến khi app được bấm, và thao tác chạm vẫn cuộn được trang. Con lăn trên app sẽ cuộn trang trừ khi có phần nào trong app cuộn được. `start` trả về host, và `destroy()` của nó gỡ app khi trang không cần nữa: cửa sổ, ngữ cảnh WebGL, bộ hẹn giờ và các listener.
+### Trong trang của riêng bạn
 
 ```js
 const host = await start({
   wasm: "/app.wasm",
   fonts: "/fonts/",
-  container: document.getElementById("demo"), // trang đặt chiều cao cho nó
+  container: document.getElementById("demo"), // trang tự đặt chiều cao cho nó
   args: ["app", "--demo=buttons"],
   embed: true,
 });
-// Sau này:
+// Về sau:
 host.destroy();
 ```
 
+`embed: true` chạy app như một vị khách trong một trang có vòng đời riêng, giống các demo trên site này:
+
+- Trang giữ tiêu đề của nó, và giữ bàn phím cho tới khi người dùng bấm vào app.
+- Chạm vẫn scroll được trang.
+- Lăn chuột trên app thì scroll trang, trừ khi có thứ gì trong app scroll.
+- `start` resolve ra host. `destroy()` của host gỡ app khi trang không cần nữa: các cửa sổ, WebGL context của chúng, timer và listener của app.
+
 <a id="fonts"></a>
 
-## Phông chữ
+## Font
 
-Văn bản là TrueType của chính myzig, được rút ra từ các phông chữ trong gói trang web: máy chủ tìm nạp các danh sách `fonts/fonts.json` đó vào hệ thống tệp WASI (`/usr/share/fonts`), nơi cơ sở dữ liệu phông chữ tìm thấy chúng. Chúng đến từ tùy chọn `fonts` (với CLI, thư mục `fonts/` của ứng dụng), khác từ tập đầu tiên được tìm thấy trong các họ `src/web/site.zig` liệt kê trong thư mục phông chữ của hệ thống: Inter, DejaVu Sans hoặc Giải phóng Sans trên Linux, Segoe UI trên Windows, Arial trên macOS. Kiểm tra giấy phép của họ trước khi xuất bản một trang web với họ. Bản dựng không có phông chữ để gói sẽ cảnh báo: văn bản không vẽ được.
+Chữ được vẽ bằng bộ đọc TrueType của chính myzig, từ các font mà site đóng gói kèm.
+
+- Host tải các font mà `fonts/fonts.json` liệt kê vào hệ thống file WASI (`/usr/share/fonts`), nơi cơ sở dữ liệu font tìm thấy chúng.
+- Font lấy từ tùy chọn `fonts`. Với CLI, đó là thư mục `fonts/` của app.
+- Nếu không có, chúng lấy từ thư mục font của hệ thống: bộ đầu tiên tìm thấy trong các họ font mà `src/web/site.zig` liệt kê. Đó là Inter, DejaVu Sans hoặc Liberation Sans trên Linux, Segoe UI trên Windows, Arial trên macOS.
+- Hãy kiểm tra giấy phép của chúng trước khi đăng site.
+- Build không có font nào để đóng gói sẽ cảnh báo: chữ sẽ không được vẽ.
 
 <a id="what-works"></a>
 
-## Những gì hoạt động
+## Những gì chạy được
 
-- **Vẽ.** Các khung vẽ bằng WebGL 2 ở tỷ lệ pixel của thiết bị, trong frame động tiếp theo của trình duyệt sau khi có thứ gì đó thay đổi, một lần nữa trong khi có thứ gì đó hoạt hình; nhàn rỗi, không có gì chạy. Hiệu ứng phông nền, lớp mờ và [shaders](ui/shaders.md) vẽ như trên màn hình nền. Trong trường hợp trình duyệt không có WebGL 2, các khung được bộ kết xuất CPU vẽ và hiển thị qua khung vẽ 2D. Ngữ cảnh WebGL bị mất sẽ xuất hiện lại sau khi trình duyệt khôi phục nó.
-- **Windows.** Mỗi cửa sổ là một khung vẽ trong phần tử có ID `myzig`, nếu không thì phần nội dung sẽ điền vào phần đó; một cửa sổ mở sau sẽ che những cửa sổ trước đó. Trang đặt kích thước của cửa sổ, do đó, các tùy chọn kích thước, vị trí và thanh tiêu đề không có tác dụng gì và tiêu đề của cửa sổ hiển thị cuối cùng là của trang.
-- **Đầu vào**: con trỏ có số lần nhấp chuột được đếm, bánh xe và bàn di chuột, các phím (bởi `KeyboardEvent.key`) và các phương thức nhập, tạo thành một vùng văn bản khuất tầm nhìn của dấu mũ. Trên máy Mac, ⌘ là Kiểm soát các phím tắt của view, sử dụng trình duyệt cho hệ thống không phải macOS. Trình tăng tốc của menu hoạt động, mặc dù không có thanh menu nào hiển thị.
-- **Bảng nhớ tạm**: văn bản đã sao chép sẽ chuyển vào bảng nhớ tạm của trình duyệt (`navigator.clipboard`) và việc dán sẽ mang lại bảng nhớ tạm của hệ thống. Việc đọc bảng tạm từ mã sẽ trả về những gì ứng dụng đã sao chép lần cuối, vì trình duyệt chỉ chuyển bảng tạm của nó thành một tệp dán.
-- **Giao diện**: chế độ tối tuân theo `prefers-color-scheme` của trình duyệt và thay đổi theo đó. Một trang tự chọn giao diện với `data-myzig-theme="dark"` hoặc `"light"` trên phần tử gốc của nó.
-- **Màn hình nền**: `myzig.shell.openUrl` mở một tab; `myzig.dialog.message` hỏi với `alert` và `confirm`; `myzig.system.locale` và `languages` là `navigator.languages`; các thư mục của ứng dụng (`myzig.path`) nằm trong hệ thống tệp WASI, trong thời gian tồn tại của trang: `/home`, `/tmp` và thuộc sở hữu của ứng dụng theo `/home/.local/share`. Bộ hẹn giờ là của trình duyệt.
-- **Headless chạy** (`--myzig-snapshot`, `--myzig-generate`) hoạt động như trên máy tính để bàn, trong thời gian chạy WASI.
+- **Vẽ.**
+  - Frame vẽ bằng WebGL 2 theo device pixel ratio, ở animation frame kế tiếp của trình duyệt sau khi có gì đó thay đổi. Frame vẽ lại liên tục khi có animation; lúc rảnh thì không có gì chạy.
+  - Hiệu ứng backdrop, layer làm mờ và [shader](ui/shaders.md) vẽ giống như trên desktop.
+  - Không có WebGL 2 thì renderer CPU vẽ các frame, hiển thị qua một canvas 2D.
+  - WebGL context bị mất sẽ vẽ lại khi trình duyệt khôi phục nó.
+- **Cửa sổ.**
+  - Mỗi cửa sổ là một canvas lấp đầy phần tử có ID `myzig`, nếu không có thì lấp đầy body. Cửa sổ mở sau che các cửa sổ trước.
+  - Trang quyết định kích thước cửa sổ, nên các tùy chọn kích thước, vị trí và thanh tiêu đề không có tác dụng.
+  - Tiêu đề của cửa sổ hiện sau cùng là tiêu đề của trang.
+- **Input.**
+  - Con trỏ kèm số lần bấm, bánh xe chuột và touchpad, và phím (theo `KeyboardEvent.key`).
+  - Bộ gõ soạn chữ trong một text area giấu khỏi tầm nhìn, đặt ngay tại con trỏ soạn thảo.
+  - Trên Mac, ⌘ đóng vai Control cho các phím tắt của view, vì view coi trình duyệt như đang chạy trên một hệ không phải macOS.
+  - Phím tắt của menu vẫn hoạt động, dù không có thanh menu nào hiện ra.
+- **Clipboard.** Chữ copy đi vào clipboard của trình duyệt (`navigator.clipboard`), và paste thì lấy từ clipboard của hệ thống. Đọc clipboard từ code trả về thứ app copy sau cùng: trình duyệt chỉ đưa clipboard cho thao tác paste.
+- **Giao diện sáng tối.** Dark mode theo `prefers-color-scheme` của trình duyệt và đổi theo nó. Trang có thể tự chọn bằng `data-myzig-theme="dark"` hoặc `"light"` trên phần tử gốc.
+- **Desktop.**
+  - `myzig.shell.openUrl` mở một tab.
+  - `myzig.dialog.message` hỏi bằng `alert` và `confirm`.
+  - `myzig.system.locale` và `languages` là `navigator.languages`.
+  - Các thư mục của app (`myzig.path`) nằm trong hệ thống file WASI, tồn tại theo vòng đời của trang: `/home`, `/tmp`, và thư mục riêng của app dưới `/home/.local/share`.
+  - Timer là timer của trình duyệt.
+- **Chạy headless** (`--myzig-snapshot`, `--myzig-generate`) hoạt động như trên desktop, dưới một runtime WASI.
 
 <a id="what-does-not"></a>
 
-## Cái gì không
+## Những gì không chạy
 
-Windows của các trang web (nội dung `.page`), các khay, thông báo, hộp thoại tệp, bí mật, xem mô tả và quy trình tệp, đầu ra âm thanh cũng như kéo và thả ra khỏi cửa sổ không có gì đại diện cho chúng trong trình duyệt: chúng trả về `error.Unsupported`, không trả lại gì hoặc không làm gì cả. Một trường hợp duy nhất luôn là trường hợp đầu tiên. Công nghệ hỗ trợ chưa nhìn thấy nội dung: tất cả những gì nó đọc là một khung vẽ.
+Những thứ sau không có gì trong trình duyệt để thay thế. Chúng trả về `error.Unsupported`, không trả về gì, hoặc không làm gì:
+
+- cửa sổ chứa trang web (nội dung `.page`);
+- tray, thông báo, hộp thoại chọn file, secret;
+- theo dõi file descriptor và process;
+- phát âm thanh;
+- kéo thả ra ngoài cửa sổ.
+
+Chế độ single instance luôn coi app là bản đầu tiên. Công nghệ hỗ trợ tiếp cận chưa thấy được nội dung: tất cả những gì nó đọc được là một canvas.
 
 <a id="testing"></a>
 
-## Kiểm tra
+## Test
 
-- `zig build test-web` chạy counter, gallery và gestures dưới Node (`src/web/test_node.mjs`), dùng WASI và font của host, vẽ trên CPU. Test kiểm tra frame, trạng thái idle, nhấp chuột, pinch và pan ngang/dọc.
-- Thêm `-Dweb-browser="/path/to/chrome-or-edge"` để chạy cả test Node và `WheelEvent` DOM thật trong trình duyệt headless: delta theo pixel/dòng/trang, Ctrl-pinch, cuộn theo dòng khi giữ Ctrl và không chặn mặc định bên ngoài handler.
-- `src/web/test_browser_run.mjs BROWSER SITE_DIR "click=Increment&expect=1"` phục vụ một trang web và chạy `test_browser.js` trong headless Chrome (Chrome hoặc Edge, ẩn): các khung vẽ bằng WebGL 2 và khớp với các pixel của bộ kết xuất CPU, không có gì vẽ khi không hoạt động và các sự kiện con trỏ DOM trên khung vẽ sẽ thay đổi view. `index` tải trang riêng của trang web và kiểm tra xem ứng dụng đã bắt đầu ở đó chưa.
-- `src/web/test_wasm.mjs` chạy các bài kiểm tra đơn vị của myzig được biên dịch cho wasm32-wasi (`zig test -target wasm32-wasi --test-no-exec`) trong Node.
+- `zig build test-web` chạy counter, gallery và gestures trên Node (`src/web/test_node.mjs`).
+  - WASI và font của host là thật; các hàm của trang là bản giả. Không có WebGL: frame được vẽ bằng CPU.
+  - Nó kiểm tra một frame được vẽ, lúc rảnh không vẽ gì, và bấm vào một đoạn chữ thì hiện đoạn khác.
+  - Ví dụ gestures còn kiểm tra pinch và pan ngang/dọc.
+- Thêm `-Dweb-browser="/path/to/chrome-or-edge"` vào lệnh trên để chạy các kiểm tra Node cùng test `WheelEvent` thật của DOM trong một trình duyệt headless. Chúng kiểm tra delta theo pixel/dòng/trang, Ctrl-pinch, Ctrl-scroll theo dòng, và việc giữ nguyên hành vi mặc định của trình duyệt bên ngoài handler của view.
+- `src/web/test_browser_run.mjs BROWSER SITE_DIR "click=Increment&expect=1"` phục vụ một site và chạy `test_browser.js` trong Chromium headless (Chrome hoặc Edge, ẩn).
+  - Frame vẽ bằng WebGL 2 và khớp pixel với renderer CPU.
+  - Lúc rảnh không vẽ gì.
+  - Event con trỏ của DOM trên canvas làm view thay đổi.
+  - `index` nạp trang của chính site và kiểm tra app đã khởi động ở đó.
+- `src/web/test_wasm.mjs` chạy unit test của myzig, biên dịch cho wasm32-wasi (`zig test -target wasm32-wasi --test-no-exec`), trên Node.
 
 <a id="under-the-hood"></a>
 
-## Dưới mui xe
+## Bên trong
 
-`main` tạo ứng dụng và các cửa sổ của nó, và `App.run` chuyển ứng dụng đó cho trình duyệt: nó kết thúc `main` với ngăn xếp được giữ nguyên và từ đó trở đi, các sự kiện của trình duyệt sẽ điều khiển ứng dụng thông qua các chức năng mà nó xuất (`src/web/exports.zig`: `myzig_web_pointer`, `myzig_web_key`, `myzig_web_text`, `myzig_web_resize`, `myzig_web_animation_frame`, `myzig_web_timer`, ...). Mỗi sự kiện sẽ chạy một khung khi nó thay đổi thứ gì đó và cho máy chủ biết liệu view có chấp nhận nó hay không, do đó khi đó chế độ mặc định của trình duyệt chỉ bị ngăn chặn. Ứng dụng gọi trang thông qua các chức năng mà nó nhập từ mô-đun `"myzig"` (`src/web/js.zig`): mở cửa sổ, yêu cầu khung hoạt ảnh, con trỏ, vị trí dấu mũ cho phương thức nhập, bộ hẹn giờ, bảng tạm, URL, thông báo, giao diện và ngôn ngữ. Văn bản đi qua bộ đệm dùng chung trong bộ nhớ WebAssembly. [Trang kết xuất](architecture-rendering.md) của hướng dẫn kiến ​​trúc có bộ kết xuất.
+`main` tạo app và các cửa sổ, rồi `App.run` giao app cho trình duyệt. Nó kết thúc `main` nhưng giữ lại stack.
+
+- Từ đó, event của trình duyệt điều khiển app qua các hàm app export (`src/web/exports.zig`): `myzig_web_pointer`, `myzig_web_key`, `myzig_web_text`, `myzig_web_resize`, `myzig_web_animation_frame`, `myzig_web_timer`, ...
+- Mỗi event chạy một frame nếu nó làm thay đổi gì đó. Nó báo cho host biết view có nhận event hay không, để chỉ khi đó mới chặn hành vi mặc định của trình duyệt.
+- App gọi trang qua các hàm import từ module `"myzig"` (`src/web/js.zig`): mở cửa sổ, xin animation frame, con trỏ chuột, vị trí con trỏ soạn thảo cho bộ gõ, timer, clipboard, URL, hộp thoại message, giao diện sáng tối và ngôn ngữ.
+- Chữ đi qua một buffer dùng chung trong bộ nhớ WebAssembly.
+
+[Trang về rendering](architecture-rendering.md) trong tài liệu kiến trúc mô tả các renderer.

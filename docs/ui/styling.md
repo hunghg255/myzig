@@ -1,8 +1,8 @@
 # Styling and themes
 
-A box's look is part of its `ui.Style`, beside its layout: a background, a
-border, rounded corners, a shadow, opacity. Widgets take their colors from
-the frame's theme, `c.theme`, which follows the system's light or dark
+A box's look is part of its `ui.Style`, beside its layout: a background,
+a border, rounded corners, a shadow, opacity. Widgets take their colors
+from the frame's theme, `c.theme`. It follows the system's light or dark
 appearance unless the app fixes it.
 
 ![The Gallery controls with the light theme.](../images/ui/controls.png)
@@ -39,22 +39,25 @@ defer ui.end(c);
 | `blur` | blurs the box and its children as drawn (CSS's `filter: blur()`) |
 | `effect: ?*const Effect` | draws the box from what is under it (frosted glass) |
 
-Continuous corners ("squircles", Core Animation's continuous corner curve
-and SwiftUI's rounded rectangles) leave the edges farther from the corner,
-about 1.53 times the radius, and bend gradually, so a card or a button
-looks as the system's do. They shape the box's background and border, its
-shadow, its picture (`ui.image`'s `corners`), its gradient and what it
-clips, and every renderer draws them alike (the CPU and the GPUs). A
-backdrop effect keeps circular corners.
-
 ```zig
 ui.card(c, .{ .radius = 18, .corners = .continuous, .shadow = .{ .blur = 18, .y = 6 } });
 const tile = ui.div(c).w(64).h(64).rounded(14).continuous().bg(th.accent);
 ```
 
-Gradients, blur, backdrop effects and transforms have a page of their own:
-[transforms and effects](transforms.md). A gradient is kept until the frame
-is drawn, so pass a constant, the app's memory, or the frame's
+**Continuous corners** are "squircles": Core Animation's continuous
+corner curve and SwiftUI's rounded rectangles. A card or a button then
+looks as the system's do.
+
+- The edges leave farther from the corner, about 1.53 times the radius,
+  and bend gradually.
+- They shape the box's background and border, its shadow, its picture
+  (`ui.image`'s `corners`), its gradient and what it clips.
+- Every renderer draws them alike, the CPU and the GPUs.
+- A backdrop effect keeps circular corners.
+
+Gradients, blur, backdrop effects and transforms have a page of their
+own: [transforms and effects](transforms.md). A gradient is kept until
+the frame is drawn. Pass a constant, the app's memory, or the frame's
 (`c.alloc().create(ui.Gradient)`).
 
 ## Colors
@@ -70,24 +73,23 @@ const ink: ui.Color = .{ .r = 0.1, .g = 0.1, .b = 0.12 };
 
 `ui.Color.white`, `.black` and `.transparent` are constants.
 
-For palettes, `ui.oklch(l, c, h)` makes a color in Oklch, as CSS's
-`oklch()`: lightness from 0 to 1, chroma from about 0 to 0.4, and hue in
-degrees. Colors of one lightness look equally light in it, so a palette of
-hues at one lightness and chroma stays even, and an accent's hover is the
-same hue a little darker. A color sRGB cannot show loses chroma, keeping its
-lightness and hue. `ui.toOklch(color)` goes back, as `[3]f32`.
-
 ```zig
 const accent = ui.oklch(0.62, 0.19, 255);
 const hover = ui.oklch(0.55, 0.19, 255);
 ```
 
-## State, not selectors
+For palettes, `ui.oklch(l, c, h)` makes a color in Oklch, as CSS's
+`oklch()`:
 
-There are no selectors and no pseudo-classes: the view knows the state,
-and styles boxes from it. Hover, press and focus come from the box's
-interaction; `c.animate` eases a value toward a target, so a change of look
-is animated rather than abrupt:
+- `l`: lightness from 0 to 1. `c`: chroma from about 0 to 0.4. `h`: hue
+  in degrees.
+- Colors of one lightness look equally light. A palette of hues at one
+  lightness and chroma stays even, and an accent's hover is the same hue
+  a little darker.
+- A color sRGB cannot show loses chroma, keeping its lightness and hue.
+- `ui.toOklch(color)` goes back, as `[3]f32`.
+
+## State, not selectors
 
 ```zig
 const i = c.open(.{ .padding = .xy(12, 6), .radius = 6 }, null);
@@ -97,13 +99,19 @@ const t = c.animate(it.id, 0, if (it.hovered) 1 else 0, 18);
 c.node(i).style.background = c.theme.surface.mix(c.theme.surface_hover, t);
 ```
 
-`ui.div(...).hover(color)` does this for a background. See
-[custom widgets](custom-widgets.md) for interactions and
-[motion](motion.md) for springs, keyframes and transitions.
+There are no selectors and no pseudo-classes. The view knows the state,
+and styles boxes from it.
 
-Hover follows ancestry, as CSS's `:hover` does: a row is hovered while the
-pointer is over a button inside it, so a row that shows its buttons on
-hover keeps them while the pointer goes to them.
+- Hover, press and focus come from the box's interaction.
+- `c.animate` eases a value toward a target, so a change of look is
+  animated rather than abrupt.
+- `ui.div(...).hover(color)` does this for a background.
+- Hover follows ancestry, as CSS's `:hover` does. A row is hovered while
+  the pointer is over a button inside it. So a row that shows its buttons
+  on hover keeps them while the pointer goes to them.
+
+See [custom widgets](custom-widgets.md) for interactions and
+[motion](motion.md) for springs, keyframes and transitions.
 
 ## The theme
 
@@ -125,8 +133,9 @@ hover keeps them while the pointer goes to them.
 | `tooltip_delay` | seconds the pointer rests before a tooltip shows; 0 is 0.6, negative at once ([overlays](overlays.md#tooltips)) |
 
 `ui.Theme.light` and `ui.Theme.dark_theme` are myzig's: the zinc
-[palette](#palettes). A window uses one or the other as the system's appearance is,
-switching when it changes. To fix a window's colors, give it a theme:
+[palette](#palettes). A window uses one or the other as the system's
+appearance is, and switches when it changes. To fix a window's colors,
+give it a theme:
 
 ```zig
 var mine = ui.Theme.dark_theme;
@@ -135,10 +144,11 @@ mine.font = "Inter";
 _ = try app.newWindow(.{ .title = "Player", .theme = mine, .content = .{ .view = .init(&state, State.view) } });
 ```
 
-Within the view, `ui.themes.apply(c, theme)` makes a theme the frame's (what
-widgets built after it read, and the window's background); call it first.
-`myzig.isDark()` and `myzig.accentColor()` read the system's appearance
-and accent outside a view.
+- Within the view, `ui.themes.apply(c, theme)` makes a theme the
+  frame's. Widgets built after it read it, and so does the window's
+  background. Call it first.
+- `myzig.isDark()` and `myzig.accentColor()` read the system's
+  appearance and accent outside a view.
 
 ## Palettes
 
@@ -146,16 +156,14 @@ and accent outside a view.
 
 ![Buttons, switches and sliders in the theme of a palette.](../images/ui/controls.png)
 
-`ui.Palette` is one of [shadcn/ui](https://ui.shadcn.com)'s themes, a base of
-grays with its own primary, or with one of the accents as the primary:
+`ui.Palette` is one of [shadcn/ui](https://ui.shadcn.com)'s themes: a
+base of grays with its own primary, or with one of the accents as the
+primary.
 
 | | |
 |---|---|
 | `base` | `neutral`, `stone`, `zinc` (the default), `mauve`, `olive`, `mist`, `taupe` |
 | `accent` | `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, `yellow`; null for the base's own |
-
-`ui.themes.use` makes one the frame's theme, light or dark as the window is;
-call it first in the view:
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {
@@ -164,24 +172,32 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`palette.theme(dark)` is the `ui.Theme` itself, to fix a window in one
-appearance or change to it animated:
+`ui.themes.use` makes one the frame's theme, light or dark as the window
+is. Call it first in the view.
 
 ```zig
 _ = try app.newWindow(.{ .theme = ui.Palette.theme(.{ .accent = .rose }, true), .content = .{ .view = .init(&state, State.view) } });
 ```
 
-Colors to use as text or icons take `theme.accentInk()`, not `theme.accent`:
-a colored primary is dark in the dark, and yellow is light in the light, and
-it comes nearer the text's color there to read.
+`palette.theme(dark)` is the `ui.Theme` itself. Use it to fix a window in
+one appearance, or to change to it animated.
+
+For text or icons in the accent color, use `theme.accentInk()`, not
+`theme.accent`. A colored primary is dark in the dark theme, and yellow
+is light in the light one. `accentInk()` comes nearer the text's color
+there, so it reads.
 
 ## Named themes
 
 `ui.themes.builtins` lists myzig's themes by name: `light`, `dark`,
-`light-high-contrast` and `dark-high-contrast`. `ui.themes.find(list,
-name)` looks a name up in the app's own list first, then in myzig's, then
-among the palettes (`stone-light`, `blue-dark`, `stone-blue-dark`), for a
-theme kept in settings by name:
+`light-high-contrast` and `dark-high-contrast`.
+
+For a theme kept in settings by name, `ui.themes.find(list, name)` looks
+the name up:
+
+1. in the app's own list;
+2. in myzig's;
+3. among the palettes (`stone-light`, `blue-dark`, `stone-blue-dark`).
 
 ```zig
 const app_themes = [_]ui.themes.Named{
@@ -194,18 +210,18 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`ui.themes.forAppearance(dark, light_theme, dark_theme)` picks the light or
-the dark one of a pair, `ui.themes.withAccent(theme, color)` gives a theme
-another accent (with its hover, and black text on it where white would not
-stand out, as on yellow), and `ui.themes.mix(a, b, t)` blends every color of
-two themes.
+| function | |
+|---|---|
+| `ui.themes.forAppearance(dark, light_theme, dark_theme)` | picks the light or the dark one of a pair |
+| `ui.themes.withAccent(theme, color)` | gives a theme another accent, with its hover, and black text on it where white would not stand out, as on yellow |
+| `ui.themes.mix(a, b, t)` | blends every color of two themes |
 
 ## Switching themes, animated
 
-`ui.ThemeSwitcher` (`ui.themes.Switcher`) changes from one theme to another
-with every color easing, as the system does when its appearance changes.
-Keep it in the state, change it with `switchTo`, and `apply` it first in the
-view:
+`ui.ThemeSwitcher` (`ui.themes.Switcher`) changes from one theme to
+another with every color easing, as the system does when its appearance
+changes. Keep it in the state, change it with `switchTo`, and `apply` it
+first in the view:
 
 ```zig
 const State = struct {
@@ -222,15 +238,17 @@ const State = struct {
 };
 ```
 
-Before the first `switchTo` the window's own theme shows. `duration` is 0.3
-seconds by default; `changing()` tells whether a change is under way, and
-`current()` the theme shown now. Colors move nothing, so themes change
-smoothly even when the user asked for less motion.
+- Before the first `switchTo`, the window's own theme shows.
+- `duration` is 0.3 seconds by default.
+- `changing()` tells whether a change is under way. `current()` is the
+  theme shown now.
+- Colors move nothing, so themes change smoothly even when the user asked
+  for less motion.
 
 ## The desktop's preferences
 
-`ui.preferences.apply(c)`, called first in the view, makes the frame follow
-the user's settings, and returns them as a `ui.Preferences`:
+`ui.preferences.apply(c)`, called first in the view, makes the frame
+follow the user's settings. It returns them as a `ui.Preferences`:
 
 | field | from |
 |---|---|
@@ -239,16 +257,22 @@ the user's settings, and returns them as a `ui.Preferences`:
 | `text_scale` | Windows' text size, GTK's font resolution, 1 for usual |
 | `reduce_motion` | the system's reduced motion setting (see [motion](motion.md)) |
 
-The theme takes the accent and, with high contrast, borders and secondary
-text nearer the text's color (`ui.preferences.highContrast(theme)`); the
-text is scaled by `text_scale` through `c.setZoom`. The desktop is asked
-once per process; `ui.preferences.refresh()` asks again, for when it says
-its settings changed.
+- The theme takes the accent.
+- With high contrast, borders and secondary text come nearer the text's
+  color (`ui.preferences.highContrast(theme)`).
+- The text is scaled by `text_scale` through `c.setZoom`.
+- The desktop is asked once per process. `ui.preferences.refresh()` asks
+  again, for when it says its settings changed.
 
-An app's own settings override the desktop's for the context:
-`ui.preferences.setHighContrast(c, on)`, `setTextScale(c, scale)` and
-`setAccent(c, color)`, each taking null to follow the desktop again.
-`ui.preferences.get(c)` reads what the frame follows without applying it.
+An app's own settings override the desktop's for the context. Each takes
+null to follow the desktop again:
+
+- `ui.preferences.setHighContrast(c, on)`
+- `setTextScale(c, scale)`
+- `setAccent(c, color)`
+
+`ui.preferences.get(c)` reads what the frame follows without applying
+it.
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {

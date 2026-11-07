@@ -1,9 +1,14 @@
 # Bindings
 
-A page calls Zig through services the app binds, hears it through typed
-events, and streams values both ways through channels. myzig generates the
-page's client from the Zig types at compile time: a JavaScript module the
-app serves at `/myzig.js`, and its TypeScript declarations, `myzig.d.ts`.
+A page talks to Zig in three ways:
+
+- it calls Zig through **services** the app binds;
+- it hears Zig through typed **events**;
+- it streams values both ways through **channels**.
+
+myzig generates the page's client from the Zig types at compile time. The
+client is a JavaScript module the app serves at `/myzig.js`, and its
+TypeScript declarations, `myzig.d.ts`.
 
 ```zig
 const Greeter = struct {
@@ -31,14 +36,22 @@ onTick(({ uptime }) => console.log(uptime));
 
 ## Bind a service
 
-`app.bind(&service)` binds a pointer to any struct. Pages call it by the
-struct's name, the last part of its type name (`Greeter`), or by the name
-it declares with `pub const myzig_name = "Name";`. The service must
-outlive the windows calling it: it is usually a variable of `main`.
+`app.bind(&service)` binds a pointer to any struct.
 
-Its methods are its public functions whose first parameter is the service
-(`Greeter`, `*Greeter` or `*const Greeter`), that are not generic, and
-whose name doesn't start with `_`. Other declarations are not part of it.
+- Pages call it by the struct's name: the last part of its type name
+  (`Greeter`).
+- Or by the name it declares with `pub const myzig_name = "Name";`.
+- The service must outlive the windows calling it. It is usually a
+  variable of `main`.
+
+Its methods are its public functions that:
+
+- take the service as their first parameter (`Greeter`, `*Greeter` or
+  `*const Greeter`);
+- are not generic;
+- have a name that doesn't start with `_`.
+
+Other declarations are not part of it.
 
 ```zig
 const Todos = struct {
@@ -71,27 +84,36 @@ const Todos = struct {
 };
 ```
 
-Zig keeps no parameter names in function types, so a service names them
-in `myzig_params`, a struct of the methods' names, each a tuple of names in
-order. They name the parameters of the generated client; without them the
-client says `arg0`, `arg1`, ... The documentation comments of methods are
-not kept in the client either: Zig doesn't give them to comptime code.
+**Parameter names.** Zig keeps no parameter names in function types. So
+a service names them in `myzig_params`: a struct of the methods' names,
+each a tuple of names in order.
 
-The arguments come from the page as JSON and are parsed into the
-parameters' types (unknown fields of objects are ignored). A call with too
-few arguments fails with `MissingArgument`, with too many with
-`TooManyArguments`, and with one that doesn't parse with
-`InvalidArgument`. The result is written back as JSON.
+- They name the parameters of the generated client.
+- Without them the client says `arg0`, `arg1`, ...
+- The documentation comments of methods are not kept in the client
+  either. Zig doesn't give them to comptime code.
 
-Methods run on the main thread, one call at a time, so they may use the
-app's state and windows freely, and a slow method holds up the app: start
-long work on a thread of your own and answer later, through an
-[event](#events) or a [channel](#channels).
+**Arguments.** They come from the page as JSON and are parsed into the
+parameters' types. Unknown fields of objects are ignored. The result is
+written back as JSON.
+
+| the call has | it fails with |
+|---|---|
+| too few arguments | `MissingArgument` |
+| too many | `TooManyArguments` |
+| one that doesn't parse | `InvalidArgument` |
+
+**Threading.** Methods run on the main thread, one call at a time.
+
+- They may use the app's state and windows freely.
+- A slow method holds up the app. Start long work on a thread of your
+  own and answer later, through an [event](#events) or a
+  [channel](#channels).
 
 ### The call
 
-A method may take a `*myzig.Call` after the service. It is not an argument
-of the page's: the client leaves it out.
+A method may take a `*myzig.Call` after the service. It is not one of the
+page's arguments: the client leaves it out.
 
 ```zig
 pub fn greet(_: *Greeter, call: *myzig.Call, name: []const u8) ![]const u8 {
@@ -100,9 +122,9 @@ pub fn greet(_: *Greeter, call: *myzig.Call, name: []const u8) ![]const u8 {
 }
 ```
 
-- `call.arena` is freed once the reply is sent: allocate results in it,
-  as well as anything the method needs only while it runs. Arguments
-  (strings, slices) live in it too, so copy what you keep
+- `call.arena` is freed once the reply is sent. Allocate results in it,
+  and anything the method needs only while it runs.
+- Arguments (strings, slices) live in it too, so copy what you keep
   (`self.gpa.dupe`).
 - `call.window` is the window whose page called. A method may close it;
   the reply is then dropped.
@@ -120,22 +142,24 @@ try {
 }
 ```
 
-What the bridge itself refuses fails the same way: `UnknownService`,
-`UnknownMethod`, the argument errors above, and `Untrusted` for a page the
-app doesn't [trust](pages.md#trust).
+What the bridge itself refuses fails the same way:
+
+- `UnknownService`, `UnknownMethod`;
+- the argument errors above;
+- `Untrusted`, for a page the app doesn't [trust](pages.md#trust).
 
 ## The generated client
 
-The client is made of comptime declarations of the services and events,
-and needs no build step: the app serves it at `/myzig.js`, so a page of
+The client is made of comptime declarations of the services and events.
+It needs no build step. The app serves it at `/myzig.js`, so a page of
 the app's frontend imports it as a module.
 
 ```js
 import { Greeter, Todos, onTick, Channel } from "/myzig.js";
 ```
 
-For TypeScript and editors, write `myzig.d.ts` (and a copy of `myzig.js`,
-for bundlers that want the file) next to the frontend:
+For TypeScript and editors, write `myzig.d.ts` next to the frontend. Add
+a copy of `myzig.js` for bundlers that want the file.
 
 ```sh
 zig-out/bin/hello --myzig-generate=examples/hello/frontend   # any app: write the client and exit
@@ -143,11 +167,12 @@ zig build gen                                               # this repository's 
 myzig generate                                              # an app made with `myzig init`
 ```
 
-`--myzig-generate=DIR` makes `App.run` write `DIR/myzig.js` and
-`DIR/myzig.d.ts` and return, without a window. The CLI's `myzig dev` and
-`myzig build` write it too ([CLI](cli.md)). Regenerate it when services
-change; `myzig.d.ts` is worth committing, so the frontend typechecks
-without building the app.
+- `--myzig-generate=DIR` makes `App.run` write `DIR/myzig.js` and
+  `DIR/myzig.d.ts` and return, without a window.
+- The CLI's `myzig dev` and `myzig build` write it too ([CLI](cli.md)).
+- Regenerate it when services change.
+- Commit `myzig.d.ts`, so the frontend typechecks without building the
+  app.
 
 ```ts
 // Generated by myzig. Do not edit.
@@ -176,8 +201,8 @@ export declare const Todos: {
 export declare function onTick(listener: (payload: TickPayload) => void): () => void;
 ```
 
-Services are sorted by name, so the output is stable, and their methods
-keep the order of their declarations. Every method returns a promise.
+Services are sorted by name, so the output is stable. Their methods keep
+the order of their declarations. Every method returns a promise.
 
 ### Types
 
@@ -196,10 +221,12 @@ keep the order of their declarations. Every method returns a promise.
 | `E!T` | `T` (the error rejects the promise) |
 | `myzig.Channel(T)` | `Channel<T>` |
 
-Named types are declared once, even when several services use them, and
-recursive structs work. Tuples, unions and other types are a compile error
-that names the type, so a service can't bind what the page can't read.
-Integers bigger than 2^53 lose precision in JavaScript, as with any JSON.
+- Named types are declared once, even when several services use them.
+- Recursive structs work.
+- Tuples, unions and other types are a compile error that names the
+  type. So a service can't bind what the page can't read.
+- Integers bigger than 2^53 lose precision in JavaScript, as with any
+  JSON.
 
 ## Events
 
@@ -215,19 +242,20 @@ Tick.emit(window, .{ .uptime = 3, .todos = 2 });   // one window's page; safe fr
 Tick.broadcast(app, .{ .uptime = 3, .todos = 2 }); // every window's page; main thread
 ```
 
-The client has `on` and the event's name in Pascal case
-(`"tick"` → `onTick`, `"build-logs"` → `onBuildLogs`), which returns a
-function that stops listening:
+The client has `on` plus the event's name in Pascal case: `"tick"` →
+`onTick`, `"build-logs"` → `onBuildLogs`. It returns a function that
+stops listening:
 
 ```js
 const off = onTick(({ uptime, todos }) => render(uptime, todos));
 off();
 ```
 
-Events sent before the page is ready wait for it (its `dom_ready`), up to
-1024 of them, and those of a document the page left are dropped. Messages
-to a page are batched: everything sent in one turn of the main loop goes
-in one evaluation.
+- Events sent before the page is ready wait for it (its `dom_ready`), up
+  to 1024 of them.
+- Events for a document the page left are dropped.
+- Messages to a page are batched. Everything sent in one turn of the
+  main loop goes in one evaluation.
 
 A timer that broadcasts, as `examples/hello` does:
 
@@ -242,13 +270,13 @@ fn tick(ctx: ?*anyopaque) callconv(.c) void {
 
 ## Channels
 
-A channel is a stream of typed values between Zig and one page, both ways,
-in order, until either side closes it. Use it for what a call can't
-return at once: lines of a process, progress, uploads.
+A channel is a stream of typed values between Zig and one page. It goes
+both ways, in order, until either side closes it. Use it for what a call
+can't return at once: lines of a process, progress, uploads.
 
 ### Channels the page makes
 
-A bound method takes a `myzig.Channel(T)` parameter; the page passes a
+A bound method takes a `myzig.Channel(T)` parameter. The page passes a
 `Channel` it made:
 
 ```zig
@@ -285,12 +313,12 @@ for (const v of ["a", "b", "c"]) await up.send(v);
 up.close();
 ```
 
-The `Channel(T)` value is small: keep it (in the service's state) to send
+The `Channel(T)` value is small. Keep it in the service's state to send
 later, as values come. A method may return before the channel is used.
 
 ### Channels Zig opens
 
-A kind of channel declares its name and type, and the page listens for
+A kind of channel declares its name and type. The page listens for
 channels of that kind:
 
 ```zig
@@ -312,9 +340,10 @@ onLogsChannel(async (logs) => {
 });
 ```
 
-Channels opened before the page listens wait for a listener (up to 1024
-of a kind). Without the kind, `myzig.Channel(T).open(window, "logs")` opens
-one by name, which the page gets with `myzig.onChannel("logs", fn)`.
+- Channels opened before the page listens wait for a listener, up to
+  1024 of a kind.
+- Without the kind, `myzig.Channel(T).open(window, "logs")` opens one by
+  name. The page gets it with `myzig.onChannel("logs", fn)`.
 
 ### Both sides
 
@@ -329,19 +358,24 @@ In Zig, a `myzig.Channel(T)`:
 | `onClose(ptr, func)` | `func(ptr, channel, reason)` once it closes; `reason` is `.zig`, `.page` or `.lost` (the page navigated away or closed) |
 | `onDrain(ptr, func)` | `func(ptr, channel)` once a send that failed with `ChannelFull` would succeed |
 
-In the page, a `Channel<T>` is an async iterable, and has `onmessage` (set
-it to take values as they come instead of iterating; values wait for one
-or the other), `onclose`, `closed`, `send(value)` and `close()`. Breaking
-out of a `for await` closes it.
+In the page, a `Channel<T>` is an async iterable. It has:
 
-Backpressure goes both ways with a window of 1 MiB: values from Zig wait
-in the page until it takes them, and once more than the window waits,
-`send` fails with `ChannelFull` until the page takes enough (`onDrain`
-says when). The page's `send` resolves at once while Zig has room, and
-later once Zig acknowledged enough. Navigating away closes the page's
-channels with `.lost`, and a `Channel(T)` of an earlier document is
-closed for good, even if the window shows a new page. Channels are main
-thread only.
+- `onmessage`: set it to take values as they come, instead of iterating.
+  Values wait for one or the other.
+- `onclose`, `closed`, `send(value)` and `close()`.
+- Breaking out of a `for await` closes it.
+
+**Backpressure** goes both ways, with a window of 1 MiB:
+
+- Values from Zig wait in the page until it takes them.
+- Once more than the window waits, `send` fails with `ChannelFull` until
+  the page takes enough. `onDrain` says when.
+- The page's `send` resolves at once while Zig has room. Otherwise it
+  resolves once Zig acknowledged enough.
+
+Navigating away closes the page's channels with `.lost`. A `Channel(T)`
+of an earlier document is closed for good, even if the window shows a new
+page. Channels are main thread only.
 
 ## Without the generated client
 
@@ -356,22 +390,26 @@ myzig.onChannel("logs", (channel) => {});
 const ch = new myzig.Channel();
 ```
 
-That is what pages that don't import modules (an inline script, a page
-loaded with `loadHtml`) use. The whole runtime is in
-[The frontend](frontend.md#the-page-runtime), and the wire protocol under
-it in [the architecture guide](architecture-ipc.md).
+Pages that don't import modules use it: an inline script, a page loaded
+with `loadHtml`. The whole runtime is in
+[The frontend](frontend.md#the-page-runtime). The wire protocol under it
+is in [the architecture guide](architecture-ipc.md).
 
 ## From Zig to the page
 
-Besides events and channels, Zig can run scripts in a page: `win.eval(js)`
-and `win.evalResult(js, cb)`, which awaits the value
-([Pages](pages.md#evaluating-scripts)).
+Besides events and channels, Zig can run scripts in a page:
+
+- `win.eval(js)`;
+- `win.evalResult(js, cb)`, which awaits the value
+  ([Pages](pages.md#evaluating-scripts)).
 
 ## Testing
 
-A service is a struct: test its methods directly, with
-`std.testing.allocator` as the arena. Through the page, run the app with
-`--myzig-eval` ([Pages](pages.md#testing-pages)); `zig build test-pages`
-calls `examples/hello`'s services, their errors and an event, and runs
-`examples/pages`, whose channels cover both directions, kinds and
-backpressure. The type mapping is tested in `src/tsgen.zig`.
+- A service is a struct: test its methods directly, with
+  `std.testing.allocator` as the arena.
+- Through the page, run the app with `--myzig-eval`
+  ([Pages](pages.md#testing-pages)).
+- `zig build test-pages` calls `examples/hello`'s services, their errors
+  and an event. It also runs `examples/pages`, whose channels cover both
+  directions, kinds and backpressure.
+- The type mapping is tested in `src/tsgen.zig`.

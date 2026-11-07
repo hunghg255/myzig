@@ -1,10 +1,10 @@
 # Charts
 
-`ui.chart` draws line, area, bar, scatter and pie charts, with their axes,
+`ui.chart` draws line, area, bar, scatter and pie charts. They have axes,
 grid lines, legends, and a tooltip of the point nearest the pointer. They
-are drawn on a canvas ([Drawing](drawing.md)) and follow the theme. Its
-parts (scales, paths of lines, areas and slices, stacks, the nearest point)
-are public too, for charts of your own.
+are drawn on a canvas ([Drawing](drawing.md)) and follow the theme. Their
+parts are public too, for charts of your own: scales, paths of lines,
+areas and slices, stacks, the nearest point.
 
 <!-- demo: chart height=300 -->
 
@@ -23,9 +23,10 @@ const r = chart.lineChart(c, &.{
 if (r.hover) |h| ui.text(c, months[h.index], .{ .size = 12 });
 ```
 
-The gallery's Charts page shows every kind (`examples/gallery/drawing.zig`),
-and `zig build run-chart-streaming` three waveforms of 15 000 samples each,
-1 000 new ones a second, drawn with the parts below.
+- The gallery's Charts page shows every kind
+  (`examples/gallery/drawing.zig`).
+- `zig build run-chart-streaming` draws three waveforms of 15 000 samples
+  each, 1 000 new ones a second, with the parts below.
 
 ## Lines, areas and bars
 
@@ -36,9 +37,11 @@ and `zig build run-chart-streaming` three waveforms of 15 000 samples each,
 *A stacked bar chart showing three traffic sources.*
 
 `chart.lineChart`, `chart.areaChart` and `chart.barChart` take
-`chart.Series` (a `name`, `values`, one for each point along x, NaN for
-none there, and an optional `color`, else the palette's by its place) and
-`chart.Options`:
+`chart.Series` and `chart.Options`. A `chart.Series` has:
+
+- `name`;
+- `values`, one for each point along x, NaN for none there;
+- `color`, optional; else the palette's, by its place.
 
 | field | default | meaning |
 |---|---|---|
@@ -68,13 +71,19 @@ _ = chart.barChart(c, &.{
 }, .{ .labels = &months, .stacked = s.stacked, .height = 200 });
 ```
 
-`chart.Curve`, as d3's curves: `.linear`, `.monotone` (smooth, never past
-the values of the points it joins: d3's `curveMonotoneX`), `.step`,
-`.step_after` and `.step_before`.
+`chart.Curve` follows d3's curves:
 
-Every chart returns a `chart.Result`: `hover`, the point the pointer is
-nearest (`series` and `index`), or null; and `index`, the chart's box, for
-`c.interact` (a click on a point) and tests.
+- `.linear`;
+- `.monotone`: smooth, never past the values of the points it joins
+  (d3's `curveMonotoneX`);
+- `.step`, `.step_after` and `.step_before`.
+
+Every chart returns a `chart.Result`:
+
+- `hover`: the point the pointer is nearest (`series` and `index`), or
+  null;
+- `index`: the chart's box, for `c.interact` (a click on a point) and
+  tests.
 
 ## Scatter
 
@@ -83,9 +92,13 @@ _ = chart.scatterChart(c, &.{.{ .name = "Samples", .xs = &xs, .ys = &ys }}, .{ .
 ```
 
 A `chart.PointSeries` has `name`, `xs`, `ys` and `color`.
-`chart.ScatterOptions` has `width`, `height`, `ticks`, `radius` (of the
-dots, 4), `grid`, `legend`, `decimals`, `reach` (how far, in points, the
-pointer may be from a point to pick it, 24) and `key`.
+`chart.ScatterOptions` has `width`, `height`, `ticks`, `grid`, `legend`,
+`decimals` and `key`, as above, and:
+
+| field | default | meaning |
+|---|---|---|
+| `radius` | 4 | of the dots |
+| `reach` | 24 | how far, in points, the pointer may be from a point to pick it |
 
 ## Pie and donut
 
@@ -97,10 +110,16 @@ _ = chart.pieChart(c, &.{
 }, .{ .size = 180, .inner = 0.55 });
 ```
 
-A `chart.PieSlice` has `label`, `value` and `color`. `chart.PieOptions`:
-`size` (its side, 200 points), `inner` (the hole of a donut as a fraction of
-the radius; 0 a pie), `pad` (radians between slices), `legend`, `decimals`
-and `key`. The slice under the pointer grows and tells its value and share.
+A `chart.PieSlice` has `label`, `value` and `color`. `chart.PieOptions`
+also has `legend`, `decimals` and `key`, and:
+
+| field | default | meaning |
+|---|---|---|
+| `size` | 200 | its side, in points |
+| `inner` | 0 | the hole of a donut, as a fraction of the radius; 0 is a pie |
+| `pad` | 0.02 | radians between slices |
+
+The slice under the pointer grows and tells its value and share.
 
 ## Colors and legends
 
@@ -109,47 +128,69 @@ your own: `chart.legend(c, names, colors)`.
 
 ## Charts of your own
 
-The parts of the charts work on any canvas. Positions on a plot are
-fractions of it, from 0 to 1: along x from its left edge, along y from its
-bottom up, the way values grow. `chart.x(rect, f)` and `chart.y(rect, f)`
-turn them into points of a rectangle.
+The parts of the charts work on any canvas.
+
+- Positions on a plot are fractions of it, from 0 to 1.
+- Along x they run from its left edge. Along y they run from its bottom
+  up, the way values grow.
+- `chart.x(rect, f)` and `chart.y(rect, f)` turn them into points of a
+  rectangle.
 
 ### Scales
 
-- `chart.Linear.init(lo, hi)` maps values to fractions: `at(v)`, back with
-  `invert(f)`, `span(a, b)` between two values; `nice(count)` rounds the
-  domain out to round ticks, and `ticks(gpa, count)` gives `chart.Tick`s
-  (`at`, `value`, `label`). Set `clamp` to keep values outside it at its
-  ends.
-- `chart.Band.init(count)` gives a band to each of `count` labels, as d3's
-  `scaleBand`: `padding(inner, outer)`, `band(i)` (a `chart.Span`, `lo` and
-  `hi`), `width()`, `at(i)`, `index(f)` (which band a fraction is in), and
-  `ticks(gpa, labels)`.
-- `chart.extent(values)` is the smallest and largest of values (NaNs left
-  out), and `chart.format(gpa, value, decimals)` writes a value as the axes do.
+`chart.Linear.init(lo, hi)` maps values to fractions:
+
+- `at(v)`, and back with `invert(f)`;
+- `span(a, b)` between two values;
+- `nice(count)` rounds the domain out to round ticks;
+- `ticks(gpa, count)` gives `chart.Tick`s (`at`, `value`, `label`);
+- set `clamp` to keep values outside it at its ends.
+
+`chart.Band.init(count)` gives a band to each of `count` labels, as d3's
+`scaleBand`:
+
+- `padding(inner, outer)`;
+- `band(i)`: a `chart.Span`, with `lo` and `hi`;
+- `width()` and `at(i)`;
+- `index(f)`: which band a fraction is in;
+- `ticks(gpa, labels)`.
+
+Two helpers:
+
+- `chart.extent(values)` is the smallest and largest of the values, NaNs
+  left out.
+- `chart.format(gpa, value, decimals)` writes a value as the axes do.
 
 ### Shapes
 
-- `chart.line(path, rect, xs, ys, curve)` adds the line through points (in
-  fractions) to a `ui.Path`; `chart.area(path, rect, xs, lo, hi, curve)`
-  the area between two lines (`lo` null for the bottom).
+- `chart.line(path, rect, xs, ys, curve)` adds the line through points,
+  in fractions, to a `ui.Path`.
+- `chart.area(path, rect, xs, lo, hi, curve)` adds the area between two
+  lines. `lo` null is the bottom.
 - `chart.nearest(xs, f)` is the index of the point nearest a fraction, for
   hover.
-- `chart.pie(gpa, values, pad)` makes `chart.Slice`s (their angles),
-  `chart.sector(path, cx, cy, inner, outer, slice)` the path of one,
-  `chart.sliceAt(slices, dx, dy, inner, outer)` the slice at a point, and
-  `chart.polar(cx, cy, r, angle)` a point on a circle.
-- `chart.stack(gpa, series, how)` piles series up: `series[s][i]` is the
-  i-th value of the s-th series, and the result's `[s][i]` a
-  `chart.Segment` (`lo`, `hi`) where it goes in the i-th stack.
-  `chart.Stacking` is `.standard` (up from 0, negative values down),
-  `.normalized` (in shares of each stack's sum) or `.center` (around 0, a
-  streamgraph).
+- `chart.pie(gpa, values, pad)` makes `chart.Slice`s, with their angles.
+- `chart.sector(path, cx, cy, inner, outer, slice)` is the path of one
+  slice.
+- `chart.sliceAt(slices, dx, dy, inner, outer)` is the slice at a point.
+- `chart.polar(cx, cy, r, angle)` is a point on a circle.
+
+`chart.stack(gpa, series, how)` piles series up:
+
+- `series[s][i]` is the i-th value of the s-th series.
+- The result's `[s][i]` is a `chart.Segment` (`lo`, `hi`): where that
+  value goes in the i-th stack.
+
+| `chart.Stacking` | |
+|---|---|
+| `.standard` | up from 0, negative values down |
+| `.normalized` | in shares of each stack's sum |
+| `.center` | around 0, a streamgraph |
 
 ### A live waveform
 
-`examples/chart-streaming` draws three rolling series on one canvas,
-reducing each to the extremes of every pixel column before stroking, so
+`examples/chart-streaming` draws three rolling series on one canvas. It
+reduces each to the extremes of every pixel column before stroking. So
 15 000 samples cost as much as the plot is wide:
 
 ```zig
@@ -168,14 +209,19 @@ fn draw(w: *Waveform, p: *ui.Painter) void {
 }
 ```
 
-(`xs_of` and `ys_of` stand for the app's reduced fractions.) The labels of
-its axes are boxes placed with `absolute` and `offset` at the ticks of
-`chart.Linear.init(0, 1).ticks(c.alloc(), 5)`. Since the data changes every
-frame, the view asks for the next with `c.animationFrame()`.
+- `xs_of` and `ys_of` stand for the app's reduced fractions.
+- The labels of its axes are boxes placed with `absolute` and `offset`,
+  at the ticks of `chart.Linear.init(0, 1).ticks(c.alloc(), 5)`.
+- The data changes every frame, so the view asks for the next with
+  `c.animationFrame()`.
 
 ## Testing charts
 
-Charts are boxes, text and a canvas, so the Tester sees them: their labels
-with `t.hasText`, the hover by moving the pointer over the plot
-(`t.moveTo`) and reading `Result.hover`, and their pixels with
-`t.render`. See `src/ui/tests_chart.zig` and [Testing](testing.md).
+Charts are boxes, text and a canvas, so the Tester sees them:
+
+- their labels, with `t.hasText`;
+- the hover, by moving the pointer over the plot (`t.moveTo`) and reading
+  `Result.hover`;
+- their pixels, with `t.render`.
+
+See `src/ui/tests_chart.zig` and [Testing](testing.md).

@@ -1,12 +1,10 @@
-# Input Group
+# Input group
 
-`ui.inputGroup` đặt một ô nhập, icon, tiền tố, hậu tố và nút thao tác trong
-cùng một khung. Ô nhập giữ nguyên cách chỉnh sửa, chọn chữ, bộ gõ và xử lý
-mật khẩu của [text field](text-input.md).
+`ui.inputGroup` đặt một ô nhập chữ, icon, tiền tố, hậu tố và nút thao tác vào chung một khung. Ô nhập của nó sửa chữ, chọn chữ, nhận bộ gõ và xử lý mật khẩu giống như [text field](text-input.md).
 
 <!-- demo: input-groups height=442 -->
 
-![Input Group cho tìm kiếm, URL, ngân sách và một cài đặt bị vô hiệu hóa.](../../images/ui/input-groups.png)
+![Input group cho tìm kiếm, URL và ngân sách, cùng một cài đặt bị vô hiệu hóa.](../../images/ui/input-groups.png)
 
 ```zig
 var group = ui.inputGroup(c, .{ .width = .{ .px = 420 } });
@@ -14,48 +12,51 @@ defer group.end();
 group.text("https://");
 const result = group.input(&s.url, .{ .placeholder = "example.com", .label = "Website" });
 if (result.submitted) s.openUrl();
-if (group.button("Mở", .{ .variant = .primary })) s.openUrl();
+if (group.button("Open", .{ .variant = .primary })) s.openUrl();
 ```
 
-Giữ `ui.TextBuffer` trong state của app. Gọi `input` đúng một lần giữa
-`inputGroup` và `end`. Ô nhập chiếm phần chiều rộng còn lại sau các phần
-bổ sung; group quản lý hai tùy chọn `width` và `bare` của ô nhập.
+- Giữ `ui.TextBuffer` trong state của app.
+- Gọi `input` đúng một lần giữa `inputGroup` và `end`.
+- Ô nhập chiếm phần chỗ còn lại sau các tiền tố, hậu tố và nút. Group quản lý các tùy chọn `width` và `bare` của nó.
 
-## Các phần và trạng thái
+<a id="parts-and-state"></a>
 
-| Phương thức | Ý nghĩa |
+## Các phần và state
+
+| Method | Ý nghĩa |
 |---|---|
-| `text(value)` | Tiền tố/hậu tố màu dịu, nằm ngoài giá trị chỉnh sửa |
+| `text(value)` | Tiền tố hoặc hậu tố màu nhạt, nằm ngoài giá trị sửa được |
 | `icon(name)` | Icon trang trí |
-| `input(buffer, options)` | Ô nhập, trả về `ui.TextFieldResult` |
-| `button(title, options)` | Nút thao tác, trả về true khi kích hoạt |
-| `end()` | Đóng group và cập nhật viền focus/lỗi |
+| `input(buffer, options)` | Ô nhập chữ; trả về `ui.TextFieldResult` |
+| `button(title, options)` | Nút thao tác; trả về true khi được kích hoạt |
+| `end()` | Đóng group và cập nhật viền focus/lỗi dùng chung |
 
-`InputGroupOptions` gồm `width` (mặc định 320 point), `disabled` (false)
-và `invalid` (false). Group bị disabled không cho sửa nội dung hoặc kích
-hoạt nút, đồng thời bỏ các điều khiển khỏi thứ tự Tab. `invalid` đổi màu
-viền và đánh dấu ô nhập cho công nghệ hỗ trợ; dùng [field](forms.md) để
-hiển thị thông báo lỗi.
+| `InputGroupOptions` | Mặc định | |
+|---|---|---|
+| `width` | 320 điểm | |
+| `disabled` | false | bỏ ô nhập và các nút khỏi điều hướng bàn phím, không cho sửa và kích hoạt |
+| `invalid` | false | tô màu viền và đánh dấu ô nhập cho công nghệ hỗ trợ |
+
+Để hiện thông báo lỗi, hãy dùng [field](forms.md):
 
 ```zig
-const field = ui.field(c, "Ngân sách", .{ .err = s.budget_error });
+const field = ui.field(c, "Budget", .{ .err = s.budget_error });
 defer field.end();
 var group = ui.inputGroup(c, .{ .invalid = s.budget_error.len > 0 });
 defer group.end();
 group.text("$");
 _ = group.input(&s.amount, .{});
-group.text("USD / tháng");
+group.text("USD / month");
 ```
 
-Bấm khung hoặc phần trang trí sẽ focus ô nhập. Tab di chuyển giữa ô nhập
-và các nút đang bật. Enter trong ô nhập trả về `submitted`; Enter hoặc
-Space trên nút chỉ kích hoạt nút đó. Viền biểu thị focus khi một điều
-khiển bất kỳ trong group có focus.
+**Hành vi**
 
-Label của form đặt tên và focus ô nhập, kể cả khi có tiền tố phía trước.
-Nếu không dùng form, truyền `label` vào tùy chọn của `input`. Đặt tiêu đề
-nút rõ nghĩa. Tiền tố và hậu tố tuân theo [hướng giao diện](right-to-left.md);
-phần văn bản chỉnh sửa giữ hành vi text field thông thường.
+- Bấm vào khung hoặc phần trang trí sẽ focus ô nhập.
+- Tab di chuyển giữa ô nhập và các nút thao tác đang bật.
+- Enter trong ô nhập báo về `submitted`. Enter hoặc Space trên một nút chỉ kích hoạt nút đó.
+- Viền hiện focus khi bất kỳ control nào bên trong có focus.
+- Label của form đặt tên và focus ô nhập, kể cả khi có tiền tố đứng trước. Không có label của form thì đặt `label` trong tùy chọn của `input`.
+- Đặt tiêu đề nút rõ nghĩa.
+- Tiền tố và hậu tố theo [hướng](right-to-left.md) của giao diện. Phần chữ sửa được vẫn hoạt động như text field bình thường.
 
-Xem trang **Composition** trong [Gallery](../../../examples/gallery/composites.zig)
-để thử tìm kiếm, URL, đơn vị và trạng thái disabled.
+Xem trang **Composition** trong [Gallery](../../../examples/gallery/composites.zig) để thấy các ví dụ tìm kiếm, URL, đơn vị và disabled.

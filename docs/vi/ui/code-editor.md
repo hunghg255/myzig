@@ -1,14 +1,14 @@
 <a id="code-editor-and-diff-viewer"></a>
 
-# Trình chỉnh sửa mã và trình xem khác biệt
+# Code editor và diff viewer
 
-`ui.codeEditor` chỉnh sửa mã nguồn, sau trình soạn thảo của Zed và mygo của `ui/editor`: một dãy số dòng, màu cú pháp, dòng của dấu mũ được điền, thụt lề, dấu ngoặc và dấu ngoặc kép đóng khi chúng được nhập, dấu ngoặc ở dấu mũ khớp, một thanh tìm kiếm cũng thay thế (theo kiểu chữ, toàn bộ từ hoặc biểu thức thông thường), đi đến một dòng và dấu kết thúc mềm hoặc dòng dài cuộn sang một bên. `ui.diffView` hiển thị những thay đổi giữa hai văn bản, hợp nhất hoặc cạnh nhau. Cả hai chỉ xây dựng các dòng trong view, do đó, một tệp gồm 100 000 dòng có chi phí tương đương với một màn hình.
+`ui.codeEditor` sửa mã nguồn, theo editor của Zed và `ui/editor` của mygo. `ui.diffView` hiện thay đổi giữa hai văn bản, dạng gộp (unified) hoặc đặt cạnh nhau.
 
 <!-- demo: code-editor height=335 -->
 
-![Trình soạn thảo Zig với tô màu cú pháp và số dòng.](../../images/ui/code-editor.png)
+![Editor Zig có tô màu cú pháp và cột số dòng.](../../images/ui/code-editor.png)
 
-*Trình soạn thảo Zig với tô màu cú pháp và số dòng.*
+*Editor Zig có tô màu cú pháp và cột số dòng.*
 
 ```zig
 const Editor = struct {
@@ -23,33 +23,44 @@ var s: Editor = .{ .code = .init(gpa, source, "main.zig") };
 defer s.code.deinit();
 ```
 
-`zig build run-code-editor` chỉnh sửa các tệp của một số ngôn ngữ, với những thay đổi của chúng so với các tệp như cũ (`examples/code-editor`); headless: `zig-out/bin/code-editor --myzig-snapshot=diff.png --myzig-script="click:Changes"`.
+Editor có:
+
+- cột số dòng (gutter), tô màu cú pháp, và tô nền dòng đang có con trỏ;
+- tự thụt lề, ngoặc và dấu nháy tự đóng khi gõ;
+- đánh dấu cặp ngoặc tại con trỏ;
+- thanh tìm kiếm có cả thay thế: phân biệt hoa thường, nguyên từ, hoặc biểu thức chính quy;
+- nhảy tới một dòng;
+- tự xuống dòng (soft wrap), hoặc scroll ngang với dòng dài.
+
+Cả hai widget chỉ dựng các dòng đang hiện, nên file 100 000 dòng cũng chỉ tốn bằng một màn hình.
+
+`zig build run-code-editor` sửa file của nhiều ngôn ngữ, kèm thay đổi so với file ban đầu (`examples/code-editor`). Chạy headless: `zig-out/bin/code-editor --myzig-snapshot=diff.png --myzig-script="click:Changes"`.
 
 <a id="the-editor"></a>
 
-## Biên tập viên
+## Editor
 
-`ui.CodeEditor.init(gpa, text, name)` tạo trình soạn thảo của `text`, được đánh dấu là ngôn ngữ của tệp `name` (null: không có). Giải phóng nó bằng `deinit()`. Các trường và phương thức của nó:
+`ui.CodeEditor.init(gpa, text, name)` tạo editor cho `text`, tô màu theo ngôn ngữ của file `name` (null: không tô). Giải phóng bằng `deinit()`. Các trường và method:
 
 | | |
 |---|---|
-| `area` | `ui.TextArea`: văn bản, vùng chọn, hoàn tác ([Vùng văn bản](text-area.md)) |
-| `wrap` | các dòng bao bọc theo chiều rộng của trình soạn thảo, thay vì cuộn sang một bên |
-| `wrap_column` | với `wrap`, các dòng bao quanh cột này hoặc ở chiều rộng gần hơn (0, mặc định: chiều rộng) |
-| `read_only` | có thể lựa chọn, có thể tìm kiếm và có thể sao chép, không thể chỉnh sửa |
-| `indent` | `unit` (một cấp độ: `"    "` theo mặc định hoặc `"\t"`) và `tab_size` (4) |
-| `find` | trạng thái của thanh tìm kiếm: `open`, `replacing`, `query`, `replacement`, `flags` (`case`, `word`, `regex`), `matches` |
-| `setLanguage(name)` | đánh dấu dưới dạng tệp có tên `name` hoặc tên ngôn ngữ (`"zig"`, `"go"`); null không có gì cả |
-| `goToLine(line)` | đặt dấu mũ ở đầu dòng (từ 1) và hiển thị nó |
-| `openFind(replacing)` | mở thanh tìm kiếm, trên văn bản của vùng chọn |
-| `closeBars()` | đóng thanh tìm và đi tới |
-| `own_find_bar` | ứng dụng tự vẽ thanh tìm kiếm từ `find`, `query_id`, `replacement_id` và `focus_next` (người chỉnh sửa vẫn tìm, đánh dấu và lấy chìa khóa) |
-| `extra` | ứng dụng thêm những gì vào dòng (bên dưới) |
-| `background` | nền của văn bản (null: nền sáng hoặc tối mặc định) |
-| `guides` | màu cho các dòng ở mỗi cấp độ thụt đầu dòng (null: none) |
-| `syntax.colors` | màu của mã thông báo, `ui.SyntaxColors` (null: mặc định) |
+| `area` | `ui.TextArea` của nó: chữ, vùng chọn, undo ([Text area](text-area.md)) |
+| `wrap` | dòng tự xuống theo bề rộng editor, thay vì scroll ngang |
+| `wrap_column` | khi có `wrap`, dòng xuống ở cột này, hoặc ở bề rộng editor nếu nó gần hơn (0, mặc định: bề rộng editor) |
+| `read_only` | chọn, tìm và copy được, không sửa được |
+| `indent` | `unit` (một mức: mặc định `"    "`, hoặc `"\t"`) và `tab_size` (4) |
+| `find` | state của thanh tìm kiếm: `open`, `replacing`, `query`, `replacement`, `flags` (`case`, `word`, `regex`), `matches` |
+| `setLanguage(name)` | tô màu như file tên `name`, hoặc theo tên ngôn ngữ (`"zig"`, `"go"`); null để bỏ tô màu |
+| `goToLine(line)` | đặt con trỏ ở đầu một dòng (đếm từ 1) và cuộn tới đó |
+| `openFind(replacing)` | mở thanh tìm kiếm, với chữ đang chọn |
+| `closeBars()` | đóng thanh tìm kiếm và thanh nhảy dòng |
+| `own_find_bar` | app tự vẽ thanh tìm kiếm từ `find`, `query_id`, `replacement_id` và `focus_next` (editor vẫn tìm, đánh dấu và nhận phím) |
+| `extra` | những gì app thêm vào các dòng (bên dưới) |
+| `background` | nền của chữ (null: nền sáng hoặc tối mặc định) |
+| `guides` | màu cho các đường kẻ ở mỗi mức thụt lề (null: không có) |
+| `syntax.colors` | màu của các token, một `ui.SyntaxColors` (null: mặc định) |
 
-Ứng dụng đọc và chỉnh sửa văn bản thông qua `area`, như với vùng văn bản:
+App đọc và sửa chữ qua `area`, như với text area:
 
 ```zig
 const ta = &s.code.area;
@@ -59,96 +70,158 @@ ui.text(c, c.print("Ln {d}, Col {d}", .{ line + 1, col + 1 }), .{ .size = 12 });
 const modified = ta.doc.canUndo();
 ```
 
-`ui.CodeEditorOptions`: `width` và `height` (`.fill`), `size` (13), `line_numbers` (true), `current_line` (true: điền vào dòng dấu mũ), `leading` (1,45, chiều cao của dòng là bội số của phông chữ), `weight` (hoặc `weight_value`, 100 đến 900), `family` (đơn cách của chủ đề khi null), `features` (OpenType, vì `ui.TextStyle` lấy chúng) và `placeholder`. Nó trả về chức năng của vùng văn bản (`changed`, `focused`, `first_line`, `last_line`).
+`ui.CodeEditorOptions`:
+
+| Trường | Mặc định | |
+|---|---|---|
+| `width`, `height` | `.fill` | |
+| `size` | 13 | cỡ chữ |
+| `line_numbers` | true | cột số dòng |
+| `current_line` | true | tô nền dòng có con trỏ |
+| `leading` | 1.45 | chiều cao dòng, tính theo bội số của font |
+| `weight` | `.regular` | hoặc `weight_value`, 100 tới 900 |
+| `family` | `null` | font; null là font monospace của theme |
+| `features` | `""` | các feature OpenType, giống `ui.TextStyle` |
+| `placeholder` | `""` | |
+
+Nó trả về những gì text area trả về: `changed`, `focused`, `first_line`, `last_line`.
 
 <a id="what-the-app-adds-to-the-lines"></a>
 
-## Ứng dụng thêm gì vào dòng
-
-`extra`, `ui.CodeEditor.Extra`, cho phép ứng dụng trang trí các dòng khi chúng được tạo, chỉ cho các dòng trong view: `marks(ctx, c, line, start, str)` trả về hình nền của các lần chạy (`ui.TextMark`s: phạm vi byte của dòng và màu: các lần xuất hiện khác của một từ; `end` của `ui.TextMark.whole` lấp đầy dòng trên view, bên dưới vùng chọn: các khối xung đột), `gutter(ctx, c, line)` màu cho thanh dọc theo cạnh trái của máng xối (các dòng đã thay đổi kể từ khi thực hiện cam kết) và `after(ctx, c, line)` a `ui.TextAfter`, văn bản mờ sau khi kết thúc dòng (lỗi của dòng dấu mũ, một ghi chú). Nhấn vào rãnh sẽ đặt `area.gutter_press` về dòng của nó để ứng dụng đọc và xóa.
+## App thêm gì vào các dòng
 
 ```zig
 s.code.extra = .{ .ctx = s, .gutter = State.changed, .after = State.blame };
 s.code.guides = c.theme.text.alpha(0.08);
 ```
 
+`extra`, một `ui.CodeEditor.Extra`, cho app trang trí các dòng khi chúng được dựng, chỉ với các dòng đang hiện:
+
+| Callback | Trả về |
+|---|---|
+| `marks(ctx, c, line, start, str)` | nền cho các đoạn: các `ui.TextMark`, gồm khoảng byte trong dòng và một màu (những chỗ khác có cùng một từ) |
+| `gutter(ctx, c, line)` | màu cho một vạch dọc mép trái của gutter (các dòng đã đổi từ commit gần nhất) |
+| `after(ctx, c, line)` | một `ui.TextAfter`, chữ mờ sau cuối dòng (blame của dòng có con trỏ, một ghi chú) |
+
+- Mark có `end` là `ui.TextMark.whole` tô kín dòng hết bề ngang view, nằm dưới vùng chọn: dùng cho các khối conflict.
+- Bấm vào gutter thì `area.gutter_press` được đặt là dòng đó, để app đọc rồi xóa.
+
 <a id="keys"></a>
 
 ## Phím
 
-Ngoài các phím của vùng văn bản ([Vùng văn bản](text-area.md#editing)); "Mod" là Lệnh trên macOS và Điều khiển ở nơi khác:
+Ngoài các phím của text area ([Text area](text-area.md#editing)). "Mod" là Command trên macOS và Control ở nơi khác:
 
-| phím | làm |
+| Phím | Tác dụng |
 |---|---|
-| Mod+F | tìm thấy |
-| Mod+Tùy chọn+F (macOS), Ctrl+H | tìm và thay thế |
-| Mod+G, Mod+Shift+G (macOS), F3, Shift+F3 | trận đấu tiếp theo và trận đấu trước đó |
-| Ctrl+G | đi đến một dòng |
-| Thoát hiểm | đóng các thanh hoặc thu gọn vùng chọn |
-| Tab, Shift+Tab | thụt lề và thụt lề các dòng đã chọn (hoặc nhập một cấp độ tại dấu mũ) |
-| Mod+], Mod+[ | thụt lề và thụt dòng |
-| Mod+/ | nhận xét các dòng ra hoặc quay lại bằng nhận xét dòng của ngôn ngữ (không có gì trong một mà không có) |
-| Alt+Z | quấn hàng dài, hay không |
-| Mod+C, Mod+X không có lựa chọn | sao chép hoặc cắt dòng dấu mũ |
+| Mod+F | tìm |
+| Mod+Option+F (macOS), Ctrl+H | tìm và thay |
+| Mod+G, Mod+Shift+G (macOS), F3, Shift+F3 | kết quả kế tiếp và kết quả trước |
+| Ctrl+G | nhảy tới một dòng |
+| Escape | đóng các thanh, hoặc thu vùng chọn lại |
+| Tab, Shift+Tab | thụt vào và lùi ra các dòng đang chọn (hoặc gõ một mức thụt tại con trỏ) |
+| Mod+], Mod+[ | thụt vào và lùi ra các dòng |
+| Mod+/ | comment hoặc bỏ comment các dòng, bằng comment dòng của ngôn ngữ (không làm gì nếu ngôn ngữ không có) |
+| Alt+Z | bật hoặc tắt tự xuống dòng |
+| Mod+C, Mod+X khi không chọn gì | copy hoặc cut dòng có con trỏ |
 
-Khi mã được gõ:
+Khi gõ code:
 
-- Enter giữ nguyên mức thụt dòng của dòng, thêm một cấp sau dấu ngoặc mở và đặt dấu ngoặc đóng trên một dòng riêng giữa một cặp.
-- Dấu ngoặc và dấu ngoặc kép sẽ đóng khi chúng được nhập, bao bọc vùng chọn khi có một và gõ dấu kết thúc một bước lên trên nó; Backspace lấy một cặp trống.
-- Dấu ngoặc ở dấu mũ và đối tác của nó được đánh dấu, đối tác của nó tìm kiếm trong phạm vi 2000 dòng và 64 KB (một vài dòng dài là toàn bộ tệp).
+- Enter giữ mức thụt của dòng, thêm một mức sau ngoặc mở. Khi ở giữa một cặp ngoặc, nó đưa ngoặc đóng xuống một dòng riêng.
+- Ngoặc và dấu nháy tự đóng khi gõ, và bao quanh vùng chọn nếu có. Gõ ngoặc đóng thì con trỏ nhảy qua nó. Backspace xóa cả cặp rỗng.
+- Ngoặc tại con trỏ và ngoặc đối ứng được đánh dấu. Ngoặc đối ứng được tìm trong phạm vi 2000 dòng và 64 KB (vài dòng dài có thể là cả một file).
 
 <a id="languages"></a>
 
 ## Ngôn ngữ
 
-Trình chỉnh sửa nêu bật những gì view [Markdown](markdown.md) làm nổi bật (Zig, JavaScript và TypeScript, Go, Python, Rust, C và họ của nó, đánh dấu, Markdown, khác biệt và khoảng 60 thứ khác), theo phần mở rộng của tệp hoặc tên ngôn ngữ. `ui.languageFor(name)` tìm ngôn ngữ của tên tệp (null khi không có). Các dòng được mã hóa một dòng tại một thời điểm từ trạng thái mà mỗi dòng bắt đầu (bên trong một nhận xét khối, một chuỗi nhiều dòng) và các trạng thái được giữ trên mỗi dòng: sau khi chỉnh sửa, chỉ các dòng từ nó được mã hóa lại, cho đến khi một dòng bắt đầu ở trạng thái mà nó đã bắt đầu trước đó và chỉ đến mức các dòng được hiển thị. Trong một dòng dài hơn 20 000 byte, 20 000 byte đầu tiên được tô màu và phần còn lại là đơn giản, như Mã VS thực hiện, và màu của một dòng dài được giữ cho đến khi văn bản thay đổi: các dòng dài được trình bày ngân sách của khung tại một thời điểm, dưới dạng [vùng văn bản](text-area.md).
+Editor tô màu những gì view [Markdown](markdown.md) tô màu, theo phần mở rộng của file hoặc tên ngôn ngữ: Zig, JavaScript và TypeScript, Go, Python, Rust, C và họ hàng, markup, Markdown, diff và khoảng sáu mươi ngôn ngữ khác. `ui.languageFor(name)` tìm ngôn ngữ từ tên file (null nếu không có).
+
+- Các dòng được tách token từng dòng một, từ state mà dòng đó bắt đầu: trong comment khối, trong chuỗi nhiều dòng. State được lưu theo từng dòng.
+- Sau một lần sửa, chỉ các dòng từ chỗ sửa trở đi được tách token lại, cho tới khi gặp dòng bắt đầu ở đúng state như trước. Và chỉ tới hết các dòng đang hiện.
+- Dòng dài hơn 20 000 byte thì chỉ 20 000 byte đầu được tô màu, phần còn lại để nguyên, giống VS Code.
+- Màu của dòng dài được giữ cho tới khi chữ thay đổi. Dòng dài được layout dần theo ngân sách của mỗi frame, giống [text area](text-area.md).
 
 <a id="find-and-replace"></a>
 
-## Tìm và thay thế
+## Tìm và thay
 
-Thanh tìm kiếm tìm thấy truy vấn khớp với một dòng tại một thời điểm, dưới dạng văn bản thuần túy (có hoặc không có chữ hoa, toàn bộ từ) hoặc dưới dạng biểu thức chính quy, chỉ được tìm thấy lại khi truy vấn, các tùy chọn của truy vấn hoặc văn bản thay đổi. Thay thế thay thế kết quả phù hợp hiện tại hoặc tất cả chúng; bằng biểu thức chính quy, `$1` đến `$9` sẽ thay thế các nhóm của nó.
+- Thanh tìm kiếm tìm các kết quả khớp từng dòng một. Nó khớp dạng chữ thường (có hoặc không phân biệt hoa thường, nguyên từ) hoặc dạng biểu thức chính quy.
+- Kết quả chỉ được tìm lại khi query, tùy chọn của nó hoặc chữ thay đổi.
+- Replace thay kết quả hiện tại hoặc tất cả. Với biểu thức chính quy, `$1` tới `$9` chèn các nhóm của nó vào chuỗi thay.
 
-Một ứng dụng có thanh tìm kiếm có giao diện riêng đặt `own_find_bar`: trình chỉnh sửa không vẽ gì và thanh của ứng dụng chỉnh sửa `find.query` và `find.replacement`, gọi `find.step` và `find.replaceOne` / `replaceAll`, cung cấp bàn phím cho các trường của nó khi `focus_next` hỏi (`.query`, `.replacement`), giữ lại id của chúng trong `query_id` và `replacement_id` và đóng bằng `closeBars()`; `ui.findBarEscaped(c, id)` cho biết một trường đã lấy Escape.
+App muốn thanh tìm kiếm có giao diện riêng thì đặt `own_find_bar`. Khi đó editor không vẽ thanh nào, và thanh của app:
 
-Các biểu thức chính quy được đối sánh bằng một máy quay lui nhỏ (`src/ui/editor/regex.zig`): hằng và ký tự thoát (`\d \w \s \b` và các phủ định của chúng, `\t \n`), `.`, các lớp (`[a-z]`, `[^…]`), neo (`^ $`), các nhóm (bắt và `(?:…)`), luân phiên và bộ định lượng `* + ? {n} {n,} {n,m}`, tham lam hay lười biếng. Một loạt các bước sẽ ngăn không cho mô hình bệnh lý treo trình soạn thảo: vượt qua nó, một dòng sẽ không khớp.
+- sửa `find.query` và `find.replacement`;
+- gọi `find.step` và `find.replaceOne` / `replaceAll`;
+- trao bàn phím cho các field của mình khi `focus_next` yêu cầu (`.query`, `.replacement`);
+- lưu id của chúng vào `query_id` và `replacement_id`;
+- đóng bằng `closeBars()`. `ui.findBarEscaped(c, id)` cho biết một field đã nhận Escape.
+
+Biểu thức chính quy được khớp bằng một máy backtracking nhỏ (`src/ui/editor/regex.zig`). Nó hiểu:
+
+- ký tự thường và escape: `\d \w \s \b` cùng dạng phủ định của chúng, `\t \n`;
+- `.`, lớp ký tự (`[a-z]`, `[^…]`) và neo (`^ $`);
+- nhóm, có bắt (capturing) và `(?:…)`, và phép hoặc;
+- các lượng từ `* + ? {n} {n,} {n,m}`, tham lam hoặc lười.
+
+Một ngân sách số bước giữ cho mẫu bệnh hoạn không làm treo editor: vượt ngân sách thì dòng đó coi như không khớp.
 
 <a id="the-diff-viewer"></a>
 
-## Trình xem khác biệt
+## Diff viewer
 
 <!-- demo: diff height=355 -->
 
-![Bản diff với dòng bị xóa màu đỏ và dòng thêm mới màu xanh.](../../images/ui/diff.png)
+![Một diff với các dòng bị xóa màu đỏ và các dòng được thêm màu xanh lá.](../../images/ui/diff.png)
 
-*Bản diff với dòng bị xóa màu đỏ và dòng thêm mới màu xanh.*
+*Một diff với các dòng bị xóa màu đỏ và các dòng được thêm màu xanh lá.*
 
 ```zig
 var d = try ui.DiffView.init(gpa, before, after, "main.zig");
 defer d.deinit();
 
-// In the view:
+// Trong view:
 const st = d.stats();
 ui.text(c, c.print("+{d}  −{d}", .{ st.added, st.deleted }), .{ .size = 13 });
 if (ui.segmented(c, &.{ "Unified", "Split" }, &s.split)) d.setMode(if (s.split == 1) .split else .unified);
 ui.diffView(c, &d, .{});
 ```
 
-`ui.DiffView` so sánh từng dòng văn bản và giữ nguyên các hàng mà nó hiển thị. `init(gpa, old, new, name)` sao chép cả hai văn bản và đánh dấu chúng là ngôn ngữ của `name`; `set(old, new)` so sánh các văn bản mới (ví dụ về trình soạn thảo làm như vậy khi `area.doc.version` của trình soạn thảo thay đổi).
+`ui.DiffView` so sánh hai văn bản theo từng dòng và giữ các hàng nó hiển thị.
 
-- `setMode(mode)`: `ui.DiffMode.unified` (các dòng đã xóa chồng lên các dòng đã thêm) hoặc `.split` (các dòng cạnh nhau, các dòng được căn chỉnh).
-- `context`: các dòng không thay đổi được hiển thị xung quanh mỗi thay đổi (3). Các lần chạy dài hơn giữa các thay đổi sẽ thu gọn thành một hàng mà một cú nhấp chuột sẽ mở rộng; `expandAll()` và `collapseAll()` thực hiện điều đó trong mỗi lần chạy.
-- `stats()`: các dòng `added` và `deleted`.
+- `init(gpa, old, new, name)` copy cả hai văn bản và tô màu theo ngôn ngữ của `name`.
+- `set(old, new)` so sánh hai văn bản mới. Ví dụ editor gọi nó khi `area.doc.version` của editor thay đổi.
+- `setMode(mode)`: `ui.DiffMode.unified` (dòng bị xóa nằm trên dòng được thêm) hoặc `.split` (đặt cạnh nhau, các dòng thẳng hàng).
+- `context`: số dòng không đổi hiện quanh mỗi thay đổi (3). Đoạn dài hơn giữa các thay đổi được thu lại thành một hàng, bấm vào thì mở ra. `expandAll()` và `collapseAll()` làm vậy với mọi đoạn.
+- `stats()`: số dòng `added` và `deleted`.
+- `scroll_to`, một hàng, đưa hàng đó lên trên cùng ở frame kế tiếp.
 
-Mỗi bên có số dòng và màu cú pháp, đồng thời các từ thay đổi trong một dòng đã thay đổi sẽ được đánh dấu, trừ khi hai dòng đó ít giống nhau hơn `ui.DiffViewOptions.min_same` (0,3 byte của chúng giống nhau). Các tùy chọn cũng có `width`, `height`, `size` (13), `colors` (mã thông báo', a `ui.SyntaxColors`), `digits` (của cột số) và `family`, `features` và `weight_value` như trình chỉnh sửa có chúng. `scroll_to`, một hàng, hiển thị hàng đó ở đầu trong khung tiếp theo.
+Mỗi bên có số dòng và màu cú pháp riêng. Trong một dòng bị đổi, các từ thay đổi được đánh dấu, trừ khi hai dòng giống nhau ít hơn `min_same`.
 
-Một số khác biệt trong một cuộn (mỗi tệp dưới tiêu đề, các hàng của ứng dụng nằm giữa chúng) được tạo từ các hàng: sau `dv.build()`, `ui.diffRow(c, &dv, i, opts)` tạo hàng `i` của `dv.rows`, `ui.diffRowHeight(c, opts)` cao, trong danh sách của ứng dụng. Các dòng dài quấn ở đó thành các phần của hàng: `ui.diffWrapColumns(c, &dv, opts, width, split)` là số lượng ký tự mà một bên có chỗ cho, `ui.diffRowParts(&dv, i, cols)` có bao nhiêu phần mà hàng `i` lấy và `ui.diffRowPart(c, &dv, i, opts, part, cols)` tạo thành một (số dòng và ký hiệu ở đầu tiên).
+`ui.DiffViewOptions`:
+
+| Trường | Mặc định | |
+|---|---|---|
+| `min_same` | 0.3 | phần byte giống nhau tối thiểu của hai dòng để đánh dấu các từ |
+| `width`, `height` | `.fill` | |
+| `size` | 13 | cỡ chữ |
+| `colors` | `null` | màu các token, một `ui.SyntaxColors`; null là màu mặc định sáng hoặc tối |
+| `digits` | 0 | số chữ số của cột số dòng; 0 là vừa đủ cho số dòng của văn bản |
+| `family`, `features`, `weight_value` | | như ở editor |
+
+**Nhiều diff trong một vùng scroll**, mỗi file dưới một header và xen giữa là các hàng riêng của app, được dựng từ các hàng. Sau `dv.build()`:
+
+- `ui.diffRow(c, &dv, i, opts)` dựng hàng `i` của `dv.rows`, cao `ui.diffRowHeight(c, opts)`, trong một list của app.
+- Ở đó dòng dài xuống dòng thành các mảnh hàng. `ui.diffWrapColumns(c, &dv, opts, width, split)` là số ký tự vừa một bên.
+- `ui.diffRowParts(&dv, i, cols)` là số mảnh mà hàng `i` chiếm.
+- `ui.diffRowPart(c, &dv, i, opts, part, cols)` dựng một mảnh. Số dòng và dấu +/− nằm ở mảnh đầu.
 
 <a id="comparing-texts-yourself"></a>
 
 ## Tự so sánh văn bản
 
-`ui.diff` là sự so sánh dưới góc nhìn của người xem, như mygo's `internal/diff`: Thuật toán O(ND) của Myers trong không gian tuyến tính, với giới hạn chi phí của xdiff, giới hạn thời gian trên các văn bản lớn không liên quan ở mức giá chênh lệch có thể không phải là tối thiểu.
+`ui.diff` là phần so sánh bên dưới viewer, như `internal/diff` của mygo. Đó là thuật toán O(ND) của Myers trong không gian tuyến tính, kèm giới hạn chi phí của xdiff. Giới hạn này chặn thời gian chạy với các văn bản lớn không liên quan nhau, đổi lại diff có thể không tối thiểu.
 
 ```zig
 const old_lines = try ui.diff.splitLines(gpa, before);
@@ -158,18 +231,18 @@ defer gpa.free(new_lines);
 const hunks = try ui.diff.lines(gpa, old_lines, new_lines);
 defer gpa.free(hunks);
 for (hunks) |h| {
-    // Old lines h.a0..h.a1 replaced by new lines h.b0..h.b1.
+    // Các dòng cũ h.a0..h.a1 được thay bằng các dòng mới h.b0..h.b1.
 }
 ```
 
-- `diff.lines(gpa, a, b)` so sánh chuỗi các dòng, `diff.ints(gpa, a, b)` số nguyên; cả hai đều trả về `diff.Hunk`s (`a0`, `a1`, `b0`, `b1`; `a0 == a1` là phần chèn, `b0 == b1` là xóa).
-- `diff.words(gpa, a, b)` so sánh hai dòng từng từ: phạm vi byte của mỗi dòng đã thay đổi, nối qua các khoảng trắng giữa chúng và `same`, có bao nhiêu dòng trong số chúng giữ nguyên, từ 0 đến 1. Giải phóng nó bằng `deinit(gpa)`.
+- `diff.lines(gpa, a, b)` so sánh dãy dòng, còn `diff.ints(gpa, a, b)` so sánh dãy số nguyên. Cả hai trả về các `diff.Hunk`: `a0`, `a1`, `b0`, `b1`. `a0 == a1` là chèn, `b0 == b1` là xóa.
+- `diff.words(gpa, a, b)` so sánh hai dòng theo từng từ. Nó trả về các khoảng byte bị đổi trên mỗi dòng, nối liền qua dấu cách ở giữa, và `same`: mức độ giống nhau, từ 0 tới 1. Giải phóng bằng `deinit(gpa)`.
 
 <a id="testing"></a>
 
-## Kiểm tra
+## Test
 
-Trình chỉnh sửa hoạt động trong Trình kiểm tra như trong một cửa sổ, với bảng nhớ tạm riêng của Trình kiểm tra:
+Editor chạy trong `ui.Tester` giống như trong cửa sổ, với clipboard riêng của `ui.Tester`:
 
 ```zig
 var s: Editor = .{ .code = .init(gpa, "fn main() {}\n", "main.zig") };
@@ -183,4 +256,4 @@ _ = t.shortcut(if (mac) .{ .key = 'f', .cmd = true } else .{ .key = 'f', .ctrl =
 try std.testing.expect(s.code.find.open);
 ```
 
-Xem `src/ui/tests_editor.zig`, `src/ui/tests_diff.zig` và [Thử nghiệm](testing.md).
+Xem `src/ui/tests_editor.zig`, `src/ui/tests_diff.zig` và [Test](testing.md).

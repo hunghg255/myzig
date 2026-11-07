@@ -1,68 +1,109 @@
 <a id="rendering"></a>
 
-# Kết xuất
+# Render
 
-Một khung giao diện native trải qua bốn bước, giống nhau trong một cửa sổ và trong [Tester](testing.md) (`src/ui/frame.zig`):
+Một frame native UI đi qua bốn bước, giống nhau trong cửa sổ và trong [`ui.Tester`](testing.md) (`src/ui/frame.zig`):
 
-1. **Build.** View chạy và mở các hộp vào cây ngữ cảnh. Khi một tương tác thay đổi trạng thái (`c.changed`), view sẽ được tạo lại trước khi bất kỳ nội dung nào được vẽ, tối đa ba lần nữa, do đó màn hình không bao giờ bị trễ trạng thái.
-2. **Bố cục.** Flexbox đo và sắp xếp cây (`layout.zig`); từ phải sang trái thì nó sẽ được [phản chiếu](right-to-left.md).
-3. **Sơn.** Cây trở thành các phiên bản theo thứ tự sơn (`paint.zig`): hình tứ giác là các hình chữ nhật bo tròn có đường viền, hình tượng và biểu tượng từ atlas hình tượng, bóng Gaussian và hình ảnh từ atlas hình ảnh, mỗi hình được cắt bớt thành một hình chữ nhật có các góc có thể được làm tròn. Các hộp trong clip của họ đã bị loại bỏ. Biến đổi, chuyển màu, làm mờ và hiệu ứng sẽ thêm các hàng dữ liệu sau các phiên bản (`gpu.Frame`).
-4. **Draw.** Trình kết xuất sẽ vẽ các phiên bản: trên GPU trong một lệnh gọi vẽ tạm thời (chỉ phân chia khi hiệu ứng phông nền hoặc lớp mờ phải đọc nội dung bên dưới nó) hoặc trên CPU.
+1. **Build.** View chạy và mở các box vào cây của context. Khi một tương tác làm state đổi (`c.changed`), view được build lại trước khi vẽ bất cứ gì, tối đa thêm ba lần. Nhờ vậy màn hình không bao giờ chậm hơn state.
+2. **Layout.** Flexbox đo và sắp xếp cây (`layout.zig`). Với giao diện phải sang trái, cây sau đó được [lật ngược](right-to-left.md).
+3. **Paint.** Cây trở thành các instance theo thứ tự vẽ (`paint.zig`):
+   - quad: hình chữ nhật bo góc có viền;
+   - glyph và icon từ glyph atlas;
+   - bóng Gaussian;
+   - hình ảnh từ image atlas.
+
+   Mỗi instance bị cắt (clip) theo một hình chữ nhật, có thể bo góc. Box nằm ngoài vùng clip bị loại bỏ. Transform, gradient, blur và hiệu ứng thêm các hàng dữ liệu sau các instance (`gpu.Frame`).
+4. **Vẽ.** Một renderer vẽ các instance: trên CPU, hoặc trên GPU bằng một lệnh vẽ instanced duy nhất. Lệnh này chỉ bị tách ra ở chỗ một hiệu ứng nền hoặc một layer bị blur cần đọc thứ nằm bên dưới.
 
 <a id="the-renderers"></a>
 
-## Trình kết xuất
+## Các renderer
 
-Mọi bộ kết xuất đều vẽ các phiên bản giống nhau (`src/ui/gpu.zig`) với cùng một shader, được viết một lần cho Metal và dịch từng dòng cho mỗi dòng:
+Mọi renderer vẽ cùng các instance (`src/ui/gpu.zig`) bằng cùng một shader, viết một lần cho Metal rồi dịch từng dòng:
 
-| Ở đâu | Trình kết xuất | đổ bóng | Được hiển thị bởi |
+| Ở đâu | Renderer | Shader | Hiển thị qua |
 |---|---|---|---|
-| macOS | Metal (`metal.zig`), một vòng gồm ba bộ đệm phiên bản | `shader.metal`, được biên dịch khi ứng dụng khởi động | a `CAMetalLayer`, được tăng tốc theo liên kết hiển thị |
-| Windows | Direct3D 11 (`d3d11.zig`), trên thiết bị phần cứng | `d3d11.hlsl`, được biên soạn trước thành `d3d11.cso` (`zig run src/ui/d3d11_gen.zig`) | chuỗi hoán đổi mô hình lật DXGI |
-| Linux | OpenGL 3.3 lõi hoặc OpenGL ES 3.0 (`gl.zig`), được tải trong thời gian chạy | `gl.glsl` | một GtkGLArea, theo tốc độ của đồng hồ frame |
-| Trình duyệt | WebGL 2 (`webgl.zig`, bối cảnh được nắm giữ bởi `web/host_gl.js`) | `gl.glsl` trong GLSL ES 3.0 | khung vẽ của cửa sổ, trong khung hoạt hình |
-| Mọi nơi | bộ kết xuất CPU (`raster.zig`) | Zig của chính nó, số học tương tự | cairo trên Linux, GDI trên Windows, canvas 2D trong trình duyệt |
+| macOS | Metal (`metal.zig`), một vòng ba instance buffer | `shader.metal`, biên dịch khi app khởi động | một `CAMetalLayer`, theo nhịp display link |
+| Windows | Direct3D 11 (`d3d11.zig`), trên thiết bị phần cứng | `d3d11.hlsl`, biên dịch trước thành `d3d11.cso` (`zig run src/ui/d3d11_gen.zig`) | một swap chain DXGI kiểu flip model |
+| Linux | OpenGL 3.3 core hoặc OpenGL ES 3.0 (`gl.zig`), nạp lúc chạy | `gl.glsl` | một GtkGLArea, theo nhịp frame clock |
+| Trình duyệt | WebGL 2 (`webgl.zig`, context do `web/host_gl.js` giữ) | `gl.glsl` bằng GLSL ES 3.0 | canvas của cửa sổ, trong các animation frame |
+| Mọi nơi | renderer CPU (`raster.zig`) | Zig của riêng nó, cùng phép tính | cairo trên Linux, GDI trên Windows, canvas 2D trong trình duyệt |
 
-Trình đổ bóng tính toán các hình chữ nhật tròn, đường viền và bóng từ khoảng cách đến các cạnh của chúng, để chúng luôn sắc nét ở mọi kích thước và tỷ lệ. Bóng là Gaussian, sau shader của GPUI. Văn bản xuất phát từ atlas hình tượng, phát triển khi cần hình tượng và chỉ tải lên khi nó thay đổi: hình tượng được CoreText raster hóa trên macOS và bởi trình đọc TrueType của chính myzig (`src/ui/tt/`) ở nơi khác. Biểu tượng là Ký hiệu SF trên macOS và biểu tượng đường được vẽ bởi myzig (`icons.zig`) ở nơi khác. Hình ảnh được giải mã một lần và được đóng gói vào atlas BGRA (`images.zig`).
+- **Hình.** Shader tính hình chữ nhật bo góc, viền và bóng từ khoảng cách tới mép của chúng. Nhờ vậy chúng luôn sắc nét ở mọi kích thước và tỉ lệ. Bóng là Gaussian, theo shader của GPUI.
+- **Chữ** lấy từ một glyph atlas. Atlas lớn dần khi cần thêm glyph và chỉ upload khi có thay đổi. Trên macOS, CoreText raster hóa các glyph; ở nơi khác là trình đọc TrueType của chính myzig (`src/ui/tt/`).
+- **Icon** là SF Symbols trên macOS, và icon nét do myzig tự vẽ (`icons.zig`) ở nơi khác.
+- **Hình ảnh** được giải mã một lần rồi xếp vào một atlas BGRA (`images.zig`).
 
 <a id="the-cpu-twin"></a>
 
-## CPU đôi
+## Bản sinh đôi CPU
 
-Trình kết xuất CPU vẽ chính các pixel mà bộ kết xuất GPU vẽ: BGRA, các giá trị được nhân trước, mã hóa sRGB được pha trộn khi GPU trộn chúng. Mỗi bộ kết xuất GPU đều được kiểm tra dựa trên nó, ngoài màn hình, ở một hoặc hai cấp độ làm tròn của pha trộn:
+Renderer CPU vẽ ra đúng những pixel mà các renderer GPU vẽ: BGRA, premultiplied, giá trị mã hóa sRGB được blend như GPU blend. Mỗi renderer GPU được test đối chiếu với nó, offscreen, sai khác tối đa một hai mức do làm tròn khi blend:
 
-- `src/ui/tests_raster.zig`: bộ kết xuất CPU dựa trên Metal, khung văn bản, biểu tượng, đường viền, các góc và kẹp được bo tròn, bóng và hình ảnh.
-- `src/ui/d3d11_test.zig`: Direct3D 11 thành kết cấu đọc lại (bỏ qua mà không có Direct3D trên GPU).
-- `src/ui/gl_test.zig`: OpenGL 3.3 và OpenGL ES 3.0 thông qua EGL không có bề mặt (bỏ qua không có EGL); `gl_gtk_test.zig` đường dẫn GtkGLArea.
-- `src/ui/gpu_fx_test.zig`: những gì vẽ trên đường dẫn chung và giữa các phần của frame (các biến đổi ngẫu nhiên thuộc mọi loại, độ dốc, hiệu ứng phông nền đơn giản và có shader, các lớp mờ), trên mọi bộ kết xuất GPU mà nó tìm thấy. Các plugin kiểm tra tác dụng của chính chúng với nó (`ui.gpu_testing`).
-- `src/ui/gpu_corners_test.zig`: các góc liên tục (nền, đường viền, bóng được cắt thành chín miếng, hình ảnh, độ dốc, clip) trên mọi bộ kết xuất GPU.
-- Trình duyệt: `src/web/test_browser.js` so sánh pixel của WebGL 2 với bộ kết xuất CPU trong headless Crom.
+- `src/ui/tests_raster.zig`: renderer CPU đối chiếu với Metal, trên một frame gồm chữ, icon, viền, góc bo và clip, bóng và một hình ảnh.
+- `src/ui/d3d11_test.zig`: Direct3D 11 vẽ vào một texture rồi đọc lại (bỏ qua nếu không có Direct3D trên GPU).
+- `src/ui/gl_test.zig`: OpenGL 3.3 và OpenGL ES 3.0 qua EGL không cần surface (bỏ qua nếu không có EGL); `gl_gtk_test.zig` cho đường GtkGLArea.
+- `src/ui/gpu_fx_test.zig`: những gì vẽ theo đường tổng quát và giữa các phần của frame (transform ngẫu nhiên mọi loại, gradient, hiệu ứng nền thuần và có shader, layer bị blur), trên mọi renderer GPU nó tìm thấy. Plugin dùng nó để test hiệu ứng của mình (`ui.gpu_testing`).
+- `src/ui/gpu_corners_test.zig`: góc liên tục (tô, viền, bóng cắt thành nine-patch, hình ảnh, gradient, clip) trên mọi renderer GPU.
+- Trình duyệt: `src/web/test_browser.js` so pixel của WebGL 2 với của renderer CPU trong một Chromium headless.
 
-Vì các pixel giống nhau nên một cửa sổ không thể vẽ trên GPU sẽ hiển thị các frame giống nhau được vẽ trên CPU và ảnh chụp nhanh của bài kiểm tra được vẽ trên CPU là những gì GPU hiển thị.
+Vì pixel giống nhau, một cửa sổ không vẽ được trên GPU vẫn hiện đúng các frame ấy, vẽ trên CPU. Và snapshot vẽ trên CPU của một test chính là thứ GPU hiện ra.
 
-Trình kết xuất CPU vẽ một khung theo dải gồm 64 hàng, trên một số lõi khi khung lớn (các luồng bắt đầu một lần, chờ giữa các khung); mỗi pixel là những gì bản vẽ mà nó mang lại, vì vậy các dải sẽ vẽ các pixel giống nhau theo bất kỳ thứ tự nào. Rõ ràng bỏ qua những gì nền mờ được vẽ đầu tiên bao gồm. Trong một phiên bản, những gì giống nhau dọc theo một hàng hoặc một cột sẽ được tìm thấy một lần, phần tô đậm được sao chép và các đoạn văn bản trống sẽ bị bỏ qua (`raster_lanes.zig` thực hiện tám pixel cùng một lúc). Mỗi đường dẫn nhanh này mang lại giá trị rất cao mà đường dẫn chung mang lại và `hillclimb --hash` kiểm tra xem bộ kết xuất nhanh hơn có giữ nguyên các pixel của mọi frame hay không.
+**Renderer CPU nhanh nhờ đâu.**
 
-Hiệu ứng phông nền ([kính mờ](transforms.md), [shaders](shaders.md)) và các lớp mờ vẽ giữa các phần của khung: bộ kết xuất đọc những gì nó đã vẽ xung quanh hình dạng đó, làm mờ nó (giảm trung bình cho các vết mờ lớn, sau đó là một Gaussian dọc theo hàng và cột, làm tròn thành 8 bit ở mỗi bước khi họa tiết giữ chúng; `backdrop.zig`) và vẽ hộp từ đó. GPU thực hiện điều đó thông qua các kết cấu (`metal_fx.zig`, `d3d11_fx.zig`, `gl_fx.zig`), bộ kết xuất CPU với các bước tương tự (`raster_fx.zig`) và shader của hiệu ứng chạy dưới dạng HLSL, GLSL hoặc Metal trên GPU và dưới dạng CPU song sinh (`Shader.cpu`) trên CPU.
+- Nó vẽ một frame theo từng dải 64 hàng. Frame lớn dùng nhiều nhân, trên các thread khởi tạo một lần và chờ giữa các frame.
+- Mỗi pixel giống hệt như khi vẽ riêng nó, nên các dải vẽ ra cùng pixel theo bất kỳ thứ tự nào.
+- Bước xóa nền bỏ qua phần đã bị một nền đục vẽ trước che kín.
+- Trong một instance, phần giống nhau theo hàng hoặc theo cột chỉ được tính một lần. Phần tô đặc được sao chép, và texel trống bị bỏ qua. `raster_lanes.zig` xử lý tám pixel một lúc.
+- Mỗi đường tắt này cho đúng giá trị mà đường tổng quát cho. `hillclimb --hash` kiểm tra rằng một renderer nhanh hơn vẫn giữ nguyên pixel của mọi frame.
+
+**Hiệu ứng.** Hiệu ứng nền ([kính mờ](transforms.md), [shader](shaders.md)) và layer bị blur được vẽ giữa các phần của frame:
+
+1. Renderer đọc những gì nó đã vẽ tới lúc đó quanh hình.
+2. Nó blur phần đó (`backdrop.zig`): lấy trung bình thu nhỏ với blur lớn, rồi Gaussian theo hàng và theo cột. Mỗi bước làm tròn về 8 bit, như texture lưu chúng.
+3. Nó vẽ box từ kết quả đó.
+
+GPU làm việc này qua nhiều lượt trên texture (`metal_fx.zig`, `d3d11_fx.zig`, `gl_fx.zig`). Renderer CPU làm theo đúng các bước ấy (`raster_fx.zig`). Shader của một hiệu ứng chạy dưới dạng HLSL, GLSL hoặc Metal trên GPU, và dưới dạng bản sinh đôi CPU (`Shader.cpu`) trên CPU.
 
 <a id="choosing-the-renderer"></a>
 
-## Chọn bộ kết xuất
+## Chọn renderer
 
-- **macOS** hòa với Metal. `zig build -Dportable=true` thay vào đó xây dựng bộ kết xuất văn bản và CPU của Linux và Windows để kiểm tra đường dẫn đó trên máy Mac.
-- **Windows** bắt đầu tạo thiết bị Direct3D 11 trên phần cứng, trên một luồng riêng, từ khung đầu tiên mà cửa sổ hiển thị: khung đó và các khung cho đến khi có thiết bị được vẽ bằng CPU, nên driver khởi động chậm không giữ cửa sổ lại. Không có (không có thiết bị phần cứng hoặc không có chuỗi trao đổi) hoặc khi thiết bị của nó bị mất, cửa sổ sẽ vẽ CPU và GDI sao chép khung vào đó; nhật ký cho biết lý do tại sao (`myzig: no Direct3D (...)`).
-- **Linux** vẽ bằng OpenGL trong GtkGLArea (GTK 3.16 trở lên) khi có GPU. Trên trình điều khiển DRM chỉ hiển thị (máy ảo và máy chủ: `simpledrm`, `bochs`, `vboxvideo`, `hyperv_drm` và tương tự), nó sẽ sử dụng CPU, vì llvmpipe của Mesa sẽ chậm hơn bộ kết xuất CPU của myzig và cairo hiển thị khung. `MYZIG_GPU=0` giữ các khung trên CPU, `MYZIG_GPU=1` vẽ bằng OpenGL ngay cả khi không.
-- **Trình duyệt** vẽ bằng WebGL 2 hoặc trên CPU vào khung vẽ 2D mà trình duyệt không có (`start({ webgl: false })` buộc phải làm như vậy). Bối cảnh WebGL bị mất sẽ xuất hiện lại sau khi trình duyệt khôi phục nó.
+- **macOS** vẽ bằng Metal. `zig build -Dportable=true` thay vào đó build phần chữ và renderer CPU của Linux và Windows, để test đường đó trên máy Mac.
+- **Windows** bắt đầu tạo thiết bị Direct3D 11 trên phần cứng, trong một thread, cùng lúc với frame đầu tiên cửa sổ hiện.
+  - Cho đến khi có thiết bị, các frame được vẽ trên CPU. Nhờ vậy driver khởi động chậm không bao giờ giữ chân cửa sổ.
+  - Không có thiết bị (không có thiết bị phần cứng, hoặc không có swap chain), hoặc khi mất thiết bị, cửa sổ vẽ trên CPU và GDI sao chép frame lên nó. Log cho biết lý do (`myzig: no Direct3D (...)`).
+- **Linux** vẽ bằng OpenGL trong một GtkGLArea (GTK 3.16 trở lên) khi có GPU.
+  - Với driver DRM chỉ để hiển thị, nó vẽ trên CPU và cairo hiện frame. Đây là driver của máy ảo và server: `simpledrm`, `bochs`, `vboxvideo`, `hyperv_drm` và tương tự. Ở đó llvmpipe của Mesa sẽ chậm hơn renderer CPU của myzig.
+  - `MYZIG_GPU=0` giữ frame trên CPU. `MYZIG_GPU=1` vẽ bằng OpenGL kể cả ở nơi bình thường nó không làm vậy.
+- **Trình duyệt** vẽ bằng WebGL 2, hoặc trên CPU vào một canvas 2D khi trình duyệt không có WebGL 2 (`start({ webgl: false })` ép dùng cách này). Context WebGL bị mất sẽ vẽ lại khi trình duyệt khôi phục nó.
 
 <a id="when-frames-are-drawn"></a>
 
-## Khi khung được vẽ
+## Khi nào frame được vẽ
 
-Không có polling nào. Một khung được tạo và vẽ dựa trên đầu vào, khi thay đổi kích thước, khi ứng dụng yêu cầu một khung từ bên ngoài view và trong khi hoạt ảnh chạy (`c.animating`): khi màn hình được làm mới trên macOS (liên kết hiển thị), đồng hồ khung trên Linux (gọi lại tích tắc), bộ hẹn giờ 60 Hz trên Windows và `requestAnimationFrame` trong trình duyệt. Cửa sổ nhàn rỗi không thu được gì và ứng dụng nhàn rỗi không sử dụng CPU. Trong khi một cửa sổ bị khuất tầm nhìn (trên macOS bị ẩn, thu nhỏ, trên một Không gian khác hoặc bị che bởi các cửa sổ khác, bởi `occlusionState` của nó; trong trình duyệt, một tab ở chế độ nền), không có khung nào được vẽ cho cửa sổ đó cả, cho đến khi một số khung hiển thị lại (xem [Khuất mắt](performance.md#out-of-sight)).
+Không có gì chạy polling. Một frame được build và vẽ:
 
-Khi một khung thay đổi nội dung bên dưới con trỏ tĩnh, một khung khác sẽ theo sau, do đó, di chuột sẽ theo dõi nội dung đã di chuyển.
+- khi có input;
+- khi đổi kích thước;
+- khi app xin một frame từ ngoài view;
+- trong lúc một animation đang chạy (`c.animating`).
+
+Animation frame đến theo tần số làm tươi của màn hình trên macOS (display link), từ frame clock trên Linux (một tick callback), từ một timer 60 Hz trên Windows, và từ `requestAnimationFrame` trong trình duyệt.
+
+- Cửa sổ rảnh không vẽ gì, và app rảnh không dùng CPU.
+- Cửa sổ khuất khỏi tầm nhìn không nhận frame nào, cho đến khi một phần của nó hiện lại (xem [Khi khuất tầm nhìn](performance.md#out-of-sight)). Trên macOS, đó là khi bị ẩn, thu nhỏ, ở Space khác hoặc bị cửa sổ khác che kín, theo `occlusionState` của nó. Trong trình duyệt, đó là tab nằm ở nền.
+- Khi một frame làm đổi thứ nằm dưới con trỏ đang đứng yên, một frame nữa theo sau. Nhờ vậy hover đi theo nội dung đã di chuyển.
 
 <a id="frame-costs"></a>
 
-## Chi phí khung
+## Chi phí của frame
 
-Mỗi khung ghi lại chi phí của nó bằng `c.stats` (`ui.FrameStats`): thời gian xây dựng, bố cục và vẽ tính bằng mili giây, số lần view được tạo (`passes`), các hộp (`nodes`) và `instances` của bộ kết xuất. [inspector](inspector.md) hiển thị chúng trong 60 frame cuối cùng và [hillclimb](performance.md) đo chúng headless.
+Mỗi frame ghi chi phí của nó vào `c.stats` (`ui.FrameStats`):
+
+- thời gian build, layout và paint, tính bằng mili giây;
+- số lần view được build (`passes`);
+- số box (`nodes`);
+- số `instances` của renderer.
+
+[Inspector](inspector.md) hiện chúng cho 60 frame gần nhất, và [hillclimb](performance.md) đo chúng ở chế độ headless.

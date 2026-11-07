@@ -1,12 +1,15 @@
 # Rich text editor
 
-`ui.richTextEditor` edits text with formats, as Notes and Google Docs do:
-paragraphs with styles (headings, quotations, code, bulleted, numbered and
-task lists nested by levels) of text with marks (bold, italics, underline,
-strikethrough, code, links, colors and highlights). It has undo, the
-clipboard (its own rich copy, plain text and Markdown), input methods,
-Markdown shortcuts as you type, and builds only the blocks in view.
+`ui.richTextEditor` edits text with formats, as Notes and Google Docs do.
 `ui.richTextToolbar` is a toolbar of its formats.
+
+- Paragraph styles: headings, quotations, code, and bulleted, numbered and
+  task lists nested by levels.
+- Marks on text: bold, italics, underline, strikethrough, code, links,
+  colors and highlights.
+- Undo, input methods and Markdown shortcuts as you type.
+- The clipboard: its own rich copy, plain text and Markdown.
+- It builds only the blocks in view.
 
 <!-- demo: rich-text height=456 -->
 
@@ -30,16 +33,21 @@ var note: Note = .{ .rt = .initMarkdown(gpa, "# Groceries\n\n- [ ] Milk") };
 defer note.rt.deinit();
 ```
 
-`zig build run-notes` is a notes app built on it (`examples/notes`):
+`zig build run-notes` is a notes app built on it (`examples/notes`). It has
 notes in a sidebar, links asked for in a bar, and the clipboard as plain
 text or Markdown.
 
 ## The state
 
-A `ui.RichText` holds the document (`doc`), the selection (`sel`), the
-history, the composition of an input method, and what the view keeps
-between frames. Make it with `ui.RichText.init(gpa)` (empty) or
-`initMarkdown(gpa, md)`, free it with `deinit()`.
+A `ui.RichText` holds:
+
+- the document (`doc`) and the selection (`sel`);
+- the history;
+- the composition of an input method;
+- what the view keeps between frames.
+
+Make it with `ui.RichText.init(gpa)` (empty) or `initMarkdown(gpa, md)`.
+Free it with `deinit()`.
 
 | method | does |
 |---|---|
@@ -62,38 +70,35 @@ between frames. Make it with `ui.RichText.init(gpa)` (empty) or
 | `formatting()` | the selection's `ui.richtext.Formatting`, for a toolbar |
 | `pasteMarkdown(md)` | pastes Markdown at the caret |
 
-`version` is bumped by every edit, undo and redo.
-
-Positions are `ui.richtext.Pos`: a `block` index and a byte offset `off`
-in it. A selection (`ui.richtext.Sel`) has an `anchor` and a `caret`.
+- `version` is bumped by every edit, undo and redo.
+- Positions are `ui.richtext.Pos`: a `block` index and a byte offset `off`
+  in it.
+- A selection (`ui.richtext.Sel`) has an `anchor` and a `caret`.
 
 ## The document
 
 `ui.richtext.Doc` is a list of blocks. A block (`ui.richtext.Block`) has a
-style and text in runs of marks:
+style, and text in runs of marks.
 
-- `ui.richtext.BlockStyle`: `kind`, `indent` (a list item's level, or how
-  far a paragraph is indented, up to 6) and `checked` (a task's).
-- `ui.richtext.Kind`: `.paragraph`, `.heading1`, `.heading2`,
-  `.heading3`, `.quote`, `.code`, `.bullet`, `.numbered`, `.task`.
-- `ui.richtext.Marks`: `bold`, `italic`, `underline`, `strike`, `code`,
-  `link` (the index of its URL in the document, plus one; 0 none), `color`
-  and `highlight` (optional colors).
+| type | holds |
+|---|---|
+| `ui.richtext.BlockStyle` | `kind`; `indent`, a list item's level or a paragraph's indentation, up to 6; `checked`, a task's |
+| `ui.richtext.Kind` | `.paragraph`, `.heading1`, `.heading2`, `.heading3`, `.quote`, `.code`, `.bullet`, `.numbered`, `.task` |
+| `ui.richtext.Marks` | `bold`, `italic`, `underline`, `strike`, `code`; `link`, the index of its URL in the document plus one (0 none); `color` and `highlight`, optional colors |
 
-`doc.count()`, `doc.block(i)` (its `str()` and `marksAt(i)`),
-`doc.append(style, text, marks)`, `doc.url(link)` and `doc.text(gpa)` read
-and build it. `ui.richtext.parseMarkdown(gpa, md)` and
-`ui.richtext.writeMarkdown(gpa, doc)` convert it.
-
-Text typed right after a link or code doesn't extend them, as in
-NSTextView; a format toggled with nothing selected applies to what is
-typed next, until the caret moves.
+- Read and build it with `doc.count()`, `doc.block(i)` (its `str()` and
+  `marksAt(i)`), `doc.append(style, text, marks)`, `doc.url(link)` and
+  `doc.text(gpa)`.
+- Convert it with `ui.richtext.parseMarkdown(gpa, md)` and
+  `ui.richtext.writeMarkdown(gpa, doc)`.
+- Text typed right after a link or code doesn't extend them, as in
+  NSTextView.
+- A format toggled with nothing selected applies to what is typed next,
+  until the caret moves.
 
 ## Options
 
-`ui.RichTextOptions`:
-
-| field | default | meaning |
+| `ui.RichTextOptions` | Default | |
 |---|---|---|
 | `width`, `height` | `.fill` | |
 | `size` | 15 | the body's size; headings and code scale from it |
@@ -104,19 +109,22 @@ typed next, until the caret moves.
 | `markdown_shortcuts` | true | typing `# `, `- `, `**bold**` formats |
 | `clipboard` | `.plain` | what copy writes besides the rich copy, and what text from elsewhere pastes as: `.plain` or `.markdown` |
 
-It returns a `ui.RichTextResult`: `changed`, `focused`, `first_block` and
-`last_block` (the blocks built), `link_clicked` (a link clicked, with
-Command or Control while editable: its URL) and `link_requested`
-(Command-K or Control-K asked for a link: show a field, then call
-`setLink`).
+It returns a `ui.RichTextResult`:
+
+- `changed` and `focused`;
+- `first_block` and `last_block`, the blocks built;
+- `link_clicked`: the URL of a link clicked, with Command or Control while
+  editable;
+- `link_requested`: Command-K or Control-K asked for a link. Show a field,
+  then call `setLink`.
 
 `ui.richTextEditorBase(c, rt, box, options)` is the editor in a box you
 style yourself (a `ui.Style`).
 
 ## Links
 
-The editor doesn't ask for URLs itself: it tells the app. A bar under the
-toolbar, as in the notes example:
+The editor doesn't ask for URLs itself: it tells the app. Here is a bar
+under the toolbar, as in the notes example:
 
 ```zig
 const tb = ui.richTextToolbar(c, &n.rt, .{});
@@ -138,13 +146,18 @@ if (r.link_clicked) |url| _ = myzig.shell.openUrl(url);
 
 ## The toolbar
 
-`ui.richTextToolbar(c, rt, options)` has buttons for bold, italics,
-underline, strikethrough and code, headings, lists, quotations and code
-blocks, a link and, with `history`, undo and redo. Its buttons show the
-selection's formats (from `formatting()`), and a click formats the editor
-and gives it back the keyboard. `ui.RichTextToolbarOptions` has
-`border` and `history` (both true). It returns `changed` (a format was
-applied) and `link_requested`.
+`ui.richTextToolbar(c, rt, options)` has buttons for:
+
+- bold, italics, underline, strikethrough and code;
+- headings, lists, quotations and code blocks;
+- a link;
+- undo and redo, with `history`.
+
+Its buttons show the selection's formats, from `formatting()`. A click
+formats the editor and gives it back the keyboard.
+
+- `ui.RichTextToolbarOptions`: `border` and `history`, both true.
+- It returns `changed` (a format was applied) and `link_requested`.
 
 ## Keys
 
@@ -161,26 +174,36 @@ Command on macOS, Control elsewhere, as word processors bind them:
 | Mod+Option+C | code block |
 | Mod+], Mod+[, Tab, Shift+Tab | indent and outdent (Tab in lists) |
 
-and the text's movement, deletion, selection, clipboard and undo, as a
-[text area](text-area.md#editing)'s. A click on a task's box checks it.
+Moving, deleting, selecting, the clipboard and undo work as in a
+[text area](text-area.md#editing). A click on a task's box checks it.
 
 ## Markdown shortcuts
 
-What is typed formats itself. At a paragraph's start, `# ` to `### ` make
-headings, `- `, `* ` and `+ ` bulleted lists, `1. ` numbered ones, `[ ] `
-and `[x] ` tasks, and `> ` a quotation; ```` ``` ```` then Enter a code
-block. Around words, `**bold**`, `*italic*`, `_italic_`, `` `code` `` and
-`~~struck~~` format what they hold as the closing mark is typed; an
-underscore inside a word, as in `snake_case`, stays one. Each shortcut is a
-step of undo of its own, which takes it back to what was typed.
+What is typed formats itself.
+
+| typed | makes |
+|---|---|
+| `# ` to `### ` | headings |
+| `- `, `* `, `+ ` | a bulleted list |
+| `1. ` | a numbered list |
+| `[ ] `, `[x] ` | tasks |
+| `> ` | a quotation |
+| ```` ``` ```` then Enter | a code block |
+| `**bold**`, `*italic*`, `_italic_`, `` `code` ``, `~~struck~~` | the format, as the closing mark is typed |
+
+- The block shortcuts work at a paragraph's start.
+- An underscore inside a word, as in `snake_case`, stays an underscore.
+- Each shortcut is a step of undo of its own. Undo takes it back to what
+  was typed.
 
 ## The clipboard
 
-Copying puts plain text (or, with `clipboard = .markdown`, Markdown) on the
-system clipboard, and keeps the selection itself with its styles and
-marks: pasting that text again, within the app, pastes the copy whole, so
-text moves with its formats. Text from elsewhere pastes plain, or read as
-Markdown.
+- Copying puts plain text on the system clipboard, or Markdown with
+  `clipboard = .markdown`.
+- It also keeps the selection itself, with its styles and marks.
+- Pasting that text again within the app pastes the copy whole, so text
+  moves with its formats.
+- Text from elsewhere pastes plain, or read as Markdown.
 
 ## Testing
 

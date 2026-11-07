@@ -1,22 +1,26 @@
 <a id="structures"></a>
 
-# Cấu trúc
+# Structures
 
-Các widget tạo hình dạng cho cửa sổ: tab, tiết lộ và xếp chồng, view phân chia, thanh bên, thanh công cụ và đường dẫn. Danh sách, cây, đường viền, bảng và view lưới đều có trên [Danh sách](lists.md); bố cục lưới nằm trên [Grid](grid.md).
+Các widget tạo nên bố cục của cửa sổ: tab, disclosure và accordion, split view, sidebar, toolbar và breadcrumb. List, tree, outline, table và grid view nằm ở trang [Lists](lists.md). Grid layout nằm ở trang [Grid](grid.md).
 
-Các widget này tuân theo một mẫu: lựa chọn mà chúng đưa ra là của ứng dụng (chỉ mục, id, `bool`, kích thước), được chuyển qua con trỏ và những widget chứa nội dung khác sẽ mở một hộp mà view lấp đầy, sau đó đóng lại bằng `end`. `end` (hoặc chính cuộc gọi) của họ trả về những gì đã xảy ra trong khung này: `changed` khi một cú nhấp chuột hoặc một phím thay đổi giá trị của ứng dụng và `focused` khi họ tập trung vào bàn phím.
+Chúng theo cùng một khuôn:
 
-<a id="tabs"></a>
+- Lựa chọn của chúng thuộc về app, truyền bằng con trỏ: một chỉ số, một id, một `bool`, một kích thước.
+- Widget nào chứa nội dung khác thì mở một box để view lấp vào, rồi đóng bằng `end`.
+- `end` của chúng, hoặc chính lời gọi, trả về những gì xảy ra trong frame này: `changed` khi một cú bấm hay phím đã đổi giá trị của app, `focused` khi chúng đang giữ focus bàn phím.
 
 <!-- demo: structures height=397 -->
 
-![Tab, mục thu gọn và accordion với phần Shipping đang mở.](../../images/ui/structures.png)
+![Tab, một disclosure và một accordion với mục Shipping đang mở.](../../images/ui/structures.png)
 
-*Tab, mục thu gọn và accordion với phần Shipping đang mở.*
+*Tab, một disclosure và một accordion với mục Shipping đang mở.*
+
+<a id="tabs"></a>
 
 ## Tab
 
-`ui.tabs(c, labels, &selected, opts)` là một hàng nhãn trong đó một nhãn được chọn, trên trang mà view xây dựng cho nó:
+`ui.tabs(c, labels, &selected, opts)` là một hàng label, trong đó một label được chọn, nằm trên trang mà view dựng cho nó:
 
 ```zig
 if (ui.tabs(c, &.{ "General", "Appearance", "Advanced" }, &s.tab, .{}).changed) s.save();
@@ -27,22 +31,25 @@ switch (s.tab) {
 }
 ```
 
-Một cú nhấp chuột sẽ chọn một tab, cũng như các mũi tên, Home và End trong khi thanh tab có tiêu điểm bàn phím mà một cú nhấp chuột mang lại cho nó. `ui.TabsOptions` có `width` (`.fill`) và `size` (13, cỡ chữ).
+| `ui.TabsOptions` | Mặc định | |
+|---|---|---|
+| `width` | `.fill` | |
+| `size` | 13 | cỡ chữ |
 
-Thanh tab chiếm một điểm dừng khi nhấn Tab; Shift+Tab di chuyển theo thứ tự
-ngược lại. Thanh tab rỗng không nhận tiêu điểm bàn phím và giữ nguyên giá trị
-chọn đã truyền vào. Với danh sách có tab, chỉ số chọn vượt giới hạn sẽ được
-đưa về tab cuối và trả về `changed`, kể cả khi xóa bớt tab. Phím trái/phải
-đi theo hướng bố cục (đảo chiều trong RTL); các tổ hợp có phím bổ trợ vẫn
-được dành cho phím tắt của ứng dụng.
+- Bấm chọn một tab và trao focus bàn phím cho thanh tab. Sau đó các phím mũi tên, Home và End cũng chọn được.
+- Thanh tab chiếm một điểm dừng Tab. Shift+Tab rời nó theo chiều ngược.
+- Thanh rỗng không nhận focus bàn phím và giữ nguyên lựa chọn.
+- Khi có tab, lựa chọn vượt phạm vi bị kẹp về tab cuối và báo `changed`. Kể cả khi tab bị xóa bớt.
+- Left và Right theo hướng layout, đảo ngược khi RTL.
+- Phím có modifier để dành cho shortcut của app.
 
-Đối với các trang là nơi người dùng truy cập, có lịch sử và chuyển tiếp qua lại, hãy sử dụng [bộ định tuyến](navigation.md#the-router).
+Với những trang là nơi người dùng đi tới, có lịch sử và nút back/forward, hãy dùng [router](navigation.md#the-router).
 
 <a id="disclosures"></a>
 
-## Tiết lộ
+## Disclosure
 
-`ui.collapsible(c, title, &open)` là một tiêu đề, `title` bên cạnh một mũi tên, mở và đóng những gì view xây dựng bên dưới nó. Nội dung phát triển thành tầm nhìn và thu nhỏ lại; xây dựng nó trong khi `shown` của công bố là true (mở hoặc vẫn đóng), sau đó `end`:
+`ui.collapsible(c, title, &open)` là một header, `title` cạnh một mũi tên. Nó mở và đóng những gì view dựng bên dưới. Nội dung lớn dần khi hiện ra và thu lại khi ẩn. Dựng nội dung khi `shown` của disclosure là true (đang mở, hoặc còn đang đóng), rồi `end`:
 
 ```zig
 const d = ui.collapsible(c, "More options", &s.advanced);
@@ -53,13 +60,19 @@ if (d.shown) {
 }
 ```
 
-Một cú nhấp chuột vào tiêu đề sẽ mở và đóng nó, cũng như Enter và Space trong khi nó có tiêu điểm bàn phím. `ui.Disclosure` cũng có `changed` (tiêu đề được nhấn trong khung này), `progress` (từ 0 đóng thành 1 mở, giảm dần về trạng thái, đối với nội dung tự động), `focused` và `id`.
+Bấm vào header thì mở và đóng. Enter và Space cũng vậy khi header có focus bàn phím. `ui.Disclosure` còn có:
+
+| Trường | |
+|---|---|
+| `changed` | header được bấm trong frame này |
+| `progress` | từ 0 khi đóng tới 1 khi mở, chuyển dần theo state, cho nội dung tự animate |
+| `focused`, `id` | |
 
 <a id="accordions"></a>
 
-## Đàn accordion
+## Accordion
 
-`ui.accordion(c, opts)` là một hộp có viền bao gồm các phần chồng lên nhau, mỗi phần đều có phần tiết lộ riêng. Thêm mỗi cái bằng `Accordion.item(title, &open)`, trả về `Disclosure` của nó:
+`ui.accordion(c, opts)` là một box có viền gồm các mục xếp chồng. Mỗi mục là một disclosure mở độc lập. Thêm từng mục bằng `Accordion.item(title, &open)`, hàm này trả về `Disclosure` của mục:
 
 ```zig
 var acc = ui.accordion(c, .{});
@@ -73,19 +86,21 @@ for (titles, bodies, 0..) |title, body, i| {
 }
 ```
 
-Up và Down di chuyển tiêu điểm giữa các tiêu đề, Home và End đến đầu tiên và cuối cùng. `ui.AccordionOptions` có `width` (`.fill`). Đối với accordion có một phần được mở mỗi lần, hãy đóng các phần khác khi một phần mở ra: `if (it.changed and s.sections[i]) for (&s.sections, 0..) |*o, j| if (j != i) o.* = false;`.
+- Up và Down chuyển focus giữa các header. Home và End chuyển tới header đầu và cuối.
+- `ui.AccordionOptions` có `width` (`.fill`).
+- Để mỗi lần chỉ mở một mục, hãy đóng các mục khác khi một mục mở: `if (it.changed and s.sections[i]) for (&s.sections, 0..) |*o, j| if (j != i) o.* = false;`.
 
 <a id="split-views"></a>
 
-## Chia lượt xem
+## Split view
 
 <!-- demo: tree height=415 -->
 
-![Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.](../../images/ui/tree.png)
+![Sidebar, cây file và outline ảo xếp trong các pane chia đôi.](../../images/ui/tree.png)
 
-*Thanh bên, cây tệp và outline ảo được bố trí trong các khung chia đôi.*
+*Sidebar, cây file và outline ảo xếp trong các pane chia đôi.*
 
-`ui.split(c, &size, opts)` đặt hai ngăn cạnh nhau (hoặc một ngăn ở trên ngăn kia, `vertical`), với một dải phân cách giữa chúng mà con trỏ kéo để định cỡ lại chúng (hiển thị con trỏ đổi kích thước) hoặc các mũi tên di chuyển khi nó có tiêu điểm. Nó mở khung đầu tiên; `second()` đóng nó lại, thêm dải phân cách và mở dải phân cách thứ hai; `end()` đóng phần tách và trả về kết quả:
+`ui.split(c, &size, opts)` đặt hai pane cạnh nhau, hoặc chồng lên nhau với `vertical`. Một thanh chia ở giữa dùng để đổi kích thước:
 
 ```zig
 var sp = ui.split(c, &s.sidebar_width, .{ .min = 120 });
@@ -95,26 +110,29 @@ s.editor(c);
 if (sp.end().changed) s.saveLayout();
 ```
 
-`size.*` là chiều rộng của khung đầu tiên (chiều cao của nó khi `vertical`) tính theo điểm, hoặc với `percent`, tỷ lệ của khung này trong phòng từ 0 đến 100, vì vậy cả hai khung đều phát triển cùng với cửa sổ. Dải phân cách giữ `min` điểm từ một trong hai cạnh; khi cửa sổ còn ít chỗ trống hơn, khung đầu tiên sẽ nhường chỗ và lấy lại kích thước của nó khi có lại chỗ trống: `size.*` giữ nguyên những gì người dùng đã chọn.
+- `ui.split` mở pane thứ nhất. `second()` đóng nó, thêm thanh chia và mở pane thứ hai. `end()` đóng split và trả về kết quả.
+- Con trỏ kéo thanh chia, kèm con trỏ chuột đổi kích thước. Khi thanh chia có focus, các phím mũi tên di chuyển nó.
+- `size.*` là chiều rộng pane thứ nhất tính bằng điểm, hoặc chiều cao khi `vertical`.
+- Với `percent`, `size.*` là phần chỗ của nó, từ 0 tới 100. Khi đó cả hai pane lớn theo cửa sổ.
+- Thanh chia luôn cách mỗi mép ít nhất `min` điểm.
+- Khi cửa sổ không đủ chỗ, pane thứ nhất nhường. Nó lấy lại kích thước khi có chỗ: `size.*` giữ nguyên lựa chọn của người dùng.
 
-`ui.SplitOptions`:
-
-| trường | Mặc định | |
+| `ui.SplitOptions` | Mặc định | |
 |---|---|---|
-| `vertical` | false | một khung ở trên khung kia |
-| `percent` | false | `size.*` là phần trăm của phòng |
-| `min` | 40 | ngăn ít nhất mà một trong hai ngăn giữ được |
-| `width`, `height` | `.fill` | hộp chia |
-| `step` | 10 | mũi tên di chuyển dải phân cách bao xa |
-| `grip` | 8 | độ rộng của dải phân cách đối với con trỏ, trên đường thẳng của nó |
+| `vertical` | false | pane này nằm trên pane kia |
+| `percent` | false | `size.*` là phần trăm của chỗ |
+| `min` | 40 | chỗ tối thiểu mỗi pane giữ |
+| `width`, `height` | `.fill` | box của split |
+| `step` | 10 | khoảng mà phím mũi tên dịch thanh chia |
+| `grip` | 8 | độ rộng vùng bắt con trỏ của thanh chia, theo chiều vuông góc |
 
-Kết quả có `changed` (một cú kéo hoặc một phím đã di chuyển dải phân cách), `dragging` và `focused`. Tổ chia tách: một khung có thể chứa một phần chia khác.
+Kết quả có `changed` (một cú kéo hay phím đã dịch thanh chia), `dragging` và `focused`. Split lồng được: một pane có thể chứa split khác.
 
 <a id="sidebars"></a>
 
-## Thanh bên
+## Sidebar
 
-`ui.sidebar(c, &selected, opts)` là danh sách nguồn dưới dạng Finder và Mail: các mục có biểu tượng trong các phần, chọn id của một mục vào `selected.*` (a `[]const u8` ứng dụng sẽ giữ lại). Thêm các phần và mục, sau đó `end`:
+`ui.sidebar(c, &selected, opts)` là một source list như của Finder và Mail. Nó hiện các mục có icon chia theo nhóm, và ghi id của mục được chọn vào `selected.*`, một `[]const u8` do app giữ. Thêm nhóm và mục, rồi `end`:
 
 ```zig
 var sb = ui.sidebar(c, &s.mailbox, .{ .width = .{ .px = 170 } });
@@ -130,21 +148,30 @@ if (sb.section("Tags", null)) {
 if (sb.end().changed) s.showMailbox();
 ```
 
-`section(title, open)` thêm tiêu đề phần, nhấp chuột vào đó sẽ ẩn và hiển thị các mục của nó; nó trả về liệu chúng có hiển thị hay không (luôn luôn, đối với null `open`). `item(id, label, opts)` thêm một mục chọn `id`, ứng dụng sẽ giữ lại mục này trong khi hiển thị; `ui.SidebarItemOptions` có `icon` (Biểu tượng SF hoặc biểu tượng dòng của myzig tắt macOS) và `badge` (số đếm hoặc một từ ở cuối hàng). Nó cuộn khi các mục của nó không vừa.
+- `section(title, open)` thêm tiêu đề nhóm. Bấm vào nó để ẩn hiện các mục. Nó trả về các mục có đang hiện không: luôn hiện khi `open` là null.
+- `item(id, label, opts)` thêm một mục chọn `id`. App giữ id đó trong khi mục còn hiện.
+- `ui.SidebarItemOptions` có `icon` (một SF Symbol, hoặc icon nét của myzig ngoài macOS) và `badge` (một con số hay một từ ở cuối hàng).
+- Sidebar scroll khi không đủ chỗ cho các mục.
+- Bấm để chọn một mục. Khi sidebar có focus, Up, Down, Home, End và các chữ cái đầu của label sẽ chọn giữa các mục.
+- Mục được chọn hiện bằng màu accent khi sidebar có focus, màu xám khi không, như của AppKit.
 
-Một cú nhấp chuột sẽ chọn một mục; trong khi thanh bên có tiêu điểm, Lên, Xuống, Trang chủ, Kết thúc và các chữ cái đầu tiên trong nhãn của mục sẽ chọn trong số đó. Mục được chọn hiển thị bằng màu nhấn trong khi thanh bên có tiêu điểm, nếu không thì có màu xám, giống như AppKit. `ui.SidebarOptions` có `width` (`.{ .px = 220 }`), `height` (`.fill`) và `background` (null: chủ đề).
+| `ui.SidebarOptions` | Mặc định |
+|---|---|
+| `width` | `.{ .px = 220 }` |
+| `height` | `.fill` |
+| `background` | null: màu của theme |
 
 <a id="toolbars"></a>
 
-## Thanh công cụ
+## Toolbar
 
 <!-- demo: toolbar height=210 -->
 
-![Các thao tác trên thanh công cụ và đường dẫn breadcrumb.](../../images/ui/toolbar.png)
+![Các action của toolbar và một breadcrumb.](../../images/ui/toolbar.png)
 
-*Các thao tác trên thanh công cụ và đường dẫn breadcrumb.*
+*Các action của toolbar và một breadcrumb.*
 
-`ui.toolbar(c, opts)` là một hàng điều khiển dọc theo đầu cửa sổ hoặc khung, không có mặt nào cho đến khi được di chuột. Thanh công cụ là một điểm dừng của bàn phím: thao tác bấm vào một điều khiển sẽ đặt tiêu điểm cho nó, Trái và Phải rồi di chuyển giữa các điều khiển của nó, Home và End đến đầu tiên và cuối cùng, đồng thời Enter hoặc Space nhấn vào điều khiển được hiển thị (như [nhóm tiêu điểm](navigation.md#focus-groups) thực hiện đối với các điều khiển khác):
+`ui.toolbar(c, opts)` là một hàng control dọc cạnh trên của cửa sổ hoặc pane. Các control không có nền riêng cho tới khi được hover.
 
 ```zig
 var tb = ui.toolbar(c, .{});
@@ -158,21 +185,35 @@ if (tb.button("Share", .{ .icon = "arrow.up" })) s.share();
 tb.end();
 ```
 
-- `button(title, opts)` là true khi được nhấp vào (hoặc nhấn bằng phím); các tùy chọn của nó là `icon`, trước tiêu đề hoặc một mình khi tiêu đề trống và `disabled`.
-- `toggle(title, &value)` vẫn ngừng hoạt động trong khi `value.*` là true và là true trong khung mà nó chuyển đổi; `toggleIcon(title, icon, &value)` hiển thị một biểu tượng có tiêu đề dành cho công nghệ hỗ trợ.
-- `spacer()` đẩy các nút điều khiển sau nó đến hết; `separator()` vẽ một đường thẳng đứng mỏng giữa các nhóm.
+- `button(title, opts)` là true khi được bấm, bằng chuột hoặc phím. Tùy chọn của nó là `icon` và `disabled`. Icon đứng trước title, hoặc đứng một mình khi title rỗng.
+- `toggle(title, &value)` giữ trạng thái nhấn khi `value.*` là true. Nó là true trong frame được bật tắt.
+- `toggleIcon(title, icon, &value)` hiện một icon, title dành cho công nghệ hỗ trợ.
+- `spacer()` đẩy các control phía sau về cuối.
+- `separator()` vẽ một đường dọc mảnh giữa các nhóm.
 
-`ui.ToolbarOptions` có `width` (`.fill`), `height` (40) và `border` (một dòng bên dưới nó, true). Trong cửa sổ có thanh tiêu đề bị ẩn, hãy đặt `c.title_bar_height` chiều cao của thanh công cụ để việc kéo căn phòng trống của nó sẽ di chuyển cửa sổ (xem [Cửa sổ](../windows.md)).
+Toolbar là một điểm dừng bàn phím, như [focus group](navigation.md#focus-groups) với các control khác:
+
+- Bấm vào một control sẽ trao focus cho nó.
+- Sau đó Left và Right di chuyển giữa các control. Home và End tới control đầu và cuối.
+- Enter hoặc Space bấm control đang hiện focus.
+
+| `ui.ToolbarOptions` | Mặc định | |
+|---|---|---|
+| `width` | `.fill` | |
+| `height` | 40 | |
+| `border` | true | một đường kẻ bên dưới |
+
+Trong cửa sổ ẩn title bar, hãy đặt `c.title_bar_height` bằng chiều cao toolbar. Khi đó kéo chỗ trống của toolbar sẽ di chuyển cửa sổ (xem [Windows](../windows.md)).
 
 <a id="breadcrumbs"></a>
 
-## Vụn bánh mì
+## Breadcrumb
 
-`ui.breadcrumbs(c, items, &chosen, opts)` hiển thị đường dẫn của các địa điểm, mỗi địa điểm là một liên kết nhưng cuối cùng là vị trí của người dùng. Nó trả về true trong khung mà một liên kết đã được chọn, chỉ mục của nó trong `chosen.*`:
+`ui.breadcrumbs(c, items, &chosen, opts)` hiện một đường dẫn gồm các địa điểm. Mỗi địa điểm là một link, trừ cái cuối, là nơi người dùng đang đứng. Nó trả về true trong frame một link được chọn, kèm chỉ số trong `chosen.*`:
 
 ```zig
 const path = [_][]const u8{ "Macintosh HD", "Users", "ada", "Documents" };
 if (ui.breadcrumbs(c, &path, &s.crumb, .{})) s.goUp(s.crumb);
 ```
 
-`ui.BreadcrumbsOptions` có `size` (13) và `max_item_width` (200): các mục dài hơn sẽ bị cắt bớt.
+`ui.BreadcrumbsOptions` có `size` (13) và `max_item_width` (200). Mục dài hơn bị cắt bớt.

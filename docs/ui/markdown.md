@@ -1,11 +1,12 @@
 # Markdown
 
 `ui.markdown` shows Markdown in the window's fonts and colors: CommonMark
-with GitHub's tables, task lists, strikethrough and autolinks. Its text is
-selectable, links report their clicks, and code blocks are highlighted, in
-the monospaced font, with a Copy button. It is made for replies streaming
-in from a model: a token appended at the end of a long reply costs what it
-costs at its start.
+with GitHub's tables, task lists, strikethrough and autolinks.
+
+- Its text is selectable, and links report their clicks.
+- Code blocks are highlighted, in the monospaced font, with a Copy button.
+- It is made for replies streaming in from a model. A token appended at
+  the end of a long reply costs what it costs at its start.
 
 <!-- demo: markdown height=520 -->
 
@@ -29,7 +30,7 @@ fn bubble(m: *Message, c: *ui.Context) void {
 ```
 
 `zig build run-markdown-chat` shows replies streaming in
-(`examples/markdown-chat`); headless:
+(`examples/markdown-chat`). Headless:
 `zig-out/bin/markdown-chat --myzig-snapshot=chat.png --myzig-script="wait:3"`.
 
 ## Keeping a state
@@ -38,25 +39,32 @@ Give `ui.markdown` a `ui.Markdown` kept in the app's state, one per
 document shown, and the source on every frame. Make it with
 `ui.Markdown.init(gpa)` and free it with `deinit()`.
 
-The state keeps the parsed document and what was made of its blocks: their
-boxes and ids, their inlines, rendered text and highlighted lines. When
-the source grows, only the text appended is parsed: the outermost block
-still open before it, or just the new lines when none is. The blocks
-before it are left as they were, so the view keeps what it made of them.
-Any other change of the source (an edit in the middle) parses it all
-again, as does a change of `extensions`.
+The state keeps the parsed document and what was made of its blocks:
+their boxes and ids, their inlines, rendered text and highlighted lines.
+
+- When the source grows, only the text appended is parsed. So is the
+  outermost block still open before it, if there is one.
+- The blocks before it are left as they were, so the view keeps what it
+  made of them.
+- Any other change of the source, such as an edit in the middle, parses
+  it all again. So does a change of `extensions`.
 
 Without a state (`.state = null`), the source is parsed whole on every
-frame: fine for a short, fixed text.
+frame. That is fine for a short, fixed text.
 
 ## Streaming
 
 While `streaming` is set, the end of the text shows what its half-written
-syntax will most likely become: `**bol` shows bold, an open code fence
-shows as code, a link being written shows as its text, and lines that could
-still turn into something else (a `---` that may be a heading's underline)
-wait for what follows them. Set `streaming` to false once the reply is
-done, and the end is read exactly.
+syntax will most likely become:
+
+- `**bol` shows bold.
+- An open code fence shows as code.
+- A link being written shows as its text.
+- Lines that could still turn into something else wait for what follows
+  them, as a `---` that may be a heading's underline.
+
+Set `streaming` to false once the reply is done, and the end is read
+exactly.
 
 ## Options
 
@@ -75,10 +83,11 @@ done, and the end is read exactly.
 | `highlighter` | null | a `ui.MarkdownHighlighter` of your own |
 | `max_column_width` | 320 | a table's columns are at most this wide; their text wraps |
 | `key` | null | the key of the view's box |
+| `images` | null | a `ui.MarkdownImageReader` that shows images ([below](#what-is-shown)) |
 
 `ui.MarkdownExtensions` has `tables`, `task_lists`, `strikethrough` and
-`autolinks`, all on by default (`.gfm`); `.commonmark` turns them all off,
-for strict CommonMark.
+`autolinks`, all on by default (`.gfm`). `.commonmark` turns them all
+off, for strict CommonMark.
 
 ## What it returns
 
@@ -89,29 +98,33 @@ A `ui.MarkdownResult`:
 - `copied`: the code a code block's Copy button put on the clipboard (for a
   toast saying so).
 
-Links are not opened for you: open them with `myzig.shell.openUrl`, or
+Links are not opened for you. Open them with `myzig.shell.openUrl`, or
 route them within the app.
 
 ## Code blocks
 
-The built-in highlighter colors keywords, strings, numbers, comments,
-functions and types of Zig, JavaScript and TypeScript, Go, Python, JSON
-and shell, C-like languages (C, C++, C#, Java, Kotlin, Swift, Rust),
-scripting languages (Ruby, PHP, Lua, Perl, R, Julia, PowerShell, SQL),
-functional ones (Haskell, Elm, OCaml, F#, Elixir, Erlang, Lisps, Nix),
-config formats (YAML, TOML, HCL, CMake, INI) and more, chosen by the
-fence's info string (` ```zig `). Markup (HTML, XML, SVG, Vue, Svelte)
-colors tags, attributes and their values, with the code of `<script>` and
-the rules of `<style>` in JavaScript and CSS; Markdown its headings,
-quotes, lists, emphasis, code and links; a diff its added, removed and
-hunk lines. It works a line
-at a time from the state the line before left (inside a block comment, a
-multiline string), so a block streaming in highlights only its new lines.
+The fence's info string (` ```zig `) chooses the language. The built-in
+highlighter colors keywords, strings, numbers, comments, functions and
+types of:
 
-A highlighter of your own is a function that appends `ui.Span`s (offsets
-into the line, with a `color`, `weight`, `italic`, ...) for a line in a
-language, and returns false for a language it doesn't know, which falls
-back to plain text:
+- Zig, JavaScript and TypeScript, Go, Python, JSON and shell;
+- C-like languages: C, C++, C#, Java, Kotlin, Swift, Rust;
+- scripting languages: Ruby, PHP, Lua, Perl, R, Julia, PowerShell, SQL;
+- functional ones: Haskell, Elm, OCaml, F#, Elixir, Erlang, Lisps, Nix;
+- config formats: YAML, TOML, HCL, CMake, INI;
+- and more.
+
+Some languages color other things:
+
+- Markup (HTML, XML, SVG, Vue, Svelte): tags, attributes and their
+  values. The code of `<script>` is colored as JavaScript, the rules of
+  `<style>` as CSS.
+- Markdown: its headings, quotes, lists, emphasis, code and links.
+- A diff: its added, removed and hunk lines.
+
+It works a line at a time, from the state the line before left (inside a
+block comment, a multiline string). So a block streaming in highlights
+only its new lines.
 
 ```zig
 fn highlight(_: ?*anyopaque, gpa: std.mem.Allocator, language: []const u8, code: []const u8, dark: bool, out: *std.ArrayList(ui.Span)) bool {
@@ -125,20 +138,18 @@ fn highlight(_: ?*anyopaque, gpa: std.mem.Allocator, language: []const u8, code:
 _ = ui.markdown(c, src, .{ .state = &s.md, .highlighter = .{ .func = highlight } });
 ```
 
-`Highlighter.ctx` is passed back to the function, for a highlighter with
-state of its own.
+A highlighter of your own is a function that appends `ui.Span`s for a
+line in a language. Spans are offsets into the line, with a `color`,
+`weight`, `italic`, ... It returns false for a language it doesn't know,
+which falls back to plain text. `Highlighter.ctx` is passed back to the
+function, for a highlighter with state of its own.
 
 ## What is shown
 
 - Headings (ATX and setext), paragraphs, hard and soft breaks.
 - Emphasis, strong emphasis, strikethrough, code spans.
-- Links and images by destination or reference, and autolinks (GitHub's
-  `www.` and bare URLs with `autolinks`). Images show their
-  description (their alternative text), in italics, unless the options'
-  `images` (a `ui.MarkdownImageReader`) reads them: then each shows under
-  its paragraph (a `ui.MarkdownImage`: bytes under a key, or an SVG), and
-  a paragraph of images alone leaves its descriptions out. The app
-  resolves destinations itself, local files only, say.
+- Links and images by destination or reference, and autolinks. With
+  `autolinks`, also GitHub's `www.` and bare URLs.
 - Block quotes, ordered and bullet lists, nested, tight and loose, and task
   lists with their checkboxes.
 - Fenced and indented code blocks.
@@ -146,28 +157,50 @@ state of its own.
 - Thematic breaks. HTML blocks and inline HTML are shown as their text,
   so nothing hides in them.
 
-The parser passes the examples of the CommonMark 0.31.2 specification and
-GitHub's extensions, each parsed whole, appended a byte at a time and in
-chunks (`src/ui/markdown/tests_spec_*.zig`).
+**Images** show their description (their alternative text), in italics.
+When the options' `images` (a `ui.MarkdownImageReader`) reads them:
 
-One rule is relaxed for Chinese, Japanese and Korean, which put no space
-around emphasis: next to a CJK character, full-width punctuation or a
-curly quote, `*` and `~~` open and close even where punctuation would
-stop them in CommonMark, so `**结论。**后文` is bold. `_` and a single `~`
-keep CommonMark's rule. No example of the spec has CJK text there, so
-all of them still pass.
+- each shows under its paragraph, as a `ui.MarkdownImage`: bytes under a
+  key, or an SVG;
+- a paragraph of images alone leaves its descriptions out;
+- the app resolves destinations itself, local files only, say.
+
+The parser passes the examples of the CommonMark 0.31.2 specification and
+GitHub's extensions. Each is parsed whole, appended a byte at a time and
+in chunks (`src/ui/markdown/tests_spec_*.zig`).
+
+<details>
+<summary>Emphasis in Chinese, Japanese and Korean</summary>
+
+These languages put no space around emphasis, so one rule is relaxed.
+Next to a CJK character, full-width punctuation or a curly quote, `*` and
+`~~` open and close even where punctuation would stop them in CommonMark.
+So `**结论。**后文` is bold.
+
+`_` and a single `~` keep CommonMark's rule. No example of the spec has
+CJK text there, so all of them still pass.
+
+</details>
 
 ## The document
 
 `ui.MarkdownDocument` is the parsed document, for apps that want the
-structure rather than the view: `MarkdownDocument.parse(gpa, source,
-extensions)` parses a text whole, and a document made with `init(gpa,
-extensions)` takes text with `set(source)` and `append(more)`. Blocks are a
-flat array in document order, each followed by its children: `len()`,
-`block(i)` (its `kind`, `level`, `parent`, `start` and `end` in the source,
-...), `children(i)` to iterate, `language(i)` of a code block,
-`alignments(table)`, and `inlines(i)`, parsed the first time they are
-asked for. Free it with `deinit()`.
+structure rather than the view. Free it with `deinit()`.
+
+- `MarkdownDocument.parse(gpa, source, extensions)` parses a text whole.
+- A document made with `init(gpa, extensions)` takes text with
+  `set(source)` and `append(more)`.
+
+Blocks are a flat array in document order, each followed by its children:
+
+| Method | |
+|---|---|
+| `len()` | the number of blocks |
+| `block(i)` | its `kind`, `level`, `parent`, `start` and `end` in the source, ... |
+| `children(i)` | to iterate |
+| `language(i)` | of a code block |
+| `alignments(table)` | of a table's columns |
+| `inlines(i)` | parsed the first time they are asked for |
 
 ## Testing
 

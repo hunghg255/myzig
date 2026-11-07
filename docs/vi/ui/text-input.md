@@ -2,17 +2,17 @@
 
 # Nhập văn bản
 
-`ui.textField` chỉnh sửa một dòng văn bản được lưu giữ ở trạng thái của bạn, trong `ui.TextBuffer`. Xung quanh nó là các trường được xây dựng trên đó: trường tìm kiếm, trường mã thông báo gồm các chip, hộp tổ hợp và tự động hoàn thành. Đối với một số dòng, hãy xem [vùng văn bản](text-area.md); đối với mã, [trình soạn thảo mã](code-editor.md).
-
-<a id="text-fields"></a>
+`ui.textField` sửa một dòng chữ lưu trong state của bạn, trong một `ui.TextBuffer`. Dựng trên nó có search field, token field gồm các chip, combobox và autocomplete. Nhiều dòng thì xem [text area](text-area.md); code thì xem [code editor](code-editor.md).
 
 <!-- demo: text-input height=120 -->
 
-![Ô nhập chứa Ada; view hiển thị lời chào tương ứng.](../../images/ui/text-field.png)
+![Text field chứa Ada; view hiện lời chào ngay lập tức.](../../images/ui/text-field.png)
 
-*Ô nhập chứa Ada; view hiển thị lời chào tương ứng.*
+*Text field chứa Ada; view hiện lời chào ngay lập tức.*
 
-## Trường văn bản
+<a id="text-fields"></a>
+
+## Text field
 
 ```zig
 const State = struct {
@@ -28,52 +28,57 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-Một trường lấy tiêu điểm bàn phím khi được nhấp vào (hoặc bằng Tab), hiển thị dấu mũ và vùng chọn, cuộn sang một bên để giữ dấu mũ trong tầm nhìn và giảm bớt vòng màu nhấn xung quanh trường đó khi lấy tiêu điểm. Nó chỉnh sửa thông qua cách nhập văn bản của nền tảng: gõ, dấu và phương thức nhập, tổ hợp phím của hệ thống, lựa chọn bằng bàn phím và chuột (chọn kéo, nhấp đúp vào một từ) và bảng tạm.
-
-`TextBuffer.set(text)` thay thế văn bản và đặt dấu mũ ở cuối văn bản; `TextBuffer.select(anchor, caret)` chọn byte trong khung tiếp theo, vì hộp đổi tên tệp sẽ chọn tên của nó mà không có phần mở rộng.
+- Bấm vào hoặc Tab tới thì field nhận focus bàn phím.
+- Nó hiện con trỏ soạn thảo và vùng chọn, và scroll ngang để con trỏ luôn trong tầm nhìn.
+- Khi có focus, một vòng màu accent hiện dần quanh nó.
+- Nó sửa chữ qua cơ chế nhập văn bản của nền tảng: gõ phím, dấu và bộ gõ, phím tắt của hệ thống, và clipboard.
+- Chọn bằng bàn phím và chuột: kéo để chọn, bấm đúp để chọn một từ.
+- `TextBuffer.set(text)` thay chữ và đặt con trỏ ở cuối.
+- `TextBuffer.select(anchor, caret)` chọn các byte ở frame kế tiếp, như ô đổi tên file chọn sẵn phần tên mà bỏ phần mở rộng.
 
 `ui.TextFieldOptions`:
 
-| lĩnh vực | mặc định | nó làm gì |
+| Trường | Mặc định | Tác dụng |
 |---|---|---|
-| `placeholder` | `""` | văn bản mờ hiển thị trong khi nó trống |
-| `width` | 240 điểm | một `ui.Length`; `.fill` trên cha mẹ của nó |
-| `size` | 14 | kích thước của văn bản |
-| `disabled` | false | làm mờ, chặn chỉnh sửa và bỏ ô nhập khỏi thứ tự Tab |
-| `password` | false | dấu đầu dòng thay vì văn bản và văn bản được giữ ngoài bảng nhớ tạm |
-| `suggestion` | `""` | văn bản được vẽ mờ sau những gì được gõ, như sự tự gợi ý của shell; → hoặc End ở cuối văn bản lấy nó |
-| `bare` | false | không có hộp riêng (viền, tô màu, vòng tiêu điểm), dành cho trường bên trong khung lớn hơn, với tư cách là người soạn thảo trò chuyện |
-| `caret_width` | 1.5 | độ rộng con trỏ tính bằng point, ít nhất một pixel thiết bị; 0 ẩn nó, trường vẫn sửa được (vùng văn bản cũng nhận tùy chọn này) |
-| `label` | `""` | đặt tên nó theo công nghệ hỗ trợ (một [trường của biểu mẫu](forms.md) đặt tên riêng cho nó) |
+| `placeholder` | `""` | chữ mờ hiện khi field trống |
+| `width` | 240 điểm | một `ui.Length`; `.fill` để trải hết phần tử cha |
+| `size` | 14 | cỡ chữ |
+| `disabled` | false | làm mờ field, không cho sửa và bỏ nó khỏi vòng Tab |
+| `password` | false | hiện dấu chấm thay cho chữ, và không cho chữ vào clipboard |
+| `suggestion` | `""` | chữ mờ vẽ sau phần đã gõ, như gợi ý tự động của shell; → hoặc End ở cuối chữ thì nhận gợi ý |
+| `bare` | false | không có khung riêng (viền, nền, vòng focus), cho field nằm trong một khung lớn hơn, như ô soạn tin nhắn chat |
+| `caret_width` | 1.5 | độ rộng con trỏ soạn thảo tính bằng điểm, ít nhất một pixel thiết bị; 0 thì ẩn nó, field vẫn sửa được (text area cũng nhận tùy chọn này) |
+| `label` | `""` | tên cho công nghệ hỗ trợ tiếp cận ([trường của form](forms.md) tự đặt tên) |
 
 Nó trả về một kết quả:
 
-| lĩnh vực | true khi |
+| Trường | true khi |
 |---|---|
-| `changed` | văn bản đã thay đổi trong khung này |
-| `submitted` | Trở lại đã được nhấn |
-| `focused` | nó có tiêu điểm bàn phím |
-| `accepted` | gợi ý đã được đưa vào văn bản |
-| `caret` | (a `usize`) độ lệch byte của dấu mũ sau khi chỉnh sửa khung này |
+| `changed` | chữ thay đổi trong frame này |
+| `submitted` | người dùng bấm Return |
+| `focused` | field đang có focus bàn phím |
+| `accepted` | gợi ý đã được nhận vào chữ |
+| `caret` | (một `usize`) vị trí byte của con trỏ sau các thay đổi trong frame này |
+
+Dùng [Input Group](input-group.md) để chung khung với icon, tiền tố/hậu tố và nút hành động.
 
 <a id="the-buffer"></a>
 
-## Bộ đệm
+## Buffer
 
-Dùng [Input Group](input-group.md) để ghép ô nhập với icon, tiền tố/hậu tố và nút trong cùng khung.
+`ui.TextBuffer` giữ tối đa 1024 byte UTF-8, nằm ngay trong struct, không cấp phát: cứ để nó trong state.
 
-`ui.TextBuffer` chứa tới 1024 byte UTF-8, nội tuyến, không phân bổ: giữ nó ở trạng thái của bạn.
-
-| phương pháp | nó làm gì |
+| Method | Tác dụng |
 |---|---|
-| `text()` | văn bản, một lát đệm |
-| `set(s)` | thay thế văn bản; dấu mũ đi đến cuối của nó |
-| `clear()` | làm trống nó |
-| `insert(at, s)` | chèn vào byte `at`; trả về bao nhiêu byte đã đi vào |
-| `remove(from, to)` | xóa byte `[from, to)` |
-| `replace(from, to, s)` | thay thế byte `[from, to)` bằng càng nhiều `s` càng phù hợp, không bao giờ cắt chuỗi UTF-8 |
+| `text()` | chữ, một slice của buffer |
+| `set(s)` | thay chữ; con trỏ về cuối |
+| `clear()` | xóa trắng |
+| `insert(at, s)` | chèn ở byte `at`; trả về số byte đã chèn |
+| `remove(from, to)` | xóa các byte `[from, to)` |
+| `replace(from, to, s)` | thay các byte `[from, to)` bằng phần của `s` vừa đủ chỗ, không bao giờ cắt ngang một chuỗi UTF-8 |
 
-Cài đặt `want_caret` sẽ đặt dấu mũ vào khung tiếp theo sau khi ứng dụng thay đổi văn bản. Sao chép văn bản ra (`dupe`) để giữ nó sau khi bộ đệm thay đổi.
+- Đặt `want_caret` để đặt con trỏ ở frame kế tiếp, sau khi app đã đổi chữ.
+- Copy chữ ra (`dupe`) nếu muốn giữ lại sau khi buffer thay đổi.
 
 ```zig
 if (r.submitted or ui.button(c, "Add", .{ .variant = .primary }).clicked) {
@@ -86,32 +91,42 @@ if (r.submitted or ui.button(c, "Add", .{ .variant = .primary }).clicked) {
 
 ## Chỉnh sửa
 
-Các khóa mà một trường hiểu được đến từ nền tảng: trên macOS, các liên kết khóa của AppKit thông qua hệ thống nhập văn bản (vì vậy các liên kết của chính người dùng cũng hoạt động); ở nơi khác, các khóa thông thường của Linux và Windows. Mỗi cái sẽ trở thành `ui.TextCommand` được áp dụng cho văn bản có tiêu điểm:
+Các phím field hiểu được lấy từ nền tảng:
 
-- di chuyển dấu mũ theo ký tự, từ và đến cuối dòng, đồng thời mở rộng vùng chọn theo cách tương tự với Shift (`move_word_left`, `select_line_end`, ...);
-- xóa lùi, xóa tiến, theo ký tự, từ và đến đầu dòng;
-- chọn tất cả, sao chép, cắt và dán;
-- Lên, Xuống, Lên trang, Xuống trang và phần cuối của tài liệu, trong trường một dòng sẽ đi đến phần cuối của văn bản.
+- trên macOS, phím tắt của AppKit qua hệ thống nhập văn bản, nên phím tắt người dùng tự đặt cũng chạy;
+- ở nơi khác, các phím quen thuộc của Linux và Windows.
 
-Các dòng mới được dán sẽ trở thành khoảng trắng trong trường một dòng. Trên macOS, Cắt, Sao chép, Dán và Chọn Tất cả của menu Chỉnh sửa cũng đạt đến trường được tập trung.
+Mỗi phím thành một `ui.TextCommand` áp lên chữ đang có focus:
+
+- di chuyển con trỏ theo ký tự, theo từ và tới hai đầu dòng, và mở rộng vùng chọn theo cùng cách với Shift (`move_word_left`, `select_line_end`, ...);
+- xóa lùi và xóa tới, theo ký tự và theo từ, và xóa tới đầu dòng;
+- chọn tất cả, copy, cut và paste;
+- Up, Down, Page Up, Page Down và hai đầu văn bản; trong field một dòng, chúng đưa con trỏ tới một đầu của chữ.
+
+Trong field một dòng, dấu xuống dòng khi paste thành dấu cách. Trên macOS, Cut, Copy, Paste và Select All của menu Edit cũng tới được field đang có focus.
 
 <a id="input-methods"></a>
 
-## Phương thức nhập
+## Bộ gõ
 
-Trên macOS, view native là `NSTextInputClient` (`src/ui/textinput.zig`): dấu (giữ một phím), Trình xem ký tự, đọc chính tả và các phương thức nhập của tiếng Trung, tiếng Nhật và tiếng Hàn trong mọi trường, văn bản được soạn thảo được hiển thị được gạch chân, với cửa sổ ứng viên ở dưới dấu mũ. Trên Linux, ngữ cảnh phương thức nhập của GTK cung cấp cho trường văn bản mà nó cam kết. Trên Windows, các ký tự đã nhập (và nội dung IME cam kết) sẽ xuất hiện dưới dạng ký tự. Trong trình duyệt, một vùng văn bản ẩn sẽ lấy bố cục, hiển thị được gạch chân.
+| Nền tảng | |
+|---|---|
+| macOS | view native là một `NSTextInputClient` (`src/ui/textinput.zig`) |
+| Linux | input method context của GTK đưa cho field chữ mà bộ gõ commit |
+| Windows | ký tự gõ vào, và chữ IME commit, đến dưới dạng ký tự |
+| trình duyệt | một text area ẩn nhận chữ đang soạn, hiện có gạch chân |
+
+Trên macOS, mọi field đều nhận dấu (giữ một phím), Character Viewer, đọc chính tả, và bộ gõ tiếng Trung, Nhật, Hàn. Chữ đang soạn hiện có gạch chân, với cửa sổ chọn chữ ngay dưới con trỏ.
 
 <a id="search-fields"></a>
 
-## Trường tìm kiếm
+## Search field
 
 <!-- demo: fields height=214 -->
 
-![Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.](../../images/ui/fields.png)
+![Một search field, các avatar và một token field chứa zig và ui.](../../images/ui/fields.png)
 
-*Ô tìm kiếm, avatar và ô nhập thẻ chứa zig và ui.*
-
-`ui.searchField(c, &query, options)` là một trường để tìm kiếm: kính lúp, văn bản và nút xóa nó trong khi nó giữ bất kỳ trường nào, như Escape thực hiện:
+*Một search field, các avatar và một token field chứa zig và ui.*
 
 ```zig
 const r = ui.searchField(c, &s.query, .{ .placeholder = "Search the gallery" });
@@ -119,13 +134,14 @@ if (r.changed) s.filter();
 if (r.cleared) s.showAll();
 ```
 
-`ui.SearchFieldOptions`: `placeholder` (`"Search"`), `width` (220 điểm) và `size` (14). Kết quả (`ui.SearchResult`) có `changed`, `submitted`, `cleared` (nút xóa hoặc Escape đã làm trống nó) và `focused`.
+`ui.searchField(c, &query, options)` là field để tìm kiếm: một kính lúp, chữ, và một nút xóa chữ. Nút hiện khi field có chữ; lúc đó Escape cũng xóa chữ.
+
+- `ui.SearchFieldOptions`: `placeholder` (`"Search"`), `width` (220 điểm) và `size` (14).
+- Kết quả (`ui.SearchResult`) có `changed`, `submitted`, `cleared` (nút xóa hoặc Escape đã làm trống field) và `focused`.
 
 <a id="token-fields"></a>
 
-## Trường mã thông báo
-
-`ui.tokenField(c, &tokens, suggestions, options)` chỉnh sửa một bộ mã thông báo, dưới dạng thẻ hoặc người nhận thư: các khối, mỗi khối có một nút để lấy mã thông báo ra, gói thành nhiều dòng hơn, trước trường văn bản trong đó Enter hoặc dấu phẩy sẽ thêm nội dung đã nhập và Backspace khi trống sẽ xóa dòng cuối cùng. Các đề xuất chứa nội dung đã nhập (bỏ qua chữ hoa chữ thường và chưa có mã thông báo) hiển thị bên dưới: Up và Down di chuyển giữa chúng và Enter hoặc một cú nhấp chuột sẽ thêm một mã. Nó trả về true khi mã thông báo thay đổi:
+## Token field
 
 ```zig
 const tags = [_][]const u8{ "design", "docs", "bug", "feature", "performance", "ui", "zig" };
@@ -137,19 +153,30 @@ const State = struct {
 _ = ui.tokenField(c, &s.tokens, &tags, .{ .placeholder = "Add a tag", .width = 420 });
 ```
 
-`ui.Tokens` chứa tối đa 64 mã thông báo có tổng dung lượng 2 KB, nội tuyến và văn bản đang được nhập (`query`). `get(i)`, `count`, `contains(s)`, `append(s)` (cắt bớt; false nếu trống, đã có hoặc quá lâu so với những gì còn lại) và `remove(i)` đọc và thay đổi nó từ ứng dụng. `ui.TokenFieldOptions`: `placeholder`, `width` (300 điểm) và `max_suggestions` (8).
+`ui.tokenField(c, &tokens, suggestions, options)` sửa một tập token, như tag hay người nhận email. Nó trả về true khi các token thay đổi.
+
+- Mỗi token là một chip có nút để bỏ nó đi. Các chip xuống dòng khi hết chỗ, đứng trước một text field.
+- Enter hoặc dấu phẩy thêm chữ vừa gõ. Backspace khi field trống thì bỏ token cuối.
+- Các gợi ý chứa chữ vừa gõ hiện bên dưới. Không phân biệt hoa thường, và bỏ qua token đã có.
+- Up và Down di chuyển giữa các gợi ý; Enter hoặc bấm thì thêm một gợi ý.
+
+`ui.Tokens` giữ tối đa 64 token, tổng cộng 2 KB, ngay trong struct, cùng chữ đang gõ (`query`). App đọc và sửa nó bằng:
+
+- `get(i)`, `count`, `contains(s)`;
+- `append(s)`: cắt khoảng trắng; false nếu trống, đã có, hoặc quá dài so với chỗ còn lại;
+- `remove(i)`.
+
+`ui.TokenFieldOptions`: `placeholder`, `width` (300 điểm) và `max_suggestions` (8).
 
 <a id="comboboxes"></a>
 
-## Hộp tổ hợp
+## Combobox
 
 <!-- demo: selects height=168 -->
 
-![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
+![Một select, combobox chọn font và field autocomplete chọn thành phố.](../../images/ui/selects.png)
 
-*Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.*
-
-`ui.combobox(c, &selected, options, &state, field_options)` chọn một trong `options` (chuỗi) thành `selected` (a `?usize`). Nó cho thấy sự lựa chọn; một cú nhấp chuột hoặc Xuống hiển thị tất cả các tùy chọn (nhấp chuột sẽ chọn văn bản, do đó việc nhập sẽ thay thế nó), việc nhập sẽ lọc chúng và văn bản sẽ quay lại lựa chọn khi trường mất tiêu điểm:
+*Một select, combobox chọn font và field autocomplete chọn thành phố.*
 
 ```zig
 const fonts = [_][]const u8{ "Avenir", "Futura", "Georgia", "Helvetica", "Menlo", "Palatino" };
@@ -163,13 +190,19 @@ const r = ui.combobox(c, &s.font, &fonts, &s.font_box, .{ .placeholder = "Font",
 if (r.changed) s.applyFont();
 ```
 
-`ui.ComboboxState` giữ danh sách và văn bản đã nhập; giữ nó ở trạng thái của bạn, mỗi cái một hộp tổ hợp. Kết quả có `changed` (một tùy chọn mới đã được chọn), `open` và `focused`. Trong danh sách mở, các mũi tên di chuyển, Enter chọn và Escape đóng danh sách (không phải tiêu điểm của trường).
+`ui.combobox(c, &selected, options, &state, field_options)` chọn một trong các `options` (chuỗi) vào `selected` (một `?usize`).
+
+- Nó hiện lựa chọn hiện tại.
+- Bấm hoặc Down thì hiện mọi lựa chọn. Cú bấm chọn sẵn chữ, nên gõ vào sẽ thay chữ đó.
+- Gõ để lọc các lựa chọn.
+- Khi field mất focus, chữ trở về lựa chọn hiện tại.
+- Trong danh sách đang mở, phím mũi tên di chuyển, Enter chọn và Escape đóng danh sách (field vẫn giữ focus).
+- `ui.ComboboxState` giữ danh sách và chữ đã gõ. Để mỗi combobox một cái trong state.
+- Kết quả có `changed` (vừa chọn một lựa chọn mới), `open` và `focused`.
 
 <a id="autocomplete"></a>
 
-## Tự động hoàn thành
-
-`ui.autocomplete(c, &buffer, suggestions, &state, field_options)` là một trường văn bản có văn bản là của ứng dụng (a `ui.TextBuffer`), bên dưới nó đề xuất nội dung của `suggestions` chứa nội dung đã nhập. Di chuyển Up và Down giữa chúng, Enter hoặc một cú nhấp chuột chỉ mất một lần và Enter nếu không gửi:
+## Autocomplete
 
 ```zig
 const cities = [_][]const u8{ "Amsterdam", "Berlin", "Lisbon", "London", "Madrid", "Paris" };
@@ -178,18 +211,26 @@ const r = ui.autocomplete(c, &s.city, &cities, &s.city_box, .{ .placeholder = "C
 if (r.submitted) s.search(s.city.text());
 ```
 
-`ui.AutocompleteState` giữ danh sách. Kết quả có `changed` (đã nhập hoặc đã thực hiện đề xuất), `submitted`, `open` và `focused`. `ui.ComboFieldOptions`, được chia sẻ bởi cả hai: `placeholder`, `width` (240 điểm, `ui.Length`) và `size` (14).
+`ui.autocomplete(c, &buffer, suggestions, &state, field_options)` là một text field mà chữ thuộc về app (một `ui.TextBuffer`). Bên dưới, nó gợi ý những mục trong `suggestions` có chứa chữ đã gõ.
 
-Một menu gồm các lựa chọn cố định không cần gõ là một lựa chọn; xem [menu](menus.md).
+- Up và Down di chuyển giữa các gợi ý, Enter hoặc bấm thì nhận một gợi ý, và Enter khi không chọn gợi ý nào thì submit.
+- `ui.AutocompleteState` giữ danh sách.
+- Kết quả có `changed` (đã gõ hoặc đã nhận một gợi ý), `submitted`, `open` và `focused`.
+
+`ui.ComboFieldOptions`, dùng chung cho cả hai: `placeholder`, `width` (240 điểm, một `ui.Length`) và `size` (14).
+
+Menu gồm các lựa chọn cố định, không gõ được, là select; xem [menu](menus.md).
 
 <a id="text-that-a-widget-takes-itself"></a>
 
-## Văn bản mà một widget tự lấy
+## Widget tự nhận chữ
 
-Một widget của riêng bạn giúp chỉnh sửa văn bản, đọc các thao tác của sự kiện thay vì các khóa của sự kiện: `c.input.ops` là một phần của `ui.TextOp`, mỗi phần trong số đó
+Widget tự viết mà sửa chữ thì đọc các thao tác của event chứ không đọc phím. `c.input.ops` là một slice các `ui.TextOp`, mỗi cái là một trong:
 
-- `.insert`: gõ hoặc dán văn bản;
-- `.set_marked`: thành phần của phương thức nhập, với lựa chọn bên trong nó, được hiển thị gạch chân cho đến khi nó được cam kết hoặc `.unmark`ed;
-- `.command`: a `ui.TextCommand` (`.delete_backward`, `.move_word_left`, `.select_all`, `.copy`, `.insert_newline`, `.cancel`, ...).
+- `.insert`: chữ gõ vào hoặc paste;
+- `.set_marked`: chữ bộ gõ đang soạn, kèm vùng chọn bên trong, hiện có gạch chân cho tới khi được commit hoặc `.unmark`;
+- `.command`: một `ui.TextCommand` (`.delete_backward`, `.move_word_left`, `.select_all`, `.copy`, `.insert_newline`, `.cancel`, ...).
 
-Đặt `c.focused_text` mỗi khung cho văn bản, lựa chọn của nó và vị trí dấu mũ được vẽ, để phương thức nhập có thể hỏi về chúng giữa các khung và đặt cửa sổ ứng viên của nó. [Vùng văn bản](text-area.md) và [trình soạn thảo mã](code-editor.md) được xây dựng theo cách này; kiểm tra hoạt động cấp dữ liệu bằng `Tester.textOps` và nhập bằng `Tester.typeText`.
+Mỗi frame, đặt `c.focused_text` là chữ, vùng chọn và vị trí vẽ con trỏ soạn thảo. Nhờ đó bộ gõ hỏi được về chúng giữa các frame và đặt đúng cửa sổ chọn chữ.
+
+[Text area](text-area.md) và [code editor](code-editor.md) được dựng theo cách này. Test đưa thao tác vào bằng `Tester.textOps` và gõ chữ bằng `Tester.typeText`.

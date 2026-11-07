@@ -1,12 +1,13 @@
 # mainthread
 
-Work handed to the main thread from any other. Pages and views live on the
-main thread, and so do bound methods and window events; a plugin's threads
-(an HTTP response, a WebSocket message, a file changed) give their results
-to them through this package. The fetch, websocket, watch, updater and
-terminal plugins depend on it.
+Work handed to the main thread from any other thread.
 
-The package is `plugins/mainthread` (module `mainthread`); it depends on
+Pages and views live on the main thread, and so do bound methods and
+window events. A plugin's threads give their results to them through this
+package: an HTTP response, a WebSocket message, a changed file. The fetch,
+websocket, watch, updater and terminal plugins depend on it.
+
+The package is `plugins/mainthread` (module `mainthread`). It depends on
 nothing, not even myzig.
 
 ```zig
@@ -29,12 +30,15 @@ if (!mainthread.post(job, Job.run)) {
 }
 ```
 
-- `init()` prepares the queue; calling it again does nothing.
-- `post(ctx, func)` runs `func(ctx)` on the main thread, soon. It is safe
-  from any thread; jobs run in the order they were posted. `func` is a
-  `mainthread.Func`, `*const fn (?*anyopaque) callconv(.c) void`.
-- `runUntil(&done)` runs the queue until an atomic flag is set, for tests
-  and tools that have no event loop of their own (main thread only).
+- `init()` prepares the queue. Calling it again does nothing.
+- `post(ctx, func)` runs `func(ctx)` on the main thread, soon.
+  - It is safe from any thread.
+  - Jobs run in the order they were posted.
+  - `func` is a `mainthread.Func`:
+    `*const fn (?*anyopaque) callconv(.c) void`.
+- `runUntil(&done)` runs the queue until an atomic flag is set. It is for
+  tests and tools without an event loop of their own, on the main thread
+  only.
 
 It is the main thread's own queue on each platform, so nothing polls:
 
@@ -47,8 +51,8 @@ It is the main thread's own queue on each platform, so nothing polls:
 In browsers (`wasm32-wasi`) there is no other thread, and the package does
 not compile there.
 
-Within myzig itself, work reaches the main thread through
-`myzig.App.after` (a timer) and, on macOS, `objc.dispatchMain`; see the
+Inside myzig, work reaches the main thread through `myzig.App.after` (a
+timer) and, on macOS, `objc.dispatchMain`. See the
 [architecture guide](../architecture.md) for the threading model.
 
 ```sh

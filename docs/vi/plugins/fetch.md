@@ -1,18 +1,18 @@
 # fetch
 
-Các yêu cầu HTTP và HTTPS được thực hiện bởi Zig (`std.http.Client`), đối với các trang thông qua `fetch` tiêu chuẩn và từ Zig với `fetch.perform`. Bởi vì các yêu cầu xuất phát từ Zig thay vì từ webview:
+Request HTTP và HTTPS do Zig thực hiện (`std.http.Client`). Trang web dùng một `fetch` chuẩn; Zig dùng `fetch.perform`. Request đi ra từ Zig chứ không phải từ webview, nên:
 
-- chúng không phải tuân theo CORS: mọi câu trả lời của máy chủ và mọi tiêu đề phản hồi đều có thể đọc được ngoại trừ `Set-Cookie`;
-- họ có thể đặt bất kỳ tiêu đề nào, bao gồm `Origin`, `Cookie`, `Referer` và `User-Agent`;
-- nội dung truyền đến trang khi Zig đọc nó và việc hủy bỏ sẽ hủy yêu cầu trong Zig.
+- chúng không bị CORS ràng buộc: server nào cũng trả lời, và mọi header của response đều đọc được trừ `Set-Cookie`;
+- chúng đặt được bất kỳ header nào, kể cả `Origin`, `Cookie`, `Referer` và `User-Agent`;
+- body được stream tới trang ngay khi Zig đọc, và abort sẽ hủy request ở phía Zig.
 
-Gói này là `plugins/fetch` (mô-đun `fetch`); nó phụ thuộc vào [mainthread](mainthread.md). Xem [Plugin](../plugins.md) để thêm plugin vào ứng dụng.
+Package là `plugins/fetch` (module `fetch`). Nó phụ thuộc [mainthread](mainthread.md). Xem [Plugins](../plugins.md) để thêm nó vào app.
 
 <a id="from-pages"></a>
 
-## Sử dụng từ trang web
+## Từ trang web
 
-Liên kết dịch vụ, đăng ký sự kiện và phục vụ khách hàng của nó:
+Bind service, đăng ký event của nó và phục vụ client của nó:
 
 ```zig
 const fetch = @import("fetch");
@@ -36,22 +36,23 @@ console.log(res.status, res.headers.get("content-type"));
 const reader = res.body.pipeThrough(new TextDecoderStream()).getReader(); // streams
 ```
 
-- Nó lấy các đối số của `fetch` (URL, `Request`, các tùy chọn) và trả về `Response`. Nội dung yêu cầu được đọc toàn bộ trước khi yêu cầu bắt đầu.
-- `redirect`: `"follow"` (mặc định, tối đa 20 chuyển hướng, cài đặt `redirected` và `url`), `"manual"` (chính phản hồi chuyển hướng) hoặc `"error"`.
-- Yêu cầu không thành công (không thể truy cập, TLS, quá nhiều chuyển hướng) sẽ từ chối với `TypeError` có thông báo cho biết lý do; một phản hồi của bất kỳ trạng thái nào sẽ được giải quyết.
-- Việc hủy bỏ `signal` sẽ hủy yêu cầu trước hoặc sau khi có phản hồi; `res.body.cancel()` cũng vậy.
-- Zig đọc không nhanh hơn trang: nó đợi trong khi trang có nhiều hơn `window_bytes` nội dung chưa đọc.
-- Các URL không phải là `http:` hoặc `https:` sẽ chuyển đến `fetch` của chính webview.
+- Nó nhận đối số như `fetch` (một URL, một `Request`, các tùy chọn) và trả về một `Response`.
+- Body của request được đọc hết trước khi request bắt đầu.
+- `redirect` là `"follow"`, `"manual"` hoặc `"error"`. `"follow"` là mặc định: tối đa 20 lần redirect, đặt `redirected` và `url`. `"manual"` trả về chính response redirect.
+- Request thất bại (không kết nối được, lỗi TLS, quá nhiều redirect) reject với một `TypeError` có message nói lý do. Response với status bất kỳ đều resolve.
+- Abort `signal` sẽ hủy request, trước hay sau khi response đến. `res.body.cancel()` cũng vậy.
+- Zig không đọc nhanh hơn trang. Nó chờ khi trang còn hơn `window_bytes` của body chưa đọc.
+- URL không phải `http:` hay `https:` đi qua `fetch` của chính webview.
 
 <a id="options"></a>
 
 ### Tùy chọn
 
-| lĩnh vực | mặc định | |
+| trường | mặc định | |
 |---|---|---|
-| `allow` | null | `fn (ctx, req: *const http.Request) bool`: xem từng yêu cầu (URL, phương thức, tiêu đề) và có thể từ chối yêu cầu đó; null cho phép tất cả |
-| `allow_ctx` | null | được chuyển tới `allow` |
-| `window_bytes` | 1 MiB | bao nhiêu nội dung trang có thể chưa được đọc trước khi Zig chờ |
+| `allow` | null | `fn (ctx, req: *const http.Request) bool`: xem từng request (URL, method, header) và có thể từ chối; null thì cho phép tất cả |
+| `allow_ctx` | null | truyền cho `allow` |
+| `window_bytes` | 1 MiB | lượng body trang được phép chưa đọc trước khi Zig chờ |
 
 ```zig
 fn onlyOurApi(_: ?*anyopaque, req: *const fetch.Request) bool {
@@ -61,17 +62,20 @@ fn onlyOurApi(_: ?*anyopaque, req: *const fetch.Request) bool {
 var service: fetch.Service = try .init(gpa, app.io, .{ .allow = onlyOurApi });
 ```
 
-Yêu cầu bị từ chối sẽ bị từ chối trong trang (`NotAllowed`).
+Request bị từ chối sẽ reject ở trang (`NotAllowed`).
 
 <a id="how-it-works"></a>
 
 ### Cách hoạt động
 
-Mỗi yêu cầu chạy trên một nhiệm vụ của `Io` (`io.concurrent`) của ứng dụng. Phần đầu, phần thân và phần cuối của nó quay trở lại dưới dạng sự kiện `myzig-fetch`, được giao cho luồng chính với [mainthread](mainthread.md) và được đưa đến cửa sổ hỏi xem nó có còn mở không. Một trang điều hướng, tải lại hoặc đóng sẽ hủy các yêu cầu của nó, thậm chí một trang đang chờ nó đọc nội dung. Việc hủy là của `Io`, do đó yêu cầu bị chặn trên mạng sẽ dừng ngay lập tức.
+- Mỗi request chạy trên một task của `Io` của app (`io.concurrent`).
+- Head, các chunk của body và phần kết thúc quay về dưới dạng event `myzig-fetch`. Chúng được chuyển sang main thread bằng [mainthread](mainthread.md), rồi tới cửa sổ đã yêu cầu, nếu nó còn mở.
+- Trang chuyển đi, reload hoặc đóng sẽ hủy các request của nó, kể cả request đang chờ trang đọc body.
+- Việc hủy là của `Io`, nên request đang bị chặn trên mạng dừng ngay.
 
 <a id="from-zig"></a>
 
-## Sử dụng từ Zig
+## Từ Zig
 
 ```zig
 var client: std.http.Client = .{ .allocator = gpa, .io = io };
@@ -86,21 +90,31 @@ try fetch.perform(&client, arena, .{
 });
 ```
 
-`fetch.Request` có `url`, `method` (GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, QUERY, trong mọi trường hợp), `headers`, `body`, `redirect` (`.follow`, `.manual`, `.@"error"`) và `max_redirects` (20). `Sink` của `head` và `chunk` lấy `ctx` của nó là `*anyopaque`; tên tiêu đề có chữ thường. Khối `perform`: chạy nó trên một luồng hoặc với `io.concurrent`, có `cancel` dừng nó.
+| `fetch.Request` | |
+|---|---|
+| `url` | |
+| `method` | GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, QUERY, viết hoa hay thường đều được |
+| `headers`, `body` | |
+| `redirect` | `.follow`, `.manual`, `.@"error"` |
+| `max_redirects` | 20 |
+
+- `head` và `chunk` của `Sink` nhận `ctx` của nó dưới dạng `*anyopaque`.
+- Tên header đến dưới dạng chữ thường.
+- `perform` chặn. Chạy nó trên một thread hoặc với `io.concurrent`, và `cancel` của nó sẽ dừng `perform`.
 
 <a id="not-yet"></a>
 
-## Chưa hỗ trợ
+## Chưa có
 
-- Proxy (`HTTPS_PROXY`): `std.http.Client.initDefaultProxies` có thể đặt chúng trên client của riêng bạn.
-- Nội dung yêu cầu được chuyển hướng với 307 hoặc 308 không thành công (`RedirectRequiresResend`); 301, 302 và 303 trở thành GET như trong trình duyệt.
-- Các phương thức bên ngoài `std.http.Method` (động từ tùy chỉnh) đều bị từ chối.
+- Proxy (`HTTPS_PROXY`): `std.http.Client.initDefaultProxies` có thể đặt proxy cho client của riêng bạn.
+- Body của request bị redirect bằng 307 hoặc 308 sẽ lỗi (`RedirectRequiresResend`); 301, 302 và 303 trở thành GET như trên trình duyệt.
+- Method ngoài `std.http.Method` (verb tùy chỉnh) bị từ chối.
 
 <a id="example-and-tests"></a>
 
-## Ví dụ và kiểm thử
+## Ví dụ và test
 
-`example/` chạy một API nhỏ trên 127.0.0.1 (`example/api.zig`) và một trang tìm nạp từ đó; `zig build run` hiển thị nó.
+`example/` chạy một API nhỏ trên 127.0.0.1 (`example/api.zig`) và một trang fetch từ nó. `zig build run` mở ví dụ.
 
 ```sh
 cd plugins/fetch
@@ -109,4 +123,12 @@ zig build test -Dpage=false  # without the page
 zig build check -Dtarget=x86_64-linux-gnu
 ```
 
-Các kiểm thử bao gồm các tiêu đề (`Set-Cookie` bị rớt), nội dung, ba chế độ chuyển hướng và vòng lặp chuyển hướng, phát trực tuyến (đoạn đầu tiên đến trước khi máy chủ gửi đoạn thứ hai), hủy trong khi máy chủ im lặng, nội dung lớn, máy chủ không thể truy cập và `HEAD`; kiểm tra trang cũng thực hiện tương tự thông qua webview, với tính năng hủy bỏ và áp suất ngược.
+Các test bao gồm:
+
+- header (`Set-Cookie` bị bỏ) và body;
+- ba chế độ redirect, và vòng lặp redirect;
+- streaming: chunk đầu đến trước khi server gửi chunk thứ hai;
+- hủy trong lúc server im lặng;
+- body lớn, server không kết nối được và `HEAD`.
+
+Test của trang kiểm tra những điều trên qua webview, kèm abort và backpressure.

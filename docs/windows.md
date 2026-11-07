@@ -1,8 +1,8 @@
 # Windows
 
-A window shows one of two contents: native UI that myzig draws (a
-`ui.View`), or a web page in the system's webview. Everything else, the
-options, the events, the title bars, flyouts, is the same for both.
+A window shows native UI that myzig draws (a `ui.View`), or a web page in
+the system's webview. The options, events, title bars and flyouts are the
+same for both.
 
 ```zig
 const win = try app.newWindow(.{
@@ -17,10 +17,11 @@ const win = try app.newWindow(.{
 });
 ```
 
-`App.newWindow` makes the window, shows it unless `visible` is false, and
-returns it. The app keeps it in `app.windows` until it closes; then it is
-freed, and the pointer must not be used again (`on_close` is the place to
-forget it).
+- `App.newWindow` makes the window, shows it unless `visible` is false,
+  and returns it.
+- The app keeps it in `app.windows` until it closes. Then it is freed,
+  and the pointer must not be used again. `on_close` is the place to
+  forget it.
 
 A page instead of a view:
 
@@ -35,9 +36,9 @@ _ = try app.newWindow(.{
 });
 ```
 
-What a page's options are (`myzig.PageOptions`: assets, a directory, a
-dev server, schemes, trusted origins, scripts, its listener) is in
-[Pages](pages.md).
+A page's options are in [Pages](pages.md): `myzig.PageOptions` has
+assets, a directory, a dev server, schemes, trusted origins, scripts and
+its listener.
 
 ## Options
 
@@ -69,11 +70,6 @@ A flyout is a window too, made by `App.newFlyout` ([Flyouts](#flyouts)).
 
 ## Draw the window controls
 
-With `.title_bar = .hidden`, set `.hide_window_buttons = true` to draw
-your own minimize, maximize and close buttons in the view. `win.titleBar()`
-then reports no reserved space. Other title bar modes ignore this option.
-The browser target ignores window decorations.
-
 ```zig
 const maximize = ui.div(c).size(46, 32).maximizeButton();
 if (maximize.clicked()) s.window.zoom();
@@ -81,18 +77,27 @@ ui.text(c, "□", .{});
 maximize.end();
 ```
 
-Call `minimize()`, `zoom()` and `requestClose()` for the other actions.
-`requestClose()` respects the app's close-request callback. On Windows 11,
-hovering the first valid visible `maximizeButton()` opens Snap Layouts.
-Fully clipped or transparent buttons and rotated or skewed buttons are
-skipped. Its hit rectangle follows movement and layout, is clipped to the
-visible area, and is cleared when no valid marker remains. Elsewhere the
-marker does nothing.
-The lower-level `setSnapButton` remains available for apps managing their
-own hit rectangles.
-Automatic placement runs only with a hidden title bar and
-`hide_window_buttons = true`; otherwise it leaves manually managed Snap
-rectangles alone.
+With `.title_bar = .hidden`, set `.hide_window_buttons = true` to draw
+your own minimize, maximize and close buttons in the view.
+
+- `win.titleBar()` then reports no reserved space.
+- Other title bar modes ignore this option. The browser target ignores
+  window decorations.
+- Call `minimize()`, `zoom()` and `requestClose()` for the other actions.
+  `requestClose()` respects the app's close-request callback.
+
+**Snap Layouts.** On Windows 11, hovering the first valid visible
+`maximizeButton()` opens Snap Layouts. Elsewhere the marker does nothing.
+
+- Fully clipped or transparent buttons, and rotated or skewed ones, are
+  skipped.
+- Its hit rectangle follows movement and layout, and is clipped to the
+  visible area. It is cleared when no valid marker remains.
+- Automatic placement runs only with a hidden title bar and
+  `hide_window_buttons = true`. Otherwise it leaves manually managed Snap
+  rectangles alone.
+- The lower-level `setSnapButton` remains available for apps managing
+  their own hit rectangles.
 
 ## Show windows without flashing
 
@@ -105,8 +110,8 @@ const win = try app.newWindow(.{ .title = "Report", .visible = false, .content =
 win.show();
 ```
 
-`--myzig-hidden` (and the other headless flags) keep every window hidden
-whatever the app asks: tests and snapshots never put anything on the
+`--myzig-hidden` and the other headless flags keep every window hidden,
+whatever the app asks. Tests and snapshots never put anything on the
 screen.
 
 ## Size, position and state
@@ -145,13 +150,19 @@ _ = try app.newWindow(.{
 ```
 
 With a `state` key, a window opens where the last window with that key
-was: its position, its size and whether it was maximized override `x`,
-`y`, `width` and `height`. The states are kept in `window-state.txt` in
-the app's data directory, a line per key, read when the first window with
-a key opens and written as such a window closes. A state that no longer
-fits (a screen unplugged, a size under 50 points) is ignored. Give each
-kind of window its own key (`"main"`, `"preferences"`, `"note"`). Apps
-that remember no window don't link the store.
+was.
+
+- Its position, its size and whether it was maximized override `x`, `y`,
+  `width` and `height`.
+- The states are kept in `window-state.txt` in the app's data directory,
+  a line per key.
+- The file is read when the first window with a key opens, and written as
+  such a window closes.
+- A state that no longer fits is ignored: a screen unplugged, a size
+  under 50 points.
+- Give each kind of window its own key: `"main"`, `"preferences"`,
+  `"note"`.
+- Apps that remember no window don't link the store.
 
 ## Closing
 
@@ -184,12 +195,14 @@ _ = try app.newWindow(.{
 });
 ```
 
-`on_close_request` (a `myzig.CloseRequest`) is asked when the user closes
-the window: its close button, Alt+F4, the Dock's or taskbar's Close,
-macOS's Close Window item, `requestClose`. False keeps it open. `close` does not
-ask. `on_close` runs as the window goes, before it is freed, whichever
-way it closed. [Documents](documents.md) ask for you, saving or
-discarding each document's changes.
+- `on_close_request` (a `myzig.CloseRequest`) is asked when the user
+  closes the window: its close button, Alt+F4, the Dock's or taskbar's
+  Close, macOS's Close Window item, `requestClose`. False keeps it open.
+- `close` does not ask.
+- `on_close` runs as the window goes, before it is freed, whichever way
+  it closed.
+- [Documents](documents.md) ask for you, saving or discarding each
+  document's changes.
 
 ## Events
 
@@ -208,11 +221,15 @@ fn onWindow(s: *State, win: *myzig.Window, e: myzig.WindowEvent) void {
 _ = try app.newWindow(.{ .on_event = .of(&state, State.onWindow), .content = content });
 ```
 
-`myzig.WindowEvent` is a union of `focus`, `blur`, `moved` (the top left,
-in screen points), `resized` (the content's size), `minimized`,
-`maximized` and `restored` (back from either). Events come on the main
-thread, once per change: the systems repeat sizes and activations that
-change nothing, and myzig drops them.
+`myzig.WindowEvent` is a union of:
+
+- `focus`, `blur`;
+- `moved`: the top left, in screen points;
+- `resized`: the content's size;
+- `minimized`, `maximized`, and `restored` (back from either).
+
+Events come on the main thread, once per change. The systems repeat sizes
+and activations that change nothing; myzig drops them.
 
 ## Title bars
 
@@ -220,21 +237,27 @@ change nothing, and myzig drops them.
 
 - **`.default`**: the system's title bar above the content.
 - **`.hidden`**: the content fills the window, under the system's window
-  controls: macOS's traffic lights, Windows 11's caption buttons over the
-  top right corner (with snap layouts on maximize), GTK's header bar with
-  its title buttons. The empty space of the top `title_bar_height` moves
-  the window, as a title bar does, and a double click there maximizes it. On
-  Windows the caption buttons are light or dark as the native UI's theme
-  is (the window's `theme`, or the one the view applies), not the system's.
+  controls.
+  - The controls: macOS's traffic lights, Windows 11's caption buttons
+    over the top right corner (with snap layouts on maximize), GTK's
+    header bar with its title buttons.
+  - The empty space of the top `title_bar_height` moves the window, as a
+    title bar does. A double click there maximizes it.
+  - On Windows the caption buttons are light or dark as the native UI's
+    theme is, not the system's. That is the window's `theme`, or the one
+    the view applies.
 - **`.frameless`**: no title bar and no controls. The content draws all
   of it and moves the window from its drag regions. The window still
   resizes from its edges and keeps its shadow.
 
-In native UI, a press in the drag strip moves the window unless it lands
-on an interactive box (a button, a tab, a field): those take it. A view
-whose toolbar is taller than the title bar sets `c.title_bar_height` to
-the toolbar's height, and the strip follows it. To keep clear of the
-system's controls, ask the window how much room they take:
+In native UI:
+
+- A press in the drag strip moves the window, unless it lands on an
+  interactive box (a button, a tab, a field). Those take it.
+- A view whose toolbar is taller than the title bar sets
+  `c.title_bar_height` to the toolbar's height, and the strip follows it.
+- To keep clear of the system's controls, ask the window how much room
+  they take:
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {
@@ -248,19 +271,22 @@ fn view(s: *State, c: *ui.Context) void {
 
 `myzig.TitleBarArea` has the `height` the controls take, and the widths
 they cover on the `left` (macOS's traffic lights) and on the `right`
-(Windows' caption buttons). It is empty for windows that are not hidden,
-in full screen, and on Linux, where GTK's header bar sits above the
-content.
+(Windows' caption buttons). It is empty:
+
+- for windows that are not hidden;
+- in full screen;
+- on Linux, where GTK's header bar sits above the content.
 
 A frameless window moves from its own title bar: call `startDrag()` from
 a press on it. On Windows 11, a frameless window that draws its own
 maximize button calls `setSnapButton(rect)` with the button's rectangle
-in the content, so that hovering it shows the snap layouts; null removes
-it.
+in the content. Hovering it then shows the snap layouts; null removes it.
 
-Pages mark their drag regions in CSS: elements styled
-`--app-region: drag` move the window (a double click maximizes it), and
-`--app-region: no-drag` exempts what is inside one, such as buttons:
+Pages mark their drag regions in CSS:
+
+- elements styled `--app-region: drag` move the window, and a double
+  click maximizes it;
+- `--app-region: no-drag` exempts what is inside one, such as buttons.
 
 ```css
 header { --app-region: drag; height: 38px; }
@@ -273,8 +299,8 @@ header button { --app-region: no-drag; }
 _ = try app.newWindow(.{ .material = .sidebar, .title_bar = .hidden, .content = content });
 ```
 
-`myzig.Material` is what shows through the window's background where the
-system has materials, and the content leaves it clear:
+`myzig.Material` is what shows through the window's background, where the
+system has materials and the content leaves it clear:
 
 | material | macOS (vibrancy) | Windows 11 |
 |---|---|---|
@@ -283,13 +309,13 @@ system has materials, and the content leaves it clear:
 | `.under_window` | under the window's content | Mica Alt (tabbed) |
 | `.popover` | a popover's or HUD's | Acrylic |
 
-`setMaterial` changes it later, and returns false where the system has
-none (Linux, Windows 10, browsers).
+`setMaterial` changes it later. It returns false where the system has
+none: Linux, Windows 10, browsers.
 
 ## Flyouts
 
-A flyout is a borderless panel without a taskbar button, placed next to
-a rectangle: a box of its parent window, a point of the screen, or a tray
+A flyout is a borderless panel without a taskbar button, placed next to a
+rectangle: a box of its parent window, a point of the screen, or a tray
 icon. Menu bar apps, pickers and suggestion lists are flyouts.
 
 ```zig
@@ -313,7 +339,7 @@ fn trayClicked(s: *State, t: *myzig.Tray) void {
 | field | default | what it does |
 |---|---|---|
 | `parent` | null | the window whose content `anchor` is in; the flyout stays above it |
-| `tray` | null | anchors the flyout to a tray icon: below a macOS menu bar's, above a taskbar's at the bottom; centered in the work area where the system does not tell where icons are (Linux) |
+| `tray` | null | anchors the flyout to a tray icon (below) |
 | `anchor` | empty | a `myzig.flyout.Rect` in points: in the parent's content, or on the screen without a parent |
 | `placement` | `.bottom_start` | the side and alignment: `bottom`, `top`, `right`, `left`, each `_start`, centered, or `_end` |
 | `gap` | 0 | points between the anchor and the flyout |
@@ -321,51 +347,77 @@ fn trayClicked(s: *State, t: *myzig.Tray) void {
 | `focusable` | true | takes the keyboard as it shows, and is dismissed when another window takes it; otherwise it never takes the keyboard (tooltips, suggestions) and stays until closed |
 | `dismiss` | `.close` | what a dismissed flyout does: `.close` (as the user closing it) or `.hide` (to show again) |
 | `hidden` | false | created hidden: `show` shows it, placed again |
-| `popover` | false | on macOS, the system's popover (`NSPopover`): its material, rounded corners and an arrow pointing at the anchor's middle; on `placement`'s side or the opposite one (the rest of the placement and `gap` do not apply); needs a `parent` or a `tray`. A regular flyout elsewhere |
+| `popover` | false | on macOS, the system's popover (`NSPopover`); a regular flyout elsewhere (below) |
 | `material` | `.none` | a translucent, blurred material behind the content, as a window's ([Materials](#materials)); a popover has its own |
-| `corner_radius` | 0 | rounds the corners on macOS, in points: the material and the content are cut to them, and the shadow follows them. Windows 11 rounds flyouts as it rounds its menus; Linux does not |
+| `corner_radius` | 0 | rounds the corners on macOS, in points (below) |
 | `theme` | null | as a window's |
 | `content` | (required) | a view or a page |
 
-A focusable flyout is dismissed when another window takes the keyboard
-(a click elsewhere, the app deactivated) and on Escape; a press on its
-own tray icon is left to the icon's click, which toggles it, rather than
-closing it for the click to open it again (macOS, Windows). It is placed as
-menus are: on each axis it flips to the other side of the anchor, or its
-other end, where it would not fit and the flipped one would, then slides
-back into the work area, then shrinks to it.
+- **`tray`**: below a macOS menu bar's icon, above a taskbar's at the
+  bottom. Where the system does not tell where icons are (Linux), the
+  flyout is centered in the work area.
+- **`popover`**: the popover's material, rounded corners and an arrow
+  pointing at the anchor's middle. It shows on `placement`'s side or the
+  opposite one; the rest of the placement and `gap` do not apply. It
+  needs a `parent` or a `tray`.
+- **`corner_radius`**: the material and the content are cut to the
+  corners, and the shadow follows them. Windows 11 rounds flyouts as it
+  rounds its menus; Linux does not.
 
-A popover flyout's content draws no background over the material.
-With `focusable` it closes as the user clicks elsewhere (asking
-`on_close_request`), and from a tray icon it activates the app and
-highlights the icon while it shows. Its window is the popover's while it
-shows.
+**Dismissing.** A focusable flyout is dismissed on Escape, and when
+another window takes the keyboard: a click elsewhere, the app
+deactivated. A press on its own tray icon is left to the icon's click,
+which toggles it. The flyout does not close only for the click to open it
+again (macOS, Windows).
 
-When the anchor moves (the parent moved, the tray icon did),
-`placeFlyout()` places it again; `setAnchor(rect)` gives it another
-anchor; `setSize` resizes it in place; `isFlyout()` tells flyouts from
-other windows.
+**Placing.** A flyout is placed as menus are. On each axis:
+
+1. it flips to the other side of the anchor, or its other end, where it
+   would not fit and the flipped one would;
+2. then it slides back into the work area;
+3. then it shrinks to it.
+
+**Popovers.**
+
+- A popover flyout's content draws no background over the material.
+- With `focusable`, it closes as the user clicks elsewhere, asking
+  `on_close_request`.
+- From a tray icon, it activates the app and highlights the icon while
+  it shows.
+- Its window is the popover's while it shows.
+
+**Moving it.**
+
+- `placeFlyout()` places it again when the anchor moves (the parent
+  moved, the tray icon did).
+- `setAnchor(rect)` gives it another anchor.
+- `setSize` resizes it in place.
+- `isFlyout()` tells flyouts from other windows.
 
 ## Attention and progress
 
-- `flash(true)` asks for attention until the window is focused: it
-  bounces the Dock icon (macOS), flashes the taskbar button (Windows), or
-  marks the window urgent (Linux); `flash(false)` stops.
+- `flash(true)` asks for attention until the window is focused.
+  `flash(false)` stops.
+  - macOS bounces the Dock icon.
+  - Windows flashes the taskbar button.
+  - Linux marks the window urgent.
 - `setProgress(.{ .state = .normal, .value = 0.4 })` shows a task's
-  progress (`myzig.Progress`: `state` is `.none`, `.normal`,
-  `.indeterminate`, `.paused` or `.failed`, `value` from 0 to 1) on the
-  taskbar button (Windows) or the launcher entry (Linux docks with the
-  Unity API). It returns false where nothing shows it (macOS, where
-  `app.setBadge` is the Dock's).
+  progress, a `myzig.Progress`.
+  - `state` is `.none`, `.normal`, `.indeterminate`, `.paused` or
+    `.failed`; `value` goes from 0 to 1.
+  - It shows on the taskbar button (Windows) or the launcher entry (Linux
+    docks with the Unity API).
+  - It returns false where nothing shows it: macOS, where `app.setBadge`
+    is the Dock's.
 
 ## Documents
 
 - `setDocumentEdited(true)` marks the window's document as having unsaved
   changes: a dot in macOS's close button, `*` before the title on Windows
   and Linux. `isDocumentEdited()` reads it.
-- `setRepresentedFile(path)` names the file the window shows: on macOS its
-  icon in the title bar, which the user can drag, and ⌘-click for its
-  folders; nothing elsewhere.
+- `setRepresentedFile(path)` names the file the window shows. On macOS
+  its icon shows in the title bar: the user can drag it, and ⌘-click it
+  for its folders. It does nothing elsewhere.
 
 [Documents](documents.md) does both for document windows.
 
@@ -411,5 +463,6 @@ printing, cookies and the rest: see [Pages](pages.md).
 | progress | no (the Dock's badge) | Unity launcher | taskbar | no |
 | represented file | yes | no | no | no |
 
-In a browser, the first window of native UI fills the page; sizes,
-positions and the window's state do nothing there ([Browsers](browsers.md)).
+In a browser, the first window of native UI fills the page. Sizes,
+positions and the window's state do nothing there
+([Browsers](browsers.md)).

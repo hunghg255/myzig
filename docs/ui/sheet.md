@@ -21,11 +21,8 @@ if (ui.sheet(c, &s.details, .{ .label = "Project details" })) |panel| {
 }
 ```
 
-Keep its `OverlayState` in app state. The panel can contain ordinary
-widgets and scrolls when its content exceeds the available space. It
-shares the [dialog](overlays.md) backdrop, Escape handling and focus
-restoration. The background cannot receive pointer input, and Tab and
-Shift+Tab stay within the panel.
+Keep its `OverlayState` in app state. The panel holds ordinary widgets
+and scrolls when its content is taller than the space.
 
 | `SheetOptions` | Default | Meaning |
 |---|---|---|
@@ -35,9 +32,17 @@ Shift+Tab stay within the panel.
 | `dismissible` | `true` | Backdrop presses close the panel |
 | `escape` | `true` | Escape closes it after child controls have handled it |
 
-The size is capped to the window, including after a resize. Content follows
-the app's text direction; `side` continues to name a physical edge. The
-panel has a short fade and movement on opening; reduced motion shows it
-at once. Closing removes it and restores the previous focus.
+**Behavior**
+
+- It shares the [dialog](overlays.md) backdrop, Escape handling and focus
+  restoration.
+- The background gets no pointer input. Tab and Shift+Tab stay in the
+  panel.
+- The size is capped to the window, also after a resize.
+- Content follows the app's text direction. `side` still names a
+  physical edge.
+- It opens with a short fade and movement. With reduced motion it
+  appears at once.
+- Closing removes it and gives the focus back where it was.
 
 See the **Feedback** page in [Gallery](../../examples/gallery/feedback.zig).

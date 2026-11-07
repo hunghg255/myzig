@@ -1,53 +1,51 @@
-# Item
+# Items
 
-`ui.item` ghép hình đại diện hoặc icon, tiêu đề, mô tả và các nút thao tác
-thành một hàng nội dung. Dùng cho danh sách file, thành viên, thông báo và cài đặt.
+`ui.item` là một hàng nội dung: media, tiêu đề, mô tả và các nút thao tác ở cuối. Dùng cho file, người, thông báo và cài đặt.
 
 <!-- demo: items height=386 -->
 
-![Các Item có icon file, avatar, nhãn trạng thái và nút thao tác riêng.](../../images/ui/items.png)
+![Các item có icon file, avatar, badge trạng thái và các nút thao tác riêng.](../../images/ui/items.png)
 
 ```zig
-const row = ui.item(c, .{ .label = "Báo cáo dự án" });
+const row = ui.item(c, .{ .label = "Project report" });
 defer row.end();
 row.icon("doc.text");
-row.content("Báo cáo dự án", "Tài liệu PDF · Cập nhật hôm nay");
-if (ui.button(c, "Mở", .{}).clicked) s.openReport();
+row.content("Project report", "PDF document · Updated today");
+if (ui.button(c, "Open", .{}).clicked) s.openReport();
 ```
 
-Phần chữ chiếm chiều rộng còn lại và tự xuống dòng; các nút giữ chiều rộng
-của mình. Có thể đặt widget thông thường trước hoặc sau `content` để thêm
-ảnh, badge hoặc nhiều nút. Item là một nhóm accessibility; mỗi nút giữ
-focus và hành động riêng. Bấm vào nội dung không kích hoạt cả hàng.
+- Phần nội dung chiếm chiều rộng còn lại và tự xuống dòng. Các nút thao tác giữ chiều rộng của mình.
+- Thêm widget bình thường trước hoặc sau `content` để có media riêng, badge hoặc nhiều nút.
+- Một hàng là một nhóm accessibility. Các control trong nó là những điểm dừng bàn phím riêng, nên bấm một nút thao tác không kích hoạt cả hàng.
+
+<a id="options-and-methods"></a>
 
 ## Tùy chọn và phương thức
 
 | `ItemOptions` | Mặc định | Ý nghĩa |
 |---|---|---|
-| `width` | `.fill` | Chiều rộng hàng |
+| `width` | `.fill` | Chiều rộng của hàng |
 | `variant` | `.outline` | `.plain`, `.outline` hoặc `.muted` |
-| `size` | `.normal` | `.normal` hoặc `.small`, điều chỉnh khoảng cách và cỡ tiêu đề |
-| `label` | `""` | Tên nhóm cho công nghệ hỗ trợ |
+| `size` | `.normal` | `.normal` hoặc `.small`, quyết định khoảng cách và cỡ tiêu đề |
+| `label` | `""` | Tên của nhóm cho trình đọc màn hình |
 
 | Phương thức | Ý nghĩa |
 |---|---|
-| `icon(name)` | Icon theo theme trong một vùng có chiều rộng cố định |
-| `avatar(name, options)` | Dùng `ui.avatar`, hỗ trợ ảnh và chữ viết tắt dự phòng |
-| `content(title, description)` | Tiêu đề và mô tả tùy chọn; cả hai tự xuống dòng |
-| `end()` | Đóng hàng sau khi thêm các widget thao tác |
+| `icon(name)` | Icon theo màu theme, trong một ô media cố định |
+| `avatar(name, options)` | Một `ui.avatar` có sẵn, kể cả ảnh và chữ viết tắt dự phòng |
+| `content(title, description)` | Tiêu đề và mô tả mờ tùy chọn; cả hai tự xuống dòng |
+| `end()` | Đóng hàng sau các widget ở cuối |
 
 ```zig
 const member = ui.item(c, .{ .variant = .muted, .size = .small });
 defer member.end();
 member.avatar("Ada Lovelace", .{ .size = 32 });
-member.content("Ada Lovelace", "Chủ workspace");
+member.content("Ada Lovelace", "Workspace owner");
 ui.badge(c, "Owner", c.theme.accent);
 ```
 
-Với các hàng lặp lại, gọi `ui.keyed(c, record.id)` trước `ui.item` để giữ
-ID ổn định, như các [nội dung danh sách](lists.md). Thứ tự hàng tuân theo
-[hướng giao diện](right-to-left.md). Widget dùng chung layout và theme trên
-macOS, Linux, Windows và trình duyệt.
+- Với các item lặp lại, gọi `ui.keyed(c, record.id)` trước `ui.item` để có key ổn định, như các [nội dung danh sách](lists.md) khác.
+- Thứ tự trong hàng theo [hướng chữ](right-to-left.md) của giao diện.
+- Widget dùng chung layout và theme trên macOS, Linux, Windows và trình duyệt.
 
-Trang **Composition** trong [Gallery](../../../examples/gallery/composites.zig)
-có ví dụ tương tác. Ghép Item với [Pagination](pagination.md) khi tải dữ liệu theo trang.
+Trang **Composition** trong [Gallery](../../../examples/gallery/composites.zig) có ví dụ tương tác. Kết hợp item với [pagination](pagination.md) khi app tải dữ liệu theo trang.

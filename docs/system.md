@@ -1,21 +1,27 @@
 # The system around the app
 
-Beyond its windows, an app talks to the desktop it runs on: it asks the
-user for files, opens links in the browser, keeps its data where each
-system wants it, follows the system's appearance, stores passwords in the
-system's keychain, records recent documents, opens at login, keeps the
-computer awake while it works, and watches files other apps change. Each of
-these is one call that does the right thing on macOS, Linux and Windows,
-and something sensible (or `error.Unsupported`) in browsers.
+Beyond its windows, an app talks to the desktop it runs on. It:
+
+- asks the user for files;
+- opens links in the browser;
+- keeps its data where each system wants it;
+- follows the system's appearance;
+- stores passwords in the system's keychain;
+- records recent documents and opens at login;
+- keeps the computer awake while it works;
+- watches files other apps change.
+
+Each of these is one call. It does the right thing on macOS, Linux and
+Windows, and something sensible (or `error.Unsupported`) in browsers.
 
 Calls that run modally (dialogs) or touch the windowing system run on the
-main thread, from a menu click, a bound method or a view; see
+main thread: from a menu click, a bound method or a view. See
 [the application](app.md) for threads.
 
 ## Dialogs
 
 `myzig.dialog` has the system's open and save panels and message boxes.
-They block until the user answers and return the answer:
+They block until the user answers, and return the answer:
 
 ```zig
 const myzig = @import("myzig");
@@ -38,16 +44,22 @@ fn exportAs(gpa: std.mem.Allocator) !void {
 }
 ```
 
-`dialog.OpenOptions` has `title`, `button` (the default button's label),
-`message`, `directory` (where the panel starts), `files` and `directories`
-(what may be chosen; folders only with `.files = false, .directories =
-true`), `multiple`, `extensions` (without dots) and `show_hidden`.
-`dialog.SaveOptions` has `title`, `button`, `message`, `directory`, `name`
-(the file name it starts with), `extensions`, `show_hidden` and
-`create_directories`.
+| `dialog.OpenOptions` | |
+|---|---|
+| `title`, `message` | |
+| `button` | the default button's label |
+| `directory` | where the panel starts |
+| `files`, `directories` | what may be chosen; folders only with `.files = false, .directories = true` |
+| `multiple` | |
+| `extensions` | without dots |
+| `show_hidden` | |
 
-A message box returns the index of the button pressed, the first being
-the default, and whether its checkbox was checked:
+`dialog.SaveOptions` has `title`, `button`, `message`, `directory`,
+`extensions`, `show_hidden` and `create_directories`, and `name`: the
+file name it starts with.
+
+A message box returns the index of the button pressed, and whether its
+checkbox was checked. The first button is the default.
 
 ```zig
 const r = myzig.dialog.message(.{
@@ -66,9 +78,9 @@ if (r.checked) prefs.ask_before_delete = false;
 | open, save | `NSOpenPanel`, `NSSavePanel` | GTK's native file chooser (the desktop portal's where there is one) | the common file dialogs | `error.Unsupported` |
 | message | `NSAlert`, with the checkbox | GTK's message dialog | a message box | `alert` for one button, else `confirm` |
 
-On Windows the open dialog chooses a single file for now, and neither
-dialog filters by `extensions` yet. Native UI also has dialogs of its own,
-drawn inside the window: see [overlays](ui/overlays.md).
+- On Windows the save dialog doesn't filter by `extensions` yet.
+- Native UI also has dialogs of its own, drawn inside the window: see
+  [overlays](ui/overlays.md).
 
 ## Opening things in other apps
 
@@ -82,25 +94,31 @@ _ = myzig.shell.trash("/Users/ada/old.txt"); // to the Trash
 myzig.shell.beep(); // the system's alert sound
 ```
 
-`openUrl`, `openPath` and `trash` return whether they did it.
-`showInFolder` selects the file in a Finder window on macOS, and opens its
-folder elsewhere. On Linux they run `xdg-open`; on Windows the shell's open
-verb. `trash` works on macOS (the Trash) and Windows (the recycle bin,
-through `IFileOperation`; a relative path is the working directory's), and
-returns false elsewhere so far; `beep` works on macOS and in browsers. In
-a browser `openUrl` opens a tab, which the browser may block outside a
-click.
+- `openUrl`, `openPath` and `trash` return whether they did it.
+- `showInFolder` selects the file in a Finder window on macOS, and opens
+  its folder elsewhere.
+- On Linux they run `xdg-open`; on Windows, the shell's open verb.
+- In a browser `openUrl` opens a tab. The browser may block it outside a
+  click.
+- `beep` works on macOS and in browsers.
 
-`trash` never deletes for good: where the item cannot go to the trash it
-returns false and leaves the item where it is. On Windows that is an item
-too big for the recycle bin, or on a drive without one, as network shares
-and many removable drives are, which Windows would otherwise delete
-without asking.
+**`trash`** works on macOS (the Trash) and Windows (the recycle bin,
+through `IFileOperation`). On Windows a relative path is the working
+directory's. It returns false elsewhere so far.
+
+`trash` never deletes for good. Where the item cannot go to the trash, it
+returns false and leaves the item where it is. On Windows that is:
+
+- an item too big for the recycle bin;
+- an item on a drive without one, as network shares and many removable
+  drives are.
+
+Windows would otherwise delete these without asking.
 
 ## The app's directories
 
 `myzig.appPath` gives the app's own directories, where each system wants
-them, and creates them (all but `temp`) when they are missing:
+them. It creates them (all but `temp`) when they are missing:
 
 ```zig
 const logs = try myzig.appPath(gpa, .logs, "Notes");
@@ -120,7 +138,7 @@ says.
 
 `myzig.path` also knows the user's standard folders. It takes a
 `myzig.Directory`: `data` and `cache` (the app's own, created), `home`,
-`documents`, `downloads`, `desktop` and `temp`:
+`documents`, `downloads`, `desktop` or `temp`:
 
 ```zig
 const downloads = try myzig.path(gpa, .downloads, app.options.name);
@@ -128,16 +146,17 @@ defer gpa.free(downloads);
 ```
 
 In a browser both answer with directories of the in-memory WASI file
-system the page hosts (`/home`, `/tmp`, `/home/.local/share/Name`), which
+system the page hosts: `/home`, `/tmp`, `/home/.local/share/Name`. It
 lasts as long as the page.
 
 ## Appearance
 
-`myzig.isDark()` tells whether the system shows dark mode, and
-`myzig.accentColor()` returns the accent color the user chose, as sRGB
-`[3]f32`. Native UI follows both by itself (see
-[styling](ui/styling.md)); these are for apps that draw or choose colors of
-their own.
+- `myzig.isDark()` tells whether the system shows dark mode.
+- `myzig.accentColor()` returns the accent color the user chose, as sRGB
+  `[3]f32`.
+
+Native UI follows both by itself (see [styling](ui/styling.md)). These
+are for apps that draw or choose colors of their own.
 
 - macOS: the app's effective appearance and `controlAccentColor`.
 - Linux: dark when `GTK_THEME` names a dark theme; the accent is a fixed
@@ -148,8 +167,8 @@ their own.
 
 ## Locale and languages
 
-`myzig.system` answers with the user's locale and languages, for apps that
-format or translate themselves ([i18n](i18n.md) does both):
+`myzig.system` answers with the user's locale and languages, for apps
+that format or translate themselves. [i18n](i18n.md) does both:
 
 ```zig
 const tag = try myzig.system.locale(gpa); // "en-US", BCP 47
@@ -160,8 +179,9 @@ const langs = try myzig.system.languages(gpa); // most preferred first
 defer myzig.system.freeList(gpa, langs);
 ```
 
-On Linux they come from `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LC_TIME` and `LANG`,
-turned into BCP 47 tags; in a browser from `navigator.languages`.
+On Linux they come from `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LC_TIME`
+and `LANG`, turned into BCP 47 tags. In a browser they come from
+`navigator.languages`.
 
 ## Recent documents
 
@@ -172,20 +192,28 @@ defer myzig.system.freeList(app.gpa, recent);
 myzig.system.clearRecentDocuments(app);
 ```
 
-`addRecentDocument` records a file in the system's list (macOS's Open
-Recent menu and Dock menu, Windows' Recent items and the app's jump list,
-Linux's recently used files) and in the app's own, kept in
-`recent-documents.txt` in its data directory. `recentDocuments` returns the
-app's own list, newest first, ten at most, only the files that still exist.
-`clearRecentDocuments` forgets them; on Linux, the user's other recent
-files stay. [Documents](documents.md) record what they open and show the
-list in their File menu.
+`addRecentDocument` records a file in two lists:
 
-On Windows, `system.setJumpList(app, tasks)` sets the Tasks of the app's
-jump list (a right click on its taskbar button), each a `JumpTask` with a
-`title`, `description`, `path`, `args` and an icon. Windows keeps the list
-after the app quits: set it once at startup. A task best runs a URL of the
-app's own scheme, which reaches `on_open_url`. Elsewhere it does nothing.
+- the system's: macOS's Open Recent menu and Dock menu, Windows' Recent
+  items and the app's jump list, Linux's recently used files;
+- the app's own, kept in `recent-documents.txt` in its data directory.
+
+`recentDocuments` returns the app's own list: newest first, ten at most,
+only the files that still exist. `clearRecentDocuments` forgets them. On
+Linux, the user's other recent files stay.
+
+[Documents](documents.md) record what they open and show the list in
+their File menu.
+
+**Jump list.** On Windows, `system.setJumpList(app, tasks)` sets the
+Tasks of the app's jump list, shown by a right click on its taskbar
+button. Elsewhere it does nothing.
+
+- Each task is a `JumpTask` with a `title`, `description`, `path`, `args`
+  and an icon.
+- Windows keeps the list after the app quits: set it once at startup.
+- A task best runs a URL of the app's own scheme, which reaches
+  `on_open_url`.
 
 ## Open at login
 
@@ -197,29 +225,40 @@ if (myzig.system.wasOpenedAtLogin(app)) {
 }
 ```
 
-The app opens at login with a Run entry on Windows, an XDG autostart entry
-on Linux, and a login item on macOS 13 and later (for bundled apps).
+| Platform | The app opens at login with |
+|---|---|
+| Windows | a Run entry |
+| Linux | an XDG autostart entry |
+| macOS 13 and later | a login item (for bundled apps) |
+
 `wasOpenedAtLogin` tells such a launch apart on Windows and Linux, where
 the entry passes `--myzig-login`.
 
-On Windows the Run entry starts the app with the user's normal
-(unelevated) token, even when the user is an administrator: the app
-cannot create network adapters, change the system's proxy or write to
-protected folders. An app that needs administrator rights registers a
-logon task in Task Scheduler with the run level `HighestAvailable`
-instead (`schtasks /Create /SC ONLOGON /RL HIGHEST`), which starts it
-elevated without asking, and does not call `setOpenAtLogin`. Creating the
-task needs administrator rights itself, so the app asks for them once, as
-the user turns the setting on. `wasOpenedAtLogin` does not tell such a
-launch apart: give the task's command an argument of the app's own for
-that.
+<details>
+<summary>Administrator rights at login on Windows</summary>
+
+The Run entry starts the app with the user's normal (unelevated) token,
+even when the user is an administrator. So the app cannot create network
+adapters, change the system's proxy or write to protected folders.
+
+An app that needs administrator rights does not call `setOpenAtLogin`:
+
+- It registers a logon task in Task Scheduler with the run level
+  `HighestAvailable` instead (`schtasks /Create /SC ONLOGON /RL HIGHEST`).
+  That starts it elevated without asking.
+- Creating the task needs administrator rights itself. So the app asks
+  for them once, as the user turns the setting on.
+- `wasOpenedAtLogin` does not tell such a launch apart. Give the task's
+  command an argument of the app's own for that.
+
+</details>
 
 ## URL schemes and file types
 
 The app opens its own URLs (`notes://open?id=4`) and files of its types
-when the system hands them over, through `AppOptions.on_open_url` and
-`on_open_file` (see [the application](app.md) for the handlers, and
-`url_schemes` and `file_extensions` to name them):
+when the system hands them over. They reach `AppOptions.on_open_url` and
+`on_open_file`. See [the application](app.md) for the handlers, and for
+`url_schemes` and `file_extensions` to name them.
 
 ```zig
 try myzig.system.registerUrlScheme(app, "notes"); // cheap: at every launch
@@ -229,14 +268,19 @@ try myzig.system.registerFileType(app, "md", "Markdown Document");
 try myzig.system.unregisterFileType(app, "md");
 ```
 
-`registerUrlScheme` makes the app the user's handler of the scheme: in the
-registry on Windows, in a desktop entry made the default in `mimeapps.list` on Linux (as `xdg-mime default` does),
-and on macOS as the default handler of a scheme which the bundle's
-`Info.plist` must declare ([distribution](distribution.md) writes it).
+`registerUrlScheme` makes the app the user's handler of the scheme:
+
+| Platform | How |
+|---|---|
+| Windows | in the registry |
+| Linux | in a desktop entry made the default in `mimeapps.list`, as `xdg-mime default` does |
+| macOS | as the default handler of a scheme the bundle's `Info.plist` must declare ([distribution](distribution.md) writes it) |
+
 `unregisterUrlScheme` undoes it on Windows and Linux.
+
 `registerFileType` adds the app to a file extension's Open with list on
-Windows; macOS declares file types in the bundle and Linux in the app's
-desktop entry, where it returns `error.Unsupported`.
+Windows. macOS declares file types in the bundle and Linux in the app's
+desktop entry. There it returns `error.Unsupported`.
 
 ## Keeping the system awake
 
@@ -245,10 +289,13 @@ const awake = try myzig.system.preventSleep(app, "Exporting the video", .system)
 defer awake.release();
 ```
 
-`.system` keeps the computer from sleeping while idle (the display may
-still turn off); `.display` keeps the display on too. It uses power
-requests on Windows, power assertions on macOS, and on Linux the screen
-saver's inhibition over the session bus, which keeps both awake.
+- `.system` keeps the computer from sleeping while idle. The display may
+  still turn off.
+- `.display` keeps the display on too.
+
+It uses power requests on Windows and power assertions on macOS. On
+Linux it uses the screen saver's inhibition over the session bus, which
+keeps both awake.
 
 ## Secrets
 
@@ -268,18 +315,20 @@ _ = try myzig.secrets.delete("com.example.notes", "ada@example.com"); // false i
 - Windows: generic credentials of the Credential Manager, the target
   `service/account`, encrypted with DPAPI.
 - Linux: the user's keyring (GNOME Keyring, KWallet, KeePassXC) through
-  libsecret, loaded with `dlopen`, with keytar's schema; secrets are text
+  libsecret, loaded with `dlopen`, with keytar's schema. Secrets are text
   there (no NUL bytes). Without libsecret, `error.Unsupported`.
 - Browsers: `error.Unsupported`.
 
 ## Watching files
 
 `myzig.file_watch.watch` calls a handler on the main thread when a file
-may have changed: written, replaced, renamed or deleted by another app. A
-change to another file of its folder can wake it too, so the handler looks
-at the file itself. It uses kqueue on macOS, inotify on Linux and change
-notifications on Windows; nothing polls. Browsers have no watches
-(`error.Unsupported`).
+may have changed: written, replaced, renamed or deleted by another app.
+
+- A change to another file of its folder can wake it too, so the handler
+  looks at the file itself.
+- It uses kqueue on macOS, inotify on Linux and change notifications on
+  Windows. Nothing polls.
+- Browsers have no watches (`error.Unsupported`).
 
 ```zig
 const Doc = struct {
@@ -302,7 +351,7 @@ defer w.cancel();
 
 `myzig.fdwatch` runs a handler on the main thread when a file descriptor
 (a pipe, a pseudo-terminal) has bytes to read, and when a child process
-exits, without a thread of the app's own and without polling:
+exits. It needs no thread of the app's own, and does not poll:
 
 ```zig
 const out = try myzig.fdwatch.readable(pipe_fd, &job, Job.onOutput);
@@ -311,9 +360,10 @@ const done = try myzig.fdwatch.exited(pid, &job, Job.onExit);
 defer done.cancel();
 ```
 
-The handler has the same signature as a file watch's,
-`fn (ctx: ?*anyopaque) callconv(.c) void`, and reads what is there; it
-also runs once at the end of the file. macOS uses libdispatch sources,
-Linux GLib's. Windows apps wait on handles instead, and there both return
-`error.Unsupported` for now (the [terminal plugin](plugins/terminal.md)
-uses ConPTY there).
+- The handler has the same signature as a file watch's,
+  `fn (ctx: ?*anyopaque) callconv(.c) void`. It reads what is there.
+- It also runs once at the end of the file.
+- macOS uses libdispatch sources, Linux GLib's.
+- Windows apps wait on handles instead. There both return
+  `error.Unsupported` for now; the [terminal plugin](plugins/terminal.md)
+  uses ConPTY.

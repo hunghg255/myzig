@@ -2,15 +2,17 @@
 
 What a myzig app costs next to [mygo](https://github.com/egoist/mygo),
 which myzig is a port of, and [Electron](https://www.electronjs.org).
-Native UI's frame times against mygo are the hill climb's
-([hillclimb/README.md](../hillclimb/README.md)); binary sizes are in
-[Testing, size and features](architecture-testing.md).
+
+- Native UI's frame times against mygo come from the hill climb
+  ([hillclimb/README.md](../hillclimb/README.md)).
+- Binary sizes are in
+  [Testing, size and features](architecture-testing.md).
 
 ## Memory of a page window on Windows
 
-One window on `about:blank`, the memory of the app's whole process tree
-(the app and every WebView2 or Chromium process it started), private
-bytes, the median of five runs:
+One window on `about:blank`. The memory is private bytes of the app's
+whole process tree: the app and every WebView2 or Chromium process it
+started. Each figure is the median of five runs.
 
 | process (MiB) | myzig 0.1.7 | mygo | Electron 38 |
 |---|---:|---:|---:|
@@ -29,28 +31,32 @@ bytes, the median of five runs:
 | what the app ships | 1.2 MiB (`hello.exe`) | 6.8 MiB | 324 MiB (its own Chromium) |
 
 Windows 10 19045, Core i5-1145G7, WebView2 Runtime 155, myzig ReleaseSmall,
-mygo at 9c05b11 built with Go 1.27 (`-s -w`). The windows were hidden; a
-hidden myzig page asks WebView2 for its low memory target
-([Pages](pages.md)), which on `about:blank` saves little: with the normal
-target, as a shown window has, myzig's total was 130.7 MiB.
+mygo at 9c05b11 built with Go 1.27 (`-s -w`).
+
+The windows were hidden. A hidden myzig page asks WebView2 for its low
+memory target ([Pages](pages.md)), which saves little on `about:blank`.
+With the normal target, as a shown window has, myzig's total was
+130.7 MiB.
 
 What it says:
 
-- **Most of the memory is the browser engine's**, and it is the same
-  engine for myzig and mygo: their WebView2 processes are within a few
-  MiB of each other. Electron runs its own Chromium, with fewer processes
-  (its main process is also the browser, and storage runs there) but a
-  larger GPU process.
+- **Most of the memory is the browser engine's.** myzig and mygo use the
+  same engine: their WebView2 processes are within a few MiB of each
+  other.
+- Electron runs its own Chromium. It has fewer processes, since its main
+  process is also the browser and runs storage. Its GPU process is
+  larger.
 - **myzig's own part is about 4 MiB**: the executable, its allocations and
-  the system DLLs it maps. mygo's Go runtime is about 47 MiB, Electron's
-  main process (Node and the browser) about 36 MiB.
-- A real page adds to the renderer and the GPU process what its DOM,
-  scripts and images need, in every framework alike.
+  the system DLLs it maps.
+- mygo's Go runtime is about 47 MiB. Electron's main process (Node and
+  the browser) is about 36 MiB.
+- A real page adds what its DOM, scripts and images need to the renderer
+  and the GPU process, the same in every framework.
 
 ### Why Task Manager shows several processes
 
-WebView2 is Chromium, and Chromium splits its work over processes so that
-a crash or a compromised page stays in its own:
+WebView2 is Chromium. Chromium splits its work over processes, so that a
+crash or a compromised page stays in its own:
 
 | in Task Manager | what it does |
 |---|---|
@@ -60,18 +66,21 @@ a crash or a compromised page stays in its own:
 | WebView2 Utility: Storage Service | localStorage, IndexedDB, the cache |
 | WebView2: *page title* | the renderer: the page's DOM and JavaScript |
 
-Every WebView2 app has them; myzig adds none. Some Windows builds and
-runtime versions list them under the app, others apart, as "Microsoft Edge
-WebView2" among the background processes, where the app then looks like a
-few MiB. To compare builds, add the app and all its `msedgewebview2.exe`
-processes in the Details tab, or run the script below, which follows the
-process tree.
+Every WebView2 app has them; myzig adds none.
+
+Some Windows builds and runtime versions list them under the app. Others
+list them apart, as "Microsoft Edge WebView2" among the background
+processes, and the app then looks like a few MiB. To compare builds:
+
+- add up the app and all its `msedgewebview2.exe` processes in the
+  Details tab, or
+- run the script below, which follows the process tree.
 
 ### Using less
 
 Chromium takes flags from `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, set
-before the app starts. Measured with the hello example's frontend (one run
-each, so a few MiB either way):
+before the app starts. Measured with the hello example's frontend, one
+run each, so a few MiB either way:
 
 | flags | processes | total (MiB) |
 |---|---:|---:|
@@ -80,17 +89,18 @@ each, so a few MiB either way):
 | `--disable-gpu` | 7 | 93 |
 | `--disable-gpu --in-process-gpu --enable-features=NetworkServiceInProcess2` | 5 | 80 |
 
-`--disable-gpu` draws the page on the CPU: fine for forms and tables,
-slower for animation, long scrolling lists, canvas and WebGL. The
-in-process flags merge the GPU or network work into the browser process,
-so a crash there takes the page down, and they are Chromium internals a
-runtime update may drop. The browser, renderer, storage service and crash
-handler always run.
+- `--disable-gpu` draws the page on the CPU. That is fine for forms and
+  tables, and slower for animation, long scrolling lists, canvas and
+  WebGL.
+- The in-process flags merge the GPU or network work into the browser
+  process. A crash there takes the page down.
+- Those flags are Chromium internals that a runtime update may drop.
+- The browser, renderer, storage service and crash handler always run.
 
 ### Measuring it again
 
 [hillclimb/webview-memory](../hillclimb/webview-memory/README.md) has the
-three apps and `measure.ps1`, which runs them in turn without showing a
-window and prints the table above. The dated results, with myzig 0.1.5
-against 0.1.7, are in
+three apps and `measure.ps1`. The script runs them in turn without
+showing a window and prints the table above. The dated results, with
+myzig 0.1.5 against 0.1.7, are in
 [hillclimb/notes](../hillclimb/notes/webview-memory-vs-mygo-electron-2026-10-22.md).

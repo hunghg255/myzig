@@ -1,10 +1,11 @@
 # Lists, trees, tables and grid views
 
-Collections of items: the virtualized list, trees, outlines, tables and
-grid views. All but the tree build only the rows in view (and a few
-around them), so a list of a hundred thousand rows costs what a screenful
-does. The choice they make is the app's, kept in its state; their `end`
-returns what happened in this frame.
+Collections of items.
+
+- All but the tree build only the rows in view, and a few around them: a
+  hundred thousand rows cost what a screenful does.
+- The choice they make is the app's, kept in its state.
+- Their `end` returns what happened in this frame.
 
 | Widget | For | Builds |
 |---|---|---|
@@ -15,8 +16,8 @@ returns what happened in this frame.
 | `ui.table` | rows in sortable columns under a header | the rows in view |
 | `ui.gridView` | items in a wrapping grid, as Photos' library | the rows in view |
 
-For a layout of cells in rows and columns that holds every child (a form,
-a dashboard), use [`ui.grid`](grid.md) instead.
+For a layout of cells in rows and columns that holds every child, as a
+form or a dashboard, use [`ui.grid`](grid.md) instead.
 
 <!-- demo: virtual-list height=360 -->
 
@@ -25,11 +26,6 @@ a dashboard), use [`ui.grid`](grid.md) instead.
 *A virtual list of 10,000 rows; only the visible rows are built.*
 
 ## Lists
-
-`ui.list(c, opts)` is a virtualized list, in the manner of GPUI's
-`uniform_list`: rows of one height, of which only those in view are
-built. It scrolls; `next()` gives the index of each row to build, then
-`end()` closes it:
 
 ```zig
 var rows = ui.list(c, .{ .count = s.items.len, .row_height = 36 });
@@ -42,15 +38,17 @@ while (rows.next()) |i| {
 rows.end();
 ```
 
-Each row must be `row_height` tall: build it with that height. The list
-gives each row an id from its index, so a row keeps its hover and
-animations as the list scrolls; when rows are filtered or reordered and
-their state must follow the item, key the row's content with `ui.key`
-(see [Views](views.md)).
+`ui.list(c, opts)` is a virtualized list, in the manner of GPUI's
+`uniform_list`: rows of one height, only those in view built. It
+scrolls. `next()` gives each row's index to build; `end()` closes it.
 
-`ui.ListOptions`:
+- Each row must be `row_height` tall: build it with that height.
+- Each row's id comes from its index, so it keeps its hover and
+  animations as the list scrolls.
+- When rows are filtered or reordered and their state must follow the
+  item, key the row's content with `ui.key` (see [Views](views.md)).
 
-| Field | Default | |
+| `ui.ListOptions` | Default | |
 |---|---|---|
 | `count` | | how many rows |
 | `row_height` | | each row's height, in points |
@@ -62,36 +60,50 @@ their state must follow the item, key the row's content with `ui.key`
 | `follow_end`, `follow_glide` | false, null | starts at the end and keeps it in view as rows come, gliding there ([layout](layout.md)) |
 | `choice` | null | the rows are chosen (below) |
 
-To show row `i`, scroll to `i * (row_height + gap)`. The rows' room
-above and below the view is kept by empty boxes, so the scroll bar is
-that of the whole list.
+- To show row `i`, scroll to `i * (row_height + gap)`.
+- Empty boxes stand for the rows out of view, so the scroll bar is the
+  whole list's.
 
 ### Choosing rows
 
-With `choice`, a `*ui.ListChoice` the app keeps, the list opens each row's
-box itself (`row_height` tall; build the row's content in it) and its rows
-are chosen: a click chooses a row, the arrows, Home, End and Page Up and
-Down move `choice.selected` while the list has the focus, and Enter or a
-double click submits it. `rows.result`, read after `end()`, has
-`changed`, `submitted`, `focused` and `menu_row`, the row right-clicked in
-the frame; `rows.textColor()` is the color of text on the row being built.
+With `choice`, a `*ui.ListChoice` the app keeps, the rows are chosen. The
+list opens each row's box itself, `row_height` tall, for its content.
 
-With `choice.selection`, a `*ui.Selection` (a set of the rows' keys), the
-user chooses several, as in Finder: Shift-clicks and Shift with the arrows
-extend the choice from the row it began on, Cmd-clicks (Ctrl-clicks off the
-Mac) add a row or take it out, and Cmd+A chooses every row. A press on a row
-not chosen chooses it as the pointer goes down; one on a chosen row waits
-for the release. A right-click on a row not chosen chooses it before its
-context menu opens, so the menu acts on the row it was opened on; on a
-chosen row the choice stays. `choice.menu_keeps_selection` leaves the
-choice as it is (the menu acts on `menu_row` alone). A list without a
-selection never chooses on a right-click.
+- A click chooses a row.
+- While the list has the focus, the arrows, Home, End and Page Up and Down
+  move `choice.selected`.
+- Enter or a double click submits it.
+- `rows.result`, read after `end()`, has `changed`, `submitted`, `focused`
+  and `menu_row`, the row right-clicked in the frame.
+- `rows.textColor()` is the color of text on the row being built.
 
-`choice.key` (`ui.SelectionKey.of(ctx, keyOf)`) gives each row's item an
-identity: the selection holds the items' keys, and the cursor follows its
-item as rows come, go and move, while the selection still holds it, so the
-app choosing another row at the cursor's index (a file pasted, sorted
-there; an item renamed in its place) keeps the app's choice.
+**Several rows.** With `choice.selection`, a `*ui.Selection` (a set of the
+rows' keys), the user chooses several, as in Finder:
+
+- Shift-clicks, and Shift with the arrows, extend the choice from the row
+  it began on.
+- Cmd-clicks (Ctrl-clicks off the Mac) add a row or take it out.
+- Cmd+A chooses every row.
+- A press on a row not chosen chooses it as the pointer goes down. A press
+  on a chosen row waits for the release.
+
+**Right-clicks.**
+
+- A right-click on a row not chosen chooses it before its context menu
+  opens, so the menu acts on that row.
+- On a chosen row, the choice stays.
+- `choice.menu_keeps_selection` leaves the choice as it is; the menu acts
+  on `menu_row` alone.
+- A list without a selection never chooses on a right-click.
+
+**Keys.** `choice.key` (`ui.SelectionKey.of(ctx, keyOf)`) gives each row's
+item an identity.
+
+- The selection holds the items' keys.
+- While the selection holds the cursor's item, the cursor follows it as
+  rows come, go and move.
+- So when the app chooses another row at the cursor's index (a file
+  pasted or sorted there, an item renamed in place), that choice is kept.
 
 ```zig
 s.choice = .{ .selection = &s.chosen, .key = .of(s, State.keyOf) };
@@ -104,15 +116,10 @@ rows.end();
 ```
 
 `ui.rowDoubleClicked(c, index)` tells that a row's double click landed on
-the element `index`, without taking the click from the row, which goes on
-choosing (a table's cells read it too).
+the element `index`, without taking the click from the row. Tables' cells
+use it too.
 
 ## Rows of any height
-
-`ui.measuredList(c, &state, opts)` is a virtualized list whose rows are as
-tall as their content, in the manner of GPUI's `list`: messages that wrap, a
-feed. `next()` opens each row's box, as wide as the list, for its content, and
-stops once the view is full:
 
 ```zig
 var rows = ui.measuredList(c, &s.messages, .{ .count = s.items.len, .estimate = 60, .gap = 8, .follow_end = true });
@@ -120,16 +127,20 @@ while (rows.next()) |i| ui.text(c, s.items[i].text, .{ .wrap = true });
 rows.end();
 ```
 
-The app keeps a `ui.MeasuredListState` and frees it with `deinit(gpa)`.
-Each row is measured in the frame that builds it, so what shows is never a
-guess. Rows not built yet count for `estimate`, which only the scroll bar and
-how far a jump goes read: the closer to a usual row, the steadier the bar.
-The reader's place is a row, not an offset: when rows above are measured and
-turn out taller or shorter, nothing on screen moves.
+`ui.measuredList(c, &state, opts)` is a virtualized list whose rows are as
+tall as their content, in the manner of GPUI's `list`: messages that wrap,
+a feed. `next()` opens each row's box, as wide as the list, until the
+view is full.
 
-`ui.MeasuredListOptions`:
+- The app keeps a `ui.MeasuredListState` and frees it with `deinit(gpa)`.
+- Each row is measured in the frame that builds it, so what shows is never
+  a guess.
+- Rows not built yet count as `estimate` tall. Only the scroll bar and
+  jumps use it: the closer to a usual row, the steadier the bar.
+- The reader's place is a row, not an offset: when rows above turn out
+  taller or shorter, nothing on screen moves.
 
-| Field | Default | |
+| `ui.MeasuredListOptions` | Default | |
 |---|---|---|
 | `count` | | how many rows |
 | `estimate` | 44 | about how tall a row is, in points |
@@ -139,15 +150,15 @@ turn out taller or shorter, nothing on screen moves.
 | `overscan` | 2 | rows built beyond each edge of the view |
 | `follow_end` | false | starts at the end and keeps it in view as rows come or grow, until the reader scrolls away |
 
-`state.reveal = i` brings row `i` to the top of the view in the next frame,
-unless all of it shows. A row keeps its height until it is built again or the
-list's width changes, so a row that changes out of view corrects itself when
-it comes back. When rows are filtered or sorted, or come above the others, call
-`state.reset()`: it forgets the heights, and the place is still by index.
-
-A row costs more than one of `ui.list`, which never measures: use that when
-the rows have one height. Rows are not chosen here; a row's content can be
-pressable.
+- `state.reveal = i` brings row `i` to the top of the view in the next
+  frame, unless all of it shows.
+- A row keeps its height until it is built again or the list's width
+  changes; one that changed out of view corrects itself when it is back.
+- When rows are filtered, sorted or inserted above, call `state.reset()`.
+  It forgets the heights; the place stays by index.
+- A row costs more than one of `ui.list`, which never measures: use that
+  for rows of one height.
+- Rows are not chosen here; a row's content can be pressable.
 
 ## Trees
 
@@ -156,11 +167,6 @@ pressable.
 ![A file tree beside an outline of folders.](../images/ui/tree.png)
 
 *A file tree beside an outline of folders.*
-
-`ui.tree(c, &chosen, opts)` is a tree whose items are built inside the
-item they belong to, their children showing while it is open. Items are
-named by keys the app keeps (paths, ids); `chosen.*` is the key of the
-item chosen.
 
 ```zig
 var tr = ui.tree(c, &s.chosen, .{});
@@ -177,32 +183,42 @@ _ = tr.item("build.zig", "build.zig", null);
 if (tr.end().submitted) s.open(s.chosen);
 ```
 
+`ui.tree(c, &chosen, opts)` is a tree whose items are built inside their
+parent, and show while it is open. Items are named by keys the app keeps,
+as paths or ids; `chosen.*` is the chosen item's key.
+
 `item(key, label, open)` adds an item; a null `open` makes a leaf. It
 returns true while the item's children show: build them, then
 `endChildren()`.
 
-A click on an item's arrow opens or closes it; a click elsewhere on it
-chooses it. While the tree has the keyboard focus, Up and Down choose the
-items around, Right opens the item or goes to its first child, Left
-closes it or goes to its parent, and Enter (or a double click) submits
-the choice. `ui.TreeOptions` has `width` (`.fill`), `height` (`.auto`),
-`row_height` (26) and `indent` (16, what each level adds before an
-item's arrow). The result has `changed`, `submitted` and `focused`.
+- A click on an item's arrow opens or closes it; elsewhere, chooses it.
+- With the keyboard focus, Up and Down choose the items around.
+- Right opens the item or goes to its first child. Left closes it or goes
+  to its parent.
+- Enter, or a double click, submits the choice.
+- The result has `changed`, `submitted` and `focused`.
 
-A tree builds every item it shows. For thousands of items, use an
-outline.
+| `ui.TreeOptions` | Default | |
+|---|---|---|
+| `width` | `.fill` | |
+| `height` | `.auto` | |
+| `row_height` | 26 | |
+| `indent` | 16 | what each level adds before an item's arrow |
+
+A tree builds every item it shows. For thousands of items, use an outline.
 
 ## Outlines
 
-`ui.outline(T, c, &state, roots, provider, opts)` shows a tree of items
-of type `T` as AppKit's outline view and Finder's list view do: below
-each open item its children, indented, with an arrow that opens and
-closes it. It builds only the rows in view.
+`ui.outline(T, c, &state, roots, provider, opts)` shows a tree of items of
+type `T`, as AppKit's outline view and Finder's list view do: each open
+item's children below it, indented, and an arrow to open and close it. It
+builds only the rows in view.
 
-The app keeps a `ui.OutlineState(T)`, the items open and the one chosen
-(`selected`). `provider.children(item)` returns an item's children, empty
-for one without any; `provider` is any value with that method, usually
-the app's state:
+- The app keeps a `ui.OutlineState(T)`: the items open and the one chosen
+  (`selected`).
+- `provider.children(item)` returns an item's children, empty for one
+  without any.
+- `provider` is any value with that method, usually the app's state.
 
 ```zig
 const Files = struct {
@@ -228,22 +244,31 @@ const Files = struct {
 };
 ```
 
-`next()` opens each row in view, its indent and arrow already added, and
-returns a `ui.OutlineRow(T)`: the `item`, its `depth`, `has_children` and
-its `parent` row. Add the row's content; the next `next()` closes it.
+`next()` opens each row in view, with its indent and arrow, and returns a
+`ui.OutlineRow(T)`: `item`, `depth`, `has_children` and the `parent` row.
+Add the row's content; the next `next()` closes it.
 
-Items are compared by value, and strings (`[]const u8`) by their bytes,
-so paths work as items. The state's `isOpen(item)`,
-`setOpen(gpa, item, open)` and `isSelected(item)` open folders from code
-(to reveal a file); free it with `deinit(gpa)`.
+- Items are compared by value, strings (`[]const u8`) by their bytes, so
+  paths work as items.
+- The state's `isOpen(item)`, `setOpen(gpa, item, open)` and
+  `isSelected(item)` open folders from code, to reveal a file.
+- Free the state with `deinit(gpa)`.
 
-While the outline has the focus, Up, Down, Home, End and Page Up and
-Down choose rows, Right opens the item chosen or goes to its first child,
-Left closes it or goes to its parent, and Enter (or a double click)
-submits it. Closing an item whose child was chosen chooses the item.
-Rows keep their identity (their hover) as items open and close above
-them. `ui.OutlineOptions` has `row_height` (26), `indent` (16), `width`
-and `height` (`.fill`) and `padding` (`.all(4)`).
+**Keyboard and pointer.**
+
+- With the focus, Up, Down, Home, End and Page Up and Down choose rows.
+- Right opens the item chosen or goes to its first child. Left closes it
+  or goes to its parent.
+- Enter, or a double click, submits it.
+- Closing an item whose child was chosen chooses the item.
+- Rows keep their identity and hover as items above open and close.
+
+| `ui.OutlineOptions` | Default | |
+|---|---|---|
+| `row_height` | 26 | |
+| `indent` | 16 | |
+| `width`, `height` | `.fill` | |
+| `padding` | `.all(4)` | |
 
 ## Tables
 
@@ -252,10 +277,6 @@ and `height` (`.fill`) and `padding` (`.all(4)`).
 ![A file table with sortable Name, Kind and Size columns.](../images/ui/table.png)
 
 *A file table with sortable Name, Kind and Size columns.*
-
-`ui.table(c, &state, columns, count, opts)` shows `count` rows in
-`columns` under a header, built as they show. `next()` opens each row in
-view, `cell()` each of its columns, then `end()`:
 
 ```zig
 const columns: []const ui.TableColumn = &.{
@@ -276,49 +297,78 @@ while (tb.next()) |row| {
 if (tb.end().sorted) s.sortFiles(); // by s.table.sort
 ```
 
-A `ui.TableColumn` has a `title`, a `width` in points (0 shares the room
-the other columns leave), an `alignment` (`.start`, `.center` or `.end`)
-and `sortable`.
+`ui.table(c, &state, columns, count, opts)` shows `count` rows in
+`columns` under a header, built as they show. `next()` opens each row in
+view, `cell()` each of its columns, then `end()` closes it.
 
-The app keeps a `ui.TableState`: `selected`, the row chosen, and `sort`,
-a `ui.TableSort` (`column`, `descending`) or null. A click on a sortable
-column's header sorts by it, ascending, and a second click reverses the
-order: the header shows an arrow, `end()` reports `sorted`, and the app
-sorts its rows as `state.sort` says. The table never reorders the app's
-data itself: `row` is a place in the order the app keeps.
+A `ui.TableColumn` has:
 
-A click chooses a row; while the table has the focus, the arrows, Home,
-End and Page Up and Down do, and Enter (or a double click) submits it.
-`textColor()` is the color of text on the row being built, chosen or not.
+- a `title`;
+- a `width` in points; 0 shares the room the other columns leave;
+- an `alignment`: `.start`, `.center` or `.end`;
+- `sortable`.
 
-`ui.TableOptions` has `row_height` (28), `header_height` (28), `width` and
-`height` (`.fill`), `striped` (every other row tinted, true),
-`drag_select`, `cells` and `cell_menu` (below). The result has `changed`,
-`sorted`, `submitted`, `focused`, `drag_selecting` and `menu_row` and
-`menu_col`, the row and the column right-clicked in the frame.
+The app keeps a `ui.TableState`:
+
+- `selected`, the row chosen;
+- `sort`, a `ui.TableSort` (`column`, `descending`) or null.
+
+**Sorting.**
+
+- A click on a sortable column's header sorts by it, ascending; a second
+  click reverses it. The header shows an arrow and `end()` reports
+  `sorted`.
+- The app sorts its rows as `state.sort` says. The table never reorders
+  the app's data: `row` is a place in the app's order.
+
+**Choosing.**
+
+- A click chooses a row, as do the arrows, Home, End and Page Up and Down
+  with the focus.
+- Enter, or a double click, submits it.
+- `textColor()` is the color of text on the row being built, chosen or
+  not.
+
+| `ui.TableOptions` | Default | |
+|---|---|---|
+| `row_height` | 28 | |
+| `header_height` | 28 | |
+| `width`, `height` | `.fill` | |
+| `striped` | true | every other row tinted |
+| `drag_select`, `cells`, `cell_menu` | false, false, null | below |
+| `sideways`, `frozen` | false, 0 | below |
+
+The result has `changed`, `sorted`, `submitted`, `focused`,
+`drag_selecting`, and `menu_row` and `menu_col`: the row and the column
+right-clicked in the frame.
 
 ### Choosing rows and cells
 
-With `drag_select`, a drag over the rows chooses those it goes over from
-the row it pressed, scrolling the table as the pointer nears or passes its
-top or bottom, and a Shift-click or Shift with the arrows extends the
-choice: the rows chosen are those from `state.anchor` to `state.selected`
-(`state.rows()`, `state.rowChosen(i)`). A press on a row not chosen
-chooses it as the pointer goes down, as a spreadsheet does; one on a
-chosen row waits for the release, so a drag of the choice keeps it.
-`drag_selecting` reports a drag under way, for work that follows the
-choice (a sum of what is chosen) to wait until it ends.
+**`drag_select`.** A drag chooses the rows it goes over, from the row it
+pressed, scrolling the table as the pointer nears or passes an edge.
 
-With `cells`, the table chooses a block of cells: the rows chosen times
-the columns from `state.cols[0]` to `state.cols[1]`, in the order shown. A
-click chooses a cell, a Shift-click extends the rows and the columns to
-it, and a drag chooses the cells it goes over. Left and Right move the
-cursor's column, Shift with them extends the columns, the keys that move
-the rows leave one column unless with Shift, and Cmd+A (Ctrl+A) chooses
-every row and column. The block's cells show in the gray of a chosen row;
-chosen rows are not tinted whole. `t.cellSelected(row, col)` tells a cell
-builder whether its cell is chosen, and `textColor()` is the text's color in
-it:
+- A Shift-click, or Shift with the arrows, extends the choice.
+- The rows chosen are those from `state.anchor` to `state.selected`
+  (`state.rows()`, `state.rowChosen(i)`).
+- A press on a row not chosen chooses it at once, as a spreadsheet does.
+  A press on a chosen row waits for the release, so dragging the choice
+  keeps it.
+- `drag_selecting` reports a drag under way, so work that follows the
+  choice (a sum of what is chosen) can wait for its end.
+
+**`cells`.** The table chooses a block of cells: the rows chosen times the
+columns from `state.cols[0]` to `state.cols[1]`, in the order shown.
+
+- A click chooses a cell, a Shift-click extends the block to it, a drag
+  chooses the cells it goes over.
+- Left and Right move the cursor's column; Shift with them extends the
+  columns.
+- The keys that move the rows leave one column, unless with Shift.
+- Cmd+A (Ctrl+A) chooses every row and column.
+- The block's cells show in a chosen row's gray; chosen rows are not
+  tinted whole.
+- `t.cellSelected(row, col)` tells a cell builder whether its cell is
+  chosen; `textColor()` is the text's color in it.
 
 ```zig
 var tb = ui.table(c, &s.sheet, columns, rows.len, .{ .cells = true });
@@ -328,22 +378,30 @@ while (tb.next()) |row| {
 _ = tb.end();
 ```
 
-With `state.selection` (a `*ui.Selection`, and `state.key` as a list's),
-the rows chosen are a set: Cmd-clicks add rows and take them out (and keep
-the columns), Shift extends from the row the last click was on, and Cmd+A
-chooses every row. A right-click on a row, or with `cells` on a cell,
-outside the choice chooses it before its menu opens; inside, the choice
-stays; `state.menu_keeps_selection` leaves it as it is.
+**`state.selection`.** With a `*ui.Selection`, and `state.key` as a
+list's, the rows chosen are a set.
 
-A `row_header` column, as a spreadsheet's row numbers, chooses whole rows
-with `cells`: a click or a drag on its cells chooses rows with every
-column, and a click on its header every row. It does not sort.
+- Cmd-clicks add rows and take them out, and keep the columns.
+- Shift extends from the row the last click was on.
+- Cmd+A chooses every row.
+- A right-click outside the choice, on a row or with `cells` on a cell,
+  chooses it before its menu opens. Inside, the choice stays.
+- `state.menu_keeps_selection` leaves the choice as it is.
 
-`cell_menu` (a `ui.TableCellMenu`: `ctx` and `build(ctx, menu, row, col)`)
-gives the cells a context menu over the whole cell, padding included,
-built as a [context menu](menus.md)'s is. A menu built without items does
-not open, and a context menu of what a cell holds takes the right-click
-over it instead.
+**Row headers.** A `row_header` column, as a spreadsheet's row numbers,
+chooses whole rows with `cells`.
+
+- A click or a drag on its cells chooses rows with every column.
+- A click on its header chooses every row.
+- It does not sort.
+
+**`cell_menu`.** A `ui.TableCellMenu` (`ctx` and
+`build(ctx, menu, row, col)`) gives the cells a context menu, built as a
+[context menu](menus.md)'s is.
+
+- It covers the whole cell, padding included.
+- A menu built without items does not open.
+- A context menu of what a cell holds takes the right-click over it.
 
 ```zig
 const cols: []const ui.TableColumn = &.{ .{ .title = "#", .width = 48, .row_header = true }, .{ .title = "Name" } };
@@ -351,11 +409,6 @@ var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .cell_menu = .{ 
 ```
 
 ### Scrolling sideways and frozen columns
-
-With `sideways`, columns wider than the table scroll inside it, under one
-header. With `frozen`, the first columns (hidden ones count) stay in view as the
-others scroll, as a spreadsheet's do, with a line along them once something has
-gone under them; it makes the table `sideways`:
 
 ```zig
 const cols: []const ui.TableColumn = &.{
@@ -367,22 +420,30 @@ const cols: []const ui.TableColumn = &.{
 var tb = ui.table(c, &s.grid, cols, rows.len, .{ .cells = true, .frozen = 2 });
 ```
 
-The table scrolls by its bar and, with `cells`, by Left and Right, which keep
-the cursor's column out from under the frozen ones, and by a drag choosing
-cells past either end. Columns of width 0 share the room left, at least their
-`min_width` each. `cell()` gives the columns in order and their indices are
-as always, so the cell builders change nothing. A table too narrow to show
-another column beside the frozen ones scrolls them too.
+- With `sideways`, columns wider than the table scroll inside it, under
+  one header.
+- With `frozen`, the first columns (hidden ones count) stay in view as the
+  others scroll, as a spreadsheet's do. It makes the table `sideways`.
+- A line runs along them once something has gone under them.
 
-Keep the same `sideways` as `frozen` comes and goes, or the offset starts over:
-pass `.sideways = true` where the app lets the reader freeze columns.
+- The table scrolls by its bar, by a drag choosing cells past either end
+  and, with `cells`, by Left and Right. These keep the cursor's column out
+  from under the frozen ones.
+- Columns of width 0 share the room left, at least their `min_width`
+  each.
+- `cell()` gives the columns in order with their usual indices, so cell
+  builders change nothing.
+- A table too narrow to show another column beside the frozen ones
+  scrolls them too.
+- Keep `sideways` the same as `frozen` comes and goes, or the offset starts
+  over: pass `.sideways = true` where the reader can freeze columns.
 
 ### Revealing a row
 
-`TableState.reveal` names a row the app wants shown: in the next frame the
-table scrolls it into view (as little as it takes) and clears the field. A
-row the app just added past the end, or one chosen from elsewhere (a search),
-is shown this way: `s.table.reveal = s.rows.items.len - 1;`.
+`TableState.reveal` names a row to show. In the next frame the table
+scrolls it into view, as little as it takes, and clears the field. Use it
+for a row just added past the end, or chosen from elsewhere (a search):
+`s.table.reveal = s.rows.items.len - 1;`.
 
 ## Grid views
 
@@ -391,11 +452,6 @@ is shown this way: `s.table.reveal = s.rows.items.len - 1;`.
 ![A virtual grid of selectable photo tiles.](../images/ui/grid-view.png)
 
 *A virtual grid of selectable photo tiles.*
-
-`ui.gridView(c, &state, opts)` shows items in a wrapping grid, as Photos'
-library and Finder's icon view: as many columns as fit items at least
-`min_item_width` wide, sharing the width left, in rows `row_height` tall.
-`next()` opens each item in view, its cell ready for its content:
 
 ```zig
 var g = ui.gridView(c, &s.grid, .{ .count = s.photos.len, .min_item_width = 96, .row_height = 80 });
@@ -407,14 +463,21 @@ while (g.next()) |i| {
 if (g.end().submitted) s.openPhoto(s.grid.selected.?);
 ```
 
-The app keeps a `ui.GridState`, whose `selected` is the item chosen. A
-click chooses an item; while the grid has the focus, the arrows move the
-choice in both directions, Home and End to the ends, Page Up and Down a
-screenful, and Enter (or a double click) submits it.
+`ui.gridView(c, &state, opts)` shows items in a wrapping grid, as Photos'
+library and Finder's icon view.
 
-`ui.GridViewOptions`:
+- It has as many columns as fit items at least `min_item_width` wide,
+  sharing the width left, in rows `row_height` tall.
+- `next()` opens each item in view, its cell ready for its content.
 
-| Field | Default | |
+The app keeps a `ui.GridState`, whose `selected` is the item chosen.
+
+- A click chooses an item.
+- With the focus, the arrows move the choice both ways, Home and End to
+  the ends, Page Up and Down a screenful.
+- Enter, or a double click, submits it.
+
+| `ui.GridViewOptions` | Default | |
 |---|---|---|
 | `count` | | how many items |
 | `min_item_width` | 120 | |

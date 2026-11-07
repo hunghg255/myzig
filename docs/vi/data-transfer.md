@@ -1,12 +1,17 @@
 <a id="clipboard-and-drag-data"></a>
 
-# Clipboard và kéo dữ liệu
+# Clipboard và dữ liệu kéo thả
 
-Ứng dụng di chuyển dữ liệu theo hai cách: bảng tạm (sao chép và dán) và kéo và thả. myzig có bảng nhớ tạm của hệ thống dưới dạng các lệnh gọi đơn giản trong `myzig.clipboard`, một mô hình dữ liệu cho những gì các thao tác kéo mang trong `myzig.transfer`, các tệp được thả trên cửa sổ từ trình quản lý tệp thông qua `WindowOptions.on_drop` và trên Windows các thao tác kéo rời khỏi cửa sổ cho các ứng dụng khác (`myzig.systemDrag`).
+App chuyển dữ liệu theo hai cách: clipboard (copy và paste) và kéo thả. myzig có:
 
-Kéo và thả *trong* cửa sổ giao diện native (hộp có thể kéo, mục tiêu thả, bản xem trước theo con trỏ) nằm trong [kéo và thả](ui/drag-and-drop.md); trang này trình bày về dữ liệu và những gì được đưa vào các ứng dụng khác.
+- clipboard của hệ thống, dưới dạng các hàm gọi đơn giản trong `myzig.clipboard`;
+- một mô hình dữ liệu chung cho những gì cú kéo mang theo, trong `myzig.transfer`;
+- file được thả lên cửa sổ từ trình quản lý file, qua `WindowOptions.on_drop`;
+- cú kéo rời cửa sổ sang app khác (`myzig.systemDrag`), và cú thả từ app khác vào (`myzig.systemDrop`).
 
-Ví dụ `clipboard` sao chép cùng một ghi chú dưới dạng văn bản, HTML và tệp, còn ví dụ `drag-drop` kéo ghi chú, văn bản, URL và tệp giữa hai cửa sổ và ra các ứng dụng khác:
+Kéo thả *bên trong* một cửa sổ có UI native nằm ở trang [kéo thả](ui/drag-and-drop.md): box kéo được, đích thả, bản xem trước chạy theo con trỏ. Trang này nói về dữ liệu, và về những gì đi sang app khác.
+
+Ví dụ `clipboard` copy cùng một ghi chú dưới dạng chữ, HTML và file. Ví dụ `drag-drop` kéo ghi chú, chữ, URL và file giữa hai cửa sổ và ra các app khác:
 
 ```sh
 zig build run-clipboard
@@ -15,7 +20,7 @@ zig build run-drag-drop
 
 <a id="the-clipboard"></a>
 
-## Bảng nhớ tạm
+## Clipboard
 
 ```zig
 const myzig = @import("myzig");
@@ -25,38 +30,52 @@ if (try myzig.clipboard.readText(gpa)) |s| {
     defer gpa.free(s);
 }
 
-try myzig.clipboard.writeHtml(gpa, "<b>Hello</b>", "Hello"); // with plain text for other apps
+try myzig.clipboard.writeHtml(gpa, "<b>Hello</b>", "Hello"); // kèm chữ thuần cho app khác
 if (try myzig.clipboard.readHtml(gpa)) |html| gpa.free(html);
 
-try myzig.clipboard.writeImage(gpa, png_bytes); // a PNG file's bytes
-if (try myzig.clipboard.readImage(gpa)) |png| gpa.free(png); // a screenshot, a copied image, as PNG
+try myzig.clipboard.writeImage(gpa, png_bytes); // các byte của một file PNG
+if (try myzig.clipboard.readImage(gpa)) |png| gpa.free(png); // ảnh chụp màn hình, ảnh vừa copy, dạng PNG
 
-try myzig.clipboard.writeFiles(gpa, &.{"/Users/ada/report.pdf"}); // as a file manager's Copy
+try myzig.clipboard.writeFiles(gpa, &.{"/Users/ada/report.pdf"}); // như lệnh Copy của trình quản lý file
 if (try myzig.clipboard.readFiles(gpa)) |paths| myzig.dialog.freePaths(gpa, paths);
 
-const seen = myzig.clipboard.changeCount(); // changes whenever anything writes to it
+const seen = myzig.clipboard.changeCount(); // đổi mỗi khi có thứ gì ghi vào clipboard
 ```
 
-Mỗi lần đọc trả về null khi bảng tạm không chứa loại đó; những gì nó trả về người gọi sẽ giải phóng. Việc ghi sẽ thay thế những gì mà bảng tạm đã giữ.
+- Mỗi hàm đọc trả về null khi clipboard không có loại dữ liệu đó.
+- Người gọi giải phóng những gì hàm đọc trả về.
+- Một lần ghi thay thế toàn bộ nội dung clipboard trước đó.
 
-| | văn bản | HTML | hình ảnh | tập tin |
+| | Chữ | HTML | Ảnh | File |
 |---|---|---|---|---|
-| macOS | `public.utf8-plain-text` | `public.html` | `public.png`, nếu không thì TIFF được chuyển đổi thành PNG | URL tập tin |
-| Linux | văn bản GTK | `text/html` | GdkPixbuf, dưới dạng PNG | `text/uri-list` và `x-special/gnome-copied-files` của Gnome |
-| Windows | `CF_UNICODETEXT` | "HTML Định dạng" với tiêu đề bù trừ của nó | trình duyệt ghi định dạng "PNG", nếu không thì ghi là DIB | `CF_HDROP`, dưới dạng bản sao của Explorer |
-| trình duyệt | API Clipboard (ghi); đọc trả lại những gì ứng dụng đã viết | chỉ văn bản | không | không |
+| macOS | `public.utf8-plain-text` | `public.html` | `public.png`, nếu không có thì TIFF chuyển sang PNG | URL file |
+| Linux | chữ của GTK | `text/html` | GdkPixbuf, dạng PNG | `text/uri-list` và `x-special/gnome-copied-files` của GNOME |
+| Windows | `CF_UNICODETEXT` | "HTML Format" kèm header chứa các offset | định dạng "PNG" mà trình duyệt ghi, nếu không có thì DIB | `CF_HDROP`, như Explorer copy |
+| Trình duyệt | Clipboard API (khi ghi); đọc thì trả về thứ app đã ghi | chỉ chữ | không | không |
 
-Trên Linux, những gì myzig ghi sẽ được cung cấp từ bộ nhớ cho đến khi một ứng dụng khác lấy bảng nhớ tạm, giống như GTK. `changeCount` là 0 trong trình duyệt.
+- Trên Linux, thứ myzig ghi được phục vụ từ bộ nhớ cho đến khi app khác chiếm clipboard, giống GTK.
+- `changeCount` luôn là 0 trong trình duyệt.
 
-`myzig.clipboard.writeData(&data)` viết `myzig.transfer.Data`, mọi mục ở mọi định dạng của nó; `formats()` liệt kê những gì bảng tạm chứa và `read(mime)` đọc một cái. Định dạng do nhà cung cấp `Lazy` cung cấp chỉ được tạo khi ứng dụng dán nó: trên Windows thông qua hiển thị bị trì hoãn (`WM_RENDERFORMAT`), trên macOS đến `NSPasteboardItemDataProvider`, trên Linux theo yêu cầu của GTK.
+**Dữ liệu bất kỳ.** `myzig.clipboard.writeData(&data)` ghi một `myzig.transfer.Data`, mọi item với mọi định dạng của nó. `formats()` liệt kê những gì clipboard đang có, và `read(mime)` đọc một định dạng.
 
-Các trường văn bản, vùng văn bản và trình soạn thảo của Giao diện native tự sao chép, cắt và dán văn bản qua bảng nhớ tạm. Trong các kiểm thử, `ui.Tester` có một khay nhớ tạm riêng nên các kiểm thử không bao giờ chạm vào khay nhớ tạm của người dùng.
+Định dạng do một provider `Lazy` cung cấp chỉ được tạo khi có app paste nó:
+
+- trên Windows, qua delayed rendering (`WM_RENDERFORMAT`);
+- trên macOS, qua `NSPasteboardItemDataProvider`;
+- trên Linux, khi GTK yêu cầu.
+
+Ô nhập, text area và trình soạn thảo của UI native tự copy, cut và paste chữ qua clipboard. Trong test, `ui.Tester` có clipboard riêng, nên test không bao giờ đụng tới clipboard của người dùng.
 
 <a id="transfer-data"></a>
 
-## Truyền dữ liệu
+## Dữ liệu transfer
 
-`myzig.transfer.Data` là nội dung mà thao tác kéo mang lại và là nội dung mà ứng dụng có thể xây dựng để sao chép và dán riêng: *mục* (một ghi chú, ba tệp), mỗi tệp cung cấp *định dạng* thay thế của cùng một nội dung (văn bản của ghi chú và HTML của nó), được đặt tên theo loại MIME, với các byte được cung cấp ngay bây giờ hoặc chỉ được tạo khi người nhận yêu cầu:
+`myzig.transfer.Data` là thứ mà một cú kéo mang theo. App cũng có thể tự dựng nó cho copy và paste của riêng mình.
+
+- Nó chứa các *item* có thứ tự: một ghi chú, ba file.
+- Mỗi item cung cấp nhiều *định dạng* thay thế nhau cho cùng một nội dung: chữ của ghi chú và HTML của nó.
+- Định dạng được đặt tên theo MIME type.
+- Byte được đưa ngay, hoặc chỉ được tạo khi bên nhận yêu cầu.
 
 ```zig
 const transfer = myzig.transfer;
@@ -65,7 +84,7 @@ const Note = struct {
     title: []const u8,
     body: []const u8,
 
-    /// Made once per data, when a receiver reads it.
+    /// Tạo một lần cho mỗi data, khi bên nhận đọc nó.
     fn json(n: *Note, gpa: std.mem.Allocator) anyerror![]u8 {
         return std.json.Stringify.valueAlloc(gpa, n.*, .{});
     }
@@ -78,21 +97,32 @@ var data = try transfer.Data.init(gpa, &.{.{ .reps = &.{
 defer data.deinit();
 ```
 
-`Data.init` sao chép các định dạng và byte được cung cấp. Mỗi biểu diễn là `transfer.bytes(format, bytes)` hoặc `transfer.lazy(format, provider)`, trong đó `transfer.Provider.of(ptr, func)` lấy một phương thức `fn (x: *X, gpa: std.mem.Allocator) anyerror![]u8`. Provider lazy chạy tối đa một lần cho mỗi dữ liệu, khi người nhận đọc định dạng của nó lần đầu tiên, do đó, việc kéo một tài liệu lớn sẽ không mất phí gì cho đến khi nó rơi xuống nơi muốn có định dạng đắt tiền. Những gì nó trỏ đến phải tồn tại lâu dài như dữ liệu; ví dụ `drag-drop` giữ một bản sao của ghi chú như khi quá trình kéo bắt đầu.
+`Data.init` sao chép các định dạng và byte được đưa vào. Mỗi biểu diễn là một trong hai:
 
-Tên định dạng myzig:
+- `transfer.bytes(format, bytes)`;
+- `transfer.lazy(format, provider)`. `transfer.Provider.of(ptr, func)` nhận một method `fn (x: *X, gpa: std.mem.Allocator) anyerror![]u8`.
+
+Một provider lazy chạy nhiều nhất một lần cho mỗi data, khi bên nhận đọc định dạng của nó lần đầu. Vì vậy kéo một tài liệu lớn không tốn gì cho tới khi nó được thả vào nơi cần định dạng đắt đỏ đó.
+
+Thứ mà provider trỏ tới phải sống lâu bằng data. Vì vậy ví dụ `drag-drop` giữ một bản sao của ghi chú như lúc cú kéo bắt đầu.
+
+Các định dạng myzig đặt tên:
 
 - `transfer.text` (`text/plain`), `transfer.html` (`text/html`), `transfer.markdown` (`text/markdown`), `transfer.png` (`image/png`),
-- `transfer.uri_list` (`text/uri-list`) và `transfer.file_list`, danh sách URI được biết là chứa các tệp cục bộ: danh sách tệp của hệ thống,
-- bất kỳ loại MIME nào của ứng dụng, chẳng hạn như `application/vnd.example.note+json`.
+- `transfer.uri_list` (`text/uri-list`) và `transfer.file_list`, một URI list chắc chắn chứa file cục bộ: danh sách file của hệ thống,
+- MIME type bất kỳ của riêng app, như `application/vnd.example.note+json`.
 
-Các phím tắt tạo dữ liệu chung: `transfer.textData(gpa, s)` (một mục văn bản), `transfer.fileData(gpa, paths)` (một mục trên mỗi tệp, dưới dạng URL tệp) và `transfer.valueData(gpa, T, ptr)`, giá trị Zig của quy trình này.
+Các hàm tắt tạo dữ liệu thông dụng:
+
+- `transfer.textData(gpa, s)`: một item chữ;
+- `transfer.fileData(gpa, paths)`: mỗi file một item, dạng URL file;
+- `transfer.valueData(gpa, T, ptr)`: một giá trị Zig của chính process này.
 
 <a id="reading"></a>
 
 ### Đọc
 
-Người nhận yêu cầu các định dạng mà họ muốn theo thứ tự ưu tiên:
+Bên nhận xin các định dạng nó muốn, theo thứ tự ưu tiên của nó:
 
 ```zig
 const wanted = [_][]const u8{ note_format, transfer.file_list, transfer.uri_list, transfer.text };
@@ -107,49 +137,67 @@ fn receive(data: *transfer.Data, a: std.mem.Allocator) !void {
         const s = try data.read(a, f);
         _ = s;
     } else {
-        const files = try data.files(a); // local paths
+        const files = try data.files(a); // đường dẫn cục bộ
         _ = files;
     }
 }
 ```
 
-- `data.has(format)` cho biết liệu một mục có cung cấp định dạng hay không và `data.formats(a)` liệt kê tất cả các mục đó mà không lặp lại.
-- `data.preferred(wanted)` trả về giá trị đầu tiên trong số `wanted` được cung cấp.
-- `data.read(a, format)` trả về byte của nó, các mục được kết hợp lại khi hệ thống chuyển: văn bản được nối bởi dòng mới, danh sách URI theo CRLF, các định dạng khác của mục đầu tiên. Các provider lazy chạy ngay bây giờ. Các byte nằm trong bộ nhớ của `a`: cung cấp cho nó một arena.
-- `data.files(a)` trả về đường dẫn cục bộ của danh sách tệp hoặc danh sách URI. `transfer.urlOfPath` và `transfer.pathOfUrl` chuyển đổi giữa các đường dẫn và `file:` URL (`file:///C:/x` là `C:/x` trên Windows).
-- `data.value(T)` trả về giá trị của loại `T` dữ liệu cung cấp hoặc null.
-- `data.clone(gpa)` tạo một bản sao độc lập để giữ cho dữ liệu được chuyển giao cho một frame duy nhất.
+- `data.has(format)` cho biết có item nào cung cấp định dạng đó không. `data.formats(a)` liệt kê tất cả, không trùng lặp.
+- `data.preferred(wanted)` trả về định dạng đầu tiên trong `wanted` có được cung cấp.
+- `data.read(a, format)` trả về byte của nó. Provider lazy chạy ngay lúc này. Byte nằm trong bộ nhớ của `a`: hãy truyền một arena.
+- `data.read` gộp các item như cách hệ thống làm: chữ nối bằng xuống dòng, URI list nối bằng CRLF, định dạng khác thì lấy của item đầu tiên.
+- `data.files(a)` trả về các đường dẫn cục bộ trong một file list hoặc URI list.
+- `transfer.urlOfPath` và `transfer.pathOfUrl` chuyển qua lại giữa đường dẫn và URL `file:`. Trên Windows, `file:///C:/x` là `C:/x`.
+- `data.value(T)` trả về giá trị kiểu `T` mà data cung cấp, hoặc null.
+- `data.clone(gpa)` tạo một bản sao độc lập. Dùng nó để giữ lại data mà cú thả chỉ đưa cho trong một frame.
 
 <a id="values"></a>
 
 ### Giá trị
 
-`transfer.valueData(gpa, T, ptr)` cung cấp một con trỏ tới giá trị Zig theo định dạng `transfer.value_format(T)` (`application/x-myzig-value;type=...`). Nó không bao giờ rời khỏi quy trình: dữ liệu gốc không bao giờ chứa con trỏ, vì vậy các giá trị chỉ tiếp cận các mục tiêu thả của cửa sổ riêng của ứng dụng, được đọc chúng bằng `data.value(T)`. Di chuyển một nhiệm vụ từ danh sách này sang danh sách khác thật đơn giản:
-
 ```zig
 if (d.starting) d.offer(try transfer.valueData(gpa, Task, task));
-// in the target:
+// ở đích thả:
 if (t.dropped) |drop| drop.data.value(Task).?.done = true;
 ```
 
+`transfer.valueData(gpa, T, ptr)` cung cấp một con trỏ tới giá trị Zig dưới định dạng `transfer.value_format(T)` (`application/x-myzig-value;type=...`).
+
+- Nó không bao giờ rời khỏi process: dữ liệu native không bao giờ chứa con trỏ.
+- Vì vậy giá trị chỉ tới được các đích thả trong cửa sổ của chính app. Chúng đọc nó bằng `data.value(T)`.
+- Chuyển một task từ danh sách này sang danh sách khác chỉ đơn giản như đoạn code trên.
+
 <a id="effects"></a>
 
-### Hiệu ứng
+### Hiệu ứng thả
 
-Thao tác kéo cho biết thao tác thả có thể làm gì với dữ liệu của nó, `transfer.Effects` trong số `copy`, `move` và `link` (chỉ sao chép theo mặc định; `.copy_move` cả hai) và mục tiêu cho biết những gì nó chấp nhận. `transfer.negotiate` chọn hiệu ứng: hiệu ứng mà các phím bổ trợ gợi ý khi cả hai đầu đều cho phép (Tùy chọn sao chép và Lệnh di chuyển trên macOS; Ctrl sao chép và Shift di chuyển đi nơi khác), nếu không thì sao chép, sau đó di chuyển, rồi liên kết. Một nguồn tin cho biết `.move` đã xóa giá trị của nó.
+Cú kéo cho biết cú thả được phép làm gì với dữ liệu: một `transfer.Effects` gồm `copy`, `move` và `link`. Mặc định chỉ có copy; `.copy_move` cho phép cả hai. Đích thả cho biết nó nhận gì.
+
+`transfer.negotiate` chọn hiệu ứng:
+
+1. hiệu ứng mà phím bổ trợ gợi ý, khi cả hai bên đều cho phép;
+2. nếu không thì copy, rồi move, rồi link.
+
+| Phím bổ trợ | macOS | Nơi khác |
+|---|---|---|
+| copy | Option | Ctrl |
+| move | Command | Shift |
+
+Nguồn kéo nhận được `.move` thì xóa giá trị của mình.
 
 <a id="files-dropped-on-windows"></a>
 
-## Tập tin bị rơi trên windows
+## File thả lên cửa sổ
 
-Một cửa sổ có `on_drop` chấp nhận các tệp được kéo vào đó từ Finder, Explorer và trình quản lý tệp. Trình xử lý nhận được đường dẫn tuyệt đối của chúng, hợp lệ trong suốt cuộc gọi:
+Cửa sổ có `on_drop` nhận file kéo vào từ Finder, Explorer và các trình quản lý file. Handler nhận đường dẫn tuyệt đối của chúng, chỉ hợp lệ trong lúc gọi:
 
 ```zig
 const Pane = struct {
     fn droppedFiles(p: *Pane, _: *myzig.Window, paths: []const []const u8) void {
         var data = transfer.fileData(p.gpa, paths) catch return;
         defer data.deinit();
-        p.receive(&data); // the same code as for drops within the window
+        p.receive(&data); // cùng đoạn code dùng cho cú thả bên trong cửa sổ
     }
 };
 
@@ -160,45 +208,78 @@ _ = try app.newWindow(.{
 });
 ```
 
-Đó là `NSDraggingDestination` trên macOS, đích kéo của GTK trên Linux và `WM_DROPFILES` trên Windows. Cho đến nay chỉ có các tệp được chấp nhận theo cách này; văn bản và các định dạng khác được kéo từ các ứng dụng khác thì không.
+- Đây là `NSDraggingDestination` trên macOS, drag destination của GTK trên Linux và `WM_DROPFILES` trên Windows.
+- Theo đường này chỉ có file. Với chữ và các định dạng khác từ app khác, xem [Drops from other apps](#drops-from-other-apps).
 
 <a id="drags-that-leave-the-window"></a>
 
-## Kéo rời khỏi cửa sổ
-
-Trong giao diện native, thao tác kéo rời khỏi cửa sổ của nó sẽ tiếp tục trong quá trình kéo và thả của hệ thống, để ghi chú, văn bản, URL và tệp đến được các cửa sổ và ứng dụng khác (trình soạn thảo văn bản, Explorer), khi `ui.DragDrop` của cửa sổ có `external`:
+## Kéo ra khỏi cửa sổ
 
 ```zig
 const win = try app.newWindow(.{ .title = "Notes", .content = .{ .view = .init(&pane, Pane.view) } });
 pane.dnd.external = myzig.systemDrag(win);
 ```
 
-`myzig.systemDrag(win)` trả về lực kéo của hệ thống trong đó myzig có một và null ở nơi khác, nơi các lực kéo nằm trong cửa sổ của chúng:
+Trong UI native, cú kéo rời khỏi cửa sổ có thể tiếp tục trong cơ chế kéo thả của hệ thống. Khi đó ghi chú, chữ, URL và file tới được cửa sổ khác và app khác, như trình soạn thảo văn bản hay Explorer. Điều này cần `external` trên `ui.DragDrop` của cửa sổ.
 
-- **Windows**: `DoDragDrop` của OLE, với `IDataObject` cung cấp định dạng dữ liệu khi các ứng dụng khác đọc chúng: `CF_UNICODETEXT` cho văn bản, `CF_HDROP` cho tệp, "HTML Định dạng", "PNG" và các tên MIME khác dưới dạng định dạng bảng nhớ tạm đã đăng ký. Provider lazy chạy khi ứng dụng nhận yêu cầu. Nhấn Escape để hủy; hiệu ứng rơi sẽ quay trở lại nguồn dưới dạng `finished.effect`.
-- **macOS**: phiên kéo AppKit (`beginDraggingSessionWithItems:`) của các mục trong bảng dán; **Linux**: Lực kéo của GTK, byte của mỗi định dạng được tạo khi ứng dụng được thả xuống yêu cầu.
+`myzig.systemDrag(win)` trả về cơ chế kéo của hệ thống ở nơi myzig có. Ở nơi khác nó trả về null, và cú kéo chỉ ở trong cửa sổ.
 
-`finished` (a `ui.DragFinished`) của nguồn cho biết sự việc đã kết thúc như thế nào: `effect` là điều mục tiêu đã làm, `canceled` không có gì giảm xuống, `escaped` rằng người dùng đã kéo lên (Escape, `dd.cancel()`) thay vì để nó đi qua không có mục tiêu và `screen` khi lực kéo rời khỏi cửa sổ kết thúc, theo các điểm từ màn hình chính trên cùng bên trái (null cho cái kết thúc ở cửa sổ, ở con trỏ). Ví dụ: một tab buông ra bên ngoài mọi cửa sổ là `canceled and !escaped` tại `screen`: ứng dụng sẽ mở một cửa sổ cho tab đó ở đó.
+| | Cơ chế kéo của hệ thống |
+|---|---|
+| Windows | `DoDragDrop` của OLE, với một `IDataObject` |
+| macOS | một dragging session của AppKit (`beginDraggingSessionWithItems:`) gồm các pasteboard item |
+| Linux | drag của GTK; byte của mỗi định dạng được tạo khi app nhận yêu cầu |
 
-`External` là một cặp ngữ cảnh và hàm `start`, do đó, một ứng dụng có thể tự thực hiện thao tác kéo: `start` được gọi trong khung, con trỏ rời khỏi cửa sổ và không được chặn; sau đó, bên ngoài khung, nó kéo dữ liệu của `DragDrop.active`, sau đó gọi `dd.externalEnd(.{ .effect = effect, .escaped = escaped, .screen = point })` (`dd.externalDone(effect)` khi nó không biết gì nữa; `.none` khi không có gì lấy nó) và vẽ một khung.
+Trên Windows:
+
+- `IDataObject` cung cấp các định dạng của data theo cách app khác đọc: `CF_UNICODETEXT` cho chữ, `CF_HDROP` cho file, "HTML Format", "PNG". Các tên MIME khác trở thành định dạng clipboard được đăng ký.
+- Provider lazy chạy khi app nhận yêu cầu.
+- Escape thì hủy. Hiệu ứng của cú thả quay về nguồn dưới dạng `finished.effect`.
+
+**Cú kéo kết thúc ra sao.** `finished` của nguồn, một `ui.DragFinished`, cho biết:
+
+| Trường | |
+|---|---|
+| `effect` | đích thả đã làm gì |
+| `canceled` | không có gì được thả |
+| `escaped` | người dùng bỏ cú kéo (Escape, `dd.cancel()`), chứ không phải thả ở chỗ không có đích |
+| `screen` | nơi cú kéo đã rời cửa sổ kết thúc, tính bằng điểm từ góc trên bên trái màn hình chính; null nếu nó kết thúc trong cửa sổ, tại con trỏ |
+
+Ví dụ, một tab được thả ra ngoài mọi cửa sổ là `canceled and !escaped` tại `screen`. App mở một cửa sổ cho nó ở đó.
+
+<details>
+<summary>Tự viết cơ chế kéo</summary>
+
+Một `External` là một cặp gồm context và hàm `start`, nên app có thể gắn cơ chế kéo của riêng mình.
+
+1. `start` được gọi trong frame mà con trỏ rời cửa sổ. Nó không được block.
+2. Sau đó, bên ngoài frame, nó kéo data của `DragDrop.active`.
+3. Rồi nó gọi `dd.externalEnd(.{ .effect = effect, .escaped = escaped, .screen = point })`, hoặc `dd.externalDone(effect)` khi không biết gì thêm. Hiệu ứng là `.none` khi không có gì nhận.
+4. Nó vẽ một frame.
+
+</details>
 
 <a id="drops-from-other-apps"></a>
 
-## Giảm từ các ứng dụng khác
+## Thả từ app khác
 
 ```zig
 try myzig.systemDrop(window, &state.dnd, &.{"application/x-myapp"});
 ```
 
-`myzig.systemDrop` tạo một cửa sổ giao diện native lấy những gì các ứng dụng khác kéo vào đó (văn bản, URL, HTML, tệp, hình ảnh và các loại bổ sung được đặt tên) vào mục tiêu `ui.DragDrop` của nó, vì các thao tác kéo trong cửa sổ là ([kéo và thả](ui/drag-and-drop.md)): IDropTarget của OLE trên Windows, đích kéo của GTK trên Linux, NSDragDestination trên macOS. Các trang tự giảm xuống, giống như trình duyệt.
+`myzig.systemDrop` cho một cửa sổ có UI native nhận những gì app khác kéo vào, đưa tới các đích thả trong `ui.DragDrop` của nó. Đó là chữ, URL, HTML, file, ảnh và các kiểu bổ sung được liệt kê. Nó hoạt động giống cú kéo bên trong cửa sổ ([kéo thả](ui/drag-and-drop.md)).
+
+- Đây là IDropTarget của OLE trên Windows, drag destination của GTK trên Linux và NSDraggingDestination trên macOS.
+- Trên Windows, file không đích nào nhận vẫn tới `on_drop` của cửa sổ.
+- Trang web tự nhận cú thả, như trình duyệt.
 
 <a id="platform-differences"></a>
 
-## Sự khác biệt về nền tảng
+## Khác biệt giữa các nền tảng
 
-| | bìa kẹp hồ sơ | tập tin bị rơi trên windows | kéo ra khỏi cửa sổ |
+| | Clipboard | File thả lên cửa sổ | Kéo ra khỏi cửa sổ |
 |---|---|---|---|
-| macOS | văn bản, HTML, hình ảnh, tập tin | vâng | NSKéoNguồn |
-| Linux | văn bản, HTML, hình ảnh, tập tin | vâng | Nguồn kéo của GTK |
-| Windows | văn bản, HTML, hình ảnh, tập tin | vâng | OLE |
-| trình duyệt | văn bản | không | không |
+| macOS | chữ, HTML, ảnh, file | có | NSDraggingSource |
+| Linux | chữ, HTML, ảnh, file | có | drag source của GTK |
+| Windows | chữ, HTML, ảnh, file | có | OLE |
+| Trình duyệt | chữ | không | không |

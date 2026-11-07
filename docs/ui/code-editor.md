@@ -1,13 +1,8 @@
 # Code editor and diff viewer
 
 `ui.codeEditor` edits source code, after Zed's editor and mygo's
-`ui/editor`: a gutter of line numbers, syntax colors, the caret's line
-filled, indentation, brackets and quotes that close as they are typed,
-the bracket at the caret matched, a find bar that also replaces (by case,
-whole words, or regular expressions), going to a line, and soft wraps or
-long lines scrolled sideways. `ui.diffView` shows the changes between two
-texts, unified or side by side. Both build only the lines in view, so a
-file of 100 000 lines costs what a screenful does.
+`ui/editor`. `ui.diffView` shows the changes between two texts, unified or
+side by side.
 
 <!-- demo: code-editor height=335 -->
 
@@ -28,8 +23,21 @@ var s: Editor = .{ .code = .init(gpa, source, "main.zig") };
 defer s.code.deinit();
 ```
 
+The editor has:
+
+- a gutter of line numbers, syntax colors, and the caret's line filled;
+- indentation, and brackets and quotes that close as they are typed;
+- the bracket at the caret matched;
+- a find bar that also replaces: by case, whole words, or regular
+  expressions;
+- going to a line;
+- soft wraps, or long lines scrolled sideways.
+
+Both widgets build only the lines in view, so a file of 100 000 lines
+costs what a screenful does.
+
 `zig build run-code-editor` edits files of several languages, with their
-changes against the files as they were (`examples/code-editor`); headless:
+changes against the files as they were (`examples/code-editor`). Headless:
 `zig-out/bin/code-editor --myzig-snapshot=diff.png --myzig-script="click:Changes"`.
 
 ## The editor
@@ -66,34 +74,47 @@ ui.text(c, c.print("Ln {d}, Col {d}", .{ line + 1, col + 1 }), .{ .size = 12 });
 const modified = ta.doc.canUndo();
 ```
 
-`ui.CodeEditorOptions`: `width` and `height` (`.fill`), `size` (13),
-`line_numbers` (true), `current_line` (true: fill the caret's line),
-`leading` (1.45, the line height as a multiple of the font's), `weight`
-(or `weight_value`, 100 to 900), `family` (the theme's monospaced one
-when null), `features` (OpenType, as `ui.TextStyle` takes them) and
-`placeholder`. It returns what a text area does (`changed`, `focused`,
-`first_line`, `last_line`).
+`ui.CodeEditorOptions`:
+
+| Field | Default | |
+|---|---|---|
+| `width`, `height` | `.fill` | |
+| `size` | 13 | the text's size |
+| `line_numbers` | true | the gutter of line numbers |
+| `current_line` | true | fills the caret's line |
+| `leading` | 1.45 | the line height, as a multiple of the font's |
+| `weight` | `.regular` | or `weight_value`, 100 to 900 |
+| `family` | `null` | the font; null is the theme's monospaced one |
+| `features` | `""` | OpenType features, as `ui.TextStyle` takes them |
+| `placeholder` | `""` | |
+
+It returns what a text area does: `changed`, `focused`, `first_line`,
+`last_line`.
 
 ## What the app adds to the lines
-
-`extra`, a `ui.CodeEditor.Extra`, lets the app decorate the lines as they
-are built, for only the lines in view: `marks(ctx, c, line, start, str)`
-returns backgrounds of runs (`ui.TextMark`s: byte ranges of the line and a
-color: the other occurrences of a word; an `end` of `ui.TextMark.whole`
-fills the line across the view, under the selection: conflict blocks), `gutter(ctx, c,
-line)` a color for a bar along the gutter's left edge (the lines changed
-since a commit), and `after(ctx, c, line)` a `ui.TextAfter`, faint text
-after the line's end (the caret line's blame, a note). A press in the
-gutter sets `area.gutter_press` to its line, for the app to read and clear.
 
 ```zig
 s.code.extra = .{ .ctx = s, .gutter = State.changed, .after = State.blame };
 s.code.guides = c.theme.text.alpha(0.08);
 ```
 
+`extra`, a `ui.CodeEditor.Extra`, lets the app decorate the lines as they
+are built, for only the lines in view:
+
+| Callback | Returns |
+|---|---|
+| `marks(ctx, c, line, start, str)` | backgrounds of runs: `ui.TextMark`s, byte ranges of the line and a color (the other occurrences of a word) |
+| `gutter(ctx, c, line)` | a color for a bar along the gutter's left edge (the lines changed since a commit) |
+| `after(ctx, c, line)` | a `ui.TextAfter`, faint text after the line's end (the caret line's blame, a note) |
+
+- A mark with an `end` of `ui.TextMark.whole` fills the line across the
+  view, under the selection: conflict blocks.
+- A press in the gutter sets `area.gutter_press` to its line, for the app
+  to read and clear.
+
 ## Keys
 
-Besides a text area's keys ([Text area](text-area.md#editing)); "Mod" is
+Besides a text area's keys ([Text area](text-area.md#editing)). "Mod" is
 Command on macOS and Control elsewhere:
 
 | keys | does |
@@ -112,50 +133,66 @@ Command on macOS and Control elsewhere:
 As code is typed:
 
 - Enter keeps the line's indentation, one level more after an opening
-  bracket, and puts the closing bracket on a line of its own between a
-  pair.
-- Brackets and quotes close as they are typed, wrap the selection when
-  there is one, and typing the closing one steps over it; Backspace takes
-  an empty pair.
-- The bracket at the caret and its partner are marked, its partner looked
-  for within 2000 lines and 64 KB (a few long lines are a whole file).
+  bracket. Between a pair, it puts the closing bracket on a line of its
+  own.
+- Brackets and quotes close as they are typed, and wrap the selection
+  when there is one. Typing the closing one steps over it. Backspace
+  takes an empty pair.
+- The bracket at the caret and its partner are marked. The partner is
+  looked for within 2000 lines and 64 KB (a few long lines are a whole
+  file).
 
 ## Languages
 
-The editor highlights what the [Markdown](markdown.md) view highlights
-(Zig, JavaScript and TypeScript, Go, Python, Rust, C and its family,
-markup, Markdown, diffs and some sixty others), by the file's extension or
-a language's name. `ui.languageFor(name)` finds the language of a file name
-(null when there is none). Lines are tokenized a line at a time from the
-state each starts in (inside a block comment, a multiline string), and
-the states are kept per line: after an edit, only the lines from it are
-tokenized again, until one starts in the state it started in before, and
-only as far as the lines shown. Of a line longer than 20 000 bytes the
-first 20 000 are colored and the rest is plain, as VS Code does, and a long
-line's colors are kept until the text changes: long lines are laid out a
-frame's budget at a time, as a [text area](text-area.md)'s.
+The editor highlights what the [Markdown](markdown.md) view highlights,
+by the file's extension or a language's name: Zig, JavaScript and
+TypeScript, Go, Python, Rust, C and its family, markup, Markdown, diffs
+and some sixty others. `ui.languageFor(name)` finds the language of a
+file name (null when there is none).
+
+- Lines are tokenized one at a time, from the state each starts in:
+  inside a block comment, a multiline string. The states are kept per
+  line.
+- After an edit, only the lines from it are tokenized again, until one
+  starts in the state it started in before. And only as far as the lines
+  shown.
+- Of a line longer than 20 000 bytes, the first 20 000 are colored and
+  the rest is plain, as VS Code does.
+- A long line's colors are kept until the text changes. Long lines are
+  laid out a frame's budget at a time, as a
+  [text area](text-area.md)'s are.
 
 ## Find and replace
 
-The find bar finds the query's matches a line at a time, as plain text
-(with or without case, whole words) or as a regular expression, found
-again only when the query, its options or the text change. Replace
-replaces the current match or all of them; with a regular expression, `$1`
-to `$9` put its groups in the replacement.
+- The find bar finds the query's matches a line at a time. It matches as
+  plain text (with or without case, whole words) or as a regular
+  expression.
+- Matches are found again only when the query, its options or the text
+  change.
+- Replace replaces the current match or all of them. With a regular
+  expression, `$1` to `$9` put its groups in the replacement.
 
-An app with a find bar of its own look sets `own_find_bar`: the editor
-draws none, and the app's bar edits `find.query` and `find.replacement`,
-calls `find.step` and `find.replaceOne` / `replaceAll`, gives its fields
-the keyboard when `focus_next` asks (`.query`, `.replacement`), keeps
-their ids in `query_id` and `replacement_id`, and closes with
-`closeBars()`; `ui.findBarEscaped(c, id)` says a field took Escape.
+An app with a find bar of its own look sets `own_find_bar`. The editor
+then draws none, and the app's bar:
+
+- edits `find.query` and `find.replacement`;
+- calls `find.step` and `find.replaceOne` / `replaceAll`;
+- gives its fields the keyboard when `focus_next` asks (`.query`,
+  `.replacement`);
+- keeps their ids in `query_id` and `replacement_id`;
+- closes with `closeBars()`. `ui.findBarEscaped(c, id)` says a field took
+  Escape.
 
 Regular expressions are matched by a small backtracking machine
-(`src/ui/editor/regex.zig`): literals and escapes (`\d \w \s \b` and their
-negations, `\t \n`), `.`, classes (`[a-z]`, `[^…]`), anchors (`^ $`),
-groups (capturing and `(?:…)`), alternation, and the quantifiers `* + ?
-{n} {n,} {n,m}`, greedy or lazy. A budget of steps keeps a pathological
-pattern from hanging the editor: past it, a line doesn't match.
+(`src/ui/editor/regex.zig`). It knows:
+
+- literals and escapes: `\d \w \s \b` and their negations, `\t \n`;
+- `.`, classes (`[a-z]`, `[^…]`) and anchors (`^ $`);
+- groups, capturing and `(?:…)`, and alternation;
+- the quantifiers `* + ? {n} {n,} {n,m}`, greedy or lazy.
+
+A budget of steps keeps a pathological pattern from hanging the editor:
+past it, a line doesn't match.
 
 ## The diff viewer
 
@@ -177,40 +214,53 @@ ui.diffView(c, &d, .{});
 ```
 
 A `ui.DiffView` compares two texts line by line and keeps the rows it
-shows. `init(gpa, old, new, name)` copies both texts and highlights them
-as the language of `name`; `set(old, new)` compares new texts (the editor
-example does so when the editor's `area.doc.version` changes).
+shows.
 
+- `init(gpa, old, new, name)` copies both texts and highlights them as
+  the language of `name`.
+- `set(old, new)` compares new texts. The editor example does so when
+  the editor's `area.doc.version` changes.
 - `setMode(mode)`: `ui.DiffMode.unified` (the deleted lines over the added
   ones) or `.split` (side by side, lines aligned).
 - `context`: the unchanged lines shown around each change (3). Longer runs
-  between changes collapse into a row that a click expands;
+  between changes collapse into a row that a click expands.
   `expandAll()` and `collapseAll()` do it for every run.
 - `stats()`: the lines `added` and `deleted`.
+- `scroll_to`, a row, shows that row at the top in the next frame.
 
-Each side has its line numbers and syntax colors, and the words that
-changed within a changed line are marked, unless the two lines are less
-alike than `ui.DiffViewOptions.min_same` (0.3 of their bytes the same).
-The options also have `width`, `height`, `size` (13), `colors` (the
-tokens', a `ui.SyntaxColors`), `digits` (of the numbers' column), and
-`family`, `features` and `weight_value` as the editor has them.
-`scroll_to`, a row, shows that row at the top in the next frame.
+Each side has its line numbers and syntax colors. Within a changed line,
+the words that changed are marked, unless the two lines are less alike
+than `min_same`.
 
-Several diffs in one scroll (each file under a header, rows of the app's
-own between them) are built from rows: after `dv.build()`, `ui.diffRow(c,
-&dv, i, opts)` builds row `i` of `dv.rows`, `ui.diffRowHeight(c, opts)`
-tall, in a list of the app's. Long lines wrap there as pieces of rows:
-`ui.diffWrapColumns(c, &dv, opts, width, split)` is how many characters a
-side has room for, `ui.diffRowParts(&dv, i, cols)` how many pieces row `i`
-takes, and `ui.diffRowPart(c, &dv, i, opts, part, cols)` builds one (the
-line numbers and the sign on the first).
+`ui.DiffViewOptions`:
+
+| Field | Default | |
+|---|---|---|
+| `min_same` | 0.3 | the part of two lines' bytes that must be the same to mark their words |
+| `width`, `height` | `.fill` | |
+| `size` | 13 | the text's size |
+| `colors` | `null` | the tokens', a `ui.SyntaxColors`; null is the light or dark default |
+| `digits` | 0 | of the numbers' column; 0 is as many as the texts need |
+| `family`, `features`, `weight_value` | | as the editor has them |
+
+**Several diffs in one scroll**, each file under a header with rows of
+the app's own between them, are built from rows. After `dv.build()`:
+
+- `ui.diffRow(c, &dv, i, opts)` builds row `i` of `dv.rows`,
+  `ui.diffRowHeight(c, opts)` tall, in a list of the app's.
+- Long lines wrap there as pieces of rows.
+  `ui.diffWrapColumns(c, &dv, opts, width, split)` is how many characters
+  a side has room for.
+- `ui.diffRowParts(&dv, i, cols)` is how many pieces row `i` takes.
+- `ui.diffRowPart(c, &dv, i, opts, part, cols)` builds one. The line
+  numbers and the sign are on the first.
 
 ## Comparing texts yourself
 
-`ui.diff` is the comparison under the viewer, as mygo's `internal/diff`:
-Myers's O(ND) algorithm in linear space, with xdiff's cost limit, which
-bounds the time on large unrelated texts at the price of a diff that may
-not be minimal.
+`ui.diff` is the comparison under the viewer, as mygo's `internal/diff`.
+It is Myers's O(ND) algorithm in linear space, with xdiff's cost limit.
+The limit bounds the time on large unrelated texts, at the price of a
+diff that may not be minimal.
 
 ```zig
 const old_lines = try ui.diff.splitLines(gpa, before);
@@ -224,13 +274,14 @@ for (hunks) |h| {
 }
 ```
 
-- `diff.lines(gpa, a, b)` compares sequences of lines, `diff.ints(gpa, a,
-  b)` of integers; both return `diff.Hunk`s (`a0`, `a1`, `b0`, `b1`;
-  `a0 == a1` is an insertion, `b0 == b1` a deletion).
-- `diff.words(gpa, a, b)` compares two lines word by word: the byte ranges
-  of each that changed, joined across the spaces between them, and `same`,
-  how much of them stayed the same, from 0 to 1. Free it with
-  `deinit(gpa)`.
+- `diff.lines(gpa, a, b)` compares sequences of lines, and
+  `diff.ints(gpa, a, b)` sequences of integers. Both return `diff.Hunk`s:
+  `a0`, `a1`, `b0`, `b1`. `a0 == a1` is an insertion, `b0 == b1` a
+  deletion.
+- `diff.words(gpa, a, b)` compares two lines word by word. It returns the
+  byte ranges of each that changed, joined across the spaces between
+  them, and `same`: how much of them stayed the same, from 0 to 1. Free
+  it with `deinit(gpa)`.
 
 ## Testing
 

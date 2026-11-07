@@ -5,14 +5,20 @@
 ![Invoices with search, status filtering, column visibility and pagination.](../images/ui/data-table.png)
 
 The Gallery's **Data table** page composes `textField`, checkboxes,
-`table`, `pagination`, `skeleton` and `empty`. Search and status filtering
-run before sorting, then pagination slices the matching rows. A filter or
-sort change clears the row cursor; filter changes also reset the page.
-Loading and no-results states are demonstrated separately.
+`table`, `pagination`, `skeleton` and `empty`.
 
-Columns support `hidden`, `min_width` and `max_width`. Hidden headers and
-cells are omitted, but `table.cell()` and `state.sort.column` still return
-the original column indices. Cell arrows skip hidden columns.
+- Search and status filtering run before sorting. Then pagination slices
+  the matching rows.
+- A filter or sort change clears the row cursor. A filter change also
+  resets the page.
+- Loading and no-results states are shown separately.
+
+Columns support `hidden`, `min_width` and `max_width`.
+
+- Hidden headers and cells are left out.
+- `table.cell()` and `state.sort.column` still return the original
+  column indices.
+- Cell arrows skip hidden columns.
 
 ```zig
 // State:
@@ -33,19 +39,23 @@ const result = table.end();
 if (result.resized) saveColumnPreferences();
 ```
 
-`column_widths` is an optional app-owned mutable slice parallel to all
-columns, including hidden columns. Providing it enables resize grips.
-Positive widths are clamped to each column's limits; zero shares remaining
-space until resized. Widths do not change just because the window shrinks.
-Drag a grip, or focus it and use Left/Right (ten points), Home (minimum) or
-End (maximum). Right-to-left layout reverses the arrow direction. Grips
-are accessible splitters and do not trigger sorting.
+**Resizing.** `column_widths` is an optional mutable slice the app owns.
+It has one width per column, hidden columns included. Passing it turns
+on resize grips.
 
-A table too wide for its box scrolls with `.sideways = true`, and keeps its
-first columns in view with `.frozen = n`: see
+- Positive widths are clamped to each column's limits.
+- A zero width shares the remaining space until resized.
+- Widths do not change just because the window shrinks.
+- Drag a grip, or focus it and use Left/Right (ten points), Home
+  (minimum) or End (maximum).
+- Right-to-left layout reverses the arrows.
+- Grips are accessible splitters. They do not trigger sorting.
+
+A table too wide for its box scrolls with `.sideways = true`. It keeps
+its first columns in view with `.frozen = n`. See
 [lists, trees and tables](lists.md).
 
-Sorting remains app-owned; `result.sorted` reports a change. If selection
-must survive reordering or filtering, supply stable row keys as described
-in [lists, trees and tables](lists.md). See the complete
+Sorting stays with the app; `result.sorted` reports a change. If the
+selection must survive reordering or filtering, supply stable row keys,
+as [lists, trees and tables](lists.md) describes. See the complete
 [Gallery composition](../../examples/gallery/data_table.zig).

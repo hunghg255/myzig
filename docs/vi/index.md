@@ -4,10 +4,10 @@ layout: home
 hero:
   name: myzig
   text: Ứng dụng desktop bằng Zig
-  tagline: Giao diện native được vẽ trên GPU hoặc frontend web trong webview hệ thống. Một file thực thi nhỏ gọn cho macOS, Linux, Windows và trình duyệt.
+  tagline: Giao diện native vẽ bằng GPU, hoặc frontend web trong webview của hệ thống. Một file chạy dưới một megabyte, trên macOS, Linux, Windows và trình duyệt.
   image:
     src: /logo.png
-    alt: Logo myzig
+    alt: Logo của myzig
   actions:
     - theme: brand
       text: Bắt đầu
@@ -24,21 +24,21 @@ hero:
 
 features:
   - title: Giao diện native chỉ bằng Zig
-    details: Bố cục flexbox và grid, bộ widget đầy đủ, chuyển động, shader và khả năng tiếp cận. Mỗi frame dùng một lệnh vẽ instancing với Metal, Direct3D 11, OpenGL hoặc WebGL 2.
+    details: Flexbox và grid, đủ bộ widget, chuyển động, shader và hỗ trợ tiếp cận. Mỗi frame là một lệnh vẽ instanced, với Metal, Direct3D 11, OpenGL hoặc WebGL 2.
     link: /vi/ui/README
   - title: Trang web với IPC có kiểu
-    details: WKWebView, WebKitGTK hoặc WebView2 gọi Zig qua JavaScript client được sinh từ kiểu Zig, kèm khai báo TypeScript, sự kiện và channel.
+    details: WKWebView, WebKitGTK hoặc WebView2 gọi Zig qua một client JavaScript sinh ra từ các kiểu Zig của bạn, kèm khai báo TypeScript, event và channel.
     link: /vi/bindings
-  - title: CPU kết xuất cùng kết quả pixel
-    details: Bộ kết xuất CPU của myzig vẽ cùng kết quả với các backend GPU trên nhiều lõi, đồng thời là bản đối chiếu để kiểm thử từng shader.
+  - title: CPU cho ra đúng những pixel đó
+    details: Renderer CPU vẽ đúng những gì mọi renderer GPU vẽ, trên nhiều lõi. Mỗi shader được test đối chiếu với nó.
     link: /vi/ui/rendering
-  - title: Kiểm thử không cần mở cửa sổ
-    details: ui.Tester kết xuất view ngoài màn hình; ứng dụng thật chạy headless với --myzig-snapshot, --myzig-script và --myzig-eval.
+  - title: Test không cần cửa sổ
+    details: ui.Tester render view ngoài màn hình. App thật chạy headless với --myzig-snapshot, --myzig-script và --myzig-eval.
     link: /vi/ui/testing
-  - title: Build từ mọi máy
-    details: Thư viện Linux và Windows được nạp khi chạy thay vì liên kết lúc build, nên có thể dùng -Dtarget để tạo binary trên máy khác. Không cần C shim hay cgo.
+  - title: Build từ máy nào cũng được
+    details: Thư viện của Linux và Windows được nạp lúc chạy chứ không link, nên -Dtarget build được binary cho chúng ở bất kỳ đâu. Không C shim, không cgo, không phải cài gì lúc build.
     link: /vi/distribution
-  - title: Đo hiệu năng đối chiếu với mygo
-    details: Bộ benchmark headless so sánh từng cảnh với mygo và các lần chạy trước; chỉ giữ thay đổi khi số đo cho thấy cải thiện.
+  - title: Đo đối chiếu với mygo
+    details: Hill climb chạy headless so từng cảnh với mygo và với các lần chạy trước. Một thay đổi chỉ được giữ khi nó leo lên.
     link: /vi/ui/performance
 ---

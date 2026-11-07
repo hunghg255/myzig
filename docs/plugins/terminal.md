@@ -1,11 +1,12 @@
 # terminal
 
 A terminal for native UI: a view that runs the user's shell, or any
-program, in a pseudo-terminal, with [Ghostty](https://ghostty.org)'s
-terminal emulator, libghostty-vt, loaded at run time (LoadLibrary on
-Windows, dlopen elsewhere): nothing is linked and no C is compiled.
+program, in a pseudo-terminal. The emulator is
+[Ghostty](https://ghostty.org)'s libghostty-vt, loaded at run time
+(LoadLibrary on Windows, dlopen elsewhere). Nothing is linked and no C is
+compiled.
 
-The package is `plugins/terminal` (module `terminal`); it depends on
+The package is `plugins/terminal` (module `terminal`). It depends on
 [mainthread](mainthread.md). See [Plugins](../plugins.md) for adding it to
 an app.
 
@@ -61,9 +62,11 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-`terminal.view(c, term, opts)` draws the terminal and takes its input;
-`ViewOptions` are `padding` (4 points around the grid) and `autofocus`
-(take the keyboard focus when nothing has it).
+`terminal.view(c, term, opts)` draws the terminal and takes its input.
+`ViewOptions` are:
+
+- `padding`: 4 points around the grid;
+- `autofocus`: take the keyboard focus when nothing has it.
 
 ## Options
 
@@ -82,66 +85,113 @@ pub fn main(init: std.process.Init) !void {
 | `font_family` | null | a family of its own; the theme's monospaced one when null |
 | `font_features` | `""` | OpenType features, as `ui.TextStyle.features` takes them (`"calt=0"`) |
 | `font_weight` | 0 | 100 to 900, bold three hundred heavier; 0 for regular and bold |
-| `on_event` | null | `.{ .ctx, .func }`: `.output` (redraw), `.title`, `.bell`, `.exit`, and `.notify` (a desktop notification a program asked for with OSC 9 or OSC 777; `t.notification()` is its title and body), on the main thread |
+| `on_event` | null | `.{ .ctx, .func }`, called on the main thread (below) |
 | `open_link` | null | opens a link Ctrl+click chose (a hyperlink, a URL, a file path); otherwise the system opens URLs |
 | `copy_on_select` | false | copies what a drag, a double or a triple click selects as the pointer lets go |
-| `scroll_multiplier` | `.{ .precision = 1, .discrete = 3 }` | scales scrolling, as Ghostty's `mouse-scroll-multiplier`: `precision` a touchpad's distance, `discrete` about the rows a wheel's notch scrolls (3 is the system's notch); `term.opts.scroll_multiplier` may change while it shows |
+| `scroll_multiplier` | `.{ .precision = 1, .discrete = 3 }` | scales scrolling, as Ghostty's `mouse-scroll-multiplier` (below) |
 | `read_clipboard` | null | reads the clipboard's text for a paste; the system's when null |
 
-A `Terminal` also has `send(bytes)` (type into the program), `paste(data)`,
-`feed(bytes)` (show bytes as if the program wrote them), `resize(cols,
-rows, cell_w, cell_h)`, `start()`, `title(gpa)`, `text(gpa)` (the screen's
-text), `snapshot(gpa)` (escape sequences that restore the screen),
-`exitCode()` and `waitOutput(seen)` (for tests and tools).
+`on_event` gets these events, on the main thread:
+
+- `.output`: redraw.
+- `.title`: the title changed.
+- `.bell`.
+- `.exit`: the program ended.
+- `.notify`: a desktop notification a program asked for with OSC 9 or
+  OSC 777. `t.notification()` is its title and body.
+
+`scroll_multiplier` has two fields. `term.opts.scroll_multiplier` may
+change while the terminal shows.
+
+- `precision` scales a touchpad's distance.
+- `discrete` is about the rows a wheel's notch scrolls. 3 is the system's
+  notch.
+
+A `Terminal` also has these, for tests and tools:
+
+| method | |
+|---|---|
+| `send(bytes)` | types into the program |
+| `paste(data)` | pastes |
+| `feed(bytes)` | shows bytes as if the program wrote them |
+| `resize(cols, rows, cell_w, cell_h)` | |
+| `start()` | |
+| `title(gpa)` | |
+| `text(gpa)` | the screen's text |
+| `snapshot(gpa)` | escape sequences that restore the screen |
+| `exitCode()`, `waitOutput(seen)` | |
 
 ## What it does
 
-- **The program** runs in a pseudo-terminal: on Windows the Windows
-  Terminal team's ConPTY (`conpty.dll` with `OpenConsole.exe`, as mygo
-  ships it), else Windows' own; elsewhere `/dev/ptmx` through libc. The
-  shell is `$SHELL` (else `/bin/zsh` on macOS, `/bin/sh` elsewhere), and
-  PowerShell on Windows; `TERM=xterm-256color` and `COLORTERM=truecolor`
-  are set. It starts at the size the view's first frame gives it. A reader
-  thread feeds its output to the emulator, a writer thread types into it in
-  order, and events reach the app on the main thread: nothing polls.
-- **The screen**: colors (16, 256, 24-bit), bold, italic, faint, inverse,
-  invisible, underlines (in their own colors), lines through and over, the
-  scrollback and the alternate screen, the cursor (hollow while the view is
-  not focused), the selection, and a scrollbar while the scrollback shows.
-  Text is myzig's monospace font, in runs of one style placed on the grid.
-- **Keys** as programs ask: legacy sequences, xterm's modifyOtherKeys or the
-  Kitty keyboard protocol (Ghostty's key encoder), with arrows, function
-  keys, Ctrl and Alt; typed text goes by its key, IME text as it comes.
-  Ctrl+Shift+C, V and A (Command on macOS) copy, paste and select all; on
-  Windows Ctrl+C copies when something is selected (and interrupts
-  otherwise) and Ctrl+V pastes; Shift+Page Up and Down scroll by pages.
-- **The pointer**: reports (X10, normal, button, any-motion; SGR and the
-  other encodings) to programs that take the mouse, Shift selecting
-  instead; a drag selects cells, a double click words, a triple click
-  lines, and a Shift-click extends or shrinks a selection from where it
-  started, across lines too; the wheel scrolls the scrollback, or sends arrows on a full-screen
-  program's screen (alternate scroll), or wheel reports.
+**The program**
+
+- It runs in a pseudo-terminal. On Windows that is the Windows Terminal
+  team's ConPTY (`conpty.dll` with `OpenConsole.exe`, as mygo ships it),
+  else Windows' own. Elsewhere it is `/dev/ptmx` through libc.
+- The shell is `$SHELL`, else `/bin/zsh` on macOS and `/bin/sh`
+  elsewhere. On Windows it is PowerShell.
+- `TERM=xterm-256color` and `COLORTERM=truecolor` are set.
+- It starts at the size the view's first frame gives it.
+- A reader thread feeds its output to the emulator. A writer thread types
+  into it in order.
+- Events reach the app on the main thread. Nothing polls.
+
+**The screen**
+
+- Colors (16, 256, 24-bit), bold, italic, faint, inverse, invisible.
+- Underlines in their own colors, lines through and over.
+- The scrollback and the alternate screen.
+- The cursor, hollow while the view is not focused.
+- The selection, and a scrollbar while the scrollback shows.
+- Text is myzig's monospace font, in runs of one style placed on the
+  grid.
+
+**Keys**
+
+- Keys go as programs ask: legacy sequences, xterm's modifyOtherKeys or
+  the Kitty keyboard protocol (Ghostty's key encoder).
+- That covers arrows, function keys, Ctrl and Alt. Typed text goes by its
+  key, IME text as it comes.
+- Ctrl+Shift+C, V and A (Command on macOS) copy, paste and select all.
+- On Windows, Ctrl+C copies when something is selected and interrupts
+  otherwise. Ctrl+V pastes.
+- Shift+Page Up and Down scroll by pages.
+
+**The pointer**
+
+- Programs that take the mouse get reports: X10, normal, button,
+  any-motion, in SGR and the other encodings. Shift selects instead.
+- A drag selects cells, a double click words, a triple click lines.
+- A Shift-click extends or shrinks a selection from where it started,
+  across lines too.
+- The wheel scrolls the scrollback. On a full-screen program's screen it
+  sends arrows (alternate scroll), or wheel reports.
+
+**The rest**
+
 - **Pastes** are bracketed when the program asks (mode 2004), and focus
   reports (mode 1004) are sent.
 - **Titles** (OSC 0 and 2) come as `.title` events; `title()` reads them.
 - **Links**: Ctrl+click (Command+click on macOS) opens a hyperlink
-  (OSC 8), a URL printed as text, or a file path through `open_link`
-  (absolute ones with the system without it): `/abs/path`, `~/notes.md`,
-  `./a.go`, `src/app.go:12:3`, `main.go:250`, `notes.md` (a file name
-  with an extension, not a number such as 1.2.3), and on Windows
-  `C:\dir\file`, `C:/dir/file`, `dir\file` and `.\file`.
+  (OSC 8), a URL printed as text, or a file path. It goes through
+  `open_link`. Without it, the system opens URLs and absolute paths.
+- Paths it finds: `/abs/path`, `~/notes.md`, `./a.go`,
+  `src/app.go:12:3`, `main.go:250`, and `notes.md` (a file name with an
+  extension, not a number such as 1.2.3).
+- On Windows also `C:\dir\file`, `C:/dir/file`, `dir\file` and `.\file`.
 - **Themes**: VS Code's palettes on myzig's window colors, following the
-  window's appearance; the 617 themes Ghostty ships, by name
+  window's appearance.
+- The 617 themes Ghostty ships, by name
   (`terminal.ghosttyTheme("Dracula")`, `ghosttyThemeCount`,
-  `ghosttyThemeName(i)`), and theme files in Ghostty's format
-  (`terminal.Theme.parse`).
+  `ghosttyThemeName(i)`).
+- Theme files in Ghostty's format (`terminal.Theme.parse`).
 
 ## The libraries
 
 `src/myzig-plugin.json` names the builds the plugin binds, for each
-platform with their SHA-256 and download URL: mygo's releases of
-libghostty-vt (Ghostty `befcdfd2c3a1`) and of ConPTY 1.25.260930003. The
-plugin looks for them:
+platform, with their SHA-256 and download URL. They are mygo's releases
+of libghostty-vt (Ghostty `befcdfd2c3a1`) and of ConPTY 1.25.260930003.
+The plugin looks for them:
 
 1. in the file `$MYZIG_GHOSTTY_VT` names (`$MYZIG_CONPTY`,
    `$MYZIG_OPENCONSOLE`; mygo's `$MYGO_...` too);
@@ -150,14 +200,15 @@ plugin looks for them:
    `<cache>/mygo/natives/<sha256>/` (the cache being `%LOCALAPPDATA%`,
    `~/Library/Caches`, `$XDG_CACHE_HOME` or `~/.cache`).
 
-`terminal.download.fetchAll(gpa, io)` downloads what is missing into the
-cache, checking the SHA-256, as the example does; an app that never calls
-it carries no HTTP client. The structs the plugin passes are checked
-against the layouts the library reports as it loads, so a library of
-another version fails to load rather than corrupt memory.
+- `terminal.download.fetchAll(gpa, io)` downloads what is missing into
+  the cache and checks the SHA-256, as the example does.
+- An app that never calls it carries no HTTP client.
+- The structs the plugin passes are checked against the layouts the
+  library reports as it loads. A library of another version fails to
+  load rather than corrupt memory.
 
 To ship the libraries with an app, put them in its `resources/` directory
-(see [Distribution](../distribution.md)): on Windows and Linux they land
+(see [Distribution](../distribution.md)). On Windows and Linux they land
 next to the executable. The CLI does not yet put them in a macOS bundle's
 `Contents/MacOS`.
 

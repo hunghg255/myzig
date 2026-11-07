@@ -1,21 +1,29 @@
 # myzig documentation
 
 myzig builds desktop apps in Zig. Each window shows one of two kinds of
-interface, and one app can have windows of both:
+interface, and one app can have windows of both.
 
-- **A web page**, in the webview of the operating system (WKWebView on
-  macOS, WebKitGTK on Linux, WebView2 on Windows) instead of a bundled
-  browser. The frontend is HTML, CSS and JavaScript built with any tools,
-  and calls your Zig code through a JavaScript client that myzig generates
-  from your Zig types at compile time, with TypeScript declarations.
-- **Native UI**, which myzig draws itself, written in Zig alone with
-  `myzig.ui`: no HTML, no JavaScript and no webview to start, so the window
-  opens at once and takes little memory. It is drawn with Metal on macOS,
-  Direct3D 11 on Windows, OpenGL on Linux and WebGL 2 in browsers, and with
-  myzig's own CPU renderer (the same pixels) wherever a GPU is missing.
+**A web page** shows in the operating system's webview instead of a
+bundled browser: WKWebView on macOS, WebKitGTK on Linux, WebView2 on
+Windows.
+
+- The frontend is HTML, CSS and JavaScript, built with any tools.
+- It calls your Zig code through a JavaScript client. myzig generates the
+  client from your Zig types at compile time, with TypeScript
+  declarations.
+
+**Native UI** is drawn by myzig itself, written in Zig alone with
+`myzig.ui`.
+
+- There is no HTML, no JavaScript and no webview to start, so the window
+  opens at once and takes little memory.
+- It is drawn with Metal on macOS, Direct3D 11 on Windows, OpenGL on
+  Linux and WebGL 2 in browsers.
+- Wherever a GPU is missing, myzig's own CPU renderer draws the same
+  pixels.
 
 Windows of both kinds share the window options and events, the menus and
-the desktop APIs, and an app is a single Zig program of well under a
+the desktop APIs. An app is a single Zig program of well under a
 megabyte. Native UI also runs in browsers, built for `wasm32-wasi`.
 
 A window with a web page, whose frontend calls a Zig service:
@@ -174,10 +182,11 @@ npm run build     # writes it to docs/.vitepress/dist, failing on any dead link
 npm run preview   # serves what build wrote
 ```
 
-`docs/.vitepress/config.mts` holds the navigation and the sidebar: a new
-page gets its place there. Pages stay plain Markdown, read the same on
-GitHub; links out of `docs/` (to `AGENTS.md`, sources, benchmark notes)
-become links to the repository on the site.
+- `docs/.vitepress/config.mts` holds the navigation and the sidebar. A new
+  page gets its place there.
+- Pages stay plain Markdown and read the same on GitHub.
+- Links out of `docs/` (to `AGENTS.md`, sources, benchmark notes) become
+  links to the repository on the site.
 
 The site defaults to English at the root URL. Choose **Tiếng Việt** in the
 language menu for the corresponding page under `/vi/`, or read the
@@ -194,14 +203,18 @@ A page runs a demo where a comment names it above a picture:
 ![Primary, secondary and ghost buttons.](../images/ui/buttons.png)
 ```
 
-GitHub shows the picture alone. On the site the demo replaces it once it comes
-near the view, the picture its poster and what stays where the demo cannot
-run; a name that is not a demo fails the build. The demos are
-`examples/gallery/live_demos.zig`, small views of their own, and
-`examples/gallery/live_gallery.zig`, the Gallery's pages the pictures are
-taken of, showing only the picture's card: one WebAssembly that every
-page shares.
-The site is built where there is no Zig, so `docs/public/live` is committed:
-after changing a demo or what it draws, run `npm run live` (it needs Zig).
-`zig build test-web` runs every demo, and with `-Dweb-browser=...` runs one
-embedded in a real browser.
+- GitHub shows the picture alone.
+- On the site the demo replaces the picture once it comes near the view.
+  The picture is its poster, and stays where the demo cannot run.
+- A name that is not a demo fails the build.
+
+The demos are one WebAssembly that every page shares:
+
+- `examples/gallery/live_demos.zig`: small views of their own;
+- `examples/gallery/live_gallery.zig`: the Gallery's pages the pictures
+  are taken of, showing only the picture's card.
+
+The site is built where there is no Zig, so `docs/public/live` is
+committed. After changing a demo or what it draws, run `npm run live`
+(it needs Zig). `zig build test-web` runs every demo. With
+`-Dweb-browser=...` it runs one embedded in a real browser.

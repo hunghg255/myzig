@@ -1,12 +1,12 @@
 <a id="menus-trays-and-global-shortcuts"></a>
 
-# Menu, khay và phím tắt chung
+# Menu, khay hệ thống và phím tắt toàn cục
 
-Thanh menu, biểu tượng khay và lối tắt chung là của ứng dụng chứ không phải của cửa sổ. Các menu được xây dựng từ các mẫu: mảng `myzig.MenuItem`, giống nhau trên mọi nền tảng. Các menu được vẽ bên trong giao diện native (menu ngữ cảnh, nút menu, lựa chọn) là các widget: xem [Giao diện native menu](ui/menus.md).
+Thanh menu, icon ở khay hệ thống và phím tắt toàn cục thuộc về app, không thuộc về một cửa sổ nào. Menu được dựng từ template: mảng `myzig.MenuItem`, giống nhau trên mọi nền tảng. Menu vẽ bên trong native UI (context menu, nút menu, select) là widget: xem [Menu trong native UI](ui/menus.md).
 
 <a id="templates"></a>
 
-## Mẫu
+## Template
 
 ```zig
 const Menus = struct {
@@ -15,7 +15,7 @@ const Menus = struct {
         m.notes.add();
     }
     fn wrap(m: *Menus, item: *myzig.menu.Item) void {
-        m.editor.wrap = item.checked; // already toggled
+        m.editor.wrap = item.checked; // đã được đảo trước đó
     }
     fn small(m: *Menus, _: *myzig.menu.Item) void {
         m.editor.size = 13;
@@ -45,60 +45,63 @@ try app.setMenu(&.{
 });
 ```
 
-`myzig.MenuItem` có:
-
-| lĩnh vực | nó là gì |
+| `myzig.MenuItem` | |
 |---|---|
-| `label` | văn bản của nó; nhãn riêng của vai trò khi trống |
-| `accelerator` | tổ hợp phím của nó ([Accelerators](#accelerators)) |
-| `role` | một mục tiêu chuẩn hoặc toàn bộ menu tiêu chuẩn ([Vai trò](#roles)) |
+| `label` | chữ của mục; để trống thì dùng label của role |
+| `accelerator` | tổ hợp phím của mục ([Accelerator](#accelerators)) |
+| `role` | một mục chuẩn hoặc cả một menu chuẩn ([Role](#roles)) |
 | `kind` | `.normal`, `.checkbox` hoặc `.radio` |
-| `checked` | trạng thái ban đầu của hộp kiểm hoặc mục radio |
-| `disabled` | chuyển sang màu xám |
-| `hidden` | bị bỏ rơi |
-| `tooltip` | hiển thị khi di chuột (macOS) |
-| `id` | để tìm mục sau bằng `app.menuItem(id)` |
-| `submenu` | một mẫu riêng: mục này sẽ mở nó |
+| `checked` | state ban đầu của mục checkbox hoặc radio |
+| `disabled` | bị làm xám |
+| `hidden` | bị bỏ qua |
+| `tooltip` | hiện khi rê chuột (macOS) |
+| `id` | để tìm lại mục sau này bằng `app.menuItem(id)` |
+| `submenu` | một template riêng: mục này mở nó ra |
 | `click` | một `myzig.MenuClick`: `.of(&state, State.method)` với `fn method(s: *State, item: *myzig.menu.Item) void` |
 
-`.separator` là ranh giới giữa các nhóm mục.
+`.separator` là đường kẻ ngăn giữa các nhóm mục.
 
-Nhấp chuột chạy trên luồng chính. `checked` của mục hộp kiểm được bật tắt trước khi nhấp chuột của mục đó chạy và mục radio được chọn và các mục khác trong nhóm của nó không được chọn: các mục radio cạnh nhau, cho đến dấu phân cách hoặc loại mục khác, đều là một nhóm.
-
-Mẫu thường là chữ, như trên. Trong đó myzig tự xây dựng các menu (Windows, Linux, trình duyệt), các mục sẽ giữ chuỗi của mẫu, do đó, mẫu được tạo trong thời gian chạy và bối cảnh `click` phải tồn tại lâu hơn menu.
+- Click chạy trên main thread.
+- `checked` của mục checkbox được đảo trước khi click của nó chạy.
+- Mục radio được đánh dấu, các mục còn lại trong nhóm bị bỏ đánh dấu. Một nhóm là các mục radio đứng liền nhau, tới separator hoặc một mục khác loại.
+- Trên Windows, Linux và trình duyệt, myzig tự dựng menu và giữ nguyên các chuỗi của template. Template tạo lúc chạy, cùng các context của `click`, phải sống lâu hơn menu.
 
 <a id="roles"></a>
 
-### Vai trò
+### Role
 
-Một vai trò cung cấp cho một mục nhãn, phím tắt và hành động của hệ thống, vì vậy ứng dụng không ghi gì cho mục đó:
+Role cho một mục label, accelerator và hành động của hệ thống. App không phải viết gì cho nó:
 
-| vai trò | macOS | Windows và Linux |
+| role | macOS | Windows và Linux |
 |---|---|---|
-| `.about` | Giới thiệu về *Ứng dụng* | bị bỏ rơi |
-| `.hide`, `.hide_others`, `.unhide` | Ẩn *Ứng dụng* (⌘H), Ẩn ứng dụng khác (⌥⌘H), Hiển thị tất cả | bị bỏ rơi |
-| `.quit` | Thoát *Ứng dụng* (⌘Q) | &Thoát |
-| `.undo`, `.redo` | Hoàn tác (⌘Z), Làm lại (⇧⌘Z) | Ctrl+Z, Ctrl+Y |
-| `.cut`, `.copy`, `.paste`, `.delete`, `.select_all` | ⌘X, ⌘C, ⌘V, Xóa, ⌘A | Ctrl+X, Ctrl+C, Ctrl+V, Xóa, Ctrl+A |
-| `.minimize`, `.zoom` | Thu nhỏ (⌘M), Thu phóng | Giảm thiểu, tối đa hóa |
-| `.close` | Đóng cửa sổ (⌘W) | Đóng (Ctrl+W) |
-| `.toggle_full_screen` | Vào toàn màn hình (⌃⌘F) | Chuyển đổi toàn màn hình (F11) |
-| `.front` | Đưa tất cả lên phía trước | bị bỏ rơi |
+| `.about` | About *App* | bỏ qua |
+| `.hide`, `.hide_others`, `.unhide` | Hide *App* (⌘H), Hide Others (⌥⌘H), Show All | bỏ qua |
+| `.quit` | Quit *App* (⌘Q) | E&xit |
+| `.undo`, `.redo` | Undo (⌘Z), Redo (⇧⌘Z) | Ctrl+Z, Ctrl+Y |
+| `.cut`, `.copy`, `.paste`, `.delete`, `.select_all` | ⌘X, ⌘C, ⌘V, Delete, ⌘A | Ctrl+X, Ctrl+C, Ctrl+V, Delete, Ctrl+A |
+| `.minimize`, `.zoom` | Minimize (⌘M), Zoom | Minimize, Maximize |
+| `.close` | Close Window (⌘W) | Close (Ctrl+W) |
+| `.toggle_full_screen` | Enter Full Screen (⌃⌘F) | Toggle Full Screen (F11) |
+| `.front` | Bring All to Front | bỏ qua |
 
-Vai trò chỉnh sửa hoạt động trên nội dung có bàn phím: trường văn bản giao diện native, thành phần tập trung của trang. Vai trò cửa sổ hoạt động trên cửa sổ phía trước. Một mục có vai trò và `click` sẽ chạy nhấp chuột.
+- Các role chỉnh sửa tác động lên thứ đang giữ bàn phím: ô nhập chữ của native UI, hoặc phần tử đang có focus trong trang.
+- Các role cửa sổ tác động lên cửa sổ ở phía trước.
+- Mục có cả role lẫn `click` thì chạy click của nó.
 
-Bốn vai trò đại diện cho toàn bộ menu, chứa đầy các mục thông thường của chúng:
+Bốn role đại diện cho cả một menu, với các mục quen thuộc:
 
-| vai trò | macOS | Windows và Linux |
+| role | macOS | Windows và Linux |
 |---|---|---|
-| `.app_menu` | tên ứng dụng: Giới thiệu, Ẩn, Ẩn người khác, Hiển thị tất cả, Thoát | Tập tin: Thoát |
-| `.edit_menu` | Chỉnh sửa: Hoàn tác, Làm lại, Cắt, Sao chép, Dán, Chọn tất cả | Chỉnh sửa: tương tự, với Xóa |
-| `.view_menu` | Xem: Vào toàn màn hình | Xem: Chuyển đổi toàn màn hình |
-| `.window_menu` | Cửa sổ: Thu nhỏ, Thu phóng, Đưa tất cả ra phía trước, Đóng | Cửa sổ: Thu nhỏ, Phóng to, Đóng |
+| `.app_menu` | tên app: About, Hide, Hide Others, Show All, Quit | File: Exit |
+| `.edit_menu` | Edit: Undo, Redo, Cut, Copy, Paste, Select All | Edit: như trên, thêm Delete |
+| `.view_menu` | View: Enter Full Screen | View: Toggle Full Screen |
+| `.window_menu` | Window: Minimize, Zoom, Bring All to Front, Close | Window: Minimize, Maximize, Close |
 
-Vai trò toàn bộ menu có `submenu` của riêng nó sẽ giữ tiêu đề và vai trò của nó và thay vào đó hiển thị các mục đó; với `label`, nhãn là tiêu đề của nó. Trên macOS, `.window_menu` cũng là menu AppKit liệt kê các cửa sổ.
-
-Trên macOS mọi ứng dụng đều bắt đầu bằng `myzig.App.default_menu`: menu ứng dụng, Chỉnh sửa, Xem và Cửa sổ. Các trường văn bản của trang web cần có menu Chỉnh sửa để sao chép và dán bằng bàn phím ở đó, vì vậy hãy giữ `.edit_menu` trong menu của riêng bạn. Trên Windows và Linux, ứng dụng không có menu cho đến khi nó gọi `setMenu`.
+- Role cả menu mà có `submenu` riêng thì giữ tiêu đề và role, nhưng hiện các mục đó thay thế. `label` trở thành tiêu đề của nó.
+- Trên macOS, `.window_menu` cũng là nơi AppKit liệt kê các cửa sổ.
+- Trên macOS, mọi app khởi đầu với `myzig.App.default_menu`: menu app, Edit, View và Window.
+- Trên macOS, hãy giữ `.edit_menu` trong menu của bạn. Ô nhập chữ của trang web cần nó để copy và paste bằng bàn phím.
+- Trên Windows và Linux, app không có menu cho tới khi gọi `setMenu`.
 
 <a id="changing-items"></a>
 
@@ -111,32 +114,43 @@ if (app.menuItem("wrap")) |item| {
 }
 ```
 
-`app.menuItem(id)` tìm thấy mục của thanh menu có mẫu có `id`. `setChecked` thay đổi hộp kiểm hoặc mục radio (việc chọn mục radio sẽ bỏ chọn nhóm của nó), `setEnabled` làm nó chuyển sang màu xám hay không; `item.checked` và `item.id` đọc nó. Trên macOS `setLabel` thay đổi văn bản của nó. Để thay đổi nhiều hơn, hãy gọi lại `setMenu` bằng một mẫu khác: nó thay thế thanh menu.
+`app.menuItem(id)` tìm mục trên thanh menu có `id` đó trong template.
+
+| | |
+|---|---|
+| `setChecked` | đánh dấu mục checkbox hoặc radio; mục radio bỏ đánh dấu cả nhóm |
+| `setEnabled` | làm xám hoặc không |
+| `setLabel` | đổi chữ của mục (macOS) |
+| `item.checked`, `item.id` | đọc state của mục |
+
+Muốn đổi nhiều hơn thì gọi lại `setMenu` với template khác. Nó thay cả thanh menu.
 
 <a id="the-menu-bar"></a>
 
-## Thanh thực đơn
+## Thanh menu
 
-`app.setMenu(template)` thay thế thanh menu:
+`app.setMenu(template)` thay thanh menu:
 
-- **macOS**: thanh menu phía trên màn hình, được xây dựng từ NSMenus.
-- **Windows**: một thanh menu ở đầu mỗi cửa sổ có thanh tiêu đề (các cửa sổ có thanh tiêu đề bị ẩn hoặc không có khung), được xây dựng từ HMENU; séc và các mục màu xám được làm mới khi mỗi menu mở ra.
-- **Linux**: không có thanh nào hiển thị; bộ tăng tốc của vật phẩm hoạt động trong mọi cửa sổ.
-- **Trình duyệt**: không có thanh hiển thị; bộ tăng tốc hoạt động trong trang.
+- **macOS**: thanh menu ở đầu màn hình, dựng bằng NSMenu.
+- **Windows**: thanh menu ở đầu mọi cửa sổ có thanh tiêu đề, dựng bằng HMENU. Cửa sổ ẩn thanh tiêu đề hoặc không có khung thì không có. Dấu check và mục bị làm xám được cập nhật mỗi lần mở menu.
+- **Linux**: không hiện thanh nào; accelerator hoạt động trong mọi cửa sổ.
+- **Trình duyệt**: không hiện thanh nào; accelerator hoạt động trong trang.
 
-Ở mọi nơi, tổ hợp phím dùng để tăng tốc mục menu sẽ chạy mục đó trong giao diện native và trong các trang. Trên Windows và Linux, `&` trong nhãn đánh dấu từ gợi nhớ của nó (`"&File"`; `"&&"` là ký hiệu và), giống như tiêu đề của menu tiêu chuẩn; macOS hiển thị nhãn như được viết.
+Phím và label:
 
-Trên Windows và Linux, một view đặt `c.keys_first` (được giữ trên các khung) được cung cấp một tổ hợp phím trước bộ tăng tốc của thanh menu. View này chỉ chạy khi view không nhận nó: một terminal có bàn phím giữ Ctrl+L hoặc Ctrl+W cho lớp shell của nó.
+- Ở mọi nơi, accelerator của một mục menu sẽ chạy mục đó, cả trong native UI lẫn trong trang.
+- Trên Windows và Linux, `&` trong label đánh dấu phím tắt gạch chân của nó (`"&File"`), như tiêu đề của các menu chuẩn. `"&&"` là một dấu &. macOS hiện label đúng như viết.
+- Trên Windows và Linux, view nào đặt `c.keys_first` sẽ nhận tổ hợp phím trước accelerator của thanh menu. Giá trị này được giữ qua các frame. Accelerator chỉ chạy khi view không nhận phím đó: terminal đang giữ bàn phím sẽ giữ Ctrl+L hay Ctrl+W cho shell của nó.
 
 <a id="context-menus"></a>
 
-## Menu ngữ cảnh
+## Context menu
 
-Menu ngữ cảnh của giao diện native là một widget, `ui.contextMenu`, được vẽ bởi myzig trong lớp riêng của cửa sổ, với điều hướng bàn phím, menu con và kiểm tra: xem [Giao diện native menu](ui/menus.md). Các trang hiển thị trang của chính chúng hoặc của webview (với Kiểm tra phần tử trong khi `inspectable` được đặt).
+Context menu của native UI là một widget, `ui.contextMenu`. myzig vẽ nó trong lớp riêng của cửa sổ, có điều hướng bằng bàn phím, submenu và dấu check: xem [Menu trong native UI](ui/menus.md). Trang web hiện menu riêng của chúng, hoặc menu của webview (có Inspect Element khi bật `inspectable`).
 
 <a id="tray-icons"></a>
 
-## Biểu tượng khay
+## Icon ở khay hệ thống
 
 ```zig
 const Tray = struct {
@@ -163,42 +177,66 @@ const tray = try app.newTray(.{
 });
 ```
 
-`app.newTray` thêm biểu tượng vào vùng trạng thái của thanh menu (macOS), vùng thông báo (Windows) hoặc bảng điều khiển (Linux). `myzig.TrayOptions`:
+`app.newTray` thêm một icon vào vùng trạng thái của thanh menu (macOS), vùng thông báo (Windows) hoặc panel (Linux).
 
-| lĩnh vực | nó là gì |
+| `myzig.TrayOptions` | |
 |---|---|
-| `id` | đặt tên cho biểu tượng trong các lần ra mắt, duy nhất trong số các biểu tượng của ứng dụng (bên dưới) |
-| `title` | văn bản bên cạnh biểu tượng (thanh menu của macOS, bảng Linux hiển thị nhãn); chú giải công cụ ở nơi khác khi không có |
-| `symbol` | Tên của Biểu tượng SF (`"star.fill"`), được vẽ dưới dạng hình ảnh mẫu theo giao diện của thanh menu (macOS) |
-| `icon` | byte của tệp PNG (bộ hình vuông 16 hoặc 32 pixel Windows); biểu tượng của ứng dụng khi trống |
-| `template` | biểu tượng có màu đen và trong suốt: macOS tô màu cho phù hợp với thanh menu, Windows hiển thị màu trắng trên thanh tác vụ tối |
-| `tooltip` | hiển thị khi di chuột |
-| `menu` | một mẫu, được hiển thị khi nhấp chuột phải (Windows) hoặc bất kỳ lần nhấp chuột nào (ở nơi khác) |
-| `on_click` | a `myzig.TrayClick`: nhấp chuột trái vào Windows, nhấp chuột vào macOS khi không có menu, nhấp chuột vào GtkStatusIcon trên Linux |
-| `on_appearance` | `myzig.TrayClick` được gọi là thanh biểu tượng hiển thị chuyển sang màu tối hoặc sáng (`tray.dark()`) |
+| `id` | tên của icon qua các lần chạy, không trùng giữa các icon của app ([Nhiều icon](#several-icons)) |
+| `title` | chữ cạnh icon (thanh menu của macOS, các panel Linux có hiện label); ở nơi khác là tooltip khi không có tooltip |
+| `symbol` | tên một SF Symbol (`"star.fill"`), vẽ thành ảnh template theo giao diện của thanh menu (macOS) |
+| `icon` | các byte của một file PNG (vuông 16 hoặc 32 pixel hợp với Windows); để trống thì dùng icon của app |
+| `template` | icon đen và trong suốt: macOS tô màu cho hợp thanh menu, Windows hiện nó màu trắng trên taskbar tối |
+| `tooltip` | hiện khi rê chuột |
+| `menu` | một template, hiện khi bấm chuột phải (Windows) hoặc khi bấm bất kỳ (nơi khác) |
+| `on_click` | một `myzig.TrayClick`: bấm chuột trái trên Windows, bấm trên macOS khi không có menu, bấm vào GtkStatusIcon trên Linux |
+| `on_appearance` | một `myzig.TrayClick`, được gọi khi thanh chứa icon chuyển tối hoặc sáng (`tray.dark()`) |
 
-Biểu tượng tồn tại cho đến khi `app.removeTray(tray)` hoặc khi ứng dụng kết thúc. Thay đổi nó bằng `setTitle`, `setTooltip`, `setSymbol` (macOS), `setIcon(png)` và `setMenu(app.options.name, template)`; `popUpMenu()` mở menu từ mã (Windows, Linux).
+- Icon tồn tại tới khi gọi `app.removeTray(tray)` hoặc app kết thúc.
+- Đổi nó bằng `setTitle`, `setTooltip`, `setSymbol` (macOS), `setIcon(png)` và `setMenu(app.options.name, template)`.
+- `popUpMenu()` mở menu của nó từ code (Windows, Linux).
 
-Một ứng dụng có thể hiển thị một số biểu tượng, vì một ứng dụng trên thanh menu hiển thị các số đo của từng biểu tượng trong một mục riêng. Trên macOS, một biểu tượng mới sẽ nằm bên trái những biểu tượng đã có ở đó và người dùng di chuyển các biểu tượng bằng cách kéo chúng với ⌘ được giữ: đặt cho mỗi biểu tượng một `id`, duy nhất trong số các biểu tượng của ứng dụng và nó sẽ quay trở lại vị trí mà người dùng đặt bất cứ khi nào nó được tạo lại, vào lần khởi chạy tiếp theo hoặc sau `removeTray` (tên tự động lưu của mục trạng thái). Trên Windows, nơi người dùng chọn biểu tượng nào hiển thị trên thanh tác vụ thay vì tràn ra, một biểu tượng có `id` sẽ giữ nguyên lựa chọn đó bất kể thứ tự mà ứng dụng tạo biểu tượng: nó được đánh số bằng `id` (FNV-1a, với bộ bit cao), không được tính khi xuất hiện các biểu tượng. Linux bảng tự đặt các biểu tượng.
+Cách mỗi nền tảng hiển thị:
 
-Biểu tượng mẫu tự đi theo thanh. Một biểu tượng có màu, khi người ta vẽ từng thước đo bằng màu riêng của nó, vẽ mực cho thanh: `tray.dark()` cho biết thanh đó có tối hay không — thanh menu macOS khi AppKit tô màu các mục của nó (theo giao diện của hệ thống hoặc hình nền bên dưới thanh mờ), thanh tác vụ Windows ở chế độ của hệ thống, có thể khác với chế độ của ứng dụng — và `on_appearance` được gọi trên luồng chính khi nó quay lại thành `setIcon`. Linux các bảng vẽ luồng biểu tượng theo cách riêng của chúng: `dark()` là false ở đó.
-
-Cách mỗi nền tảng hiển thị nó:
-
-- **macOS**: một NSStatusItem trên thanh menu. Với một menu, một cú nhấp chuột sẽ mở nó ra; không có ai, một cú nhấp chuột sẽ gọi `on_click`.
-- **Windows**: biểu tượng khu vực thông báo. Nhấp chuột trái gọi `on_click`, nhấp chuột phải sẽ mở menu. Biểu tượng khay đầu tiên cũng hiển thị các thông báo của ứng dụng ([Thông báo](app.md#notifications)).
-- **Linux**: StatusNotifierItem thông qua libayatana-appindicator (được tải bằng `dlopen`), bảng này sẽ hiển thị cùng với menu của nó khi nhấp chuột. Khi thiếu thư viện, GtkStatusIcon (bảng X11 có khay hệ thống): một cú nhấp chuột sẽ gọi `on_click`, một cú nhấp chuột phải sẽ mở menu. Quá trình chạy không có màn hình không thành công với `error.Headless`.
+- **macOS**: một NSStatusItem trên thanh menu. Có menu thì bấm sẽ mở menu; không có thì bấm sẽ gọi `on_click`.
+- **Windows**: icon ở vùng thông báo. Bấm chuột trái gọi `on_click`, chuột phải mở menu. Icon khay đầu tiên cũng hiện các thông báo của app ([Thông báo](app.md#notifications)).
+- **Linux**: một StatusNotifierItem qua libayatana-appindicator, nạp bằng `dlopen`. Panel hiện menu của nó khi bấm. Không có thư viện này thì dùng GtkStatusIcon (panel X11 có system tray): bấm gọi `on_click`, chuột phải mở menu. Chạy không có màn hình thì lỗi `error.Headless`.
 - **Trình duyệt**: `error.Unsupported`.
 
-Các ứng dụng nằm trong bộ khay `quit_on_last_window_closed = false`, do đó việc đóng cửa sổ sẽ khiến chúng chạy và giữ mục `.quit` trong menu của khay. Một bảng bên dưới biểu tượng, giống như các ứng dụng trên thanh menu, là một hộp thả xuống được neo vào biểu tượng khay ([Flyouts](windows.md#flyouts)).
+App sống ở khay hệ thống thì:
 
-Headless chạy (`--myzig-hidden`, `--myzig-eval`) không được thêm biểu tượng nào: trước tiên hãy kiểm tra `app.flags.hidden`.
+- đặt `quit_on_last_window_closed = false`, để đóng cửa sổ mà app vẫn chạy;
+- giữ một mục `.quit` trong menu của khay;
+- hiện panel dưới icon bằng một flyout neo vào icon khay ([Flyout](windows.md#flyouts)).
+
+Các lần chạy headless (`--myzig-hidden`, `--myzig-eval`) không nên thêm icon: kiểm tra `app.flags.hidden` trước.
+
+<a id="several-icons"></a>
+
+### Nhiều icon
+
+App có thể hiện nhiều icon, như một app thanh menu hiện mỗi số đo trong một mục riêng.
+
+- **macOS**: icon mới nằm bên trái các icon đã có. Người dùng di chuyển icon bằng cách giữ ⌘ và kéo. Icon có `id` sẽ trở về chỗ người dùng đặt mỗi khi được tạo lại, ở lần chạy sau hoặc sau `removeTray`. `id` là autosave name của status item.
+- **Windows**: người dùng chọn icon nào hiện trên taskbar, icon nào nằm trong phần tràn. Icon có `id` giữ lựa chọn đó bất kể app tạo các icon theo thứ tự nào. Nó được đánh số theo `id` (FNV-1a, bật bit cao nhất), không đếm theo thứ tự tạo.
+- **Linux**: panel tự sắp xếp icon.
+
+<a id="dark-and-light-bars"></a>
+
+### Thanh tối và sáng
+
+Icon template tự theo màu của thanh. Icon có màu, ví dụ icon vẽ mỗi số đo một màu, tự chọn màu vẽ cho hợp thanh:
+
+- `tray.dark()` cho biết thanh có tối không.
+- `on_appearance` được gọi trên main thread khi thanh đổi màu. Gọi lại `setIcon` trong đó.
+- **macOS**: thanh menu theo cách AppKit tô màu các mục của nó, dựa vào giao diện hệ thống hoặc hình nền dưới thanh trong mờ.
+- **Windows**: taskbar theo chế độ của hệ thống, có thể khác chế độ của các app.
+- **Linux**: panel vẽ icon theme theo cách riêng, và `dark()` là false.
 
 <a id="global-shortcuts"></a>
 
-## Phím tắt chung
+## Phím tắt toàn cục
 
-Một lối tắt chung sẽ tiếp cận ứng dụng trong khi một ứng dụng khác ở phía trước, khi trình khởi chạy mở (Spotlight, Raycast, PowerToys Run):
+Phím tắt toàn cục tới được app ngay cả khi app khác đang ở phía trước, như các launcher (Spotlight, Raycast, PowerToys Run):
 
 ```zig
 const Launcher = struct {
@@ -217,38 +255,41 @@ const id = try app.registerHotkey("Alt+Shift+Space", .of(&launcher, Launcher.tog
 defer app.unregisterHotkey(id);
 ```
 
-`registerHotkey` nhận [bộ tăng tốc](#accelerators) và `myzig.Handler(void)`, chạy trên luồng chính khi được nhấn và trả về id của phím tắt cho `unregisterHotkey`. Nó không thành công với:
+`registerHotkey` nhận một [accelerator](#accelerators) và một `myzig.Handler(void)`, chạy trên main thread mỗi lần phím được bấm. Nó trả về id của phím tắt để dùng với `unregisterHotkey`. Các lỗi:
 
-- `error.UnsupportedKey`: một phím mà phím tắt chung không thể sử dụng hoặc không sử dụng;
-- `error.Unavailable`: ứng dụng khác có nó hoặc hệ thống từ chối nó;
-- `error.Unsupported`: hệ thống không có phím tắt chung.
+- `error.UnsupportedKey`: phím mà phím tắt toàn cục không dùng được, hoặc không có phím;
+- `error.Unavailable`: app khác đã giữ nó, hoặc hệ thống từ chối;
+- `error.Unsupported`: hệ thống không có phím tắt toàn cục.
 
-| nền tảng | làm thế nào |
+| nền tảng | cách làm |
 |---|---|
 | macOS | RegisterEventHotKey của Carbon |
-| Windows | RegisterHotKey trên cửa sổ ẩn của ứng dụng |
-| Linux | một phím X11 trên cửa sổ gốc, bật hoặc tắt Caps Lock và Num Lock; trên Wayland GlobalShortcuts của cổng thông tin máy tính để bàn (máy tính để bàn yêu cầu người dùng cho phép chúng một lần) |
-| trình duyệt | không có sẵn |
+| Windows | RegisterHotKey trên cửa sổ ẩn của app |
+| Linux | X11 key grab trên cửa sổ gốc, với Caps Lock và Num Lock bật hoặc tắt; trên Wayland là GlobalShortcuts của desktop portal (desktop hỏi người dùng cho phép một lần) |
+| trình duyệt | không có |
 
 `App.destroy` hủy đăng ký các phím tắt còn lại.
 
 <a id="accelerators"></a>
 
-## Máy gia tốc
+## Accelerator
 
-Bộ tăng tốc được viết dưới dạng bộ sửa đổi và khóa được nối bởi `+`:
+Các phím bổ trợ và một phím, nối bằng `+`:
 
 ```
 CmdOrCtrl+N   CmdOrCtrl+Shift+K   Alt+Up   F5   Cmd+,   Cmd++   Ctrl+Space
 ```
 
-| một phần | tên |
+| phần | tên |
 |---|---|
 | ⌘ trên macOS, Ctrl ở nơi khác | `CmdOrCtrl`, `CommandOrControl`, `Cmd`, `Command`, `Super`, `Meta` |
-| Kiểm soát | `Ctrl`, `Control` |
-| Thay thế, ⌥ | `Alt`, `Option` |
-| ca | `Shift` |
-| khóa được đặt tên | `Up`, `Down`, `Left`, `Right`, `Enter`, `Return`, `Tab`, `Space`, `Escape`, `Esc`, `Backspace`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`, `Plus`, `F1` tới `F20` |
-| các phím khác | chính ký tự đó (`N`, `,`, `/`); `Cmd++` đặt tên cho phím dấu cộng |
+| Control | `Ctrl`, `Control` |
+| Alt, ⌥ | `Alt`, `Option` |
+| Shift | `Shift` |
+| phím có tên | `Up`, `Down`, `Left`, `Right`, `Enter`, `Return`, `Tab`, `Space`, `Escape`, `Esc`, `Backspace`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`, `Plus`, `F1` tới `F20` |
+| phím khác | chính ký tự đó (`N`, `,`, `/`); `Cmd++` là phím cộng |
 
-Tên không phân biệt chữ hoa chữ thường. Trên Windows và Linux, ⌘ và Ctrl đều là Ctrl và các menu hiển thị bộ tăng tốc khi các hệ thống đó ghi chúng (`Ctrl+Shift+K`). macOS hiển thị chúng bằng các ký hiệu của nó. Trong giao diện native, `ui.keys.label("⌘P")` và `ui.shortcutLabel` viết các tổ hợp phím cho nền tảng ([Navigation](ui/navigation.md)).
+- Tên không phân biệt hoa thường.
+- Trên Windows và Linux, ⌘ và Ctrl đều là Ctrl. Menu hiện accelerator theo cách các hệ thống đó viết (`Ctrl+Shift+K`).
+- macOS hiện chúng bằng ký hiệu riêng.
+- Trong native UI, `ui.keys.label("⌘P")` và `ui.shortcutLabel` viết tổ hợp phím theo nền tảng ([Navigation](ui/navigation.md)).

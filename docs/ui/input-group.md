@@ -1,8 +1,8 @@
 # Input groups
 
 `ui.inputGroup` puts one text field, icons, prefixes, suffixes and action
-buttons inside a shared frame. Its input uses the same editing, selection,
-input methods and password handling as [text fields](text-input.md).
+buttons inside a shared frame. Its input edits, selects, takes input
+methods and handles passwords as [text fields](text-input.md) do.
 
 <!-- demo: input-groups height=442 -->
 
@@ -17,9 +17,10 @@ if (result.submitted) s.openUrl();
 if (group.button("Open", .{ .variant = .primary })) s.openUrl();
 ```
 
-Keep the `ui.TextBuffer` in app state. Call `input` exactly once between
-`inputGroup` and `end`. The input fills the space left by its affixes and
-buttons; its `width` and `bare` options are controlled by the group.
+- Keep the `ui.TextBuffer` in app state.
+- Call `input` exactly once between `inputGroup` and `end`.
+- The input fills the space left by its affixes and buttons. The group
+  controls its `width` and `bare` options.
 
 ## Parts and state
 
@@ -31,11 +32,13 @@ buttons; its `width` and `bare` options are controlled by the group.
 | `button(title, options)` | Action button; returns true on activation |
 | `end()` | Close the group and update its shared focus/error border |
 
-`InputGroupOptions` has `width` (320 points by default), `disabled`
-(false) and `invalid` (false). Disabled groups remove their input and
-buttons from keyboard navigation and prevent editing and activation.
-`invalid` colors the border and marks the input for assistive technology;
-use a [field](forms.md) to show an error message.
+| `InputGroupOptions` | Default | |
+|---|---|---|
+| `width` | 320 points | |
+| `disabled` | false | removes the input and buttons from keyboard navigation, and prevents editing and activation |
+| `invalid` | false | colors the border and marks the input for assistive technology |
+
+To show an error message, use a [field](forms.md):
 
 ```zig
 const field = ui.field(c, "Budget", .{ .err = s.budget_error });
@@ -47,15 +50,20 @@ _ = group.input(&s.amount, .{});
 group.text("USD / month");
 ```
 
-Clicking the frame or a decorative affix focuses the input. Tab moves
-between the input and its enabled action buttons. Enter in the input
-reports `submitted`; Enter or Space on a button activates only that button.
-The border shows focus when any control inside has focus.
+**Behavior**
 
-A form's label names and focuses the text field, including when a prefix
-comes first. Without a form label, supply `label` in the input options.
-Use descriptive button titles. Prefixes and suffixes follow the interface's
-[direction](right-to-left.md); the editable text retains normal text-field behavior.
+- Clicking the frame or a decorative affix focuses the input.
+- Tab moves between the input and its enabled action buttons.
+- Enter in the input reports `submitted`. Enter or Space on a button
+  activates only that button.
+- The border shows focus when any control inside has focus.
+- A form's label names and focuses the text field, even when a prefix
+  comes first. Without a form label, set `label` in the input options.
+- Use descriptive button titles.
+- Prefixes and suffixes follow the interface's
+  [direction](right-to-left.md). The editable text keeps normal
+  text-field behavior.
 
-See the **Composition** page in [Gallery](../../examples/gallery/composites.zig)
-for search, URL, unit and disabled examples.
+See the **Composition** page in
+[Gallery](../../examples/gallery/composites.zig) for search, URL, unit
+and disabled examples.

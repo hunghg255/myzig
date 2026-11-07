@@ -1,31 +1,34 @@
 <a id="layout"></a>
 
-# Bố cục
+# Layout
 
-Bố cục là flexbox, như trong CSS: một hộp sắp xếp các phần tử con của nó thành một hàng hoặc một cột, định cỡ chúng theo nội dung của chúng, chia sẻ không gian trống giữa những phần phát triển và căn chỉnh chúng dọc theo cả hai trục. Mỗi hộp được mô tả bởi một `ui.Style`, được cấp cho `ui.row`, `ui.column` và các vùng chứa khác hoặc được đặt bằng các phương thức `ui.div`.
+Layout là flexbox, như trong CSS. Một box xếp các phần tử con theo hàng hoặc cột. Nó tính kích thước phần tử con theo nội dung, chia khoảng trống thừa cho những phần tử grow, và căn chúng theo cả hai trục. Mỗi box được mô tả bằng một `ui.Style`. Truyền nó cho `ui.row`, `ui.column` và các container khác, hoặc đặt bằng các method của `ui.div`.
 
-Bố cục chạy mọi frame, theo hai lần: `measure` kích thước các hộp từ nội dung của chúng, từ dưới lên; `arrange` đặt chúng từ trên xuống. Bố cục văn bản được lưu vào bộ nhớ đệm trên các khung, do đó, một khung không thay đổi gì trong hộp sẽ tốn ít chi phí bố trí lại.
+Layout chạy mỗi frame, qua hai lượt:
 
-<a id="containers"></a>
+- `measure` đo box theo nội dung, từ dưới lên;
+- `arrange` đặt chúng vào chỗ, từ trên xuống.
+
+Layout của chữ được cache qua các frame. Frame nào không đổi gì trong một box thì layout lại box đó rất rẻ.
 
 <!-- demo: layout height=374 -->
 
-![Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.](../../images/ui/layout.png)
+![Sidebar rộng cố định bên cạnh một cột thẻ co giãn, có gap và padding.](../../images/ui/layout.png)
 
-*Thanh bên có chiều rộng cố định, cạnh cột thẻ co giãn với khoảng cách và padding.*
+*Sidebar rộng cố định bên cạnh một cột thẻ co giãn, có gap và padding.*
 
-## Thùng chứa
+<a id="containers"></a>
 
-| chức năng | nó mở ra cái gì |
+## Container
+
+| hàm | mở ra |
 |---|---|
-| `ui.column(c, style)` | trẻ em từ trên xuống dưới |
-| `ui.row(c, style)` | con từ trái sang phải (phải sang trái trong [RTL](right-to-left.md)) |
-| `ui.card(c, style)` | một cột trên bề mặt có màu, làm tròn 12, đệm 16, có bóng mờ, trừ khi kiểu dáng có quy định khác |
-| `ui.scroll(c, style)` | một cột có các con cuộn theo chiều dọc |
-| `ui.pressable(c, style, hover)` | một hộp báo cáo con trỏ (xem [widget tùy chỉnh](custom-widgets.md)) |
-| `ui.div(c)` | một cột được tạo kiểu theo một chuỗi các phương thức, xem bên dưới |
-
-Mỗi cái được đóng bởi `ui.end(c)` (một `ui.Div` bởi `end` của chính nó). `ui.spacer(c)` lấy phòng trống dọc theo trục chính của cha mẹ, đẩy phần tiếp theo đến cuối và `ui.divider(c)` vẽ một đường một điểm ngang qua cha mẹ của nó bằng màu đường viền.
+| `ui.column(c, style)` | phần tử con từ trên xuống |
+| `ui.row(c, style)` | phần tử con từ trái sang phải (phải sang trái khi [RTL](right-to-left.md)) |
+| `ui.card(c, style)` | một cột trên màu surface, bo góc 12, padding 16, bóng nhẹ, trừ khi style nói khác |
+| `ui.scroll(c, style)` | một cột có phần tử con scroll theo chiều dọc |
+| `ui.pressable(c, style, hover)` | một box báo về con trỏ (xem [custom widgets](custom-widgets.md)) |
+| `ui.div(c)` | một cột được style bằng chuỗi method, xem bên dưới |
 
 ```zig
 ui.row(c, .{ .width = .fill, .padding = .xy(16, 10), .gap = 8, .align_items = .center });
@@ -35,33 +38,56 @@ ui.spacer(c);
 _ = ui.button(c, "Compose", .{ .variant = .primary });
 ```
 
+- `ui.end(c)` đóng từng container. `ui.Div` đóng bằng `end` của chính nó.
+- `ui.spacer(c)` chiếm khoảng trống thừa dọc trục chính của phần tử cha. Nó đẩy những gì theo sau về cuối.
+- `ui.divider(c)` vẽ một đường dày một điểm ngang qua phần tử cha, bằng màu viền.
+
 <a id="sizes"></a>
 
-## Kích cỡ
+## Kích thước
 
-`width` và `height` là `ui.Length`:
+`width` và `height` là một `ui.Length`:
 
-- `.auto`, mặc định: lớn bằng nội dung (cộng với phần đệm).
-- `.{ .px = 120 }`: chính xác là nhiều điểm đó.
-- `.fill`: toàn bộ số tiền phòng phụ huynh cho. Dọc theo trục chính của cha mẹ, nó phát triển như `grow = 1` từ phần đệm của nó; ngang qua nó, nó trải dài.
+- `.auto`, mặc định: lớn bằng nội dung, cộng padding.
+- `.{ .px = 120 }`: đúng bấy nhiêu điểm.
+- `.fill`: toàn bộ chỗ mà phần tử cha cho. Dọc trục chính của phần tử cha, nó lớn lên từ padding như `grow = 1`. Theo trục ngang, nó giãn ra.
 
-`min_width`, `min_height`, `max_width` và `max_height` giới hạn kích thước. `max_width` giúp văn xuôi có thể đọc được trong một cửa sổ rộng; `max_height` trên hộp cuộn làm cho nó cao bằng nội dung của nó đến độ cao đó, sau đó cuộn (câu trả lời của cuộc trò chuyện, danh sách của cửa sổ bật lên).
+`min_width`, `min_height`, `max_width` và `max_height` giới hạn kích thước.
 
-`grow` là một phần của hộp phòng trống dọc theo trục chính của bố mẹ nó: hai anh chị em có `grow = 1` và `grow = 2` chiếm một phần ba và hai phần ba số đó. Phòng được chia sẻ khi CSS flexbox chia sẻ phòng đó và Chrome sắp xếp phòng đó: mỗi hộp tăng dần theo kích thước của nó (kích thước cơ sở linh hoạt, trước mức tối thiểu và tối đa), một hộp `max_width` hoặc `min_width` dừng giữ nguyên kích thước đó và những hộp khác chia sẻ những gì còn lại. Một chiếc hộp không bao giờ nhỏ hơn phần đệm của nó, bất kể kích thước của nó nói lên điều gì.
+- `max_width` giữ đoạn văn dễ đọc trong cửa sổ rộng.
+- `max_height` trên một box scroll khiến nó cao bằng nội dung, tối đa đến chiều cao đó. Quá thì nó scroll, như câu trả lời trong chat hay danh sách trong popover.
 
-Khi một hàng có quá ít chỗ, các hộp chứa văn bản gói sẽ trả lại phần văn bản của chúng theo tỷ lệ chiều rộng trừ đi phần đệm, xuống `min_width` và văn bản của chúng sẽ bao bọc thành nhiều dòng hơn. Các hộp khác giữ nguyên kích thước của chúng. Hộp có chiều rộng cuối cùng khác với chiều rộng được đo sẽ được đo lại, do đó, văn bản được ngắt dòng luôn có số dòng phù hợp.
+`grow` là phần khoảng trống thừa mà box nhận được dọc trục chính của phần tử cha. Hai phần tử cùng cấp có `grow = 1` và `grow = 2` nhận một phần ba và hai phần ba.
+
+- Khoảng trống được chia như CSS flexbox, và như Chrome layout.
+- Mỗi box lớn lên từ kích thước của nó: flex base size, trước khi áp min và max.
+- Box bị `max_width` hoặc `min_width` chặn lại thì giữ kích thước đó. Các box khác chia phần còn lại.
+- Box không bao giờ nhỏ hơn padding của nó, dù kích thước ghi gì.
+
+Khi một hàng thiếu chỗ, các box chứa chữ xuống dòng sẽ nhả bớt chỗ. Chúng nhả theo tỷ lệ chiều rộng trừ padding, cho đến `min_width`. Chữ của chúng xuống thành nhiều dòng hơn. Các box khác giữ nguyên kích thước.
+
+Box nào có chiều rộng cuối cùng khác với chiều rộng lúc đo thì được đo lại. Nhờ đó chữ xuống dòng luôn có đúng số dòng.
 
 <a id="spacing"></a>
 
 ## Khoảng cách
 
-`padding` là `ui.Edges` (`top`, `right`, `bottom`, `left`), với `ui.Edges.all(12)` và `ui.Edges.xy(16, 8)` (ngang, dọc) cho các trường hợp thông thường; theo nghĩa đen có cấu trúc, `.padding = .all(12)`. `gap` là phòng giữa các trẻ dọc theo trục chính. Không có lề: các hộp dấu cách có khoảng trống và phần đệm của phần tử cha hoặc `ui.spacer`.
+- `padding` là một `ui.Edges` (`top`, `right`, `bottom`, `left`). `ui.Edges.all(12)` và `ui.Edges.xy(16, 8)` (ngang, dọc) dùng cho các trường hợp thường gặp. Trong struct literal, viết `.padding = .all(12)`.
+- `gap` là khoảng trống giữa các phần tử con dọc trục chính.
+- Không có margin. Giãn cách các box bằng gap và padding của phần tử cha, hoặc bằng `ui.spacer`.
 
 <a id="alignment"></a>
 
 ## Căn chỉnh
 
-`align_items` đặt các phần tử con trên trục chính: `.start` (mặc định), `.center`, `.end`, `.stretch`, làm cho các phần tử con có kích thước chéo là `.auto` rộng (trong một cột) hoặc cao (trong một hàng) bằng hộp, hoặc `.baseline`, xếp các dòng văn bản đầu tiên của phần tử con trong một hàng, dưới dạng một mức giá lớn bên cạnh đơn vị nhỏ của nó, hàng càng cao càng cần. Đường cơ sở của một hộp là đường cơ sở của thành phần con đầu tiên khi nó bắt đầu hộp (của một hàng xếp các con của nó, của dòng của chúng) và một thành phần con không có văn bản sẽ xếp hàng ở dưới cùng của nó, như trong CSS; trên một cột `.baseline` là `.start`:
+`align_items` đặt phần tử con theo trục vuông góc với trục chính:
+
+| `align_items` | |
+|---|---|
+| `.start` | mặc định |
+| `.center`, `.end` | |
+| `.stretch` | phần tử con có kích thước theo trục ngang là `.auto` sẽ rộng (trong cột) hoặc cao (trong hàng) bằng box |
+| `.baseline` | căn dòng chữ đầu tiên của các phần tử con trong một hàng, như giá tiền chữ lớn bên cạnh đơn vị chữ nhỏ |
 
 ```zig
 ui.row(c, .{ .align_items = .baseline, .gap = 4 });
@@ -70,21 +96,28 @@ ui.text(c, "$42", .{ .size = 40, .weight = .bold });
 ui.text(c, "/month", .{ .color = c.theme.muted });
 ```
 
-Các hàng của biểu mẫu sắp xếp nhãn của chúng với văn bản của điều khiển theo `baselines = true` (xem [biểu mẫu](forms.md)).
+Với `.baseline`:
 
-`justify` đặt chúng dọc theo nó khi không có cái nào mọc lên: `.start`, `.center`, `.end`, hoặc `.space_between`, giúp phân bổ khoảng trống giữa chúng.
+- Hàng cao bằng mức cần để căn.
+- Baseline của một box là baseline của phần tử con đầu tiên mở đầu box đó. Với một hàng đang căn phần tử con, đó là baseline của dòng chúng.
+- Phần tử con không có chữ thì căn theo cạnh dưới, như trong CSS.
+- Trong một cột, `.baseline` chính là `.start`.
+
+Các hàng của form căn label với chữ của control bằng `baselines = true` (xem [forms](forms.md)).
+
+`justify` đặt phần tử con dọc trục chính khi không phần tử nào grow: `.start`, `.center`, `.end`, hoặc `.space_between`, chia đều khoảng trống thừa vào giữa chúng.
 
 ```zig
-// Centered both ways in the window.
+// Căn giữa cả hai chiều trong cửa sổ.
 ui.column(c, .{ .width = .fill, .height = .fill, .align_items = .center, .justify = .center, .gap = 12 });
 defer ui.end(c);
 ```
 
 <a id="scrolling"></a>
 
-## Cuộn
+## Scroll
 
-Một hộp có `scroll = true` (như `ui.scroll` tạo ra) kẹp các phần tử con của nó và cuộn chúng theo chiều dọc bằng bánh xe và bàn di chuột; một thanh cuộn mỏng hiển thị ở bên phải trong khi nội dung của nó tràn ra (`scrollbar = false` cuộn mà không có thanh). Một khía của bánh xe chuột lướt qua đó một cách dễ dàng trong một thời gian ngắn, khi các trình duyệt cuộn nó, các khía liên tiếp cộng lại và một hộp ở cuối của nó để chúng vào hộp xung quanh nó; bàn di chuột di chuyển theo các ngón tay và với ít chuyển động hơn, một notch sẽ cuộn cùng một lúc. Hộp cuộn chiếm không gian được cung cấp, chứ không phải chiều cao nội dung của nó (như CSS's `min-height: 0`), vì vậy hãy đặt kích thước cho nó hoặc để nó phát triển:
+`scroll = true` làm box scroll được. `ui.scroll` đặt sẵn trường này.
 
 ```zig
 ui.scroll(c, .{ .grow = 1, .width = .fill, .padding = .all(16), .gap = 8 });
@@ -92,26 +125,56 @@ defer ui.end(c);
 for (s.messages) |m| messageRow(c, m);
 ```
 
-Thay vào đó, một hàng có `scroll = true` cuộn sang một bên, dưới dạng một dải tab: nó lấy chiều rộng được cung cấp thay vì nội dung của nó, bánh xe sẽ di chuyển dọc theo và một thanh mỏng hiển thị dọc theo đáy của nó trong khi nội dung của nó tràn ra. Đặt `c.scroll` cho id của nó để hiển thị trẻ em. `c.scroll_limit.get(id)` là khoảng cách mà mỗi hộp cuộn được bố trí trong khung cuối cùng có thể cuộn (0 nơi nội dung của nó phù hợp hoặc nó trống), liệu bố cục có đo lại văn bản của nó hay giữ chúng; `c.scroll_max` chỉ được giữ lại cho các hộp tiếp theo phần cuối của chúng (bên dưới), vì vậy hãy đọc `scroll_limit` để biết các hộp khác. `c.glideBy(id, dy)` lướt hộp `id` bằng `dy` điểm (tăng tích cực), như một điểm nhấn so với nó, đối với những gì cuộn một hộp từ nơi khác: một bản đồ nhỏ, một cái nhìn tổng quan.
+- Nó clip các phần tử con và scroll chúng theo chiều dọc bằng con lăn chuột và trackpad.
+- Một thanh scroll mảnh hiện ở bên phải khi nội dung tràn. Kéo thumb để scroll. `scrollbar = false` scroll mà không có thanh.
+- Một nấc con lăn chuột lướt tới đích theo một ease out ngắn, như trình duyệt. Nhiều nấc liên tiếp được cộng dồn.
+- Box đã ở cuối thì nhường các nấc cho box bao quanh.
+- Touchpad đi theo ngón tay. Khi bật giảm chuyển động, một nấc scroll ngay lập tức.
+- Nó nhận chỗ được cho, không phải chiều cao nội dung, như `min-height: 0` của CSS. Hãy cho nó kích thước hoặc để nó grow.
 
-Với `follow_end = true`, hộp cuộn vẫn ở cuối khi nội dung của nó tăng lên, trong khi người đọc để nó ở đó: nhật ký, trò chuyện và terminal. Cuộn lên, nó vẫn ở nguyên vị trí; cuộn xuống, nó lại theo sau. `c.capScroll(id, offset)` chỉ cho phép nó theo sau một phần bù cho một khung và `c.scrollMoved(id)` cho biết liệu trình đọc hoặc ứng dụng có di chuyển nó thay vì theo sau hay không.
+**Scroll ngang.** Một hàng có `scroll = true` thì scroll ngang, như một dải tab. Nó nhận chiều rộng được cho thay vì chiều rộng nội dung. Con lăn chuột đẩy nó đi. Một thanh mảnh hiện dọc cạnh dưới khi nội dung tràn.
 
-`follow_glide` làm cho nó lướt đến phần cuối khi nội dung của nó phát triển, như một hình ảnh động nói, thay vì hiển thị phần cuối cùng một lúc: những gì được thêm vào sẽ xuất hiện từ bên dưới, khi các ứng dụng trò chuyện cuộn. Trên khung nội dung thay đổi, các em ở lại chiếu chỗ nào thì về chỗ; một cú lướt trên đường đi tiếp tục từ nơi nó đến khi càng nhiều, người đọc sẽ dừng cuộn và với ít chuyển động hơn thì phần cuối sẽ hiển thị cùng một lúc. Nội dung vừa với hộp có `justify = .start` không di chuyển được gì, cũng như hộp cao bằng nội dung của nó (`max_height`); một chiếc hộp có chiều cao tự thay đổi (một cửa sổ đã được thay đổi kích thước, một nhà soạn nhạc bên dưới đã lớn lên) di chuyển các phần tử con của nó cùng một lúc.
+**Từ app:**
+
+- Đặt `c.scroll` theo id của nó để đưa một phần tử con vào tầm nhìn.
+- `c.scroll_limit.get(id)` là khoảng có thể scroll của mỗi box scroll đã layout ở frame trước. Nó bằng 0 khi nội dung vừa hoặc box rỗng. Giá trị đúng dù layout đo lại chữ hay giữ kết quả cũ.
+- `c.scroll_max` chỉ được giữ cho các box bám theo cuối (bên dưới). Với các box khác, đọc `scroll_limit`.
+- `c.glideBy(id, dy)` lướt box `id` đi `dy` điểm (dương là lên), như một nấc con lăn trên nó. Dùng cho thứ scroll một box từ chỗ khác: minimap, overview.
+
+**Bám theo cuối.** Với `follow_end = true`, box scroll đứng ở cuối khi nội dung lớn lên, miễn người đọc để nó ở đó. Dùng cho log, chat và terminal.
+
+- Scroll lên thì nó đứng yên. Scroll xuống lại thì nó bám theo tiếp.
+- `c.capScroll(id, offset)` cho nó bám theo không quá một offset, trong một frame.
+- `c.scrollMoved(id)` cho biết người đọc hoặc app đã di chuyển nó, chứ không phải nó tự bám theo.
+
+`follow_glide` làm nó lướt về cuối khi nội dung lớn lên, theo một animation, thay vì hiện cuối ngay. Phần mới thêm trồi lên từ dưới, như các app chat scroll.
 
 ```zig
 const glide: ui.FollowGlide = .of(.smooth);
 ui.column(c, .{ .scroll = true, .follow_end = true, .follow_glide = &glide, .grow = 1, .gap = 8 });
 ```
 
-Đối với hàng nghìn hàng, hãy sử dụng danh sách ảo `ui.list`, danh sách này chỉ tạo các hàng trong view; xem [danh sách](lists.md).
+- Ở frame nội dung thay đổi, các phần tử con còn lại vẫn hiện ở chỗ cũ. Rồi chúng đi tới chỗ mới.
+- Một lần lướt đang chạy sẽ tiếp tục từ vị trí hiện tại khi có thêm nội dung.
+- Người đọc scroll thì nó dừng. Khi bật giảm chuyển động, phần cuối hiện ngay.
+- Không gì di chuyển khi nội dung vừa box với `justify = .start`, hoặc khi box cao bằng nội dung (`max_height`).
+- Box tự đổi chiều cao thì di chuyển phần tử con ngay. Ví dụ cửa sổ bị đổi kích thước, hoặc ô soạn tin bên dưới cao lên.
+
+Với hàng nghìn dòng, dùng virtual list `ui.list`, chỉ build các dòng đang thấy; xem [lists](lists.md).
 
 <a id="positioning"></a>
 
 ## Định vị
 
-`offset` di chuyển một hộp sau khi bố trí mà không di chuyển các hộp anh chị em của nó: một cú huých, một cú nhấn làm chìm một nút xuống nửa điểm, một cú kéo.
+`offset` dịch một box sau layout, không dịch các phần tử cùng cấp: một cú xê dịch nhỏ, một cú bấm làm nút lún nửa điểm, một thao tác kéo.
 
-`absolute = true` lấy một hộp ra khỏi luồng: nó được đặt ở nguồn gốc nội dung của cha mẹ (cộng với `offset`), ở kích thước của chính nó (`.fill` lấp đầy hộp nội dung của cha mẹ), trên hoặc dưới các anh chị em của nó theo thứ tự được xây dựng. Huy hiệu trên biểu tượng và ô điều khiển trên ảnh là các hộp tuyệt đối:
+`absolute = true` đưa box ra khỏi luồng:
+
+- Nó được đặt tại gốc vùng nội dung của phần tử cha, cộng `offset`.
+- Nó có kích thước riêng. `.fill` lấp đầy vùng nội dung của phần tử cha.
+- Nó nằm trên hoặc dưới các phần tử cùng cấp theo thứ tự build.
+
+Badge trên icon và tay nắm trên ảnh là các box absolute:
 
 ```zig
 ui.column(c, .{ .width = .{ .px = 48 }, .height = .{ .px = 48 } });
@@ -124,21 +187,22 @@ ui.icon(c, "folder", .{ .size = 40 });
 }
 ```
 
-Những thứ nổi trên mọi thứ (cửa sổ bật lên, menu, thông báo toast) là các lớp phủ, được bố trí phía trên view; xem [lớp phủ](overlays.md).
+Những thứ nổi trên mọi thứ (popover, menu, toast) là overlay, được layout phía trên view; xem [overlays](overlays.md).
 
-`transform` di chuyển, chia tỷ lệ và xoay một hộp như đã vẽ, khoảng `transform_origin`, sau khi bố trí: vị trí của nó trong luồng vẫn giữ nguyên. Xem [biến đổi](transforms.md).
+`transform` dịch, co giãn và xoay box khi vẽ, quanh `transform_origin`, sau layout. Chỗ của nó trong luồng không đổi. Xem [transforms](transforms.md).
 
 <a id="clipping-and-opacity"></a>
 
-## Cắt và độ mờ
+## Clip và độ mờ
 
-`clip = true` kẹp các phần tử con của hộp vào đó, theo các góc tròn của hộp. `opacity` làm mờ một chiếc hộp và mọi thứ trong đó cùng nhau.
+- `clip = true` clip các phần tử con theo box, theo cả góc bo.
+- `opacity` làm mờ box cùng mọi thứ bên trong.
 
 <a id="the-chain-of-ui-div"></a>
 
-## Chuỗi `ui.div`
+## Chuỗi method của `ui.div`
 
-`ui.div(c)` mở một cột và trả về `ui.Div`, mỗi phương thức của nó đặt một trường theo kiểu của nó và trả về nó, để chúng xâu chuỗi, giống như các phần tử của GPUI thực hiện. Các phương thức kiểu được ưu tiên trước, sau đó là các phương thức con, sau đó là `end`:
+`ui.div(c)` mở một cột và trả về một `ui.Div`. Mỗi method của nó đặt một trường của style rồi trả về chính nó, nên có thể nối chuỗi, như element của GPUI. Method style đi trước, rồi đến phần tử con, rồi `end`:
 
 ```zig
 const item = ui.div(c).row().wFull().px(10).py(6).gap(8).itemsCenter().rounded(7).hover(c.theme.surface_hover);
@@ -148,30 +212,30 @@ ui.icon(c, "wrench.and.screwdriver", .{ .size = 14 });
 ui.text(c, "Settings", .{ .weight = .medium });
 ```
 
-| phương pháp | phong cách |
+| method | style |
 |---|---|
 | `row()`, `column()` | `direction` |
 | `gap(v)` | `gap` |
-| `p(v)`, `px(v)`, `py(v)`, `pt(v)`, `pr(v)`, `pb(v)`, `pl(v)` | `padding`: tất cả, ngang, dọc, một bên |
+| `p(v)`, `px(v)`, `py(v)`, `pt(v)`, `pr(v)`, `pb(v)`, `pl(v)` | `padding`: tất cả, ngang, dọc, một cạnh |
 | `w(v)`, `h(v)`, `size(w, h)` | `width`, `height` tính bằng điểm |
 | `wFull()`, `hFull()`, `sizeFull()` | `.fill` |
 | `grow()` | `grow = 1` |
 | `minW(v)`, `maxW(v)`, `maxH(v)` | giới hạn |
 | `itemsStart()`, `itemsCenter()`, `itemsEnd()`, `itemsStretch()` | `align_items` |
 | `justifyCenter()`, `justifyEnd()`, `justifyBetween()` | `justify` |
-| `center()` | cả hai, tập trung |
-| `bg(color)`, `border(color)`, `borderW(v)` | nền, đường viền |
+| `center()` | căn giữa cả hai |
+| `bg(color)`, `border(color)`, `borderW(v)` | nền, viền |
 | `rounded(v)`, `roundedFull()` | `radius` |
 | `shadow(s)`, `shadowSm()`, `shadowMd()`, `shadowLg()` | `shadow` |
 | `opacity(v)` | `opacity` |
 | `clip()`, `scrollY()`, `absolute()`, `offset(x, y)` | tràn và vị trí |
-| `control()` | `control`: văn bản của nó không được chọn |
-| `hover(color)` | nền giảm xuống `color` dưới con trỏ |
+| `control()` | `control`: chữ bên trong không chọn được |
+| `hover(color)` | nền chuyển dần sang `color` khi con trỏ ở trên |
 
-`interaction()`, `clicked()` và `hovered()` đọc cách con trỏ liên quan đến hộp, từ bố cục cuối cùng; `clicked()` cũng đặt `c.changed`, vì vậy những thay đổi khi nhấp chuột sẽ hiển thị trong khung này.
+`interaction()`, `clicked()` và `hovered()` đọc quan hệ giữa con trỏ và box, theo layout trước. `clicked()` còn đặt `c.changed`, nên thay đổi do cú bấm hiện ra ngay trong frame này.
 
 <a id="grids"></a>
 
-## Lưới
+## Grid
 
-Các hàng và cột xếp chồng lên nhau (một dạng nhãn và trường, bảng điều khiển gồm các thẻ) là một mạng lưới các bản nhạc; xem [bố cục lưới](grid.md).
+Hàng và cột thẳng hàng với nhau (form gồm label và trường, dashboard gồm các thẻ) là một grid của các track; xem [grid layout](grid.md).

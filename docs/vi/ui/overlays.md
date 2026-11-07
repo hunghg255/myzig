@@ -1,16 +1,23 @@
 <a id="overlays"></a>
 
-# Lớp phủ
+# Overlay
 
-Lớp phủ là các hộp được vẽ trên mọi thứ khác trong cửa sổ: cửa sổ bật lên bên cạnh một phần tử, chú giải công cụ, hộp thoại trên cửa sổ bị mờ, hộp thoại cảnh báo và toast. Menu và lựa chọn cũng là lớp phủ; họ có [một trang của riêng mình](menus.md).
+Overlay là những box được vẽ đè lên mọi thứ khác trong cửa sổ:
 
-Lớp phủ được tạo ở vị trí thuộc về nó trong view, bên cạnh nội dung mở nó nhưng nó được bố trí trên cửa sổ (`Context.openOverlay`) và nó đưa con trỏ đến trước các hộp bên dưới nó. Liệu một hiển thị có phải là trạng thái của ứng dụng hay không: một `ui.OverlayState` được giữ trong cấu trúc của ứng dụng, ứng dụng này sẽ mở và widget sẽ đóng khi người dùng loại bỏ nó.
+- popover cạnh một phần tử;
+- tooltip;
+- dialog phía trên cửa sổ bị làm mờ, và alert dialog;
+- toast.
+
+Menu và select cũng là overlay; chúng có [trang riêng](menus.md).
+
+Overlay được dựng ở đúng chỗ của nó trong view, cạnh thứ mở ra nó. Nó được layout phía trên cửa sổ (`Context.openOverlay`), và nhận con trỏ trước các box nằm dưới.
 
 <!-- demo: popover height=520 -->
 
-![Popover đang mở, neo vào nút Edit name.](../../images/ui/popover.png)
+![Một popover đang mở, gắn với nút Edit name.](../../images/ui/popover.png)
 
-*Popover đang mở, neo vào nút Edit name.*
+*Một popover đang mở, gắn với nút Edit name.*
 
 ```zig
 const State = struct {
@@ -22,13 +29,15 @@ const State = struct {
 };
 ```
 
-`OverlayState` có `show`, `close` và `toggle` và trường `open`. Trong khung mà người dùng đã đóng nó (Escape, nhấn bên ngoài) cờ `dismissed` của nó được đặt: lớp phủ phải luôn mở sẽ đặt `open` quay lại `true` sau đó. Khi mở, nó sẽ ghi nhớ tiêu điểm bàn phím và trả lại tiêu điểm khi đóng, vì vậy Tab tiếp tục từ nút đã mở nó.
+Overlay có hiện hay không là state của app: một `ui.OverlayState` giữ trong struct của app. App mở nó, và widget đóng nó khi người dùng gạt nó đi.
+
+- `OverlayState` có `show`, `close` và `toggle`, và trường `open`.
+- Trong frame mà người dùng đóng nó (Escape, bấm ra ngoài), cờ `dismissed` được đặt. Overlay nào phải mở tiếp thì lúc đó đặt `open` lại thành `true`.
+- Khi mở, nó nhớ focus bàn phím. Khi đóng, nó trả focus lại, nên Tab đi tiếp từ nút đã mở nó.
 
 <a id="popovers"></a>
 
-## Cửa sổ bật lên
-
-`ui.popover(c, &state, anchor, opts)` hiển thị một bảng bên cạnh phần tử `anchor` (bất kỳ `ui.Interaction`: một nút, một `ui.pressable`) trong khi `state.open` và trả về null khi nó bị đóng. Con của nó làm theo, sau đó là `end` của bảng điều khiển:
+## Popover
 
 ```zig
 const more = ui.button(c, "Edit name…", .{});
@@ -41,24 +50,33 @@ if (ui.popover(c, &s.pop, more, .{})) |p| {
 }
 ```
 
-Một lần nhấn bên ngoài cửa sổ bật lên hoặc Escape sẽ đóng nó và nhấn vào phần bên dưới con trỏ, giống như cách các cửa sổ bật lên của web thực hiện: một lần nhấn vào một nút khác sẽ đóng cửa sổ bật lên và nhấn nút đó, đồng thời nhấn vào neo sẽ đóng nó khi mỏ neo chuyển đổi nó. Đầu tiên, lối thoát đi đến nội dung bên trong bảng điều khiển (danh sách mở của một lựa chọn, cửa sổ bật lên của trường), sau đó đến bảng điều khiển.
+`ui.popover(c, &state, anchor, opts)` hiện một panel cạnh phần tử `anchor` khi `state.open`. Anchor là một `ui.Interaction` bất kỳ: của một nút, của một `ui.pressable`. Hàm trả về null khi đang đóng. Các phần tử con theo sau, rồi đến `end` của panel.
+
+**Đóng**
+
+- Bấm ra ngoài popover hoặc Escape sẽ đóng nó. Cú bấm vẫn đi tiếp tới thứ nằm dưới con trỏ, như popover trên web.
+- Nên bấm vào một nút khác sẽ đóng popover và bấm luôn nút đó. Bấm vào anchor thì đóng popover, vì anchor bật tắt nó.
+- Escape đến trước với thứ bên trong panel (danh sách đang mở của một select, popover riêng của một field), rồi mới tới panel.
 
 `ui.PopoverOptions`:
 
-| trường | Mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `side` | `.below` | `.below`, `.above`, `.right` hoặc `.left` của mỏ neo |
-| `align` | `.start` | `.start` (sắp thẳng hàng với điểm bắt đầu của mỏ neo) hoặc `.center` |
-| `gap` | 6 | điểm giữa neo và bảng điều khiển |
-| `padding` | `.all(8)` | phần đệm của bảng điều khiển |
-| `gap_children` | 4 | khoảng cách giữa những đứa trẻ của bảng điều khiển |
-| `width` | `.auto` | chiều rộng của bảng điều khiển |
+| `side` | `.below` | `.below`, `.above`, `.right` hoặc `.left` của anchor |
+| `align` | `.start` | `.start` (thẳng với đầu của anchor) hoặc `.center` |
+| `gap` | 6 | số điểm giữa anchor và panel |
+| `padding` | `.all(8)` | padding của panel |
+| `gap_children` | 4 | gap giữa các phần tử con của panel |
+| `width` | `.auto` | chiều rộng của panel |
 | `max_width` | 360 | |
-| `bare` | false | không có vẻ ngoài riêng biệt: tạo kiểu với `Panel.style()` |
+| `bare` | false | không có giao diện riêng: tự style bằng `Panel.style()` |
 
-Trường hợp không còn chỗ trên `side`, bảng điều khiển sẽ ở phía bên kia; dọc theo nó, nó xếp hàng ở điểm bắt đầu (hoặc điểm cuối, nơi điểm bắt đầu sẽ rời khỏi cửa sổ) và sau đó được di chuyển vào bên trong cửa sổ, cách các cạnh của nó 4 điểm. Bảng điều khiển mờ dần trên các frame đầu tiên của nó.
+**Vị trí**
 
-Cửa sổ bật lên trần không có nền, đường viền, bán kính hoặc bóng. `Panel.style()` của nó trả về `*ui.Style` của hộp bảng điều khiển, để biến nó thành của riêng bạn:
+- Không đủ chỗ ở `side` thì panel sang phía đối diện.
+- Dọc theo phía đó, nó thẳng hàng ở đầu, hoặc ở cuối nếu thẳng ở đầu sẽ tràn ra ngoài cửa sổ.
+- Sau đó nó được dời vào trong cửa sổ, cách các mép 4 điểm.
+- Panel hiện dần trong vài frame đầu.
 
 ```zig
 if (ui.popover(c, &s.pop, more, .{ .bare = true })) |p| {
@@ -71,20 +89,34 @@ if (ui.popover(c, &s.pop, more, .{ .bare = true })) |p| {
 }
 ```
 
+Popover bare không có nền, viền, bo góc hay bóng. `Panel.style()` của nó trả về `*ui.Style` của box panel, để bạn tự style.
+
 <a id="tooltips"></a>
 
-## Chú giải công cụ
-
-`ui.tooltip(c, anchor, tip)` hiển thị `tip` phía trên phần tử `anchor` (bên dưới phần tử không có khoảng trống phía trên), được căn giữa khi con trỏ đã nằm trên phần tử đó trong `0.6` giây hoặc ngay lập tức khi nó tập trung vào bàn phím hoặc một mẹo khác hoạt động ít hơn `0.4` giây trước, do đó, việc di chuyển dọc theo thanh công cụ sẽ hiển thị từng mẹo cùng một lúc. Nó đi khi con trỏ rời đi; nhấn vào phần tử hoặc Escape sẽ ẩn nó cho đến khi con trỏ rời đi và quay lại. Con trỏ đi qua nó. `tooltip_delay` (giây) của theme đổi thời gian chờ: 0 giữ 0.6 giây, một giá trị âm hiện mẹo ngay lập tức, và thời gian "ấm" theo nó ở mức hai phần ba. Đặt nó trên `c.theme` quanh một phần của view, như một thanh công cụ, thì mẹo của các phần tử đó chờ theo nó.
+## Tooltip
 
 ```zig
 const share = ui.button(c, "Share", .{});
 ui.tooltip(c, share, "Share with others");
 ```
 
-Mẹo được đọc cho công nghệ hỗ trợ sau tên của thành phần, dù được hiển thị hay không. Thời gian của nó là đồng hồ của ngữ cảnh, do đó, quá trình kiểm tra sẽ nâng cao đồng hồ của Người kiểm tra thay vì chờ đợi (xem [Kiểm thử](testing.md)).
+`ui.tooltip(c, anchor, tip)` hiện `tip` phía trên phần tử `anchor`, căn giữa. Không đủ chỗ phía trên thì nó hiện phía dưới.
 
-Mẹo của riêng bạn: `ui.tooltipBase(c, anchor)` mở hộp mẹo và trả về chỉ mục nút của nó trong khi nó hiển thị, null nếu không; thêm nội dung của nó, sau đó là `ui.tooltipEnd(c, anchor)`, đặt nội dung đó theo phần tử của nó.
+- Nó hiện khi con trỏ dừng trên phần tử được `0.6` giây.
+- Nó hiện ngay khi phần tử có focus bàn phím.
+- Nó cũng hiện ngay nếu một tooltip khác vừa tắt chưa tới `0.4` giây. Nên khi rê dọc một toolbar, mỗi tooltip hiện ngay.
+- Nó tắt khi con trỏ rời đi. Bấm vào phần tử hoặc Escape sẽ ẩn nó cho tới khi con trỏ rời đi rồi quay lại.
+- Con trỏ đi xuyên qua nó.
+- Trình đọc màn hình đọc tooltip sau tên của phần tử, dù tooltip có đang hiện hay không.
+- Thời gian của nó là đồng hồ của context, nên test chỉ cần cho đồng hồ của `ui.Tester` chạy tới thay vì chờ (xem [Testing](testing.md)).
+
+`tooltip_delay` của theme, tính bằng giây, đổi thời gian chờ:
+
+- 0 giữ 0.6 giây;
+- số âm thì tooltip hiện ngay;
+- thời gian "còn ấm" theo đó bằng hai phần ba.
+
+Đặt nó trên `c.theme` quanh một phần của view, như một toolbar. Tooltip của các phần tử đó sẽ chờ đúng như vậy.
 
 ```zig
 const info = ui.button(c, "Shortcuts", .{});
@@ -97,17 +129,17 @@ if (ui.tooltipBase(c, info)) |box| {
 }
 ```
 
+Tooltip tự làm: `ui.tooltipBase(c, anchor)` mở box của tooltip và trả về chỉ số node của nó khi đang hiện, ngược lại là null. Thêm nội dung, rồi gọi `ui.tooltipEnd(c, anchor)` để đặt nó cạnh phần tử.
+
 <a id="dialogs"></a>
 
-## Hộp thoại
+## Dialog
 
 <!-- demo: overlays height=300 -->
 
-![Hộp thoại Rename nằm trên view được làm tối.](../../images/ui/dialog.png)
+![Dialog Rename phía trên một view bị làm mờ.](../../images/ui/dialog.png)
 
-*Hộp thoại Rename nằm trên view được làm tối.*
-
-`ui.dialog(c, &state, opts)` hiển thị một bảng điều khiển được căn giữa trên cửa sổ bị mờ trong khi `state.open` và trả về `ui.Dialog` (null khi đóng), có con theo sau, sau đó là `end`:
+*Dialog Rename phía trên một view bị làm mờ.*
 
 ```zig
 if (ui.button(c, "Rename…", .{}).clicked) s.rename.show();
@@ -122,26 +154,32 @@ if (ui.dialog(c, &s.rename, .{})) |d| {
 }
 ```
 
-Một hộp thoại sẽ giữ cửa sổ cho chính nó: phông nền của nó sẽ lấy con trỏ, nhấn vào phông nền sẽ đóng hộp thoại trừ khi `dismissible` là false và Escape sẽ đóng hộp thoại đó (trừ khi `escape` là false) sau khi không có gì bên trong lấy Escape trước. Trọng tâm đằng sau nó bị loại bỏ khi nó mở ra và được trả lại khi nó đóng lại.
+`ui.dialog(c, &state, opts)` hiện một panel ở giữa cửa sổ bị làm mờ khi `state.open`. Hàm trả về một `ui.Dialog`, null khi đang đóng. Các phần tử con theo sau, rồi đến `end`.
+
+Dialog giữ cửa sổ cho riêng nó:
+
+- Lớp nền mờ nhận con trỏ.
+- Bấm vào lớp nền sẽ đóng dialog, trừ khi `dismissible` là false.
+- Escape đóng nó, trừ khi `escape` là false, sau khi không có gì bên trong nhận Escape trước.
+- Focus phía sau bị bỏ khi nó mở, và được trả lại khi nó đóng.
+- Tab và Shift+Tab chỉ đi giữa các control đang bật của nó. Chỉ đặt `trap_focus` thành false khi app tự xử lý focus.
 
 `ui.DialogOptions`:
 
-| trường | Mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `width` | `.{ .px = 360 }` | chiều rộng của bảng điều khiển |
+| `width` | `.{ .px = 360 }` | chiều rộng của panel |
 | `padding` | `.all(20)` | |
-| `gap` | 12 | giữa những đứa trẻ của bảng điều khiển |
-| `dismissible` | true | một cái nhấn trên phông nền sẽ đóng nó lại |
-| `escape` | true | Escape đóng nó lại |
-| `bare` | false | không cần nhìn: tạo kiểu cho nó bằng `Dialog.backdropStyle()` và `Dialog.panelStyle()` |
-| `animated` | true | mờ dần khi mở |
-| `trap_focus` | true | Tab và Shift+Tab chỉ di chuyển trong dialog |
+| `gap` | 12 | giữa các phần tử con của panel |
+| `dismissible` | true | bấm vào lớp nền sẽ đóng nó |
+| `escape` | true | Escape đóng nó |
+| `bare` | false | không có giao diện: style bằng `Dialog.backdropStyle()` và `Dialog.panelStyle()` |
+| `animated` | true | hiện dần khi mở |
+| `trap_focus` | true | Tab và Shift+Tab ở lại trong dialog |
 
 <a id="alert-dialogs"></a>
 
-## Hộp thoại cảnh báo
-
-`ui.alertDialog(c, &state, title, message, buttons)` hỏi về điều gì đó quan trọng, giống như cảnh báo của AppKit: tiêu đề, thông báo và một hàng nút, nút cuối cùng là mặc định, được vẽ bằng màu nhấn mà Enter sẽ nhấp vào. Escape đóng nó không chọn gì; một báo chí bên ngoài không làm gì cả. Chọn một nút sẽ đóng nó lại. Nó trả lời `ui.AlertResult`:
+## Alert dialog
 
 ```zig
 if (ui.button(c, "Delete…", .{ .variant = .danger }).clicked) s.alert.show();
@@ -152,9 +190,18 @@ switch (ui.alertDialog(c, &s.alert, "Delete “Groceries”?", "You can't undo t
 }
 ```
 
-`.chosen` mang chỉ mục của nút được nhấp (chỉ mục cuối cùng dành cho Enter); `.dismissed` có nghĩa là Escape đã đóng nó, giống như việc hủy bỏ.
+`ui.alertDialog(c, &state, title, message, buttons)` hỏi về một việc quan trọng, như alert của AppKit. Nó hiện một tiêu đề, một thông điệp và một hàng nút.
 
-Đối với các hộp thông báo riêng của hệ thống, sẽ chặn cho đến khi được trả lời và được hệ điều hành vẽ ra, hãy xem `myzig.dialog` trong [Hệ thống](../system.md).
+- Nút cuối cùng là nút mặc định. Nó được vẽ bằng màu accent, và Enter bấm nó.
+- Chọn một nút sẽ đóng alert.
+- Escape đóng nó mà không chọn nút nào. Bấm ra ngoài không làm gì.
+
+Hàm trả về một `ui.AlertResult`:
+
+- `.chosen` mang chỉ số của nút được bấm (nút cuối, khi nhấn Enter).
+- `.dismissed` nghĩa là Escape đã đóng nó, giống như hủy.
+
+Với hộp thoại thông báo của chính hệ thống, xem `myzig.dialog` trong [System](../system.md). Hệ điều hành vẽ chúng, và chúng chặn cho tới khi được trả lời.
 
 <a id="toasts"></a>
 
@@ -227,14 +274,30 @@ _ = s.toasts.add(.{ .title = "report.pdf uploaded", .kind = .success, .key = "up
 
 <a id="building-overlays-of-your-own"></a>
 
-## Xây dựng lớp phủ của riêng bạn
+## Tự làm overlay
 
-Cửa sổ bật lên, menu, lựa chọn và hộp tổ hợp được tạo thành từ các phần trong `ui.overlays` (`overlay_base.zig`), mà widget của riêng bạn có thể sử dụng:
+Popover, menu, select và combobox được làm từ các phần trong `ui.overlays` (`overlay_base.zig`). Widget của bạn cũng dùng được chúng.
 
-- `overlays.overlay(c, style, seed)` mở một hộp phía trên cửa sổ (`Context.openOverlay`) có id đến từ `seed`, để các hộp được tạo sau nó giữ nguyên id của chúng khi nó đến và đi: một mẹo hiển thị không được thay đổi id của nút bên cạnh nó. `overlays.seedOf(&state)` tạo một địa chỉ gốc của tiểu bang.
-- `OverlayState.sync(c)` ghi lại frame mà nó mở ra và lấy lại tiêu điểm khi nó đóng lại; nó trả về nếu nó hiển thị. `justOpened(c)` là true trong khung đầu tiên của nó, `record(c, lo)` ghi chú các hộp mà nó đã tạo và `pressedOutside(c, anchor_id)` cho biết liệu lực ép của khung này có hạ cánh bên ngoài chúng và bên ngoài mỏ neo hay không; `dismiss(c)` đóng nó lại như người dùng đã làm.
-- `overlays.attach(anchor, size, window, side, align, gap)` tính toán vị trí của bảng điều khiển và `overlays.place(c, index, anchor, side, align, gap)` đo hộp lớp phủ và di chuyển nó đến đó, giống như cách bảng điều khiển thực hiện khi nó kết thúc; cái cuộn đầu tiên được cắt vào phòng ở phía lớn hơn của mỏ neo (`overlays.roomAlong`), nơi nó cuộn.
-- `overlays.takeKey(c, key)` lấy khóa từ sự kiện này, vì vậy những gì được tạo sau này sẽ không nhìn thấy khóa đó: lớp phủ ở trên sẽ lấy Escape trước.
-- `overlays.fadeIn(c, id, opened)` là độ mờ của bảng điều khiển mờ dần.
+**Mở một box phía trên cửa sổ**
 
-Xem [Tiện ích tùy chỉnh](custom-widgets.md) để biết các hộp, hoạt động tương tác và giá trị hoạt ảnh được tạo nên từ đó.
+- `overlays.overlay(c, style, seed)` mở một box phía trên cửa sổ (`Context.openOverlay`), id của nó lấy từ `seed`.
+- Nhờ vậy các box dựng sau nó giữ nguyên id khi nó xuất hiện và biến mất. Một tooltip hiện lên không được làm đổi id của nút bên cạnh.
+- `overlays.seedOf(&state)` tạo seed từ địa chỉ của state.
+
+**State của nó**
+
+- `OverlayState.sync(c)` ghi lại frame mà nó mở, và trả focus khi nó đóng. Hàm trả về nó có đang hiện không.
+- `justOpened(c)` là true trong frame đầu tiên của nó.
+- `record(c, lo)` ghi lại các box nó đã dựng.
+- `pressedOutside(c, anchor_id)` cho biết cú bấm của frame này có rơi ra ngoài các box đó và ngoài anchor không.
+- `dismiss(c)` đóng nó như khi người dùng đóng.
+
+**Vị trí, phím và hiện dần**
+
+- `overlays.attach(anchor, size, window, side, align, gap)` tính chỗ đặt một panel.
+- `overlays.place(c, index, anchor, side, align, gap)` đo box overlay và dời nó tới đó, như panel làm khi kết thúc.
+- Panel có scroll thì trước hết được cắt cho vừa khoảng trống ở phía rộng hơn của anchor (`overlays.roomAlong`), và scroll ở đó.
+- `overlays.takeKey(c, key)` lấy một phím khỏi sự kiện này, nên những gì dựng sau không thấy nó: overlay trên cùng nhận Escape trước.
+- `overlays.fadeIn(c, id, opened)` là độ mờ đục của một panel đang hiện dần.
+
+Xem [Custom widget](custom-widgets.md) về các box, tương tác và giá trị animation tạo nên chúng.

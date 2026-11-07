@@ -1,10 +1,11 @@
 # The myzig CLI
 
-`myzig` is the command line tool of myzig apps, after mygo's `mygo`: it
-makes apps, runs them as you edit them, writes the TypeScript client of
-their bound services, and builds their releases and packages. Apps don't
-need it: every app is a Zig package that `zig build` builds and runs on its
-own, and the CLI calls `zig build` with the right options.
+`myzig` is the command line tool for myzig apps, after mygo's `mygo`. It
+makes apps, runs them as you edit, writes the TypeScript client of their
+bound services, and builds releases and packages.
+
+Apps don't need it. Every app is a Zig package that `zig build` builds
+and runs on its own. The CLI calls `zig build` with the right options.
 
 ```
 myzig <command> [arguments]
@@ -24,9 +25,9 @@ myzig <command> [arguments]
 
 ## Install
 
-The CLI is a Zig program in `cli/` of the myzig repository, a package of
-its own that depends on the myzig next to it. Build it with Zig 0.17 and
-put it on the `PATH`:
+The CLI is a Zig program in `cli/` of the myzig repository. It is a
+package of its own that depends on the myzig next to it. Build it with
+Zig 0.17 and put it on the `PATH`:
 
 ```sh
 cd myzig/cli
@@ -34,8 +35,9 @@ zig build -Doptimize=ReleaseSafe --prefix ~/.local   # installs ~/.local/bin/myz
 myzig version
 ```
 
-`zig build run -- <command>` runs it without installing. `ZIG` names the
-Zig the CLI builds apps with (the `zig` on the `PATH` by default).
+- `zig build run -- <command>` runs it without installing.
+- `ZIG` names the Zig the CLI builds apps with. The default is the `zig`
+  on the `PATH`.
 
 ```sh
 cd myzig/cli
@@ -69,20 +71,25 @@ Creates an app in a new or empty directory:
 | `--myzig PATH\|URL` | a checkout of myzig, or what `zig fetch` fetches |
 | `--skip-generate` | don't build the web template to write its client |
 
-Where myzig comes from: `--myzig`, else `MYZIG_ROOT`, else the myzig
-repository on GitHub at the CLI's version
-(`git+https://github.com/hunghg255/myzig#v0.1.19` for CLI 0.1.19). A
-checkout becomes a path dependency (`.myzig = .{ .path = "../myzig" }`)
-when a relative path reaches it; a URL (or a checkout on another drive) is
-fetched with `zig fetch --save=myzig`.
+Where myzig comes from, first match wins:
 
-The web template's build embeds the frontend through `myzig_assets.zig`, a
-module the CLI writes that lists the frontend's files, each with
-`@embedFile`, as `pub const files = [_]myzig.Asset{...}`. The app imports
-it as `assets` and serves `&assets.files`. The CLI writes it again
-whenever the files change (`generate`, `dev`, `build`), so adding a page
-needs no Zig; it leaves out the generated client, dot files and
-`node_modules`.
+1. `--myzig`;
+2. `MYZIG_ROOT`;
+3. the myzig repository on GitHub at the CLI's version
+   (`git+https://github.com/hunghg255/myzig#v0.1.19` for CLI 0.1.19).
+
+A checkout that a relative path reaches becomes a path dependency
+(`.myzig = .{ .path = "../myzig" }`). A URL, or a checkout on another
+drive, is fetched with `zig fetch --save=myzig`.
+
+The web template's build embeds the frontend through `myzig_assets.zig`:
+
+- The CLI writes this module. It lists the frontend's files, each with
+  `@embedFile`, as `pub const files = [_]myzig.Asset{...}`.
+- The app imports it as `assets` and serves `&assets.files`.
+- The CLI writes it again whenever the files change (`generate`, `dev`,
+  `build`). Adding a page needs no Zig.
+- It leaves out the generated client, dot files and `node_modules`.
 
 Then:
 
@@ -100,28 +107,32 @@ myzig build      # the release and its package
 myzig dev [dir] [-- app arguments]
 ```
 
-Builds the app (Debug), writes its client when it has a frontend, runs it,
-and watches its files: a change rebuilds it, and the new build replaces the
-running one, which quits first. A build that fails keeps the running app
-and says so; fix the error and save. Quitting the app ends `myzig dev`.
+Builds the app (Debug), writes its client when it has a frontend, runs
+it, and watches its files.
 
-- **Watching** is the system's (ReadDirectoryChangesW on Windows, inotify
-  on Linux, kqueue on macOS): nothing polls. Changes settle for 150 ms
-  before a rebuild, so an editor's save or a branch switch is one rebuild.
-  The whole app directory is watched except `.zig-cache`, `zig-out`,
-  `.myzig`, `.git`, `node_modules`, the output directory (`out`), the files
-  the CLI writes (`myzig_assets.zig`, `myzig.js`, `myzig.d.ts`) and
-  editors' temporary files.
-- **Two install prefixes** in turn (`.myzig/dev/a` and `.myzig/dev/b`): a
-  build never overwrites the executable that runs, which Windows keeps
+- A change rebuilds it. The new build replaces the running one, which
+  quits first.
+- A build that fails keeps the running app and says so. Fix the error
+  and save.
+- Quitting the app ends `myzig dev`.
+- **Watching** is the system's: ReadDirectoryChangesW on Windows,
+  inotify on Linux, kqueue on macOS. Nothing polls.
+  - Changes settle for 150 ms before a rebuild. An editor's save or a
+    branch switch is one rebuild.
+  - The whole app directory is watched except `.zig-cache`, `zig-out`,
+    `.myzig`, `.git`, `node_modules`, the output directory (`out`), the
+    files the CLI writes (`myzig_assets.zig`, `myzig.js`, `myzig.d.ts`)
+    and editors' temporary files.
+- **Two install prefixes** in turn (`.myzig/dev/a` and `.myzig/dev/b`).
+  A build never overwrites the executable that runs, which Windows keeps
   locked.
 - **The environment**: the app runs with `MYZIG_DEV=1`, and
   `MYZIG_DEV_URL` when `dev_url` is set.
-- **A dev server**: with `dev_command` (`bun run dev`, ...) and `dev_url`,
-  the CLI runs the command first, waits until the URL answers, and stops
-  it when it ends. The frontend is then the server's to reload (Vite's hot
-  reload), and only Zig changes rebuild the app, whose window loads
-  `MYZIG_DEV_URL`:
+- **A dev server**: set `dev_command` (`bun run dev`, ...) and `dev_url`.
+  - The CLI runs the command first, waits until the URL answers, and
+    stops it when it ends.
+  - The server reloads the frontend (Vite's hot reload). Only Zig
+    changes rebuild the app, whose window loads `MYZIG_DEV_URL`:
 
   ```zig
   const url = init.environ_map.get("MYZIG_DEV_URL") orelse "/";
@@ -145,23 +156,33 @@ myzig build --platform macos --arch universal
 myzig build --platform web
 ```
 
-Builds the release (ReleaseSmall and stripped by default) and packages it
-in `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...): a `.app` and, on
-a Mac, a `.dmg`; a Windows `.exe` with its icon, manifest and version
-resources, in a portable `.zip` that runs unpacked, and an installer with
-NSIS (`<slug>-setup-<version>-<arch>.exe`); a Linux directory, a
-`.tar.gz` and a `.deb`. Linux and Windows releases build from any machine,
-as Zig cross-compiles and myzig links nothing of theirs; macOS releases
-need the macOS SDK, and the `.dmg` and code signing a Mac. See
-[Distribution](distribution.md) for what each package holds.
+Builds the release, ReleaseSmall and stripped by default. It packages it
+in `<out>/<platform>-<arch>` (`dist/macos-aarch64`, ...):
 
-Before building, it runs `build_command` (the frontend's build) and writes
-`myzig_assets.zig` for `frontend_dist`. It checks that the icon is a square
-PNG, and builds with only the options the app's `build.zig` declares (read
-from `zig build --help`), so an app's own `build.zig` keeps working: a
-release of a Windows app gets `-Dwindows-gui=true` (no console),
-`-Dstrip=true`, `-Dwin32-res=<app.res>` and `-Dfrontend=<frontend_dist>`
-when declared.
+| platform | packages |
+|---|---|
+| macOS | a `.app` and, on a Mac, a `.dmg` |
+| Windows | an `.exe` with its icon, manifest and version resources; a portable `.zip` that runs unpacked; an installer with NSIS (`<slug>-setup-<version>-<arch>.exe`) |
+| Linux | a directory, a `.tar.gz` and a `.deb` |
+
+- Linux and Windows releases build from any machine. Zig cross-compiles,
+  and myzig links nothing of theirs.
+- macOS releases need the macOS SDK. The `.dmg` and code signing need a
+  Mac.
+
+See [Distribution](distribution.md) for what each package holds.
+
+Before building, it:
+
+- runs `build_command` (the frontend's build);
+- writes `myzig_assets.zig` for `frontend_dist`;
+- checks that the icon is a square PNG.
+
+It builds with only the options the app's `build.zig` declares, read from
+`zig build --help`. So an app's own `build.zig` keeps working. A release
+of a Windows app gets these when declared: `-Dwindows-gui=true` (no
+console), `-Dstrip=true`, `-Dwin32-res=<app.res>` and
+`-Dfrontend=<frontend_dist>`.
 
 | flag | |
 |---|---|
@@ -174,25 +195,29 @@ when declared.
 | `--skip-installer` | don't make the Windows installer, nor look for NSIS |
 | `--upload` | upload the packages and the signed update where `updates` points: the bucket of `updates.s3`, else a draft GitHub release of the version (see [Updates](updates.md)) |
 
-With `updates` in `myzig.zon` and the signing key
-(`MYZIG_UPDATER_PRIVATE_KEY`, or `updates.private_key`), it also writes the
-signed update of the platform beside the packages: the executable, as
-`<name>-<version>-<platform>-<arch>`, and its manifest,
-`update-<platform>-<arch>.json`. Without the key it warns and writes
-neither, and `--upload` stops before building: a release without
-manifests is one that installed apps cannot update to. A macOS build
-stops before building, too, when `macos.provisioning_profile` is set and
-the app is signed ad hoc.
+**Signed updates.** Set `updates` in `myzig.zon` and give the signing key
+(`MYZIG_UPDATER_PRIVATE_KEY`, or `updates.private_key`). The build then
+writes the platform's signed update beside the packages:
+
+- the executable, as `<name>-<version>-<platform>-<arch>`;
+- its manifest, `update-<platform>-<arch>.json`.
+
+Without the key it warns and writes neither. `--upload` then stops before
+building: installed apps cannot update to a release without manifests.
+A macOS build also stops before building when
+`macos.provisioning_profile` is set and the app is signed ad hoc.
 
 The targets are `<arch>-macos`, `<arch>-windows-gnu`, `<arch>-linux-gnu`
 and `wasm32-wasi`. Intermediate files go in `.myzig/build/`.
 
-Every build starts from nothing: before anything builds (`build_command`
-too), `myzig build` deletes `<out>` and `.myzig/build/` and makes `<out>`
-again, so it holds only this build's package, of one platform. Packages of
-several platforms are built one after another, each kept elsewhere
-(`--out dist/mac`, ...). An `<out>` that is the app's directory or holds
-it is refused.
+**Every build starts from nothing.** Before anything builds,
+`build_command` included:
+
+- `myzig build` deletes `<out>` and `.myzig/build/` and makes `<out>`
+  again. It holds only this build's package, of one platform.
+- Build packages of several platforms one after another, each kept
+  elsewhere (`--out dist/mac`, ...).
+- An `<out>` that is the app's directory or holds it is refused.
 
 ## myzig generate
 
@@ -201,12 +226,15 @@ myzig generate [dir]
 ```
 
 Builds the app for this machine (into `.myzig/generate`) and runs it with
-`--myzig-generate=<frontend>`, which writes `myzig.js` and `myzig.d.ts`,
-the client of its bound services and events, into the frontend's sources
-and exits without showing a window. It needs `frontend` in `myzig.zon`
-(or a `frontend/` directory), and an app that calls `app.run()`. `dev`
-writes the client on every build too. See [Bindings](bindings.md) for the
-client.
+`--myzig-generate=<frontend>`. That writes `myzig.js` and `myzig.d.ts`,
+the client of its bound services and events, into the frontend's
+sources. It exits without showing a window.
+
+- It needs `frontend` in `myzig.zon` (or a `frontend/` directory), and
+  an app that calls `app.run()`.
+- `dev` writes the client on every build too.
+
+See [Bindings](bindings.md) for the client.
 
 ## myzig icon
 
@@ -216,11 +244,12 @@ myzig icon logo.png --out resources/icons
 myzig icon --new resources/icon.png        # write myzig's default icon
 ```
 
-Renders a square PNG as `icon.icns` (macOS), `icon.ico` (Windows) and PNGs
-of 16, 32, 48, 64, 128, 256, 512 and 1024 pixels. `myzig build` makes the
-platforms' icons from `myzig.zon`'s `icon` itself; this command is for
-looking at them, or for other tools. Use a PNG of 1024 pixels for the
-sharpest result.
+Renders a square PNG as `icon.icns` (macOS), `icon.ico` (Windows) and
+PNGs of 16, 32, 48, 64, 128, 256, 512 and 1024 pixels.
+
+- `myzig build` makes the platforms' icons from `myzig.zon`'s `icon`
+  itself. This command is for looking at them, or for other tools.
+- Use a PNG of 1024 pixels for the sharpest result.
 
 ## myzig keygen
 
@@ -230,13 +259,17 @@ myzig keygen --out keys --force
 ```
 
 Creates the Ed25519 key pair that signs updates: `myzig-update.key`, the
-secret, and `myzig-update.pub`, and prints the `updates` to put in
-`myzig.zon`. The configuration directory is `%APPDATA%` on Windows,
-`~/Library/Application Support` on macOS and `$XDG_CONFIG_HOME` (or
-`~/.config`) on Linux. Keep the secret key out of the repository, in a
-password manager and the secrets of CI: installed apps accept only updates
-signed with it. `--force` replaces keys that are there. See
-[Updates](updates.md).
+secret, and `myzig-update.pub`. It prints the `updates` to put in
+`myzig.zon`.
+
+- The configuration directory is `%APPDATA%` on Windows,
+  `~/Library/Application Support` on macOS and `$XDG_CONFIG_HOME` (or
+  `~/.config`) on Linux.
+- Keep the secret key out of the repository, in a password manager and
+  the secrets of CI. Installed apps accept only updates signed with it.
+- `--force` replaces keys that are there.
+
+See [Updates](updates.md).
 
 ## myzig doctor
 
@@ -254,13 +287,13 @@ It exits with an error when a required check fails.
 
 ## myzig version
 
-Prints the CLI's version (`myzig --version`, `-v`), which follows myzig's
+Prints the CLI's version (`myzig --version`, `-v`). It follows myzig's
 (`myzig.version`).
 
 ## The flags of apps
 
-Every myzig app understands these flags, which the CLI and tests use. They
-never show a window on the screen:
+Every myzig app understands these flags, which the CLI and tests use.
+They never show a window on the screen:
 
 | flag | |
 |---|---|
@@ -287,6 +320,10 @@ never show a window on the screen:
 
 ## What mygo's CLI has that this one doesn't yet
 
-`mygo install-skills`, `mygo i18n check`, delta updates and macOS bundle
-updates (`mygo build` signs an archive of the whole app), the `-web` live reload of native UI in a browser, code signing on Windows
-and notarization on macOS, and putting plugins' native libraries into apps.
+- `mygo install-skills`
+- `mygo i18n check`
+- delta updates, and macOS bundle updates (`mygo build` signs an archive
+  of the whole app)
+- the `-web` live reload of native UI in a browser
+- code signing on Windows and notarization on macOS
+- putting plugins' native libraries into apps

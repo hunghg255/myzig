@@ -2,7 +2,7 @@
 
 # Cửa sổ
 
-Một cửa sổ hiển thị một trong hai nội dung: giao diện native mà myzig vẽ (a `ui.View`) hoặc một trang web trong webview của hệ thống. Mọi thứ khác, các tùy chọn, sự kiện, thanh tiêu đề, tờ rơi, đều giống nhau đối với cả hai.
+Một cửa sổ hiện giao diện native do myzig vẽ (một `ui.View`), hoặc một trang web trong webview của hệ thống. Tùy chọn, event, thanh tiêu đề và flyout đều giống nhau cho cả hai.
 
 ```zig
 const win = try app.newWindow(.{
@@ -17,9 +17,10 @@ const win = try app.newWindow(.{
 });
 ```
 
-`App.newWindow` tạo cửa sổ, hiển thị nó trừ khi `visible` là false và trả về nó. Ứng dụng sẽ giữ nó trong `app.windows` cho đến khi nó đóng; sau đó nó được giải phóng và con trỏ không được sử dụng lại (`on_close` là nơi để quên nó).
+- `App.newWindow` tạo cửa sổ, hiện nó nếu `visible` không phải false, và trả về nó.
+- App giữ cửa sổ trong `app.windows` cho tới khi nó đóng. Sau đó cửa sổ được giải phóng, và không được dùng lại con trỏ đó nữa. `on_close` là chỗ để quên nó đi.
 
-Một trang thay vì một lượt xem:
+Một trang web thay cho view:
 
 ```zig
 const assets = [_]myzig.Asset{
@@ -32,7 +33,7 @@ _ = try app.newWindow(.{
 });
 ```
 
-Các tùy chọn của trang là gì (`myzig.PageOptions`: nội dung, thư mục, máy chủ nhà phát triển, lược đồ, nguồn gốc đáng tin cậy, tập lệnh, trình nghe của trang) nằm trong [Trang](pages.md).
+Tùy chọn của trang nằm ở [Trang web](pages.md): `myzig.PageOptions` có asset, một thư mục, dev server, scheme, origin tin cậy, script và listener của trang.
 
 <a id="options"></a>
 
@@ -40,36 +41,33 @@ Các tùy chọn của trang là gì (`myzig.PageOptions`: nội dung, thư mụ
 
 `myzig.WindowOptions`:
 
-| lĩnh vực | mặc định | nó làm gì |
+| Trường | Mặc định | Tác dụng |
 |---|---|---|
-| `title` | `""` | văn bản của thanh tiêu đề |
-| `width`, `height` | 800, 600 | kích thước của nội dung tính bằng điểm |
-| `min_width`, `min_height` | 200, 150 | cái nhỏ nhất mà người dùng có thể làm được |
-| `resizable` | true | người dùng có thể thay đổi kích thước nó |
-| `x`, `y` | null | góc trên bên trái của nó cách với góc trên bên trái của màn hình chính; căn giữa khi null |
-| `visible` | true | hiển thị cùng một lúc; nếu không hãy gọi `show` |
-| `always_on_top` | false | phía trên cửa sổ của các ứng dụng khác |
-| `skip_taskbar` | false | ra khỏi thanh tác vụ và trình chuyển đổi ứng dụng (Linux, Windows) |
+| `title` | `""` | chữ trên thanh tiêu đề |
+| `width`, `height` | 800, 600 | kích thước nội dung, tính bằng điểm |
+| `min_width`, `min_height` | 200, 150 | kích thước nhỏ nhất người dùng thu được |
+| `resizable` | true | người dùng đổi được kích thước |
+| `x`, `y` | null | góc trên bên trái, tính bằng điểm màn hình từ góc trên bên trái của màn hình chính; null thì đặt giữa |
+| `visible` | true | hiện ngay; nếu không thì gọi `show` |
+| `always_on_top` | false | nằm trên cửa sổ của các app khác |
+| `skip_taskbar` | false | không có trên taskbar và trong trình chuyển app (Linux, Windows) |
 | `title_bar` | `.default` | `.default`, `.hidden` hoặc `.frameless` ([bên dưới](#title-bars)) |
-| `hide_window_buttons` | false | với `.hidden`, view tự vẽ nút cửa sổ; `titleBar()` không dành chỗ cho nút hệ thống; trình duyệt bỏ qua |
-| `title_bar_height` | 0 | chiều cao của thanh tiêu đề ẩn hoặc dải kéo của cửa sổ không khung; 0 là của hệ thống (32 trên Windows, 28 ở nơi khác) |
-| `theme` | null | Màu của giao diện native, cố định (`ui.Theme.light`, `ui.Theme.dark_theme`, một trong các màu của ứng dụng); hệ thống sáng hay tối khi null |
-| `material` | `.none` | những gì hiển thị qua nền ([Vật liệu](#materials)) |
-| `state` | null | nhớ khung bên dưới một phím ([bên dưới](#remember-where-windows-were)) |
-| `on_close` | null | được gọi khi cửa sổ đóng lại, trước khi nó được giải phóng |
-| `on_close_request` | null | hỏi liệu cửa sổ có đóng khi người dùng đóng nó không |
-| `on_event` | null | tập trung, di chuyển, thay đổi kích thước, thu nhỏ, phóng to |
-| `on_drop` | null | các tập tin được thả trên cửa sổ từ trình quản lý tập tin |
+| `hide_window_buttons` | false | với `.hidden`, view tự vẽ các nút điều khiển; `titleBar()` không chừa chỗ; trình duyệt bỏ qua |
+| `title_bar_height` | 0 | chiều cao của thanh tiêu đề ẩn, hoặc của dải kéo trên cửa sổ frameless; 0 là của hệ thống (32 trên Windows, 28 ở nơi khác) |
+| `theme` | null | màu cố định cho giao diện native (`ui.Theme.light`, `ui.Theme.dark_theme`, hoặc một theme của app); null thì theo sáng hoặc tối của hệ thống |
+| `material` | `.none` | thứ hiện xuyên qua nền ([Material](#materials)) |
+| `state` | null | nhớ khung cửa sổ theo một key ([bên dưới](#remember-where-windows-were)) |
+| `on_close` | null | được gọi khi cửa sổ đóng, trước khi được giải phóng |
+| `on_close_request` | null | được hỏi có cho đóng không khi người dùng đóng cửa sổ |
+| `on_event` | null | focus, di chuyển, đổi kích thước, thu nhỏ, phóng to |
+| `on_drop` | null | file từ trình quản lý file thả lên cửa sổ |
 | `content` | (bắt buộc) | `.{ .view = ... }` hoặc `.{ .page = ... }` |
 
-Flyout cũng là một cửa sổ, được tạo bởi `App.newFlyout` ([Flyouts](#flyouts)).
+Flyout cũng là một cửa sổ, tạo bằng `App.newFlyout` ([Flyout](#flyouts)).
 
-## Tự vẽ nút cửa sổ
+<a id="draw-the-window-controls"></a>
 
-Dùng `.title_bar = .hidden` kèm `.hide_window_buttons = true` để view tự
-vẽ các nút thu nhỏ, phóng lớn và đóng. `win.titleBar()` không còn dành chỗ
-cho nút hệ thống. Tùy chọn này không tác động các chế độ title bar khác;
-trình duyệt bỏ qua trang trí cửa sổ.
+## Tự vẽ nút điều khiển cửa sổ
 
 ```zig
 const maximize = ui.div(c).size(46, 32).maximizeButton();
@@ -78,59 +76,62 @@ ui.text(c, "□", .{});
 maximize.end();
 ```
 
-Dùng `minimize()`, `zoom()` và `requestClose()` cho các thao tác cửa sổ.
-`requestClose()` tôn trọng callback hỏi trước khi đóng. Windows 11 mở
-Snap Layouts khi hover nút `maximizeButton()` đầu tiên còn hiển thị và hợp
-lệ. Nút bị cắt hoàn toàn, trong suốt, xoay hoặc skew được bỏ qua. Vùng hit
-theo vị trí và layout mới, được cắt theo vùng nhìn thấy và bị xóa khi không
-còn marker hợp lệ. Marker không tác động trên nền tảng khác. API
-`setSnapButton` vẫn dùng được khi ứng dụng tự quản lý vùng hit.
-Chỉ tự đặt vùng Snap khi title bar ẩn và `hide_window_buttons = true`;
-các cấu hình khác giữ nguyên vùng do ứng dụng quản lý thủ công.
+Với `.title_bar = .hidden`, đặt `.hide_window_buttons = true` để tự vẽ các nút thu nhỏ, phóng to và đóng trong view.
+
+- Khi đó `win.titleBar()` báo không chừa chỗ nào.
+- Các chế độ thanh tiêu đề khác bỏ qua tùy chọn này. Bản build cho trình duyệt bỏ qua phần trang trí cửa sổ.
+- Gọi `minimize()`, `zoom()` và `requestClose()` cho các thao tác còn lại. `requestClose()` tôn trọng callback hỏi đóng của app.
+
+**Snap Layouts.** Trên Windows 11, rê chuột lên `maximizeButton()` hợp lệ và đang hiện đầu tiên sẽ mở Snap Layouts. Ở nơi khác, đánh dấu này không làm gì.
+
+- Nút bị cắt hoàn toàn hoặc trong suốt, và nút bị xoay hoặc bị nghiêng, bị bỏ qua.
+- Vùng nhận chuột của nó đi theo chuyển động và layout, và bị cắt theo vùng nhìn thấy. Nó bị xóa khi không còn nút hợp lệ nào.
+- Việc tự đặt vị trí chỉ chạy khi thanh tiêu đề ẩn và `hide_window_buttons = true`. Nếu không, nó để yên các vùng Snap do app tự quản lý.
+- `setSnapButton` cấp thấp hơn vẫn dùng được cho app tự quản lý vùng nhận chuột.
 
 <a id="show-windows-without-flashing"></a>
 
-## Hiển thị cửa sổ không nhấp nháy
+## Hiện cửa sổ không bị nháy
 
-Một cửa sổ hiển thị trước khi nội dung của nó sẵn sàng sẽ nhấp nháy trống. Tạo nó bằng `.visible = false` và hiển thị nó khi nó sẵn sàng:
+Cửa sổ hiện trước khi nội dung sẵn sàng sẽ nháy trống. Tạo nó với `.visible = false` và hiện khi đã sẵn sàng:
 
 ```zig
 const win = try app.newWindow(.{ .title = "Report", .visible = false, .content = content });
-// ... load what it shows ...
+// ... nạp những gì nó hiển thị ...
 win.show();
 ```
 
-`--myzig-hidden` (và các cờ headless khác) giữ mọi cửa sổ ẩn bất kể ứng dụng yêu cầu: các bài kiểm tra và ảnh chụp nhanh không bao giờ đưa bất cứ thứ gì lên màn hình.
+`--myzig-hidden` và các cờ headless khác giữ mọi cửa sổ ở trạng thái ẩn, bất kể app yêu cầu gì. Test và snapshot không bao giờ đưa gì lên màn hình.
 
 <a id="size-position-and-state"></a>
 
 ## Kích thước, vị trí và trạng thái
 
-| phương pháp | nó làm gì |
+| Method | Tác dụng |
 |---|---|
-| `show()`, `hide()`, `isVisible()` | hiển thị hoặc ẩn cửa sổ |
-| `focus()`, `isFocused()` | đưa cửa sổ và ứng dụng lên phía trước; nó có bàn phím không |
-| `close()` | đóng nó ngay lập tức mà không cần hỏi `on_close_request` |
-| `requestClose()` | đóng nó lại như người dùng sẽ làm và hỏi `on_close_request` |
-| `setTitle(title)` | văn bản của thanh tiêu đề |
-| `frame()` | `Window.Frame`: `x`, `y`, `width`, `height` tại các điểm trên màn hình, từ trên cùng bên trái của màn hình chính |
-| `contentSize()` | chiều rộng và chiều cao `[2]f64` của nội dung, không có thanh tiêu đề |
-| `setSize(w, h)` | thay đổi kích thước nội dung, giữ phía trên bên trái |
-| `setPosition(x, y)` | di chuyển phía trên bên trái |
-| `center()` | tập trung nó vào màn hình của nó |
+| `show()`, `hide()`, `isVisible()` | hiện hoặc ẩn cửa sổ |
+| `focus()`, `isFocused()` | đưa cửa sổ và app lên trước; cửa sổ có đang giữ bàn phím không |
+| `close()` | đóng ngay, không hỏi `on_close_request` |
+| `requestClose()` | đóng như người dùng đóng, có hỏi `on_close_request` |
+| `setTitle(title)` | chữ trên thanh tiêu đề |
+| `frame()` | `Window.Frame`: `x`, `y`, `width`, `height` tính bằng điểm màn hình, từ góc trên bên trái của màn hình chính |
+| `contentSize()` | chiều rộng và chiều cao của nội dung dạng `[2]f64`, không tính thanh tiêu đề |
+| `setSize(w, h)` | đổi kích thước nội dung, giữ nguyên góc trên bên trái |
+| `setPosition(x, y)` | dời góc trên bên trái |
+| `center()` | đặt cửa sổ giữa màn hình của nó |
 | `setMinSize(w, h)` | kích thước nội dung nhỏ nhất |
-| `setResizable(on)`, `setAlwaysOnTop(on)` | như các tùy chọn |
-| `minimize()`, `isMinimized()` | vào Dock hoặc thanh tác vụ |
-| `zoom()`, `isMaximized()` | tối đa hóa nó hoặc khôi phục nó |
-| `setFullScreen(on)`, `isFullScreen()` | toàn màn hình (Không gian riêng trên macOS) |
-| `setMaterial(m)` | tài liệu đằng sau nội dung; false ở nơi không có |
-| `redraw()` | rút lại giao diện native ở lần làm mới tiếp theo, vì trạng thái đã thay đổi bên ngoài các sự kiện của nó |
+| `setResizable(on)`, `setAlwaysOnTop(on)` | như các tùy chọn cùng tên |
+| `minimize()`, `isMinimized()` | thu xuống Dock hoặc taskbar |
+| `zoom()`, `isMaximized()` | phóng to, hoặc trả về kích thước cũ |
+| `setFullScreen(on)`, `isFullScreen()` | toàn màn hình (một Space riêng trên macOS) |
+| `setMaterial(m)` | material phía sau nội dung; false ở nơi không có |
+| `redraw()` | vẽ lại giao diện native ở lần làm tươi kế tiếp, khi state đổi ngoài các event của nó |
 
-Từ một trang, `myzig.window.close()`, `minimize()`, `toggleMaximize()` và `setTitle(title)` thực hiện tương tự cho cửa sổ riêng của trang đó.
+Từ trang web, `myzig.window.close()`, `minimize()`, `toggleMaximize()` và `setTitle(title)` làm điều tương tự cho cửa sổ của chính trang đó.
 
 <a id="remember-where-windows-were"></a>
 
-## Hãy nhớ cửa sổ ở đâu
+## Nhớ vị trí cửa sổ
 
 ```zig
 _ = try app.newWindow(.{
@@ -140,11 +141,18 @@ _ = try app.newWindow(.{
 });
 ```
 
-Với khóa `state`, một cửa sổ sẽ mở ra trong đó cửa sổ cuối cùng có khóa đó là: vị trí, kích thước của nó và liệu nó có được ghi đè tối đa hay không `x`, `y`, `width` và `height`. Các trạng thái được lưu giữ trong `window-state.txt` trong thư mục dữ liệu của ứng dụng, mỗi dòng trên một phím, được đọc khi cửa sổ đầu tiên có phím mở ra và được ghi khi cửa sổ đó đóng lại. Trạng thái không còn vừa (màn hình chưa cắm, kích thước dưới 50 điểm) sẽ bị bỏ qua. Cung cấp cho mỗi loại cửa sổ khóa riêng (`"main"`, `"preferences"`, `"note"`). Các ứng dụng không nhớ cửa sổ sẽ không liên kết cửa hàng.
+Với một key `state`, cửa sổ mở ra ở chỗ cửa sổ cuối cùng có key đó từng nằm.
+
+- Vị trí, kích thước và việc có đang phóng to hay không sẽ ghi đè `x`, `y`, `width` và `height`.
+- Các trạng thái được lưu trong `window-state.txt` ở thư mục dữ liệu của app, mỗi key một dòng.
+- File được đọc khi cửa sổ đầu tiên có key mở ra, và được ghi khi một cửa sổ như vậy đóng.
+- Trạng thái không còn vừa thì bị bỏ qua: màn hình đã rút ra, kích thước dưới 50 điểm.
+- Mỗi loại cửa sổ dùng một key riêng: `"main"`, `"preferences"`, `"note"`.
+- App không nhớ cửa sổ nào thì không link phần lưu trữ này.
 
 <a id="closing"></a>
 
-## Đóng cửa
+## Đóng cửa sổ
 
 ```zig
 const State = struct {
@@ -175,11 +183,14 @@ _ = try app.newWindow(.{
 });
 ```
 
-`on_close_request` (a `myzig.CloseRequest`) được hỏi khi người dùng đóng cửa sổ: nút đóng của nó, Alt+F4, Đóng của Dock hoặc thanh tác vụ, mục Đóng cửa sổ của macOS, `requestClose`. Sai giữ cho nó mở. `close` không hỏi. `on_close` chạy khi cửa sổ hoạt động, trước khi nó được giải phóng, bất kể nó đóng theo cách nào. [Tài liệu](documents.md) yêu cầu bạn, lưu hoặc hủy các thay đổi của từng tài liệu.
+- `on_close_request` (một `myzig.CloseRequest`) được hỏi khi người dùng đóng cửa sổ: nút đóng, Alt+F4, Close trên Dock hoặc taskbar, mục Close Window của macOS, `requestClose`. Trả về false thì cửa sổ vẫn mở.
+- `close` không hỏi.
+- `on_close` chạy khi cửa sổ đi, trước khi được giải phóng, dù nó đóng theo cách nào.
+- [Tài liệu](documents.md) hỏi thay bạn, lưu hoặc bỏ thay đổi của từng tài liệu.
 
 <a id="events"></a>
 
-## Sự kiện
+## Event
 
 ```zig
 fn onWindow(s: *State, win: *myzig.Window, e: myzig.WindowEvent) void {
@@ -196,7 +207,14 @@ fn onWindow(s: *State, win: *myzig.Window, e: myzig.WindowEvent) void {
 _ = try app.newWindow(.{ .on_event = .of(&state, State.onWindow), .content = content });
 ```
 
-`myzig.WindowEvent` là sự kết hợp của `focus`, `blur`, `moved` (trên cùng bên trái, theo điểm màn hình), `resized` (kích thước nội dung), `minimized`, `maximized` và `restored` (trở lại từ một trong hai). Các sự kiện xảy ra trên luồng chính, một lần cho mỗi thay đổi: hệ thống lặp lại kích thước và kích hoạt mà không thay đổi gì và myzig loại bỏ chúng.
+`myzig.WindowEvent` là một union gồm:
+
+- `focus`, `blur`;
+- `moved`: góc trên bên trái, tính bằng điểm màn hình;
+- `resized`: kích thước nội dung;
+- `minimized`, `maximized`, và `restored` (trở về từ một trong hai).
+
+Event đến trên main thread, mỗi thay đổi một lần. Hệ điều hành hay lặp lại kích thước và lần kích hoạt không đổi gì; myzig bỏ chúng đi.
 
 <a id="title-bars"></a>
 
@@ -204,11 +222,18 @@ _ = try app.newWindow(.{ .on_event = .of(&state, State.onWindow), .content = con
 
 `title_bar` là một trong:
 
-- **`.default`**: thanh tiêu đề của hệ thống phía trên nội dung.
-- **`.hidden`**: nội dung lấp đầy cửa sổ, dưới các điều khiển cửa sổ của hệ thống: đèn giao thông của macOS, nút chú thích của Windows 11 ở góc trên cùng bên phải (với bố cục chụp nhanh ở mức tối đa), thanh tiêu đề của GTK với các nút tiêu đề. Khoảng trống ở trên cùng `title_bar_height` sẽ di chuyển cửa sổ, giống như thanh tiêu đề và nhấp đúp vào đó sẽ phóng to cửa sổ. Trên Windows, các nút chú thích sáng hoặc tối tùy theo chủ đề của giao diện native (`theme` của cửa sổ hoặc chủ đề mà view áp dụng), không phải của hệ thống.
-- **`.frameless`**: không có thanh tiêu đề và không có điều khiển. Nội dung sẽ vẽ tất cả nội dung đó và di chuyển cửa sổ khỏi vùng kéo của nó. Cửa sổ vẫn thay đổi kích thước so với các cạnh và giữ nguyên bóng.
+- **`.default`**: thanh tiêu đề của hệ thống nằm trên nội dung.
+- **`.hidden`**: nội dung lấp đầy cửa sổ, nằm dưới các nút điều khiển cửa sổ của hệ thống.
+  - Các nút điều khiển: đèn giao thông của macOS, các nút caption của Windows 11 ở góc trên bên phải (có snap layout khi rê lên nút phóng to), header bar của GTK với các nút tiêu đề.
+  - Khoảng trống trong phần `title_bar_height` trên cùng kéo được cửa sổ, như thanh tiêu đề. Bấm đúp ở đó thì phóng to.
+  - Trên Windows, các nút caption sáng hay tối theo theme của giao diện native chứ không theo hệ thống. Đó là `theme` của cửa sổ, hoặc theme mà view áp dụng.
+- **`.frameless`**: không có thanh tiêu đề và nút điều khiển. Nội dung tự vẽ tất cả và kéo cửa sổ từ các vùng kéo của nó. Cửa sổ vẫn đổi kích thước được từ các mép và vẫn có bóng đổ.
 
-Trong giao diện native, một lần nhấn trong dải kéo sẽ di chuyển cửa sổ trừ khi nó chạm vào hộp tương tác (nút, tab, trường): những thao tác đó sẽ chiếm lấy nó. View có thanh công cụ cao hơn thanh tiêu đề sẽ đặt `c.title_bar_height` theo chiều cao của thanh công cụ và dải theo sau nó. Để tránh sự kiểm soát của hệ thống, hãy hỏi cửa sổ xem chúng chiếm bao nhiêu chỗ:
+Trong giao diện native:
+
+- Bấm trong dải kéo thì kéo cửa sổ, trừ khi bấm trúng một box tương tác được (nút, tab, field). Những box đó nhận cú bấm.
+- View có thanh công cụ cao hơn thanh tiêu đề thì đặt `c.title_bar_height` bằng chiều cao thanh công cụ, và dải kéo đi theo.
+- Để tránh đè lên các nút điều khiển của hệ thống, hỏi cửa sổ xem chúng chiếm bao nhiêu chỗ:
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {
@@ -220,11 +245,18 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`myzig.TitleBarArea` có `height` các nút điều khiển và chiều rộng mà chúng bao phủ trên `left` (đèn giao thông của macOS) và trên các nút chú thích `right` (Windows'). Nó trống đối với các cửa sổ không bị ẩn, ở chế độ toàn màn hình và trên Linux, nơi thanh tiêu đề của GTK nằm phía trên nội dung.
+`myzig.TitleBarArea` có `height` mà các nút điều khiển chiếm, và bề rộng chúng che ở bên `left` (đèn giao thông của macOS) và bên `right` (các nút caption của Windows). Nó rỗng:
 
-Một cửa sổ không khung sẽ di chuyển từ thanh tiêu đề của chính nó: gọi `startDrag()` bằng cách nhấn vào nó. Trên Windows 11, một cửa sổ không khung vẽ nút phóng to của riêng nó gọi `setSnapButton(rect)` với hình chữ nhật của nút trong nội dung, để khi di chuột vào nó sẽ hiển thị bố cục đính kèm; null xóa nó.
+- với cửa sổ không ẩn thanh tiêu đề;
+- khi toàn màn hình;
+- trên Linux, nơi header bar của GTK nằm trên nội dung.
 
-Các trang đánh dấu các vùng kéo của chúng trong CSS: các phần tử được tạo kiểu `--app-region: drag` di chuyển cửa sổ (một cú nhấp đúp sẽ phóng to nó) và `--app-region: no-drag` loại bỏ những gì bên trong một cửa sổ, chẳng hạn như các nút:
+Cửa sổ frameless kéo từ thanh tiêu đề riêng của nó: gọi `startDrag()` khi có cú bấm trên đó. Trên Windows 11, cửa sổ frameless tự vẽ nút phóng to thì gọi `setSnapButton(rect)` với hình chữ nhật của nút trong nội dung. Rê chuột lên nút đó sẽ hiện snap layout; truyền null để gỡ.
+
+Trang web đánh dấu vùng kéo bằng CSS:
+
+- phần tử có style `--app-region: drag` kéo được cửa sổ, và bấm đúp thì phóng to;
+- `--app-region: no-drag` loại trừ những gì bên trong một vùng kéo, như các nút.
 
 ```css
 header { --app-region: drag; height: 38px; }
@@ -233,39 +265,39 @@ header button { --app-region: no-drag; }
 
 <a id="materials"></a>
 
-## Vật liệu
+## Material
 
 ```zig
 _ = try app.newWindow(.{ .material = .sidebar, .title_bar = .hidden, .content = content });
 ```
 
-`myzig.Material` là nội dung hiển thị qua nền của cửa sổ nơi hệ thống có tài liệu và nội dung hiển thị rõ ràng:
+`myzig.Material` là thứ hiện xuyên qua nền cửa sổ, ở nơi hệ thống có material và nội dung để nền trong suốt:
 
-| vật chất | macOS (sống động) | Windows 11 |
+| Material | macOS (vibrancy) | Windows 11 |
 |---|---|---|
 | `.none` | không có | không có |
-| `.sidebar` | thanh bên | Mica |
-| `.under_window` | dưới nội dung của cửa sổ | Mica Alt (theo thẻ) |
-| `.popover` | một cửa sổ bật lên hoặc HUD | Acrylic |
+| `.sidebar` | của sidebar | Mica |
+| `.under_window` | dưới nội dung cửa sổ | Mica Alt (kiểu tab) |
+| `.popover` | của popover hoặc HUD | Acrylic |
 
-`setMaterial` thay đổi nó sau và trả về false khi hệ thống không có (Linux, Windows 10, trình duyệt).
+`setMaterial` đổi nó về sau. Nó trả về false ở nơi hệ thống không có material: Linux, Windows 10, trình duyệt.
 
 <a id="flyouts"></a>
 
-## Tờ rơi
+## Flyout
 
-Flyout là một bảng điều khiển không viền không có nút trên thanh tác vụ, được đặt bên cạnh một hình chữ nhật: hộp của cửa sổ chính, một điểm trên màn hình hoặc biểu tượng khay. Các ứng dụng trên thanh menu, bộ chọn và danh sách gợi ý là những trang trình bày.
+Flyout là một panel không viền, không có nút trên taskbar, đặt cạnh một hình chữ nhật: một box của cửa sổ cha, một điểm trên màn hình, hoặc một icon tray. App trên thanh menu, bộ chọn và danh sách gợi ý đều là flyout.
 
 ```zig
 const panel = try app.newFlyout(.{
-    .tray = tray,                // or .parent = win with .anchor in its content
+    .tray = tray,                // hoặc .parent = win với .anchor trong nội dung của nó
     .width = 320,
     .height = 420,
     .dismiss = .hide,
     .hidden = true,
     .content = .{ .view = .init(&state, State.panel) },
 });
-// The tray icon's click toggles it:
+// Bấm icon tray thì bật/tắt nó:
 fn trayClicked(s: *State, t: *myzig.Tray) void {
     _ = t;
     if (s.panel.isVisible()) s.panel.hide() else s.panel.show();
@@ -274,48 +306,74 @@ fn trayClicked(s: *State, t: *myzig.Tray) void {
 
 `myzig.FlyoutOptions`:
 
-| lĩnh vực | mặc định | nó làm gì |
+| Trường | Mặc định | Tác dụng |
 |---|---|---|
-| `parent` | null | cửa sổ có nội dung `anchor`; tờ rơi vẫn ở phía trên nó |
-| `tray` | null | neo hộp thả xuống vào biểu tượng khay: bên dưới thanh menu macOS, phía trên thanh tác vụ ở dưới cùng; tập trung vào khu vực làm việc nơi hệ thống không cho biết các biểu tượng ở đâu (Linux) |
-| `anchor` | trống rỗng | `myzig.flyout.Rect` tính theo điểm: trong nội dung của phụ huynh hoặc trên màn hình không có phụ huynh |
-| `placement` | `.bottom_start` | cạnh và căn chỉnh: `bottom`, `top`, `right`, `left`, mỗi `_start`, căn giữa hoặc `_end` |
-| `gap` | 0 | điểm giữa neo và flyout |
-| `width`, `height` | 200, 200 | kích thước của nó |
-| `focusable` | true | lấy bàn phím như hiển thị và bị loại bỏ khi một cửa sổ khác lấy nó; nếu không nó sẽ không bao giờ sử dụng bàn phím (chú giải công cụ, gợi ý) và giữ nguyên cho đến khi đóng |
-| `dismiss` | `.close` | tác dụng của flyout bị loại bỏ: `.close` (khi người dùng đóng nó) hoặc `.hide` (để hiển thị lại) |
-| `hidden` | false | đã tạo ẩn: `show` hiển thị nó, đặt lại |
-| `popover` | false | trên macOS, cửa sổ bật lên của hệ thống (`NSPopover`): vật liệu của nó, các góc tròn và một mũi tên chỉ vào giữa mỏ neo; ở phía `placement` hoặc phía đối diện (phần còn lại của vị trí và `gap` không áp dụng); cần `parent` hoặc `tray`. Một chuyến bay thường xuyên ở nơi khác |
-| `material` | `.none` | vật liệu mờ, mờ đằng sau nội dung, dưới dạng ([Vật liệu](#materials)); một cửa sổ bật lên có cái riêng của nó |
-| `corner_radius` | 0 | làm tròn các góc trên macOS, theo điểm: vật liệu và nội dung được cắt theo chúng và bóng theo sau chúng. Windows 11 vòng bay khi nó làm tròn các menu của nó; Linux thì không |
-| `theme` | null | như một cửa sổ |
-| `content` | (bắt buộc) | một lượt xem hoặc một trang |
+| `parent` | null | cửa sổ chứa `anchor` trong nội dung; flyout luôn nằm trên nó |
+| `tray` | null | neo flyout vào một icon tray (bên dưới) |
+| `anchor` | rỗng | một `myzig.flyout.Rect` tính bằng điểm: trong nội dung cửa sổ cha, hoặc trên màn hình nếu không có cha |
+| `placement` | `.bottom_start` | phía và cách căn: `bottom`, `top`, `right`, `left`, mỗi cái có `_start`, căn giữa, hoặc `_end` |
+| `gap` | 0 | số điểm giữa anchor và flyout |
+| `width`, `height` | 200, 200 | kích thước |
+| `focusable` | true | nhận bàn phím khi hiện, và bị đóng khi cửa sổ khác lấy bàn phím; nếu false thì không bao giờ nhận bàn phím (tooltip, gợi ý) và ở lại cho tới khi bị đóng |
+| `dismiss` | `.close` | flyout làm gì khi bị đóng: `.close` (như người dùng đóng nó) hoặc `.hide` (để hiện lại) |
+| `hidden` | false | tạo ở trạng thái ẩn: `show` hiện nó, đặt lại vị trí |
+| `popover` | false | trên macOS là popover của hệ thống (`NSPopover`); ở nơi khác là flyout thường (bên dưới) |
+| `material` | `.none` | material mờ, trong suốt phía sau nội dung, như của cửa sổ ([Material](#materials)); popover có material riêng |
+| `corner_radius` | 0 | bo góc trên macOS, tính bằng điểm (bên dưới) |
+| `theme` | null | như của cửa sổ |
+| `content` | (bắt buộc) | một view hoặc một trang web |
 
-Flyout có thể lấy tiêu điểm sẽ bị loại bỏ khi một cửa sổ khác sử dụng bàn phím (một cú nhấp chuột vào nơi khác, ứng dụng đã tắt) và trên Escape; thao tác nhấn vào biểu tượng trên khay của chính nó sẽ được để lại cho lần nhấp vào biểu tượng, thao tác này sẽ chuyển đổi biểu tượng đó thay vì đóng biểu tượng để nhấp để mở lại (macOS, Windows). Nó được đặt như các menu: trên mỗi trục, nó lật sang phía bên kia của mỏ neo hoặc đầu kia của nó, nơi nó không vừa và trục bị lật sẽ trượt trở lại khu vực làm việc, sau đó thu nhỏ lại.
+- **`tray`**: nằm dưới icon trên thanh menu của macOS, nằm trên icon của taskbar đặt ở dưới. Nơi hệ thống không cho biết icon nằm đâu (Linux), flyout được đặt giữa vùng làm việc.
+- **`popover`**: material của popover, góc bo tròn và một mũi tên chỉ vào giữa anchor. Nó hiện ở phía của `placement` hoặc phía đối diện; phần còn lại của placement và `gap` không áp dụng. Cần có `parent` hoặc `tray`.
+- **`corner_radius`**: material và nội dung bị cắt theo góc bo, bóng đổ cũng theo góc bo. Windows 11 bo góc flyout như bo menu của nó; Linux thì không.
 
-Nội dung của hộp thả xuống bật lên không có nền tảng trên tài liệu. Với `focusable` nó sẽ đóng khi người dùng nhấp vào nơi khác (yêu cầu `on_close_request`) và từ biểu tượng khay, nó sẽ kích hoạt ứng dụng và làm nổi bật biểu tượng khi nó hiển thị. Cửa sổ của nó là cửa sổ bật lên khi nó hiển thị.
+**Đóng flyout.** Flyout focusable bị đóng khi bấm Escape, và khi cửa sổ khác lấy bàn phím: bấm ra chỗ khác, app bị chuyển ra sau. Cú bấm lên chính icon tray của nó được để cho cú click của icon, vốn bật/tắt flyout. Nhờ vậy flyout không bị đóng rồi lại bị chính cú click đó mở lại (macOS, Windows).
 
-Khi mỏ neo di chuyển (mốc gốc đã di chuyển, biểu tượng trên khay cũng vậy), `placeFlyout()` đặt nó lại; `setAnchor(rect)` cho nó một mỏ neo khác; `setSize` thay đổi kích thước tại chỗ; `isFlyout()` thông báo các hộp thả xuống từ các cửa sổ khác.
+**Đặt vị trí.** Flyout được đặt như menu. Trên mỗi trục:
+
+1. nó lật sang phía bên kia của anchor, hoặc đầu bên kia, nếu không vừa mà khi lật thì vừa;
+2. rồi nó trượt vào lại trong vùng làm việc;
+3. rồi nó co lại cho vừa vùng đó.
+
+**Popover.**
+
+- Nội dung của flyout popover không vẽ nền đè lên material.
+- Với `focusable`, nó đóng khi người dùng bấm ra chỗ khác, có hỏi `on_close_request`.
+- Mở từ icon tray thì nó kích hoạt app và làm nổi icon khi đang hiện.
+- Khi đang hiện, cửa sổ của nó là cửa sổ của popover.
+
+**Di chuyển flyout.**
+
+- `placeFlyout()` đặt lại vị trí khi anchor di chuyển (cửa sổ cha đã di chuyển, hoặc icon tray).
+- `setAnchor(rect)` đổi anchor khác.
+- `setSize` đổi kích thước tại chỗ.
+- `isFlyout()` phân biệt flyout với cửa sổ khác.
 
 <a id="attention-and-progress"></a>
 
-## Chú ý và tiến bộ
+## Gây chú ý và tiến độ
 
-- `flash(true)` yêu cầu sự chú ý cho đến khi cửa sổ được tập trung: nó bật lại biểu tượng Dock (macOS), nhấp nháy nút thanh tác vụ (Windows) hoặc đánh dấu cửa sổ là khẩn cấp (Linux); `flash(false)` dừng lại.
-- `setProgress(.{ .state = .normal, .value = 0.4 })` hiển thị tiến trình của một nhiệm vụ (`myzig.Progress`: `state` là `.none`, `.normal`, `.indeterminate`, `.paused` hoặc `.failed`, `value` từ 0 đến 1) trên nút thanh tác vụ (Windows) hoặc mục nhập trình khởi chạy (Linux gắn với Unity API). Nó trả về false trong đó không có gì hiển thị (macOS, trong đó `app.setBadge` là của Dock).
+- `flash(true)` gây chú ý cho tới khi cửa sổ có focus. `flash(false)` dừng lại.
+  - macOS làm icon trên Dock nảy lên.
+  - Windows nháy nút trên taskbar.
+  - Linux đánh dấu cửa sổ là khẩn.
+- `setProgress(.{ .state = .normal, .value = 0.4 })` hiện tiến độ một tác vụ, một `myzig.Progress`.
+  - `state` là `.none`, `.normal`, `.indeterminate`, `.paused` hoặc `.failed`; `value` từ 0 tới 1.
+  - Nó hiện trên nút taskbar (Windows) hoặc mục trên launcher (các dock của Linux có API Unity).
+  - Nó trả về false ở nơi không có gì để hiện: macOS, nơi `app.setBadge` là badge của Dock.
 
 <a id="documents"></a>
 
 ## Tài liệu
 
-- `setDocumentEdited(true)` đánh dấu tài liệu của cửa sổ là có các thay đổi chưa được lưu: một dấu chấm trong nút đóng của macOS, `*` trước tiêu đề trên Windows và Linux. `isDocumentEdited()` đọc nó.
-- `setRepresentedFile(path)` đặt tên cho tệp mà cửa sổ hiển thị: trên macOS biểu tượng của nó trên thanh tiêu đề mà người dùng có thể kéo và ⌘-nhấp vào các thư mục của nó; không có gì ở nơi khác.
+- `setDocumentEdited(true)` đánh dấu tài liệu của cửa sổ có thay đổi chưa lưu: một chấm trong nút đóng của macOS, `*` trước tiêu đề trên Windows và Linux. `isDocumentEdited()` đọc lại giá trị này.
+- `setRepresentedFile(path)` cho biết cửa sổ đang hiện file nào. Trên macOS, icon của file hiện trên thanh tiêu đề: người dùng kéo được nó, và ⌘-click để xem các thư mục chứa nó. Ở nơi khác không làm gì.
 
-[Tài liệu](documents.md) thực hiện cả hai chức năng này cho cửa sổ tài liệu.
+[Tài liệu](documents.md) làm cả hai việc này cho cửa sổ tài liệu.
 
 <a id="files-dropped-on-a-window"></a>
 
-## Các tập tin bị rơi trên một cửa sổ
+## File thả lên cửa sổ
 
 ```zig
 fn dropped(s: *State, win: *myzig.Window, paths: []const []const u8) void {
@@ -326,20 +384,20 @@ fn dropped(s: *State, win: *myzig.Window, paths: []const []const u8) void {
 _ = try app.newWindow(.{ .on_drop = .of(&state, State.dropped), .content = content });
 ```
 
-`on_drop` lấy đường dẫn của tệp bị xóa khỏi Finder, Explorer hoặc trình quản lý tệp. Kéo trong giao diện native và kéo ra khỏi ứng dụng khác, nằm trong [Truyền dữ liệu](data-transfer.md) và [Kéo và thả](ui/drag-and-drop.md).
+`on_drop` nhận đường dẫn của các file thả từ Finder, Explorer hoặc trình quản lý file. Kéo bên trong giao diện native, và kéo ra app khác, nằm ở [Truyền dữ liệu](data-transfer.md) và [Kéo và thả](ui/drag-and-drop.md).
 
 <a id="pages-in-windows"></a>
 
-## Các trang trong cửa sổ
+## Trang web trong cửa sổ
 
-Cửa sổ hiển thị một trang cũng chạy các tập lệnh trong đó và tải các URL khác:
+Cửa sổ hiện trang web còn chạy được script trong trang và nạp URL khác:
 
-- `loadUrl(url)` tải một URL khác.
-- `eval(js)` chạy tập lệnh mà không phải đợi tập lệnh đó.
-- `evalResult(js, cb)` đánh giá một biểu thức và chuyển giá trị của nó dưới dạng JSON hoặc lỗi của nó tới `myzig.EvalCallback`.
-- `sendOwned(msg)` xếp hàng tin nhắn được mã hóa cho trang, từ bất kỳ chuỗi nào; sự kiện đã gõ làm điều đó cho bạn.
+- `loadUrl(url)` nạp một URL khác.
+- `eval(js)` chạy một script, không chờ kết quả.
+- `evalResult(js, cb)` tính một biểu thức và chuyển giá trị dạng JSON, hoặc lỗi, cho một `myzig.EvalCallback`.
+- `sendOwned(msg)` xếp một message đã mã hóa vào hàng đợi gửi cho trang, từ bất kỳ thread nào; event có kiểu làm việc này cho bạn.
 
-Bản thân trang này là `win.page` (null cho giao diện native), với tính năng tìm kiếm, in, cookie và phần còn lại: xem [Trang](pages.md).
+Bản thân trang là `win.page` (null với giao diện native), với tìm kiếm, in, cookie và những thứ khác: xem [Trang web](pages.md).
 
 <a id="platforms"></a>
 
@@ -347,13 +405,13 @@ Bản thân trang này là `win.page` (null cho giao diện native), với tính
 
 | | macOS | Linux | Windows | trình duyệt |
 |---|---|---|---|---|
-| các cửa sổ | NSWindow | GtkWindow | Win32 | canvas của trang, một cửa sổ |
-| giao diện native được vẽ bằng | Metal | OpenGL, hoặc CPU | Direct3D 11, hoặc CPU | WebGL 2 |
-| trang | WKWebView | WebKitGTK | WebView2 | không |
-| thanh tiêu đề ẩn | nội dung đèn giao thông | thanh tiêu đề GTK | nút chú thích trên nội dung, bố cục chụp nhanh | không |
-| vật liệu | sự sống động | không | Mica, Mica Alt, Acrylic (Windows 11) | không |
-| tờ rơi | vâng | có (tấm thả khay ở giữa) | vâng | không |
-| tiến bộ | không (huy hiệu của Dock) | Trình khởi chạy đoàn kết | thanh tác vụ | không |
-| tập tin đại diện | vâng | không | không | không |
+| cửa sổ | NSWindow | GtkWindow | Win32 | canvas của trang, một cửa sổ |
+| giao diện native vẽ bằng | Metal | OpenGL, hoặc CPU | Direct3D 11, hoặc CPU | WebGL 2 |
+| trang web | WKWebView | WebKitGTK | WebView2 | không |
+| thanh tiêu đề ẩn | đèn giao thông đè lên nội dung | header bar của GTK | nút caption đè lên nội dung, snap layout | không |
+| material | vibrancy | không | Mica, Mica Alt, Acrylic (Windows 11) | không |
+| flyout | có | có (flyout từ tray đặt giữa) | có | không |
+| tiến độ | không (dùng badge của Dock) | launcher Unity | taskbar | không |
+| file đại diện | có | không | không | không |
 
-Trong trình duyệt, cửa sổ đầu tiên của giao diện native sẽ lấp đầy trang; kích thước, vị trí và trạng thái của cửa sổ không làm gì ở đó ([Trình duyệt](browsers.md)).
+Trong trình duyệt, cửa sổ giao diện native đầu tiên lấp đầy trang. Kích thước, vị trí và trạng thái cửa sổ không có tác dụng ở đó ([Trình duyệt](browsers.md)).

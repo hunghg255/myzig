@@ -2,17 +2,19 @@
 
 <!-- demo: data-table height=350 -->
 
-![Bảng hóa đơn có tìm kiếm, lọc, ẩn cột và phân trang.](../../images/ui/data-table.png)
+![Bảng hóa đơn có tìm kiếm, lọc theo trạng thái, ẩn hiện cột và phân trang.](../../images/ui/data-table.png)
 
-Trang **Data table** trong Gallery ghép `textField`, checkbox, `table`,
-`pagination`, `skeleton` và `empty`. Tìm kiếm và lọc trạng thái chạy trước
-sắp xếp, sau đó phân trang cắt danh sách kết quả. Đổi lọc hoặc sắp xếp xóa
-con trỏ hàng; đổi lọc còn đưa về trang đầu. Ví dụ có trạng thái đang tải
-và không tìm thấy kết quả.
+Trang **Data table** trong Gallery ghép `textField`, checkbox, `table`, `pagination`, `skeleton` và `empty`.
 
-Cột hỗ trợ `hidden`, `min_width` và `max_width`. Header và ô của cột bị ẩn
-không được dựng, nhưng `table.cell()` và `state.sort.column` vẫn trả chỉ số
-cột gốc. Phím chuyển ô bỏ qua cột ẩn.
+- Tìm kiếm và lọc theo trạng thái chạy trước khi sắp xếp. Sau đó phân trang cắt lấy các hàng khớp.
+- Đổi bộ lọc hoặc cách sắp xếp sẽ xóa con trỏ hàng. Đổi bộ lọc còn đưa về trang đầu.
+- Trạng thái đang tải và không có kết quả được minh họa riêng.
+
+Cột hỗ trợ `hidden`, `min_width` và `max_width`.
+
+- Header và ô của cột ẩn không được dựng.
+- `table.cell()` và `state.sort.column` vẫn trả về chỉ số cột gốc.
+- Phím mũi tên giữa các ô bỏ qua cột ẩn.
 
 ```zig
 // State:
@@ -20,9 +22,9 @@ widths: [3]f32 = .{ 260, 130, 110 },
 
 // Trong view:
 const columns = [_]ui.TableColumn{
-    .{ .title = "Khách hàng", .sortable = true, .min_width = 120 },
-    .{ .title = "Trạng thái", .hidden = !s.show_status },
-    .{ .title = "Số tiền", .alignment = .end },
+    .{ .title = "Customer", .sortable = true, .min_width = 120 },
+    .{ .title = "Status", .hidden = !s.show_status },
+    .{ .title = "Amount", .alignment = .end },
 };
 var table = ui.table(c, &s.table, &columns, rows.len, .{
     .column_widths = &s.widths,
@@ -33,16 +35,15 @@ const result = table.end();
 if (result.resized) saveColumnPreferences();
 ```
 
-`column_widths` là mảng độ rộng có thể sửa do ứng dụng giữ, ứng với toàn bộ
-cột kể cả cột ẩn. Truyền mảng để bật tay nắm resize. Độ rộng dương được kẹp
-theo giới hạn cột; 0 chia phần chỗ còn lại cho tới khi resize. Thu nhỏ cửa
-sổ không ghi đè độ rộng đã chọn.
+**Đổi độ rộng cột.** `column_widths` là một slice có thể sửa, tùy chọn, do app sở hữu. Nó có một độ rộng cho mỗi cột, kể cả cột ẩn. Truyền nó vào sẽ bật các tay nắm resize.
 
-Kéo tay nắm, hoặc focus rồi dùng Left/Right (10 điểm), Home (nhỏ nhất), End
-(lớn nhất). Bố cục phải sang trái đảo hướng phím. Tay nắm có vai trò splitter
-cho công cụ hỗ trợ tiếp cận và không kích hoạt sắp xếp.
+- Độ rộng dương được kẹp theo giới hạn của từng cột.
+- Độ rộng 0 chia phần chỗ còn lại, cho đến khi được resize.
+- Độ rộng không đổi chỉ vì cửa sổ thu nhỏ.
+- Kéo một tay nắm, hoặc focus nó rồi dùng Left/Right (mười điểm), Home (nhỏ nhất) hoặc End (lớn nhất).
+- Layout phải sang trái đảo chiều phím mũi tên.
+- Tay nắm là splitter cho công nghệ hỗ trợ. Chúng không kích hoạt sắp xếp.
 
-Ứng dụng tự sắp xếp dữ liệu khi `result.sorted` báo thay đổi. Nếu cần giữ
-lựa chọn qua lọc/sắp xếp, dùng khóa hàng ổn định theo
-[danh sách, cây và bảng](lists.md). Xem
-[ví dụ đầy đủ trong Gallery](../../../examples/gallery/data_table.zig).
+Bảng rộng hơn box của nó sẽ scroll ngang với `.sideways = true`. Nó giữ các cột đầu luôn hiện với `.frozen = n`. Xem [lists, trees and tables](lists.md).
+
+Việc sắp xếp vẫn do app làm; `result.sorted` báo khi có thay đổi. Nếu lựa chọn phải giữ được qua sắp xếp lại hay lọc, hãy cung cấp key ổn định cho hàng, như [lists, trees and tables](lists.md) mô tả. Xem [ví dụ đầy đủ trong Gallery](../../../examples/gallery/data_table.zig).

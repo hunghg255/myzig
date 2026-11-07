@@ -1,12 +1,15 @@
 # Native UI
 
-A window can show a user interface that myzig draws itself instead of a web
-page. You write it in Zig alone with `myzig.ui`: there is no HTML, no
-JavaScript and no frontend build, and the window starts no webview, so it
-opens at once and uses little memory. myzig draws it on the GPU where it
-can, with Metal on macOS, Direct3D 11 on Windows, OpenGL on Linux and WebGL 2
-in browsers, and with its own CPU renderer (the same pixels) everywhere
-else; see [rendering](rendering.md).
+A window can show a user interface that myzig draws itself, instead of a
+web page. You write it in Zig alone, with `myzig.ui`:
+
+- no HTML, no JavaScript and no frontend build;
+- the window starts no webview, so it opens at once and uses little
+  memory;
+- myzig draws it on the GPU where it can: Metal on macOS, Direct3D 11 on
+  Windows, OpenGL on Linux and WebGL 2 in browsers;
+- everywhere else its own CPU renderer draws the same pixels; see
+  [rendering](rendering.md).
 
 <!-- demo: controls height=520 -->
 
@@ -14,10 +17,10 @@ else; see [rendering](rendering.md).
 
 *Gallery running with the light theme: buttons, switches, sliders and a text field.*
 
-The images throughout these guides are rendered from running Zig views with
-`ui.Tester`, at 2× scale. Most reuse the [Gallery example](../../examples/gallery/main.zig);
-layout, grid, direction and shader images run small examples of their own.
-See [regenerating the images](testing.md#documentation-images).
+The images in these guides are rendered from running Zig views with
+`ui.Tester`, at 2× scale. Most reuse the [Gallery example](../../examples/gallery/main.zig).
+Layout, grid, direction and shader images run small examples of their
+own. See [regenerating the images](testing.md#documentation-images).
 
 ```zig
 const std = @import("std");
@@ -51,36 +54,41 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-The view is immediate mode: a function of your state that myzig runs on
-the main thread whenever something happens (input, a resize, an animation
-step). Widgets are function calls that answer at once: `ui.button` returns
-whether it was clicked, `ui.toggle` flips the `bool` you give it. These
-widgets report interactions during the build: you change your state, and
-the next frame shows it. When an
-interaction changes the state, myzig builds the frame again before drawing
-it, so the screen never lags behind the state.
+The view is immediate mode. It is a function of your state that myzig
+runs on the main thread whenever something happens: input, a resize, an
+animation step.
 
-Elements that need scroll or pinch events before the next build can use
-the optional [`handleInput` callback](gestures.md).
+- Widgets are function calls that answer at once. `ui.button` returns
+  whether it was clicked; `ui.toggle` flips the `bool` you give it.
+- Widgets report interactions during the build. You change your state,
+  and the next frame shows it.
+- When an interaction changes the state, myzig builds the frame again
+  before drawing it. So the screen never lags behind the state.
+- Elements that need scroll or pinch events before the next build can
+  use the optional [`handleInput` callback](gestures.md).
 
 Nothing polls. A frame is drawn on input, on a resize, while an animation
-runs, or when the app asks (`Window.redraw`, `c.frameIn`); an idle window
+runs, or when the app asks (`Window.redraw`, `c.frameIn`). An idle window
 uses no CPU.
 
 ## What a frame keeps of what you pass
 
-A frame is built, then laid out, then painted: layout and paint run
-after the view has returned. Texts are copied into the frame's memory as
-they are shown (`ui.text`, `ui.richText` and its spans, labels, tooltips,
-fields, what `c.describe` tells assistive technology), so a view may
-free or change a string right after showing it. Other slices and pointers
-a widget takes (a picture's bytes, an icon's name, a gradient, a canvas's
-points) are read where they are until the frame is drawn: pass constants,
-the app's own memory, or the frame's (`c.print("{d} left", .{n})` formats
-into an arena freed when the next frame begins, `c.alloc()` gives that
-arena for anything else), never a buffer on the view function's stack.
-To free such data the view showed, free it after the frame (the next
-event, or a frame later), or keep the old copy for one more update.
+A frame is built, then laid out, then painted. Layout and paint run
+after the view has returned.
+
+- **Texts are copied** into the frame's memory as they are shown. That
+  covers `ui.text`, `ui.richText` and its spans, labels, tooltips,
+  fields, and what `c.describe` tells assistive technology. So a view may
+  free or change a string right after showing it.
+- **Other slices and pointers** a widget takes are read where they are
+  until the frame is drawn: a picture's bytes, an icon's name, a
+  gradient, a canvas's points.
+- Pass constants, the app's own memory, or the frame's. Never pass a
+  buffer on the view function's stack.
+- `c.print("{d} left", .{n})` formats into an arena freed when the next
+  frame begins. `c.alloc()` gives that arena for anything else.
+- To free such data the view showed, free it after the frame (the next
+  event, or a frame later). Or keep the old copy for one more update.
 
 ## Two ways to write boxes
 
@@ -105,7 +113,7 @@ Both make the same boxes; mix them freely. See [layout](layout.md) and
 
 ## Run it without a window
 
-Every view can be driven in a test with `ui.Tester`, which builds and draws
+Every view can be driven in a test with `ui.Tester`. It builds and draws
 frames offscreen, clicks, types and takes screenshots, on a clock you
 advance yourself:
 
@@ -146,7 +154,6 @@ Widgets:
 - [Date range picker](date-range.md)
 - [Data table composition](data-table.md)
 - [File drop zone](file-drop.md)
-
 - [Buttons and small things](buttons.md): buttons, links, badges, key
   caps, icons, images, avatars, history buttons.
 - [Choices](choices.md): checkboxes, checkbox groups, switches, radio

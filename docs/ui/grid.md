@@ -1,11 +1,12 @@
 # Grid
 
 `ui.grid` lays its children out in rows and columns, after CSS grid and
-mygo's `ui.Grid`: children fill its cells row by row, or go where they
+mygo's `ui.Grid`. Children fill its cells row by row, or go where they
 are put, spanning columns and rows. Use it for forms (labels in one
-column, fields in the other), dashboards and settings panes. A grid
-builds all its children; for many items built only as they show, use
-[`ui.gridView`](lists.md#grid-views).
+column, fields in the other), dashboards and settings panes.
+
+A grid builds all its children. For many items built only as they show,
+use [`ui.gridView`](lists.md#grid-views).
 
 <!-- demo: grid height=304 -->
 
@@ -37,9 +38,10 @@ Columns and rows are `ui.GridTrack`s:
 | `.{ .px = 220 }` | exactly that many points |
 | `.{ .fr = 1 }` | a share of the room the other tracks leave (CSS's `minmax(0, 1fr)`); where the grid's size is not set, as large as its content |
 
-`.{ .fr = 2 }` takes twice the room of `.{ .fr = 1 }`. `rows` gives the
-first rows; those after them fit their content, so most grids give only
-`columns`. A grid has at most 32 columns and 32 given rows.
+- `.{ .fr = 2 }` takes twice the room of `.{ .fr = 1 }`.
+- `rows` gives the first rows. Those after them fit their content, so
+  most grids give only `columns`.
+- A grid has at most 32 columns and 32 given rows.
 
 `ui.GridOptions`:
 
@@ -56,8 +58,8 @@ first rows; those after them fit their content, so most grids give only
 
 A child built straight in the grid takes the next free cell. To place a
 child, span tracks or align it on its own, open a cell with
-`Grid.cell(opts)`: its children follow, then `ui.end(c)`. A cell is a
-column box filling its place as its grid aligns it.
+`Grid.cell(opts)`. Its children follow, then `ui.end(c)`. A cell is a
+column box that fills its place as its grid aligns it.
 
 `ui.GridCell`:
 
@@ -89,24 +91,26 @@ after them flow around the cells they take.
 
 ## Sizing
 
-The grid is as wide as its `style` says (`.fill` by default) and as tall
-as its rows: what follows it in its column comes after. Columns of `.fit`
-are as wide as their widest child, `px` columns are fixed, and `fr`
-columns share what is left. A child spanning several tracks spreads what
-it lacks over the fitting tracks it spans (or, where it spans `fr`
-tracks, over their shares). Where the grid's size is unknown, `fr` tracks
-fit their content, in proportion to their shares. Only the children the
-columns read are measured at the grid's width: those in fixed columns, or
-in `fr` columns of a width known (as CSS's `minmax(0, 1fr)`), are measured
-once, at the width their cell gives.
+- The grid is as wide as its `style` says (`.fill` by default) and as
+  tall as its rows. What follows it in its column comes after.
+- `.fit` columns are as wide as their widest child. `px` columns are
+  fixed. `fr` columns share what is left.
+- A child spanning several tracks spreads what it lacks over the fitting
+  tracks it spans. Where it spans `fr` tracks, it spreads it over their
+  shares.
+- Where the grid's size is unknown, `fr` tracks fit their content, in
+  proportion to their shares.
+- Only the children the columns read are measured at the grid's width.
+  Those in fixed columns, or in `fr` columns of a known width (as CSS's
+  `minmax(0, 1fr)`), are measured once, at their cell's width.
 
 Right to left, a grid's columns go from the right (see
 [Right to left](right-to-left.md)).
 
 ## Flexbox or grid
 
-Rows and columns of [layout](layout.md) are one-dimensional: each row
-sizes its children on its own, so labels in separate rows do not line up
-unless each has a fixed width. A grid sizes every row's cells by the same
+Rows and columns of [layout](layout.md) are one-dimensional. Each row
+sizes its children on its own, so labels in separate rows line up only
+if each has a fixed width. A grid sizes every row's cells by the same
 tracks: a `.fit` column of labels is as wide as the longest label, in
 every row.

@@ -2,13 +2,18 @@
 
 # Chuyển động
 
-Cái nhìn cho biết mọi thứ ở đâu; chuyển động tìm đường đến đó. Giá trị được cấp cho `ui.motion` sẽ hoạt hình hướng tới mục tiêu mà view cung cấp cho nó trên mọi frame, với một lò xo giữ vận tốc hoặc đường cong trong một khoảng thời gian. Các hộp cũng có thể di chuyển trơn tru ở nơi bố trí đặt chúng và đến và đi (`motion.transition`). Mọi thứ chạy trên đồng hồ của ngữ cảnh (`c.time`, `ui.Tester` tiến lên) và các khung chỉ được vẽ khi có thứ gì đó di chuyển: một ứng dụng ở trạng thái nghỉ không vẽ gì cả.
+View nói mọi thứ nằm ở đâu; motion tìm đường đi tới đó.
+
+- Một giá trị đưa cho `ui.motion` sẽ chuyển dần về target mà view đưa ở mỗi frame. Nó dùng một spring giữ nguyên vận tốc, hoặc một đường cong có thời lượng.
+- Box có thể di chuyển mượt tới chỗ layout đặt nó, và xuất hiện hay biến mất (`motion.transition`).
+- Mọi thứ chạy theo đồng hồ của context (`c.time`, do `ui.Tester` điều khiển).
+- Frame chỉ được vẽ khi có thứ đang chuyển động: app đứng yên thì không vẽ gì.
 
 <!-- demo: motion height=520 -->
 
-![Một khung hình tĩnh của demo chuyển động: easing, spring, keyframe và transition.](../../images/ui/motion.png)
+![Một frame tĩnh của demo motion: easing, spring, keyframe và transition.](../../images/ui/motion.png)
 
-*Một khung hình tĩnh của demo chuyển động: easing, spring, keyframe và transition.*
+*Một frame tĩnh của demo motion: easing, spring, keyframe và transition.*
 
 ```zig
 const motion = myzig.ui.motion;
@@ -22,61 +27,89 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`s.open` thay đổi; ở các khung tiếp theo, thẻ sẽ trượt đến vị trí mới. Ví dụ `zig build run-gallery` hiển thị mọi hoạt ảnh trên trang Chuyển động của nó (`examples/gallery/motion.zig`).
+Khi `s.open` đổi, tấm card trượt tới chỗ mới trong các frame tiếp theo. `zig build run-gallery` có mọi animation trong trang Motion (`examples/gallery/motion.zig`).
 
 <a id="values-and-their-ids"></a>
 
 ## Giá trị và id của chúng
 
-Một giá trị thuộc về id của hộp và một khóa phân biệt các giá trị của hộp (`"x"`, `"scale"`, ...). Lấy id của hộp bạn sắp mở bằng `c.peekId(key)` hoặc của hộp đã mở bằng `c.node(index).id`; `motion.to(c, key, target, a)` sử dụng ngay hộp đã mở.
+Một giá trị thuộc về id của một box và một key để phân biệt các giá trị của box đó (`"x"`, `"scale"`, ...).
 
-Một giá trị bắt đầu ở mục tiêu đầu tiên của nó, do đó, view được hiển thị lần đầu tiên sẽ không có chuyển động. Một mục tiêu mới trên đường đi sẽ tiếp quản vị trí có giá trị: một lò xo giữ nguyên vận tốc của nó, do đó, một lá bài quay lại giữa chuyến bay sẽ chậm lại và quay trở lại, thay vì nhảy.
+- `c.peekId(key)` cho id của box bạn sắp mở.
+- `c.node(index).id` cho id của một box đã mở.
+- `motion.to(c, key, target, a)` dùng box đang mở.
+
+Giá trị bắt đầu ở target đầu tiên của nó, nên view hiện lần đầu không có chuyển động nào. Target mới giữa chừng sẽ tiếp quản từ chỗ giá trị đang đứng. Spring giữ nguyên vận tốc: card bị quay đầu giữa đường sẽ chậm lại rồi quay về, chứ không nhảy cóc.
 
 <a id="animations"></a>
 
-## Hoạt hình
+## Animation
 
-`motion.Animation` cho biết cách một giá trị đi đến mục tiêu mới:
+`motion.Animation` cho biết một giá trị đi tới target mới như thế nào:
 
-| lĩnh vực | ý nghĩa |
+| trường | ý nghĩa |
 |---|---|
-| `duration` | giây của một đường cong; 0 (mặc định) sử dụng `spring` |
-| `ease` | `motion.Easing` của đường cong (`.ease_out` theo mặc định) |
-| `spring` | `motion.Spring` được sử dụng khi `duration` bằng 0 |
-| `delay` | giây giá trị vẫn tiếp tục như trước khi nó di chuyển |
+| `duration` | số giây của đường cong; 0 (mặc định) thì dùng `spring` |
+| `ease` | `motion.Easing` của đường cong (mặc định `.ease_out`) |
+| `spring` | `motion.Spring` dùng khi `duration` là 0 |
+| `delay` | số giây giá trị còn đi tiếp như cũ trước khi đổi hướng |
 
-Ba lò xo đã sẵn sàng, sau SwiftUI: `.smooth` (không nảy), `.snappy` (một chút) và `.bouncy` (có thể nhìn thấy). `motion.Animation.curve(seconds, ease)` tạo một đường cong:
+Có sẵn ba spring, theo SwiftUI: `.smooth` (không nảy), `.snappy` (nảy một chút) và `.bouncy` (nảy rõ). `motion.Animation.curve(seconds, ease)` tạo một đường cong:
 
 ```zig
 const a: motion.Animation = .curve(0.3, .ease_in_out);
 const b: motion.Animation = .{ .spring = .{ .duration = 0.4, .bounce = 0.2 } };
 ```
 
-`motion.animate(c, id, key, target, seconds)` là `animateTo` với đường cong `seconds` nới lỏng.
+`motion.animate(c, id, key, target, seconds)` là `animateTo` với đường cong dài `seconds` giây, kiểu ease out.
 
 <a id="easing"></a>
 
-### Nới lỏng
+### Easing
 
-`motion.Easing` là các chức năng định giờ của CSS: `.linear`, `.ease_in`, `.ease_out`, `.ease_in_out`, `.cubic` (được tạo bằng `Easing.cubicBezier(x1, y1, x2, y2)`, như CSS's `cubic-bezier()`) và `.custom`, một chức năng của riêng bạn tại thời điểm đó (0 đến 1) theo tiến độ.
+`motion.Easing` là các timing function của CSS:
+
+- `.linear`, `.ease_in`, `.ease_out`, `.ease_in_out`;
+- `.cubic`, tạo bằng `Easing.cubicBezier(x1, y1, x2, y2)`, như `cubic-bezier()` của CSS;
+- `.custom`: hàm của riêng bạn, từ thời gian (0 đến 1) ra tiến độ.
 
 <a id="springs"></a>
 
-### Lò xo
+### Spring
 
-`motion.Spring` được đặt khi người ta cảm nhận được nó, bởi `duration` (khoảng thời gian cần thiết để đến nơi, 0,5 giây theo mặc định) và `bounce` (từ 0, không vượt quá, hướng tới 1). Thay vào đó, cài đặt `stiffness` hoặc `damping` sẽ biến nó thành vật lý (mặc định là 170 và 26 của lò xo phản ứng), với `mass`. `precision` cho biết mức độ gần với mục tiêu của nó, theo đơn vị của giá trị, nó được tính là đã đến và `velocity` cung cấp cho giá trị vận tốc khi mục tiêu của nó thay đổi (một cú ném). Lò xo được giải chính xác chứ không phải bậc nên trông giống nhau ở mọi tốc độ frame.
+`motion.Spring` được đặt theo cảm nhận:
+
+| trường | mặc định | |
+|---|---|---|
+| `duration` | 0,5 s | khoảng thời gian để tới nơi |
+| `bounce` | 0 | từ 0 (không vượt quá) tới gần 1 |
+| `stiffness`, `damping` | `null` | đặt một trong hai để chuyển sang thông số vật lý; nếu không đặt thì là 170 và 26 như react-spring |
+| `mass` | 1 | dùng cùng `stiffness` và `damping` |
+| `precision` | 0.001 | cách target bao nhiêu, theo đơn vị của giá trị, thì coi như đã tới |
+| `velocity` | `null` | vận tốc gán cho giá trị khi target đổi, ví dụ vận tốc của một cú vuốt |
+
+Spring được giải chính xác, không tính từng bước. Nhờ vậy nó trông như nhau ở mọi tốc độ frame.
 
 <a id="colors"></a>
 
-## Màu sắc
+## Màu
 
-`motion.animateColor(c, id, key, target, a)` di chuyển một màu về phía `target`. Màu sắc được trộn với alpha được nhân trước (`motion.mixPremultiplied`), do đó, màu nhạt dần từ trong suốt sẽ giữ nguyên sắc độ thay vì chuyển sang màu xám.
+`motion.animateColor(c, id, key, target, a)` chuyển một màu dần về `target`. Màu được trộn với alpha premultiplied (`motion.mixPremultiplied`). Nhờ vậy màu hiện dần từ trong suốt vẫn giữ sắc độ, không đi qua màu xám.
 
 <a id="poses-that-only-paint"></a>
 
-## Những tư thế chỉ vẽ
+## Pose chỉ ảnh hưởng tới việc vẽ
 
-`motion.pose(c, index, p, a)` tạo hiệu ứng cho hộp `index` (mở hoặc tạo khung này) về phía `motion.Pose`: được di chuyển bởi `x` và `y`, được chia tỷ lệ bởi `scale` (0 giữ nguyên kích thước), xoay `rotate` độ và mờ dần `fade` (0 mờ, biến mất 1). Tư thế hoạt động theo sự biến đổi của chính chiếc hộp và nhân độ mờ của nó lên. Nó chỉ thay đổi cách vẽ hộp; bố cục vẫn giữ nguyên.
+`motion.pose(c, index, p, a)` chuyển box `index` dần về một `motion.Pose`. Box đó đang mở, hoặc đã được build trong frame này.
+
+| `motion.Pose` | |
+|---|---|
+| `x`, `y` | dời nó đi |
+| `scale` | co giãn nó; 0 giữ nguyên kích thước |
+| `rotate` | xoay nó, tính bằng độ |
+| `fade` | 0 là đục, 1 là biến mất |
+
+Pose tác động sau transform của chính box, và nhân vào độ đục của nó. Nó chỉ đổi cách box được vẽ; layout vẫn giữ nguyên.
 
 ```zig
 const card = c.open(.{ .padding = .all(16), .radius = 12, .background = c.theme.surface }, "card");
@@ -87,26 +120,34 @@ c.end();
 
 <a id="when-it-is-done"></a>
 
-## Khi nó được thực hiện
+## Khi nào xong
 
-- `motion.settled(c, id, key)`: giá trị nằm ở mục tiêu của nó.
-- `motion.arrived(c, id, key)`: true trong một frame, nó dừng lại sau khi di chuyển, để view tiếp tục (xóa những gì bị mờ đi, bắt đầu bước tiếp theo).
-- `motion.velocity(c, id, key)`: tốc độ của nó tính bằng đơn vị một giây.
+- `motion.settled(c, id, key)`: giá trị đang đứng yên ở target.
+- `motion.arrived(c, id, key)`: true đúng một frame, khi giá trị dừng lại sau khi chuyển động. View có thể làm tiếp: gỡ thứ đã mờ hẳn, bắt đầu bước kế tiếp.
+- `motion.velocity(c, id, key)`: giá trị đi nhanh cỡ nào, tính bằng đơn vị mỗi giây.
 
 <a id="gestures"></a>
 
 ## Cử chỉ
 
-Trong khi ngón tay hoặc con trỏ kéo thứ gì đó, hãy đặt giá trị của nó bằng `motion.jump(c, id, key, value)`: nó theo sau ngay lập tức và chuyển động sẽ theo dõi tốc độ của nó. Khi lực kéo kết thúc, `animateTo` có lò xo tiếp tục vận tốc đó nên vật đó tiếp tục chuyển động như cách nó được ném. Hai người trợ giúp, sau iOS:
+Trong lúc ngón tay hoặc con trỏ kéo một thứ, đặt giá trị của nó bằng `motion.jump(c, id, key, value)`. Giá trị đi theo ngay, và motion theo dõi tốc độ của nó. Khi thả tay, `animateTo` với một spring tiếp quản ở đúng vận tốc đó. Nhờ vậy thứ đó tiếp tục đi theo hướng nó bị ném.
 
-- `motion.project(value, velocity)`: trong đó một lần ném mang một giá trị, để chọn nơi nó đến (trang gần nhất, một điểm bắt nhanh).
-- `motion.rubberband(value, lo, hi, dimension)`: một giá trị được giữ trong phạm vi `lo` và `hi` khi nội dung được kéo qua các cạnh của nó, càng được kéo càng xa thì càng đi ít hơn.
+Hai hàm phụ, theo iOS:
+
+- `motion.project(value, velocity)`: một cú vuốt mang giá trị đi tới đâu. Dùng nó để chọn chỗ dừng: trang gần nhất, một snap point.
+- `motion.rubberband(value, lo, hi, dimension)`: giá trị bị giữ trong khoảng `lo` và `hi`, như nội dung bị kéo quá mép. Càng kéo xa, nó càng đi ít.
 
 <a id="keyframes"></a>
 
-## Khung hình chính
+## Keyframe
 
-`motion.keyframes(c, id, key, frames, options)` phát một chuỗi `motion.Keyframe`s (`at` trong vài giây kể từ khi bắt đầu, `value` và `ease` của phân đoạn đến đó), sau đó giữ giá trị cuối cùng. Thay đổi `options.run` để phát lại: từ giá trị được hiển thị, do đó thao tác lắc bắt đầu trong khi lắc sẽ không nhảy.
+`motion.keyframes(c, id, key, frames, options)` chạy một chuỗi `motion.Keyframe`, rồi giữ giá trị cuối. Một `motion.Keyframe` có:
+
+- `at`: số giây tính từ lúc bắt đầu;
+- `value`;
+- `ease`: đường cong của đoạn đi tới keyframe đó.
+
+Đổi `options.run` để chạy lại. Nó bắt đầu từ giá trị đang hiện, nên một cú lắc bắt đầu giữa cú lắc khác không bị giật.
 
 ```zig
 const dx = motion.keyframes(c, c.peekId("shake"), "dx", &.{
@@ -120,13 +161,17 @@ const dx = motion.keyframes(c, c.peekId("shake"), "dx", &.{
 _ = c.open(.{ .padding = .xy(14, 10), .transform = .translation(dx, 0) }, "shake");
 ```
 
-`motion.KeyframeOptions` cũng có `repeat` (bao nhiêu lần nữa; `-1` phát mãi mãi), `alternate` (mỗi lần lùi lại), `delay` và `repeat_delay`.
+`motion.KeyframeOptions` còn có:
+
+- `repeat`: lặp thêm bao nhiêu lần; `-1` thì lặp mãi;
+- `alternate`: cứ mỗi lần thứ hai thì chạy ngược;
+- `delay` và `repeat_delay`.
 
 <a id="timelines"></a>
 
-## Dòng thời gian
+## Timeline
 
-Dòng thời gian đặt các thanh thiếu niên lần lượt, cùng nhau hoặc đôi khi, giống như cách làm của GSAP. `motion.timeline(c, id, key, options)` đưa ra `Timeline` mà `tween` trả về giá trị của mỗi tween ngay bây giờ:
+Timeline đặt các tween nối tiếp nhau, cùng lúc, hoặc tại những thời điểm, như timeline của GSAP. `motion.timeline(c, id, key, options)` trả về một `Timeline`. Hàm `tween` của nó trả về giá trị hiện tại của từng tween:
 
 ```zig
 var tl = motion.timeline(c, c.peekId("intro"), "intro", .{ .run = s.intro });
@@ -137,20 +182,36 @@ _ = c.open(.{ .opacity = fade,
     .transform = ui.Affine.scaling(grow, grow).then(.translation(slide, 0)) }, "intro");
 ```
 
-`motion.Placement` cho biết nơi tuổi mười hai bắt đầu:
+`motion.Placement` cho biết tween bắt đầu ở đâu:
 
-- `.after(offset)` (mặc định, offset 0): sau tween trước khi kết thúc; một phần bù âm sẽ chồng lên nó.
-- `.with(offset)`: sau mười hai giờ trước khi bắt đầu.
-- `.at(seconds)`: tại một thời điểm trong dòng thời gian.
-- `.atLabel(name, offset)`: sau một nhãn được đặt với `tl.label(name, placement)`.
+- `.after(offset)` (mặc định, offset 0): sau khi tween trước kết thúc; offset âm thì chồng lên tween trước.
+- `.with(offset)`: sau khi tween trước bắt đầu.
+- `.at(seconds)`: tại một thời điểm của timeline.
+- `.atLabel(name, offset)`: sau một label đặt bằng `tl.label(name, placement)`.
 
-`motion.TimelineOptions` phát nó: `run` (đổi thành phát lại), `repeat`, `alternate`, `delay`, `repeat_delay`, `paused`, `reverse` và `seek` (giữ đầu phát cùng một lúc) hoặc `progress` (ở một phần thời lượng, trong một khoảng thời gian máy chà sàn). Dòng thời gian cho biết `duration()`, `time()`, `progress()`, `settled()` và `arrived()`.
+`motion.TimelineOptions` điều khiển việc chạy:
+
+| trường | |
+|---|---|
+| `run` | đổi nó để chạy lại |
+| `repeat`, `alternate`, `delay`, `repeat_delay` | như với keyframe |
+| `paused`, `reverse` | |
+| `seek` | giữ đầu phát tại một thời điểm |
+| `progress` | giữ đầu phát tại một phần của tổng thời lượng, cho thanh tua |
+
+Timeline cho biết `duration()`, `time()`, `progress()`, `settled()` và `arrived()`.
 
 <a id="transitions"></a>
 
-## Chuyển tiếp
+## Transition
 
-`motion.transition(c, index, t)` cung cấp cho hộp một quá trình chuyển đổi: nó di chuyển mượt mà ở nơi bố cục thay đổi nó, từ nơi frame cuối cùng hiển thị nó, xuất phát từ `enter` khi nó xuất hiện và chuyển đến `exit` khi nó rời đi. Gọi nó sau khi các phần tử con của hộp được tạo (sự sụp đổ đo chúng), trước khi đóng nó:
+`motion.transition(c, index, t)` gắn cho box một transition:
+
+- nó di chuyển mượt tới chỗ layout đổi nó, từ chỗ frame trước đã hiện nó;
+- khi xuất hiện, nó đi ra từ `enter`;
+- khi rời đi, nó đi tới `exit`.
+
+Gọi hàm này khi các phần tử con của box đã được build (collapse cần đo chúng), trước khi đóng box:
 
 ```zig
 for (s.items[0..s.count]) |n| {
@@ -166,55 +227,76 @@ for (s.items[0..s.count]) |n| {
 }
 ```
 
-Cung cấp cho các hộp như vậy các khóa ổn định (`c.print("item-{d}", .{n})`, `ui.key`), để hộp giữ id của nó khi danh sách được sắp xếp lại.
+Hãy cho các box này key ổn định (`c.print("item-{d}", .{n})`, `ui.key`). Khi đó box giữ được id khi danh sách đổi thứ tự.
 
 Các trường của `motion.Transition`:
 
-| lĩnh vực | ý nghĩa |
+| trường | ý nghĩa |
 |---|---|
-| `animation` | nó di chuyển như thế nào; mặt khác, một đường cong `duration` (0,2 s) dọc theo `ease` |
-| `position` | làm sinh động vị trí của nó trong cha mẹ của nó |
-| `size` | làm sinh động kích thước của nó (kích thước tính bằng điểm) |
-| `colors` | làm sinh động nền và đường viền của nó |
-| `enter` | `motion.Motion` nó xuất phát từ khi nó xuất hiện |
-| `exit` | `motion.Motion` nó đi tới khi nó rời đi |
+| `animation` | cách nó chuyển động; nếu không có thì là đường cong dài `duration` (0,2 s) theo `ease` |
+| `position` | animate vị trí của nó trong phần tử cha |
+| `size` | animate kích thước (tính bằng điểm) |
+| `colors` | animate nền và viền |
+| `enter` | `motion.Motion` mà nó đi ra từ đó khi xuất hiện |
+| `exit` | `motion.Motion` mà nó đi tới khi rời đi |
 
-Khi không có `position`, `size` và `colors` nào được đặt, cả ba đều hoạt hình. `motion.Motion` là một tư thế tương ứng với vị trí của hộp: `x`, `y`, `opacity`, `scale` (0 giữ nguyên kích thước của nó), `rotate` (độ về tâm của nó) và `collapse`, lấy chiều cao của nó trong một cột (chiều rộng của nó trong một hàng), cắt bớt nội dung của nó, để các anh chị em của nó đóng lại.
+Khi không đặt `position`, `size` hay `colors`, cả ba đều được animate.
 
-Một chiếc hộp rời đi được vẽ khi frame cuối cùng vẽ nó, bên dưới những anh chị em của nó, không chiếm chỗ cho đến khi lối ra của nó kết thúc. Một hộp chỉ xuất hiện với `enter` trong trang mẹ có khung trước đó, do đó, một trang được hiển thị cùng một lúc sẽ không tạo hoạt ảnh cho mọi hộp trong đó. `motion.transitioning(c, id)` cho biết hộp `id` có còn được vận chuyển hay không. Con trỏ đi theo các hộp nơi hoạt ảnh của chúng vẽ chúng.
+`motion.Motion` là một pose tương đối so với chỗ của box:
+
+- `x`, `y`, `opacity`;
+- `scale`: 0 giữ nguyên kích thước;
+- `rotate`: số độ quay quanh tâm;
+- `collapse`: thu chiều cao của nó về 0 trong một cột, hoặc chiều rộng trong một hàng. Nó cắt nội dung, nên các phần tử bên cạnh khép lại.
+
+**Hoạt động**
+
+- Box đang rời đi được vẽ như frame trước đã vẽ, nằm dưới các phần tử bên cạnh, không chiếm chỗ, cho đến khi exit kết thúc.
+- Box chỉ xuất hiện với `enter` trong phần tử cha đã có mặt ở frame trước. Nhờ vậy một trang hiện ra cùng lúc không làm mọi box trong đó cùng animate.
+- `motion.transitioning(c, id)` cho biết box `id` còn đang trên đường đi không.
+- Con trỏ tương tác với box ở đúng chỗ animation đang vẽ nó.
 
 <a id="without-animation"></a>
 
-## Không có hình ảnh động
+## Không animation
 
-`motion.disableAnimations(c)` làm cho các giá trị, màu sắc, tư thế và chuyển tiếp của khung này đi đến mục tiêu của chúng cùng một lúc, như `disablesAnimations` của SwiftUI: cho một thay đổi không hiển thị dưới dạng chuyển động (một cửa sổ đã được thay đổi kích thước, một tài liệu đã được chuyển đổi). Khung hình chính và dòng thời gian tiếp tục phát.
+`motion.disableAnimations(c)` cho giá trị, màu, pose và transition của frame này tới target ngay, như `disablesAnimations` của SwiftUI. Dùng nó cho thay đổi không nên hiện thành chuyển động: đổi kích thước cửa sổ, chuyển tài liệu. Keyframe và timeline vẫn chạy tiếp.
 
 <a id="less-motion"></a>
 
-## Ít chuyển động hơn
+## Giảm chuyển động
 
-Khi máy tính để bàn yêu cầu giảm chuyển động, `motion.reduced(c)` là true và các giá trị sẽ chuyển đến mục tiêu của chúng cùng một lúc; màu sắc và độ mờ vẫn thay đổi mượt mà, và lối vào hoặc lối ra mờ dần mà không bị sập, mờ dần tại chỗ. `motion.setReducedMotion(c, true)` ghi đè lên màn hình nền (`null` theo dõi lại). Các bài kiểm tra không bao giờ yêu cầu máy tính để bàn: chuyển động giảm sẽ tắt ở đó trừ khi bài kiểm tra thiết lập nó.
+Khi hệ thống yêu cầu giảm chuyển động, `motion.reduced(c)` là true:
+
+- giá trị tới target ngay;
+- màu và độ mờ vẫn đổi mượt;
+- enter hoặc exit chỉ làm mờ mà không collapse thì mờ dần tại chỗ.
+
+`motion.setReducedMotion(c, true)` ghi đè thiết lập của hệ thống; `null` thì theo hệ thống trở lại. Test không bao giờ hỏi hệ thống: ở đó giảm chuyển động tắt, trừ khi test bật nó.
 
 <a id="loops-and-your-own-motion"></a>
 
-## Vòng lặp và chuyển động của riêng bạn
+## Vòng lặp và chuyển động tự làm
 
-`motion.loop(c, seconds)` là nơi đồng hồ ở trong một khoảng thời gian, từ 0 đến 1, đối với con quay và xung; nó yêu cầu khung. Một view hoạt hình từ `c.time` tự gọi `c.animationFrame()` để yêu cầu khung tiếp theo hoặc `c.frameIn(seconds)` cho nội dung nào đó thỉnh thoảng thay đổi (một giây) mà không vẽ mỗi lần làm mới ở giữa. `c.animate(id, salt, target, speed)` là cách tiếp cận theo cấp số nhân đơn giản hơn mà các widget tích hợp sẵn sử dụng để di chuột và nhấn.
+- `motion.loop(c, seconds)` là vị trí của đồng hồ trong một chu kỳ, từ 0 đến 1, cho spinner và hiệu ứng nhấp nháy. Nó tự xin frame.
+- View tự animate từ `c.time` thì gọi `c.animationFrame()` để xin frame kế tiếp.
+- `c.frameIn(seconds)` dành cho thứ thỉnh thoảng mới đổi, như giây của đồng hồ. Nó không vẽ mọi lần làm tươi ở giữa.
+- `c.animate(id, salt, target, speed)` là cách tiến dần theo hàm mũ, đơn giản hơn, mà các widget có sẵn dùng cho hover và bấm.
 
 <a id="testing-motion"></a>
 
-## Kiểm tra chuyển động
+## Test chuyển động
 
-Đồng hồ của Người kiểm tra chỉ di chuyển khi quá trình kiểm tra thông báo, vì vậy các hoạt ảnh sẽ được kiểm tra mà không cần chờ đợi:
+Đồng hồ của `ui.Tester` chỉ chạy khi test bảo. Nhờ vậy animation được test mà không phải chờ:
 
 ```zig
 s.target = 200;
 t.frame();
-t.advance(0.1); // a tenth of a second later
+t.advance(0.1); // một phần mười giây sau
 try std.testing.expect(s.shown > 20 and s.shown < 200);
-t.settle(3);    // frames until nothing moves (at most 3 s)
+t.settle(3);    // chạy frame cho đến khi không còn gì chuyển động (tối đa 3 s)
 try std.testing.expectEqual(@as(f32, 200), s.shown);
 try std.testing.expect(!t.ctx.animating);
 ```
 
-Xem [Kiểm tra](testing.md) và [Biến đổi](transforms.md) để biết giá trị có thể di chuyển.
+Xem [Test](testing.md), và [Transform](transforms.md) để biết một giá trị có thể làm dịch chuyển những gì.

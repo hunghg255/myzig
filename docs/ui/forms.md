@@ -1,9 +1,13 @@
 # Forms
 
-Fields label controls, show a description or an error below them, and
-name them for assistive technology. A form lines up the labels of its
-fields in a column of their own; a fieldset groups fields under a legend
-and can disable them together; `ui.validate` checks values.
+Labels, descriptions, errors and checks for the controls of a form.
+
+- A **field** labels a control, shows a description or an error below
+  it, and names it for assistive technology.
+- A **form** lines up its fields' labels in a column of their own.
+- A **fieldset** groups fields under a legend and can disable them
+  together.
+- `ui.validate` checks values.
 
 <!-- demo: forms height=453 -->
 
@@ -13,15 +17,15 @@ and can disable them together; `ui.validate` checks values.
 
 ## Fields
 
-`ui.field(c, title, options)` labels the control built next, the label
-above it as on the web, and returns a `ui.Field` to end once the control is
-built:
-
 ```zig
 const f = ui.field(c, "Email", .{ .description = "For receipts.", .err = ui.validate.email(s.email.text()) });
 _ = ui.textField(c, &s.email, .{ .width = .{ .px = 260 } });
 f.end();
 ```
+
+`ui.field(c, title, options)` labels the control built next, with the
+label above it as on the web. It returns a `ui.Field`: end it once the
+control is built.
 
 `ui.FieldOptions`:
 
@@ -30,22 +34,14 @@ f.end();
 | `description` | a text below the control, in the muted color |
 | `err` | what is wrong with the value, below the control in the danger color, which the control's border takes; empty is valid |
 
-A click on the label focuses the control. The control's accessible name
-is the label, its description the error (or the description), and it is
-marked invalid while there is an error. Any control works: a text field,
-a select, a switch, a date input; the field finds the first control built
-after its label.
+- A click on the label focuses the control.
+- The control's accessible name is the label. Its accessible description
+  is the error, or else the description.
+- The control is marked invalid while there is an error.
+- Any control works: a text field, a select, a switch, a date input. The
+  field finds the first control built after its label.
 
 ## Forms
-
-`ui.form(c, options)` puts the labels of its fields in a column beside
-the controls, aligned to the right, as wide as the widest label, and level
-with the first line of their control's text, as macOS's settings do (or
-with the middle of a control without text, as a switch, a description
-below it or not, and in a row with the text beside a dot or an icon:
-`Style.baselines`). Keep
-the form in a variable (its fields change it) and make the fields with its
-own `field`:
 
 ```zig
 var fm = ui.form(c, .{});
@@ -63,16 +59,30 @@ var fm = ui.form(c, .{});
 }
 ```
 
-`ui.FormOptions`: `gap` (12, between fields) and `label_gap` (12, between
-the labels' column and the controls'). The labels' width is measured as the
-form is built; when it changes, the frame is built again at once, so no
-frame shows the labels unaligned.
+`ui.form(c, options)` puts its fields' labels in a column beside the
+controls, as macOS's settings do. Keep the form in a variable, since its
+fields change it. Make the fields with its own `field`.
+
+The labels:
+
+- are aligned to the right, in a column as wide as the widest label;
+- are level with the first line of their control's text;
+- are level with the middle of a control without text, such as a switch,
+  with or without a description below it;
+- are level with the text of a row that has a dot or an icon beside its
+  text (`Style.baselines`).
+
+`ui.FormOptions`:
+
+| Field | Default | |
+|---|---|---|
+| `gap` | 12 | between fields |
+| `label_gap` | 12 | between the labels' column and the controls' |
+
+The labels' width is measured as the form is built. When it changes, the
+frame is built again at once, so no frame shows the labels unaligned.
 
 ## Fieldsets
-
-`ui.fieldset(c, legend, options)` groups fields under a legend. With
-`disabled`, the fields are dimmed and take no input: a box over them takes
-every press, and the keyboard focus leaves them. End it with `end`:
 
 ```zig
 const set = ui.fieldset(c, "Notifications", .{ .disabled = !s.signed_in });
@@ -82,14 +92,19 @@ snd.end();
 set.end();
 ```
 
-`ui.FieldsetOptions`: `disabled` and `gap` (12). A fieldset can hold the
-fields of a form (as above, between a form's `field` calls) or plain
-`ui.field`s.
+`ui.fieldset(c, legend, options)` groups fields under a legend. End it
+with `end`.
+
+- With `disabled`, its fields are dimmed and take no input. A box over
+  them takes every press, and the keyboard focus leaves them.
+- `ui.FieldsetOptions`: `disabled` and `gap` (12).
+- It can hold a form's fields, between the form's `field` calls as above,
+  or plain `ui.field`s.
 
 ## Validation
 
-`ui.validate` has checks that return the error to show, empty when the
-value is valid, ready for a field's `err`:
+`ui.validate` has checks that return the error to show, ready for a
+field's `err`. An empty error means the value is valid.
 
 | check | error |
 |---|---|
@@ -105,9 +120,9 @@ Combine `required` with another check for a value that must be given:
 .err = ui.validate.first(&.{ ui.validate.required(s.email.text()), ui.validate.email(s.email.text()) }),
 ```
 
-`ui.Validation` counts a form's errors, to enable its submit button or say
-how many are left: `check(err)` passes an error through, counting it, and
-`ok()` tells whether there were none.
+`ui.Validation` counts a form's errors, to enable its submit button or to
+say how many are left. `check(err)` passes an error through and counts
+it. `ok()` says whether there were none.
 
 ```zig
 fn form(s: *State, c: *ui.Context) void {
@@ -131,7 +146,8 @@ fn form(s: *State, c: *ui.Context) void {
 }
 ```
 
-Show errors of empty required fields only once the user tried to submit,
-as above, and errors of what was typed at once. Errors are strings in
-English; for other languages, write your own checks (any function that
-returns a string works) with messages from [i18n](../i18n.md).
+- Show the errors of empty required fields only once the user tried to
+  submit, as above. Show the errors of what was typed at once.
+- The errors are English strings. For other languages, write your own
+  checks with messages from [i18n](../i18n.md): any function that returns
+  a string works.

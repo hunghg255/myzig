@@ -57,6 +57,7 @@ cd plugins/<name> && zig build test    # each plugin is its own package
 cd hillclimb && zig build run -Doptimize=ReleaseFast -- --label "change"   # benchmarks against mygo
 cd docs && npm install && npm run dev  # the VitePress docs site; `npm run build` fails on dead links
 cd docs && npm run live       # rebuild the site's live demos (examples/gallery/live_demos.zig) into docs/public/live
+cd docs && npm run prose      # the docs' style rules (docs/WRITING.md): short paragraphs, en/vi parity
 ```
 
 `zig build test` has no filter option. To run one test, compile the module
@@ -131,7 +132,9 @@ image built from `tools/linux.Dockerfile`, with the repository mounted at
   `ui.zig`'s test block); new IPC type mappings get one in `src/tsgen.zig`;
   page behavior gets a check in `examples/pages`.
 - Keep `docs/` current with the API; a new page also gets a place in the
-  sidebar in `docs/.vitepress/config.mts`. Pages stay plain Markdown that
+  sidebar in `docs/.vitepress/config.mts`. Write them as
+  `docs/WRITING.md` says (short sentences, tables and lists, the
+  Vietnamese glossary); `npm run prose` checks it. Pages stay plain Markdown that
   reads the same on GitHub; links out of `docs/` become repository links
   on the site. Node is only for the docs site.
 - Version `0.1.x` is set in `build.zig.zon`, `src/myzig.zig`,

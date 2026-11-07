@@ -62,6 +62,6 @@ if (ui.drawer(c, &s.outer, .{})) |d| {
 }
 ```
 
-Drawer modal hoạt động như [dialog](overlays.md#dialogs): Tab chỉ đi trong nó, và tiêu điểm trở lại chỗ cũ khi nó đóng. Khi hệ thống yêu cầu giảm chuyển động, nó hiện ra ngay.
+Drawer modal hoạt động như [dialog](overlays.md#dialogs): Tab chỉ đi trong nó, và focus trở lại chỗ cũ khi nó đóng. Khi hệ thống yêu cầu giảm chuyển động, nó hiện ra ngay.
 
 Xem trang `Feedback` trong [Gallery](../../../examples/gallery/feedback.zig).

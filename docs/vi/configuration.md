@@ -2,18 +2,18 @@
 
 # Cấu hình
 
-[CLI](cli.md) đọc cấu hình của ứng dụng từ `myzig.zon` ở thư mục gốc hoặc `myzig.json` (không phải cả hai). Mọi trường đều là tùy chọn; không có tệp, các giá trị mặc định bên dưới sẽ được áp dụng. Bản thân Zig không bao giờ đọc nó: `zig build` xây dựng ứng dụng từ `build.zig` và `build.zig.zon`, đồng thời cấu hình cho biết cách CLI chạy, đóng gói và đặt tên cho nó.
+[CLI](cli.md) đọc cấu hình của app từ `myzig.zon` ở thư mục gốc của app, hoặc từ `myzig.json` (không dùng cả hai). Cấu hình cho CLI biết cách chạy, đóng gói và đặt tên app.
 
 ```zig
 .{
     .name = "My App",
     .identifier = "com.example.myapp",
-    .version = "1.2.0",              // default: build.zig.zon's
+    .version = "1.2.0",              // mặc định: lấy từ build.zig.zon
     .copyright = "© 2026 Example Inc.",
-    .icon = "resources/icon.png",    // default when it exists
-    .executable = "my_app",          // the artifact build.zig installs
-    .frontend = "frontend",          // the web frontend's sources
-    .frontend_dist = "frontend",     // what build.zig embeds
+    .icon = "resources/icon.png",    // mặc định nếu file tồn tại
+    .executable = "my_app",          // artifact mà build.zig cài đặt
+    .frontend = "frontend",          // mã nguồn của frontend web
+    .frontend_dist = "frontend",     // thứ mà build.zig nhúng vào
     .dev_url = "http://localhost:5173",
     .dev_command = "bun run dev",
     .build_command = "bun run build",
@@ -27,38 +27,44 @@
 }
 ```
 
-Đường dẫn có liên quan đến thư mục gốc hoặc tuyệt đối của ứng dụng. Một trường mà CLI không biết là một lỗi đặt tên cho nó (`myzig.zon has no field nmae`), cũng như một giá trị không đúng loại; lỗi cú pháp ZON đưa ra dòng và cột của nó.
+- Mọi trường đều không bắt buộc. Không có file thì các giá trị mặc định bên dưới được dùng.
+- Bản thân Zig không bao giờ đọc file này: `zig build` build app từ `build.zig` và `build.zig.zon`.
+- Đường dẫn tính từ thư mục gốc của app, hoặc là đường dẫn tuyệt đối.
+- Trường mà CLI không biết là lỗi, kèm tên trường (`myzig.zon has no field nmae`). Giá trị sai kiểu cũng vậy.
+- Lỗi cú pháp ZON báo dòng và cột.
 
 <a id="the-app"></a>
 
-## Ứng dụng
+## App
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `name` | tên của thư mục | tên mà mọi người nhìn thấy: gói, trình cài đặt, lớp cửa sổ |
-| `identifier` | `com.myzig.<name>` | tên DNS đảo ngược (chữ cái, chữ số, `.` và `-`), dưới dạng `com.example.myapp`: mã định danh gói, khóa gỡ cài đặt, tên của tệp kê khai Windows |
-| `version` | `build.zig.zon` của `.version`, khác `0.1.0` | phiên bản của gói và trình cài đặt (Windows chiếm tối đa bốn số) |
-| `copyright` | không có | macOS's `NSHumanReadableCopyright`, Windows' `LegalCopyright` |
-| `icon` | `resources/icon.png` khi nó tồn tại | một PNG hình vuông (1024 pixel là tốt nhất): Kích thước của `.icns`, `.ico`, Linux được tạo từ nó |
-| `executable` | `build.zig.zon`'s `.name`, nếu không thì tên trong vỏ rắn | tạo phẩm `build.zig` cài đặt (`zig-out/bin/<executable>`) |
+| `name` | tên thư mục | tên người dùng nhìn thấy: tên của bundle, của trình cài đặt, của window class |
+| `identifier` | `com.myzig.<name>` | tên kiểu DNS đảo ngược (chữ cái, chữ số, `.` và `-`), như `com.example.myapp`: bundle identifier, khóa gỡ cài đặt, tên trong manifest của Windows |
+| `version` | `.version` của `build.zig.zon`, nếu không có thì `0.1.0` | phiên bản của package và trình cài đặt (Windows lấy tối đa bốn số) |
+| `copyright` | không có | `NSHumanReadableCopyright` của macOS, `LegalCopyright` của Windows |
+| `icon` | `resources/icon.png` nếu file tồn tại | một ảnh PNG vuông (tốt nhất 1024 pixel): `.icns`, `.ico` và các kích thước cho Linux được tạo từ nó |
+| `executable` | `.name` của `build.zig.zon`, nếu không có thì tên app dạng snake case | artifact mà `build.zig` cài đặt (`zig-out/bin/<executable>`) |
 
-`name`, `version` và `identifier` không thể giữ dấu ngoặc kép hoặc ký tự điều khiển. Giữ `identifier` giống với `AppOptions.id` trong mã của ứng dụng, đặt tên cho khóa phiên bản duy nhất, trình xử lý URL và bí mật (xem [Ứng dụng](app.md)).
+- `name`, `version` và `identifier` không được chứa dấu nháy hay ký tự điều khiển.
+- Giữ `identifier` giống `AppOptions.id` trong code của app. Id đó đặt tên cho khóa single instance, handler URL và secret của app (xem [App](app.md)).
 
 <a id="development-and-the-frontend"></a>
 
 ## Phát triển và frontend
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `frontend` | `frontend` khi thư mục tồn tại | nguồn của frontend web, trong đó `generate` và `dev` viết `myzig.js` và `myzig.d.ts` |
-| `frontend_dist` | `frontend` | frontend được xây dựng mà ứng dụng nhúng; CLI ghi `myzig_assets.zig` của nó và chuyển nó dưới dạng `-Dfrontend` |
-| `dev_url` | không có | một URL `http://` hoặc `https://`: `myzig dev` đợi nó và chuyển nó dưới dạng `MYZIG_DEV_URL` |
-| `dev_command` | không có | máy chủ nhà phát triển `myzig dev` chạy đầu tiên (`bun run dev`), trong shell, trong thư mục gốc của ứng dụng |
-| `build_command` | không có | `myzig build` chạy gì đầu tiên để xây dựng frontend (`bun run build`) |
-| `out` | `dist` | nơi `myzig build` đặt các gói |
-| `watch` | không có | được chấp nhận; `myzig dev` đã xem toàn bộ thư mục ứng dụng |
+| `frontend` | `frontend` nếu thư mục tồn tại | mã nguồn frontend web, nơi `generate` và `dev` ghi `myzig.js` và `myzig.d.ts` |
+| `frontend_dist` | `frontend` | frontend đã build mà app nhúng vào; CLI ghi `myzig_assets.zig` của nó và truyền vào qua `-Dfrontend` |
+| `dev_url` | không có | một URL `http://` hoặc `https://`: `myzig dev` chờ URL này và truyền nó qua `MYZIG_DEV_URL` |
+| `dev_command` | không có | dev server mà `myzig dev` chạy trước (`bun run dev`), trong shell, ở thư mục gốc của app |
+| `build_command` | không có | lệnh `myzig build` chạy trước để build frontend (`bun run build`) |
+| `out` | `dist` | nơi `myzig build` đặt các package |
+| `watch` | không có | được chấp nhận; `myzig dev` vốn đã theo dõi toàn bộ thư mục app |
 
-Giao diện người dùng không có bản dựng (đơn giản HTML, như mẫu web) chỉ có `frontend`: ứng dụng nhúng các nguồn của nó. Giao diện người dùng do Vite xây dựng hoặc một công cụ khác đặt `frontend_dist` làm đầu ra của nó và `dev_command`, `dev_url` và `build_command`:
+- Frontend không cần build (HTML thuần, như template web) chỉ có `frontend`: app nhúng thẳng mã nguồn.
+- Frontend build bằng Vite hay công cụ khác đặt `frontend_dist` là thư mục output, cùng `dev_command`, `dev_url` và `build_command`:
 
 ```zig
 .{
@@ -71,42 +77,53 @@ Giao diện người dùng không có bản dựng (đơn giản HTML, như mẫ
 }
 ```
 
-Xem [Frontend](frontend.md) để biết phía bên của trang.
+Xem [Frontend](frontend.md) cho phía trang web.
 
 <a id="integration"></a>
 
-## Tích hợp
+## Tích hợp với hệ thống
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `resources` | không có | các tập tin và thư mục được gửi bên cạnh ứng dụng, bên cạnh những gì `resources/` chứa |
-| `url_schemes` | không có | Lược đồ URL mà ứng dụng mở ra (`myapp` cho `myapp://...`): chữ cái, chữ số, `+`, `-` và `.`, bắt đầu bằng một chữ cái |
-| `file_associations` | không có | loại tệp ứng dụng sẽ mở |
+| `resources` | không có | file và thư mục đi kèm app, ngoài những gì có trong `resources/` |
+| `url_schemes` | không có | các URL scheme app mở được (`myapp` cho `myapp://...`): chữ cái, chữ số, `+`, `-` và `.`, bắt đầu bằng chữ cái |
+| `file_associations` | không có | các loại file app mở được |
 
-Mọi thứ đều có trong `resources/` nhưng biểu tượng cũng đi kèm với ứng dụng: xem [Phân phối](distribution.md#resources).
+Mọi thứ trong `resources/`, trừ icon, cũng đi kèm app: xem [Phân phối](distribution.md#resources).
 
-Một liên kết tập tin là:
+Một file association gồm:
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `ext` | bắt buộc | phần mở rộng không có dấu chấm (`.{ "md", "markdown" }`) |
-| `name` | `<EXT> file` | tên loại trong hệ thống |
-| `mime_type` | `application/x-<executable>-<ext>` | loại MIME; Các gói Linux xác định loại khi nó là của myzig |
+| `ext` | bắt buộc | phần mở rộng, không có dấu chấm (`.{ "md", "markdown" }`) |
+| `name` | `<EXT> file` | tên của loại file trong hệ thống |
+| `mime_type` | `application/x-<executable>-<ext>` | kiểu MIME; package Linux định nghĩa kiểu này khi nó thuộc về myzig |
 | `role` | `Editor` | `Editor` hoặc `Viewer` (macOS) |
 
-Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` và `CFBundleDocumentTypes` trong gói macOS, các khóa đăng ký được viết bởi trình cài đặt Windows, `MimeType=` trong mục nhập Linux trên máy tính để bàn. Ứng dụng cũng đặt tên cho chúng theo các tùy chọn riêng, `AppOptions.url_schemes` và `AppOptions.file_extensions`, để các lần khởi chạy có đối số như vậy đạt tới `on_open_url` và `on_open_file`, đồng thời có thể đăng ký chúng trong khi chạy (`myzig.system.registerUrlScheme`, `registerFileType`; xem [Hệ thống](system.md)).
+Các package đăng ký chúng với hệ thống:
+
+- macOS: `CFBundleURLTypes` và `CFBundleDocumentTypes` trong bundle;
+- Windows: các khóa registry do trình cài đặt ghi;
+- Linux: `MimeType=` trong desktop entry.
+
+App cũng khai báo chúng trong tùy chọn của mình, `AppOptions.url_schemes` và `AppOptions.file_extensions`. Nhờ đó các lần khởi chạy với tham số như vậy sẽ tới `on_open_url` và `on_open_file`. App cũng có thể đăng ký chúng khi đang chạy (`myzig.system.registerUrlScheme`, `registerFileType`; xem [Hệ thống](system.md)).
+
+<a id="macos"></a>
 
 ## macos
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
 | `minimum_system_version` | `12.0` | `LSMinimumSystemVersion` |
-| `signing_identity` | `-` | Danh tính của `codesign`; `-` ký đặc biệt (chạy trên máy Mac đã xây dựng nó) |
-| `entitlements` | không có | tệp quyền lợi cho `codesign` |
-| `provisioning_profile` | không có | một hồ sơ được nhúng dưới dạng `Contents/embedded.provisionprofile` trước khi ký; nó phải khớp với mã nhận dạng, quyền lợi và danh tính ký của ứng dụng và không thể được sử dụng với chức năng ký đặc biệt. Xem [hồ sơ cung cấp](distribution.md#provisioning-profiles) |
-| `dmg_title` | cái tên | tên ổ đĩa của ảnh đĩa |
-| `icon` | không có | một `.icns` (tạo bằng `iconutil` từ một `.iconset`) mà gói dùng thay cho cái được vẽ từ `icon`, cho biểu tượng vẽ riêng từng kích thước; `myzig dev` hiện PNG |
-| `info_plist` | không có | các khóa được thêm vào `Info.plist`, thay thế các khóa của myzig |
+| `signing_identity` | `-` | identity cho `codesign`; `-` ký ad hoc (chạy được trên chiếc Mac đã build nó) |
+| `entitlements` | không có | file entitlements cho `codesign` |
+| `provisioning_profile` | không có | profile được nhúng thành `Contents/embedded.provisionprofile` trước khi ký (xem bên dưới) |
+| `dmg_title` | tên app | tên volume của ảnh đĩa |
+| `icon` | không có | file `.icns` mà bundle dùng thay cho icon render từ `icon` (xem bên dưới) |
+| `info_plist` | không có | các khóa thêm vào `Info.plist`, thay thế khóa của myzig |
+
+- `provisioning_profile` phải khớp identifier, entitlements và signing identity của app. Không dùng được với ký ad hoc. Xem [provisioning profile](distribution.md#provisioning-profiles).
+- `icon` dành cho icon vẽ riêng từng kích thước, tạo bằng `iconutil` từ một `.iconset`. `myzig dev` hiện file PNG.
 
 ```zig
 .macos = .{
@@ -118,19 +135,19 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 
 <a id="updates"></a>
 
-## Cập nhật
+## updates
 
-Đã ký [cập nhật](updates.md). `public_key` và một trong `github` và `url` là bắt buộc.
+[Cập nhật](updates.md) có chữ ký. Bắt buộc có `public_key` và một trong hai `github` hoặc `url`.
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
 | `public_key` | | nội dung của `myzig-update.pub` ([`myzig keygen`](cli.md#myzig-keygen)) |
-| `github` | | kho lưu trữ công cộng (`owner/name`) có bản phát hành chứa các bản cập nhật; ứng dụng đọc bản kê khai của bản phát hành mới nhất |
-| `tag_prefix` | `v` | thẻ của bản phát hành: `v1.2.0` |
-| `url` | | thư mục HTTPS phục vụ các bản cập nhật thay vì GitHub |
-| `s3` | | nhóm phục vụ `url`, `--upload` đặt các tệp vào: `bucket`, `prefix` (thư mục của nó), `region`, `endpoint` (một dịch vụ tương thích, như của Cloudflare R2), `path_style` |
-| `private_key` | | đường dẫn của `myzig-update.key` (có thể bắt đầu bằng `~/`); `MYZIG_UPDATER_PRIVATE_KEY` đến trước |
-| `changelog` | `CHANGELOG.md` khi nó tồn tại | tệp Markdown có phần `## <version>` là ghi chú phát hành |
+| `github` | | repository công khai (`owner/name`) có các release chứa bản cập nhật; app đọc manifest của release mới nhất |
+| `tag_prefix` | `v` | tag của các release: `v1.2.0` |
+| `url` | | một thư mục HTTPS phục vụ bản cập nhật thay cho GitHub |
+| `s3` | | bucket phục vụ `url`, nơi `--upload` đưa file lên: `bucket`, `prefix` (thư mục trong bucket), `region`, `endpoint` (của một dịch vụ tương thích, như Cloudflare R2), `path_style` |
+| `private_key` | | đường dẫn tới `myzig-update.key` (có thể bắt đầu bằng `~/`); `MYZIG_UPDATER_PRIVATE_KEY` được ưu tiên |
+| `changelog` | `CHANGELOG.md` nếu file tồn tại | file Markdown có mục `## <version>` làm release notes |
 
 ```zig
 .updates = .{
@@ -142,29 +159,44 @@ Các gói đăng ký những thứ này với hệ thống: `CFBundleURLTypes` v
 
 <a id="windows"></a>
 
-## Các cửa sổ
+## windows
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `installer` | true | viết tập lệnh của trình cài đặt NSIS và tạo trình cài đặt khi `makensis` được cài đặt |
-| `uninstall_run` | không có | đối số mà trình gỡ cài đặt chạy ứng dụng và chờ đợi trước khi lấy đi các tệp của nó: để ứng dụng hoàn tác những gì nó tự thiết lập (một lệnh trên `PATH`, menu của File Explorer) |
-| `uninstall_data` | không có | các thư mục chứa dữ liệu của ứng dụng, dưới dạng đường dẫn NSIS (`$APPDATA\\MyApp`), trình gỡ cài đặt cũng đề nghị xóa, hãy hỏi trước; việc gỡ cài đặt im lặng sẽ giữ chúng |
-| `install_dir_name` | tên ứng dụng | thư mục trong `%LOCALAPPDATA%\Programs` mà trình cài đặt đặt ứng dụng vào, ví dụ `ZhiLian` (ASCII) cho ứng dụng tên `智链`; lối tắt và Settings › Apps giữ tên, và ứng dụng đã cài được cập nhật tại chỗ |
-| `installer_include` | không có | một script NSIS của ứng dụng mà trình cài đặt include, như `resources/installer.nsh`, sau `MUI2.nsh` và các ngôn ngữ: các macro nó định nghĩa trong số `customInit`, `customInstall` và `customUnInstall` chạy khi trình cài đặt bắt đầu (`.onInit`), cuối bước cài đặt khi các tệp đã ở `$INSTDIR`, và trong bước gỡ cài đặt trước khi thư mục ứng dụng bị xoá; cài đặt im lặng cũng chạy chúng |
+| `installer` | true | ghi script cho trình cài đặt NSIS, và tạo trình cài đặt nếu đã cài `makensis` |
+| `uninstall_run` | không có | tham số trình gỡ cài đặt dùng để chạy app, và chờ app chạy xong, trước khi xóa file |
+| `uninstall_data` | không có | các thư mục dữ liệu của app, dạng đường dẫn NSIS (`$APPDATA\\MyApp`), mà trình gỡ cài đặt đề nghị xóa luôn |
+| `install_dir_name` | tên app | thư mục trong `%LOCALAPPDATA%\Programs` nơi trình cài đặt đặt app |
+| `installer_include` | không có | script NSIS riêng của app mà trình cài đặt include, như `resources/installer.nsh` |
+
+- `uninstall_run` để app gỡ những gì nó tự thiết lập: một lệnh trên `PATH`, menu của File Explorer.
+- `uninstall_data` hỏi trước khi xóa. Gỡ cài đặt ở chế độ im lặng thì giữ lại các thư mục này.
+- `install_dir_name` dùng chẳng hạn cho tên ASCII `ZhiLian` của một app tên `智链`. Shortcut và Settings › Apps vẫn dùng tên app. App đã cài được cập nhật tại chỗ.
+- `installer_include` được include sau `MUI2.nsh` và các ngôn ngữ. Nó có thể định nghĩa các macro `customInit`, `customInstall` và `customUnInstall`. Cài đặt im lặng cũng chạy chúng.
+
+| Macro | Chạy khi |
+|---|---|
+| `customInit` | trình cài đặt khởi động (`.onInit`) |
+| `customInstall` | cuối quá trình cài, khi file đã nằm trong `$INSTDIR` |
+| `customUnInstall` | khi gỡ cài đặt, trước khi xóa thư mục của app |
+
+<a id="linux"></a>
 
 ## linux
 
-| lĩnh vực | mặc định | |
+| Trường | Mặc định | |
 |---|---|---|
-| `maintainer` | cái tên | `Maintainer` của gói Debian |
-| `comment` | không có | mục nhập trên máy tính để bàn của `Comment` |
-| `categories` | `Utility` | mục nhập trên máy tính để bàn của `Categories` |
-| `depends` | không có | nhiều phần phụ thuộc Debian hơn, sau GTK 3 và WebKitGTK |
-| `command` | không có | một lệnh trong `/usr/bin` chạy ứng dụng (chữ cái, chữ số, `.`, `_`, `+`, `-`), hoặc một danh sách lệnh |
+| `maintainer` | tên app | `Maintainer` của package Debian |
+| `comment` | không có | `Comment` của desktop entry |
+| `categories` | `Utility` | `Categories` của desktop entry |
+| `depends` | không có | thêm các dependency Debian, sau GTK 3 và WebKitGTK |
+| `command` | không có | một lệnh trong `/usr/bin` để chạy app (chữ cái, chữ số, `.`, `_`, `+`, `-`), hoặc một danh sách lệnh |
+
+<a id="myzig-json"></a>
 
 ## myzig.json
 
-Các trường tương tự trong JSON:
+Các trường giống hệt, viết bằng JSON:
 
 ```json
 {
@@ -177,6 +209,11 @@ Các trường tương tự trong JSON:
 
 <a id="how-it-is-read"></a>
 
-## Nó được đọc như thế nào
+## Cách CLI đọc file
 
-CLI đọc tệp bằng trình đọc ZON riêng (`cli/src/zon.zig`, để nó đọc giống nhau trên các phiên bản Zig và cho biết lỗi ở đâu), điền vào các giá trị mặc định (từ `build.zig.zon` và thư mục) rồi kiểm tra kết quả: tiện ích mở rộng không có dấu chấm, URL scheme và mã nhận dạng theo yêu cầu của hệ thống, `dev_url` URL http(s), `role` `Editor` hoặc `Viewer`. `Config` trong `cli/src/config.zig` là tài liệu tham khảo.
+CLI đọc file bằng bộ đọc ZON riêng (`cli/src/zon.zig`). Bộ đọc này cho kết quả như nhau trên mọi phiên bản Zig và chỉ ra chỗ sai. Sau đó CLI:
+
+1. điền các giá trị mặc định, từ `build.zig.zon` và thư mục;
+2. kiểm tra kết quả: phần mở rộng không có dấu chấm, URL scheme và identifier đúng như hệ thống yêu cầu, `dev_url` là URL http(s), `role` là `Editor` hoặc `Viewer`.
+
+`Config` trong `cli/src/config.zig` là nguồn tham chiếu.

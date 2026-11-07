@@ -1,8 +1,8 @@
 <a id="building-and-distributing"></a>
 
-# Xây dựng và phân phối
+# Build và phân phối
 
-`myzig build` phát hành một ứng dụng và các gói mà mọi người cài đặt ứng dụng đó từ đó, cho macOS, Windows, Linux và các trình duyệt:
+`myzig build` tạo bản release của app và các gói để người dùng cài đặt, cho macOS, Windows, Linux và trình duyệt:
 
 ```sh
 myzig build                                   # this machine's platform and architecture
@@ -12,78 +12,100 @@ myzig build --platform macos --arch universal # Apple silicon and Intel in one b
 myzig build --platform web                    # a static site (native UI only)
 ```
 
-Bản phát hành được xây dựng bằng ReleaseSmall và loại bỏ (`--optimize fast` hoặc `safe` đối với các phiên bản khác), thành `dist/<platform>-<arch>` (`out` trong [myzig.zon](configuration.md) hoặc `--out`), mỗi bản dựng sẽ trống trước tiên. Các cờ nằm ​​trong [trang CLI](cli.md#myzig-build).
+- Bản release được build bằng ReleaseSmall và đã strip. `--optimize fast` hoặc `safe` để chọn chế độ khác.
+- Nó nằm trong `dist/<platform>-<arch>`, hoặc `out` trong [myzig.zon](configuration.md), hoặc `--out`. Mỗi lần build sẽ xóa trống thư mục này trước.
+- Các flag nằm ở [trang CLI](cli.md#myzig-build).
 
-| nền tảng | `myzig build` làm ra cái gì |
+| nền tảng | những gì `myzig build` tạo ra |
 |---|---|
-| macOS | `<Name>.app`; trên máy Mac, được ký (đặc biệt theo mặc định) bằng `<slug>-<version>-<arch>.dmg`; ở nơi khác `<Name>-<version>-macos-<arch>.zip` của gói |
-| Windows | có hai cách để vận chuyển nó: `<slug>-portable-<version>-<arch>.zip`, chạy khi được giải nén và không cài đặt gì (`<Name>/<Name>.exe` với các tài nguyên biểu tượng, tệp kê khai và phiên bản cũng như các tài nguyên bên cạnh nó, cũng được giải nén) và `<slug>-setup-<version>-<arch>.exe`, trình cài đặt NSIS, khi `makensis` được cài đặt (không có nó, một cảnh báo sẽ cho biết cách cài đặt nó) |
-| Linux | `<executable>/` (tệp thực thi, mục nhập và biểu tượng trên màn hình của nó, tài nguyên); `<executable>-<version>-linux-<arch>.tar.gz`; `<package>_<version>_<arch>.deb` |
-| trình duyệt | `dist/web`: `index.html`, tập lệnh của máy chủ, `app.wasm` và phông chữ (xem [Trình duyệt](browsers.md)) |
+| macOS | `<Name>.app`; trên Mac thì được ký (mặc định ad hoc) kèm `<slug>-<version>-<arch>.dmg`; ở nơi khác là `<Name>-<version>-macos-<arch>.zip` chứa bundle |
+| Windows | hai cách phát hành: `<slug>-portable-<version>-<arch>.zip`, chạy ngay tại chỗ giải nén và không cài gì (`<Name>/<Name>.exe` kèm icon, manifest và thông tin phiên bản, các resource nằm cạnh, cũng được để sẵn ở dạng chưa nén), và `<slug>-setup-<version>-<arch>.exe`, bộ cài NSIS, khi đã cài `makensis` (không có thì một cảnh báo chỉ cách cài) |
+| Linux | `<executable>/` (file thực thi, desktop entry và icon của nó, các resource); `<executable>-<version>-linux-<arch>.tar.gz`; `<package>_<version>_<arch>.deb` |
+| trình duyệt | `dist/web`: `index.html`, các script của host, `app.wasm` và font (xem [Trình duyệt](browsers.md)) |
 
-`<slug>` là tên tệp thực thi viết thường, nối bằng gạch ngang, như
-`my-app` của `my_app`: ảnh đĩa và các gói Windows được đặt theo nó, vì
-GitHub bỏ những ký tự không phải ASCII khỏi tên tệp của một bản phát hành.
+`<slug>` là tên file thực thi viết thường, nối bằng gạch ngang, như `my-app` cho `my_app`. Disk image và các gói Windows được đặt theo tên này, vì GitHub bỏ các ký tự không phải ASCII khỏi tên file của một release.
 
 <a id="platforms"></a>
 
 ## Nền tảng
 
-Zig biên dịch chéo và myzig tải những gì Linux và Windows có thay vì liên kết nó (GTK và WebKitGTK với trình tải của `dlopen`, WebView2 với `LoadLibrary`), vì vậy Linux và Windows phát hành bản dựng từ bất kỳ máy nào. macOS phát hành liên kết các khung công tác của Apple, cần có macOS SDK: xây dựng chúng trên máy Mac (Xcode hoặc Công cụ dòng lệnh). Ảnh đĩa (`hdiutil`) và ký mã (`codesign`) cũng cần có máy Mac. Khi tệp thực thi macOS được liên kết với máy Mac (có SDK được cung cấp), `myzig build --platform macos` nén gói thay vì tạo ảnh đĩa, giữ nguyên chế độ của tệp thực thi và chữ ký đặc biệt mà trình liên kết của Zig cung cấp cho nó, mà Apple silicon cần để chạy nó.
+Bản release cho Linux và Windows build được từ bất kỳ máy nào:
 
-Bản phát hành cần những gì ở nơi nó chạy:
+- Zig biên dịch chéo được.
+- myzig nạp những gì Linux và Windows có sẵn thay vì link chúng: GTK và WebKitGTK bằng `dlopen`, loader của WebView2 bằng `LoadLibrary`.
 
-| nền tảng | nhu cầu |
+Bản release macOS link các framework của Apple, việc này cần macOS SDK. Hãy build chúng trên Mac (Xcode hoặc Command Line Tools). Disk image (`hdiutil`) và ký code (`codesign`) cũng cần Mac.
+
+Khi file thực thi macOS được link ngoài Mac (có cung cấp SDK), `myzig build --platform macos` nén bundle thành zip thay vì tạo disk image. File zip giữ quyền của file thực thi và chữ ký ad hoc mà linker của Zig gắn vào, thứ mà Apple silicon cần để chạy nó.
+
+Bản release cần gì ở máy chạy nó:
+
+| nền tảng | cần |
 |---|---|
 | macOS | macOS 12 trở lên (`macos.minimum_system_version`) |
-| Windows | Windows 10 trở lên; WebView2 Runtime cho các trang (một phần của Windows 11 và hầu hết Windows 10 lượt cài đặt) |
-| Linux | GTK 3; WebKitGTK 4.1 cho các trang. `.deb` phụ thuộc vào `libgtk-3-0` và `libwebkit2gtk-4.1-0` |
+| Windows | Windows 10 trở lên; WebView2 Runtime cho page (có sẵn trong Windows 11 và phần lớn bản cài Windows 10) |
+| Linux | GTK 3; WebKitGTK 4.1 cho page. Gói `.deb` phụ thuộc `libgtk-3-0` và `libwebkit2gtk-4.1-0` |
 
-Các ứng dụng của giao diện native không cần webview ở bất kỳ đâu và bản phát hành là một bản thực thi duy nhất có dung lượng từ megabyte đến vài megabyte: myzig không có thời gian chạy để gửi đi.
+App native UI không cần webview ở đâu cả. Một bản release là một file thực thi duy nhất, từ dưới một megabyte tới vài megabyte: myzig không có runtime nào phải kèm theo.
 
 <a id="name-icon-and-version"></a>
 
-## Tên, biểu tượng và phiên bản
+## Tên, icon và phiên bản
 
-Chúng đến từ `myzig.zon`, với giá trị mặc định là `build.zig.zon` và thư mục (xem [Cấu hình](configuration.md#the-app)):
+Chúng lấy từ `myzig.zon`, với giá trị mặc định từ `build.zig.zon` và tên thư mục (xem [Cấu hình](configuration.md#the-app)):
 
-- `name` đặt tên cho gói, `.exe`, trình cài đặt và các menu; `executable` là tạo phẩm `build.zig` cài đặt và đặt tên cho gói và lệnh Linux.
-- `version` đi vào tài nguyên phiên bản `Info.plist` (`CFBundleVersion`, `CFBundleShortVersionString`), Windows' (tối đa bốn số, `1.2.3` là 1.2.3.0) và gói Debian (`1.2.0-beta-1` là `1.2.0~beta.1`). Giữ nó trong `build.zig.zon` và bỏ nó ra khỏi `myzig.zon`, để có một nơi để thay đổi nó.
-- `icon` là PNG hình vuông. CLI tạo các biểu tượng của nền tảng từ nó: `icon.icns` trong `Resources` của gói, nhóm biểu tượng của `.exe` (16 đến 256 pixel) và `.ico` của trình cài đặt và PNG có kích thước 512 pixel bên cạnh tệp thực thi Linux và 256 và 512 pixel trong `.deb`'s `hicolor` chủ đề. `myzig icon` cho họ xem; `myzig icon --new` ghi biểu tượng mặc định.
+- `name` là tên của bundle, file `.exe`, bộ cài và các menu.
+- `executable` là artifact mà `build.zig` cài đặt. Nó là tên gói và tên lệnh trên Linux.
+- `version` được ghi vào `Info.plist` (`CFBundleVersion`, `CFBundleShortVersionString`), thông tin phiên bản của Windows và gói Debian.
+  - Windows nhận tối đa bốn số: `1.2.3` thành 1.2.3.0.
+  - Debian: `1.2.0-beta-1` thành `1.2.0~beta.1`.
+  - Hãy để nó trong `build.zig.zon` và bỏ khỏi `myzig.zon`, để chỉ có một chỗ phải sửa.
+- `icon` là một ảnh PNG vuông. `myzig icon` hiện các icon mà CLI tạo ra từ nó, `myzig icon --new` ghi ra icon mặc định. CLI tạo ra:
+  - `icon.icns` trong `Resources` của bundle;
+  - nhóm icon của file `.exe` (16 tới 256 pixel) và file `.ico` của bộ cài;
+  - ảnh PNG 512 pixel cạnh file thực thi trên Linux, và PNG 256 và 512 pixel trong theme `hicolor` của gói `.deb`.
 
 <a id="resources"></a>
 
-## Tài nguyên
+## Resource
 
-Các tệp mà ứng dụng đọc trong thời gian chạy sẽ xuất hiện bên cạnh nó: mọi thứ trong thư mục `resources/` của ứng dụng ngoại trừ biểu tượng cũng như các tệp và thư mục `resources` có tên trong `myzig.zon`.
+Các file mà app đọc lúc chạy được phát hành kèm bên cạnh nó: mọi thứ trong thư mục `resources/` của app trừ icon, và các file và thư mục mà `resources` trong `myzig.zon` liệt kê.
 
-| nền tảng | họ đi đâu |
+| nền tảng | chúng nằm ở đâu |
 |---|---|
 | macOS | `<Name>.app/Contents/Resources/` |
-| Windows | bên cạnh `<Name>.exe` (và trong trình cài đặt) |
-| Linux | bên cạnh tệp thực thi, `/opt/<executable>/` trong `.deb` |
+| Windows | cạnh `<Name>.exe` (và trong bộ cài) |
+| Linux | cạnh file thực thi, `/opt/<executable>/` trong gói `.deb` |
 
-Các tệp mà ứng dụng nhúng (`@embedFile`, `myzig_assets.zig` của frontend) không cần tài nguyên: chúng nằm trong tệp thực thi. Thích nhúng những gì nhỏ và cố định; gửi dưới dạng tài nguyên lớn, được cấp phép riêng hoặc thư viện gốc (của [terminal](plugins/terminal.md) mà nó tìm thấy bên cạnh tệp thực thi).
+File mà app nhúng vào (`@embedFile`, `myzig_assets.zig` của frontend) không cần resource: chúng nằm sẵn trong file thực thi.
 
-Một ứng dụng tìm thấy thư mục thực thi của nó với `std.process.executableDirPath(io, &buf)` (trên macOS, `Contents/MacOS`, có `../Resources` chứa tài nguyên).
+- Nhúng những gì nhỏ và cố định.
+- Phát hành dưới dạng resource những gì lớn, có giấy phép riêng, hoặc là thư viện native. Thư viện của [plugin terminal](plugins/terminal.md) là loại này, và plugin tìm chúng cạnh file thực thi.
+
+App tìm thư mục chứa file thực thi của nó bằng `std.process.executableDirPath(io, &buf)`. Trên macOS đó là `Contents/MacOS`, và `../Resources` của nó chứa các resource.
+
+<a id="macos"></a>
 
 ## macOS
 
-`<Name>.app/Contents` giữ:
+`<Name>.app/Contents` chứa:
 
-- `MacOS/<Name>`, tệp thực thi (một tệp nhị phân phổ quát với `--arch universal`, được CLI nối với tên `lipo`, mỗi lát được căn chỉnh thành 16 KiB);
-- `Info.plist`: `CFBundleName`, `CFBundleDisplayName`, `CFBundleIdentifier`, các phiên bản, `CFBundleExecutable`, `LSMinimumSystemVersion`, `NSPrincipalClass` (`NSApplication`), `NSHighResolutionCapable`, `NSSupportsAutomaticGraphicsSwitching`, `CFBundleIconFile`, `NSHumanReadableCopyright`, `CFBundleDocumentTypes` cho `file_associations` và `CFBundleURLTypes` cho `url_schemes`;
-- `Resources/`: `icon.icns` và các tài nguyên.
+- `MacOS/<Name>`, file thực thi. Với `--arch universal`, đây là một universal binary, được CLI ghép lại như `lipo` làm, mỗi phần căn theo 16 KiB.
+- `Info.plist`: `CFBundleName`, `CFBundleDisplayName`, `CFBundleIdentifier`, các phiên bản, `CFBundleExecutable`, `LSMinimumSystemVersion`, `NSPrincipalClass` (`NSApplication`), `NSHighResolutionCapable`, `NSSupportsAutomaticGraphicsSwitching`, `CFBundleIconFile`, `NSHumanReadableCopyright`, `CFBundleDocumentTypes` cho `file_associations` và `CFBundleURLTypes` cho `url_schemes`.
+- `Resources/`: `icon.icns` và các resource.
 
-`macos.info_plist` thêm khóa hoặc thay thế myzig, chẳng hạn như mô tả cách sử dụng (`NSCameraUsageDescription`, `NSMicrophoneUsageDescription`) hoặc `LSUIElement` cho một ứng dụng nằm trong thanh menu.
+`macos.info_plist` thêm key hoặc thay key của myzig. Dùng nó cho các mô tả mục đích sử dụng (`NSCameraUsageDescription`, `NSMicrophoneUsageDescription`) hoặc `LSUIElement` cho app sống trên thanh menu.
 
 <a id="signing"></a>
 
-### Ký tên
+### Ký code
 
-Trên máy Mac, gói được ký bằng `codesign --force --deep --sign <macos.signing_identity>`. Mặc định, `-`, ký đặc biệt: ứng dụng chạy trên máy Mac đã xây dựng ứng dụng đó và ở nơi khác sau khi người dùng cho phép. Với ID nhà phát triển (`"Developer ID Application: Example Inc. (TEAMID)"`), CLI cũng bật thời gian chạy cứng (`--options runtime`) và dấu thời gian an toàn, thêm `macos.entitlements` khi được đặt và ký vào ảnh đĩa.
+Trên Mac, bundle được ký bằng `codesign --force --deep --sign <macos.signing_identity>`.
 
-Việc công chứng vẫn chưa được CLI thực hiện. Sau `myzig build`, gửi ảnh đĩa và ghim phiếu:
+- Mặc định là `-`, ký ad hoc. App chạy được trên chiếc Mac đã build nó, và trên máy khác sau khi người dùng cho phép.
+- Với Developer ID (`"Developer ID Application: Example Inc. (TEAMID)"`), CLI bật thêm hardened runtime (`--options runtime`) và timestamp an toàn. Nó thêm `macos.entitlements` khi có, và ký cả disk image.
+
+CLI chưa làm notarization. Sau `myzig build`, hãy gửi disk image lên và staple ticket:
 
 ```sh
 xcrun notarytool submit dist/macos-aarch64/my-app-1.0.0-aarch64.dmg --keychain-profile notary --wait
@@ -92,9 +114,9 @@ xcrun stapler staple dist/macos-aarch64/my-app-1.0.0-aarch64.dmg
 
 <a id="provisioning-profiles"></a>
 
-### Hồ sơ cung cấp
+### Provisioning profile
 
-Các quyền bị hạn chế, chẳng hạn như Thông báo liên lạc, cần có hồ sơ cấp phép cho phép chúng, bao gồm cả việc phân phối ID nhà phát triển. Đặt `macos.provisioning_profile` theo đường dẫn của nó, liên quan đến dự án hoặc tuyệt đối: `myzig build` sao chép nó vào `Contents/embedded.provisionprofile` của gói trước khi ký, để ứng dụng đã ký và ảnh đĩa của nó giữ nó.
+Các entitlement bị hạn chế, như Communication Notifications, cần một provisioning profile cho phép chúng, kể cả khi phân phối bằng Developer ID. Đặt `macos.provisioning_profile` là đường dẫn tới nó, tương đối theo project hoặc tuyệt đối. `myzig build` copy nó vào `Contents/embedded.provisionprofile` của bundle trước khi ký, nên app đã ký và disk image của nó đều chứa profile.
 
 ```zig
 .macos = .{
@@ -104,74 +126,107 @@ Các quyền bị hạn chế, chẳng hạn như Thông báo liên lạc, cần
 },
 ```
 
-Hồ sơ phải khớp với chứng chỉ ký, mã định danh gói và các quyền, mã định danh ứng dụng và nhóm đi kèm. myzig nhúng nó như đã cho; nó không tạo hồ sơ cũng như không lấy các quyền từ chúng và Apple kiểm tra những gì họ ủy quyền khi ứng dụng chạy. Không thể sử dụng cấu hình với tính năng ký đặc biệt (`signing_identity = "-"`, mặc định): `myzig build` dừng trước khi xây dựng. Giữ các cấu hình nằm ngoài tầm kiểm soát phiên bản và cung cấp đường dẫn của chúng trong môi trường của bản dựng. Xem [Ký mã nội bộ: hồ sơ cung cấp](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles) của Apple.
+- Profile phải khớp với chứng chỉ ký, bundle identifier và các entitlement, kể cả application identifier và team identifier.
+- myzig nhúng nó nguyên trạng. myzig không tạo profile và không suy ra entitlement từ profile. Apple kiểm tra những gì profile cho phép khi app chạy.
+- Không dùng được profile với chữ ký ad hoc (`signing_identity = "-"`, mặc định): `myzig build` dừng trước khi build.
+- Đừng đưa profile vào version control, hãy truyền đường dẫn của chúng qua môi trường build.
+
+Xem bài [Inside code signing: provisioning profiles](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles) của Apple.
 
 <a id="the-disk-image"></a>
 
-### Hình ảnh đĩa
+### Disk image
 
-`<slug>-<version>-<arch>.dmg` là hình ảnh nén, chỉ đọc (`ULMO`) có tiêu đề `macos.dmg_title`. Mở nó sẽ hiển thị ứng dụng bên cạnh liên kết đến `/Applications` trong cửa sổ Finder được trình bày bởi `.DS_Store` CLI ghi, với biểu tượng của ứng dụng là âm lượng. `--skip-dmg` bỏ nó đi. Khi `diskutil` có lệnh `image` (macOS 27, nơi `hdiutil convert` lỗi), CLI nén nó bằng `diskutil image create from`.
+`<slug>-<version>-<arch>.dmg` là một image nén, chỉ đọc (`ULMO`), có tiêu đề là `macos.dmg_title`.
+
+- Mở nó ra sẽ thấy app nằm cạnh một link tới `/Applications`, trong cửa sổ Finder được sắp xếp bằng file `.DS_Store` mà CLI ghi ra.
+- Icon của app cũng là icon của volume.
+- `--skip-dmg` bỏ qua bước này.
+- Khi `diskutil` có lệnh `image` (macOS 27, nơi `hdiutil convert` bị lỗi), CLI nén nó bằng `diskutil image create from`.
 
 <a id="windows"></a>
 
-## Cửa sổ
+## Windows
 
-`<Name>.exe` là một ứng dụng GUI (không có cửa sổ bảng điều khiển) trong các bản phát hành và mang các tài nguyên mà CLI biên dịch và liên kết (`-Dwin32-res`, mà `build.zig` của mẫu khai báo):
+Ở bản release, `<Name>.exe` là app GUI (không có cửa sổ console). Nó mang các resource mà CLI compile và link vào (`-Dwin32-res`, do `build.zig` của template khai báo):
 
-- biểu tượng, trong kích thước sử dụng Explorer và thanh tác vụ;
-- một bảng kê khai: nhận thức về DPI trên mỗi màn hình, các điều khiển chung 6, Windows 10 và 11, UTF-8 làm trang mã, chạy dưới quyền người dùng (`asInvoker`);
+- icon, ở các kích thước mà Explorer và thanh taskbar dùng;
+- một manifest: nhận biết DPI theo từng màn hình, common controls 6, Windows 10 và 11, UTF-8 làm code page, chạy dưới quyền người dùng (`asInvoker`);
 - thông tin phiên bản: `FileDescription`, `ProductName`, `FileVersion`, `LegalCopyright`, `OriginalFilename`.
 
-Ứng dụng có `build.zig` không khai báo `-Dwin32-res` sẽ nhận được cảnh báo và có thể thực thi mà không có chúng.
+App mà `build.zig` không khai báo `-Dwin32-res` sẽ nhận một cảnh báo và một file thực thi không có các resource đó.
 
-`--arch x86` tạo bản phát hành 32-bit (`dist/windows-x86`, `x86-windows-gnu`) cho Windows 32-bit, Windows 64-bit cũng chạy được: cùng tệp thực thi, tài nguyên, tệp zip và trình cài đặt, dùng WebView2 của ứng dụng 32-bit. Tệp kê khai yêu cầu chạy dưới quyền người đã mở ứng dụng (`asInvoker`); nếu không có, Windows sẽ đòi nâng quyền với ứng dụng 32-bit có tên chứa "update", "setup" hoặc "install". `--arch x86` cũng xây dựng cho Linux 32-bit (một `.deb` `i386`), nhưng chưa được kiểm thử; macOS không có ứng dụng 32-bit.
+**32-bit.** `--arch x86` tạo bản release 32-bit (`dist/windows-x86`, `x86-windows-gnu`) cho Windows 32-bit, và Windows 64-bit cũng chạy được nó.
+
+- Vẫn đủ file thực thi, resource, zip và bộ cài, cùng WebView2 dành cho app 32-bit.
+- Manifest yêu cầu chạy dưới quyền người dùng đã mở app (`asInvoker`). Không có nó, Windows sẽ đòi nâng quyền cho app 32-bit có tên chứa "update", "setup" hoặc "install".
+- `--arch x86` cũng build cho Linux 32-bit (gói `.deb` `i386`), phần này chưa được test. macOS không có app 32-bit.
 
 <a id="the-installer"></a>
 
-### Trình cài đặt
+### Bộ cài
 
-Với `windows.installer` (mặc định), CLI ghi `installer.nsi` và biên dịch nó khi [NSIS](https://nsis.sourceforge.io) được cài đặt (`makensis` trên `PATH` hoặc trong `Program Files\NSIS`): `<slug>-setup-<version>-<arch>.exe`. Nó cài đặt cho người dùng mà không có quyền quản trị viên:
+Với `windows.installer` (mặc định), CLI ghi ra `installer.nsi`. Nó compile file này khi đã cài [NSIS](https://nsis.sourceforge.io) (`makensis` có trong `PATH`, hoặc trong `Program Files\NSIS`): `<slug>-setup-<version>-<arch>.exe`. Bộ cài cài cho người dùng hiện tại, không cần quyền quản trị:
 
-- vào `%LOCALAPPDATA%\Programs\<Name>`, với lối tắt menu Bắt đầu và lối tắt trên màn hình mà trang kết thúc cung cấp;
-- các liên kết tệp và URL scheme của `myzig.zon`, trong `HKCU\Software\Classes`;
-- trình gỡ cài đặt mà Cài đặt > Ứng dụng liệt kê, trong `identifier` của ứng dụng; trước tiên, nó chạy ứng dụng với `windows.uninstall_run` để ứng dụng hoàn tác những gì nó tự thiết lập và đề nghị xóa các thư mục của `windows.uninstall_data`;
-- trước khi sao chép tệp (và trước khi gỡ cài đặt), hãy kiểm tra xem ứng dụng có chạy không. Windows thay thế không có tệp nào mà chương trình đang chạy lưu giữ, do đó, việc cài đặt qua ứng dụng đang chạy (hoặc `OpenConsole.exe` và `conpty.dll` của terminal) sẽ để lại các tệp cũ bên cạnh các tệp mới. Trình cài đặt cố gắng mở từng `.exe` và `.dll` nó cài đặt bên cạnh `<Name>.exe` (`name` của `myzig.zon`) để ghi; trong khi một cái được giữ, nó sẽ hỏi: **Có** yêu cầu đóng các cửa sổ của ứng dụng và sau năm giây kết thúc `<Name>.exe` và các quá trình nó bắt đầu (`taskkill /F /T`); **Không** chờ người dùng đóng nó rồi kiểm tra lại; **Hủy** dừng. Cài đặt im lặng (`/S`) sẽ đóng nó, tương tự như Có.
+- vào `%LOCALAPPDATA%\Programs\<Name>`, kèm shortcut trong Start menu, và shortcut ngoài desktop mà trang cuối của bộ cài đề nghị;
+- các liên kết file và URL scheme của `myzig.zon`, dưới `HKCU\Software\Classes`;
+- một trình gỡ cài đặt được liệt kê trong Settings > Apps, theo `identifier` của app. Nó chạy app với `windows.uninstall_run` trước, để app tự gỡ những gì nó đã thiết lập. Nó đề nghị xóa các thư mục trong `windows.uninstall_data`;
+- trước khi copy file, và trước khi gỡ cài đặt, một bước kiểm tra app không đang chạy (xem bên dưới).
 
-Không có NSIS, `.zip` là gói.
+Không có NSIS thì file `.zip` là gói phát hành.
 
-Việc ký mã (`signtool`, Ký tin cậy Azure) chưa được CLI thực hiện: ký `<Name>.exe` trước khi tạo trình cài đặt, sau đó là trình cài đặt.
+**App đang chạy.** Windows không thay được file mà một chương trình đang chạy giữ. Cài đè lên app đang chạy, hoặc lên `OpenConsole.exe` và `conpty.dll` của terminal trong app, sẽ để lại file cũ lẫn với file mới. Vì vậy bộ cài thử mở để ghi từng file `.exe` và `.dll` mà nó cài cạnh `<Name>.exe` (`name` của `myzig.zon`). Khi còn file bị giữ, nó hỏi:
+
+- **Yes** yêu cầu các cửa sổ của app đóng lại. Sau năm giây, nó kết thúc `<Name>.exe` và các tiến trình mà app đã khởi chạy (`taskkill /F /T`).
+- **No** chờ người dùng tự đóng app, rồi kiểm tra lại.
+- **Cancel** dừng cài đặt.
+- Cài đặt im lặng (`/S`) đóng app, như khi chọn Yes.
+
+CLI chưa ký code (`signtool`, Azure Trusted Signing). Hãy ký `<Name>.exe` trước khi tạo bộ cài, rồi ký bộ cài.
+
+<a id="linux"></a>
 
 ## Linux
 
-Thư mục và `.tar.gz` chạy từ bất cứ nơi nào chúng được giải nén: tệp thực thi, `<executable>.desktop` (chạy `./<executable>`) và `<executable>.png`.
+Thư mục và file `.tar.gz` chạy được ở bất cứ đâu chúng được giải nén. Chúng chứa file thực thi, `<executable>.desktop` (chạy `./<executable>`) và `<executable>.png`.
 
-Gói Debian cài đặt:
+Gói Debian cài:
 
-| con đường | |
+| đường dẫn | |
 |---|---|
-| `/opt/<executable>/` | ứng dụng và tài nguyên của nó |
-| `/usr/share/applications/<executable>.desktop` | mục trên máy tính để bàn: `Name`, `Comment`, `Exec` (với `%U` khi ứng dụng mở tệp hoặc URL), `Icon`, `Categories`, `MimeType`, `StartupWMClass` |
-| `/usr/share/icons/hicolor/{256x256,512x512}/apps/<executable>.png` | biểu tượng |
-| `/usr/share/mime/packages/<executable>.xml` | các loại MIME myzig định nghĩa cho `file_associations` không có loại nào |
-| `/usr/bin/<linux.command>` | một liên kết đến ứng dụng khi `linux.command` được đặt |
+| `/opt/<executable>/` | app và các resource của nó |
+| `/usr/share/applications/<executable>.desktop` | desktop entry: `Name`, `Comment`, `Exec` (có `%U` khi app mở file hoặc URL), `Icon`, `Categories`, `MimeType`, `StartupWMClass` |
+| `/usr/share/icons/hicolor/{256x256,512x512}/apps/<executable>.png` | icon |
+| `/usr/share/mime/packages/<executable>.xml` | các MIME type mà myzig định nghĩa cho những `file_associations` chưa có |
+| `/usr/bin/<linux.command>` | một link tới app, khi có đặt `linux.command` |
 
-Nó phụ thuộc vào GTK 3 và WebKitGTK 4.1 (`libgtk-3-0 | libgtk-3-0t64, libwebkit2gtk-4.1-0`) và `linux.depends`. Cài đặt nó với `sudo apt install ./my-app_1.0.0_amd64.deb`.
+Nó phụ thuộc GTK 3 và WebKitGTK 4.1 (`libgtk-3-0 | libgtk-3-0t64, libwebkit2gtk-4.1-0`) và `linux.depends`. Cài bằng `sudo apt install ./my-app_1.0.0_amd64.deb`.
 
-Các định dạng khác (RPM, AppImage, Flatpak) chưa được tạo; `.tar.gz` là nơi họ sẽ bắt đầu.
+Các định dạng khác (RPM, AppImage, Flatpak) chưa được tạo. File `.tar.gz` là điểm khởi đầu cho chúng.
 
 <a id="url-schemes-and-file-types"></a>
 
-## Lược đồ URL và loại tệp
+## URL scheme và loại file
 
-`url_schemes` và `file_associations` trong `myzig.zon` đăng ký ứng dụng với hệ thống khi ứng dụng được cài đặt: `Info.plist` trên macOS, khóa đăng ký của trình cài đặt trên Windows, mục nhập máy tính để bàn và gói MIME trên Linux. Ứng dụng đặt tên giống nhau trong `AppOptions.url_schemes` và `AppOptions.file_extensions`, đồng thời nhận chúng trong `on_open_url` và `on_open_file`, khi ra mắt và từ những lần ra mắt sau này (xem [Ứng dụng](app.md)). Một ứng dụng chưa được cài đặt (`.zip`, tarball, `myzig dev`) có thể tự đăng ký khi chạy với `myzig.system.registerUrlScheme` và `registerFileType` (xem [Hệ thống](system.md)).
+`url_schemes` và `file_associations` trong `myzig.zon` đăng ký app với hệ thống khi nó được cài:
+
+- macOS: `Info.plist`;
+- Windows: các registry key của bộ cài;
+- Linux: desktop entry và gói MIME.
+
+App khai báo đúng những thứ đó trong `AppOptions.url_schemes` và `AppOptions.file_extensions`. Nó nhận chúng trong `on_open_url` và `on_open_file`, lúc khởi động và từ những lần mở sau (xem [App](app.md)).
+
+App chưa được cài (file `.zip`, tarball, `myzig dev`) có thể tự đăng ký trong lúc chạy bằng `myzig.system.registerUrlScheme` và `registerFileType` (xem [Hệ thống](system.md)).
 
 <a id="publishing"></a>
 
-## Xuất bản
+## Phát hành
 
-Xây dựng các gói của từng nền tảng, trên một máy hoặc một gói trên mỗi nền tảng và tải chúng lên nơi mọi người tải xuống ứng dụng (bản phát hành GitHub, trang web). Để biết các bản cập nhật, `myzig build` ký vào bản cập nhật của từng nền tảng và viết bảng kê khai của nó, [updater](plugins/updater.md) kiểm tra và `myzig build --upload` xuất bản chúng: xem [Cập nhật](updates.md).
+Build các gói cho từng nền tảng, trên một máy hoặc mỗi nền tảng một máy. Tải chúng lên nơi người dùng tải app: một GitHub release, một website.
 
-Bản phác thảo quy trình làm việc của Hành động GitHub: Linux và Windows được xây dựng trên một trình chạy Linux, macOS trên trình chạy Mac (đối với SDK, hình ảnh đĩa và ký):
+Để cập nhật, `myzig build` ký bản cập nhật của từng nền tảng và ghi manifest của nó, thứ mà [plugin updater](plugins/updater.md) kiểm tra. `myzig build --upload` phát hành chúng: xem [Cập nhật](updates.md).
+
+Phác thảo một workflow GitHub Actions. Linux và Windows build trên một runner Linux, macOS trên một runner Mac (để có SDK, disk image và ký code):
 
 ```yaml
 jobs:
@@ -196,10 +251,16 @@ jobs:
         with: { name: dist-${{ matrix.os }}, path: dist }
 ```
 
-Thay vào đó, trên trình chạy Mac, `--arch universal` tạo một gói gồm cả hai kiến trúc.
+Trên runner Mac, `--arch universal` tạo một bundle duy nhất cho cả hai kiến trúc.
 
 <a id="not-yet"></a>
 
-## Chưa hỗ trợ
+## Chưa có
 
-Các bản dựng của mygo cũng công chứng, ký các tệp thực thi Windows, gói các tệp thực thi của trình trợ giúp và hồ sơ cung cấp, gửi bản dịch các chuỗi của hệ thống và cài đặt bằng tập lệnh Linux; CLI của myzig chưa thực hiện điều nào trong số này.
+Bản build của mygo còn làm những việc sau, CLI của myzig chưa làm việc nào:
+
+- notarize;
+- ký file thực thi Windows;
+- đóng gói kèm các file thực thi phụ;
+- kèm bản dịch các chuỗi của hệ thống;
+- cài đặt bằng script trên Linux.

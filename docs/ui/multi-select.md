@@ -1,12 +1,10 @@
 # Multi-select
 
+A search field over a list of checkboxes, for picking several options.
+
 <!-- demo: multi-select height=520 -->
 
 ![A searchable popup that retains multiple selections.](../images/ui/multi-select.png)
-
-`multiSelect` combines a search field with a persistent list of checked
-choices. Search changes the visible options, preserving original indices
-and choices outside the current filter.
 
 ```zig
 // App state:
@@ -20,20 +18,31 @@ if (ui.multiSelect(c, &s.language_picker,
 )) savePreferences();
 ```
 
-Keep the state and boolean flags between frames. The options and flags
-must have equal lengths; indices identify options, so remap the flags if
-you reorder the options. No allocator or deinitialization is required.
+- Keep the state and the flags between frames. No allocator or deinit is
+  needed.
+- The options and the flags have the same length.
+- Indices identify options: reorder the flags with the options.
+- It returns true only when the selection changes.
 
-`MultiSelectOptions` includes `label`, search `placeholder`, `empty_label`,
-`width`, `max_height`, `disabled`, and optional `disabled_items` flags
-parallel to the options. Existing disabled choices stay selected but
-cannot be changed through the widget.
+| `MultiSelectOptions` | Default | |
+|---|---|---|
+| `label` | `"Choose options"` | the trigger's text, followed by the count chosen |
+| `placeholder` | `"Search options"` | of the search field |
+| `empty_label` | `"No matching options"` | shown when nothing matches |
+| `width`, `max_height` | 280, 240 | |
+| `disabled` | `false` | |
+| `disabled_items` | `null` | flags parallel to the options; disabled choices stay selected but cannot change |
 
-Typing filters without case sensitivity. Up/Down skip disabled options;
-Home/End move to the edges; Enter toggles the active option. Clicking an
-option keeps the popup open and returns focus to search. Done, Escape or
-a press outside closes it. Closing with Escape restores the trigger's
-focus. The return value is true only when a selection changes.
+**Behavior**
+
+- Typing filters, ignoring case. Choices outside the filter stay
+  selected, and indices stay the original ones.
+- Up and Down skip disabled options. Home and End go to the ends. Enter
+  toggles the active option.
+- Clicking an option keeps the popup open and puts focus back in the
+  search field.
+- Done, Escape or a press outside closes it. Escape gives focus back to
+  the trigger.
 
 See **Actions & choices** in Gallery, and
 [single-choice comboboxes](menus.md).

@@ -1,11 +1,12 @@
 # Loading
 
-Package `loading` cung cấp 29 chỉ báo loading.dev cho native UI trên macOS,
-Linux, Windows và trình duyệt. Plugin dùng canvas của myzig, không cần
-JavaScript hay đăng ký service.
+Package `loading` vẽ 29 indicator của loading.dev trong native UI trên macOS, Linux, Windows và trình duyệt. Nó dùng canvas của myzig: không có service nào phải bind, không phụ thuộc JavaScript.
 
-Thêm dependency `.loading = .{ .path = "path/to/myzig/plugins/loading" }`
-vào `build.zig.zon`, rồi thêm module vào executable:
+<a id="setup"></a>
+
+## Cài đặt
+
+Thêm `.loading = .{ .path = "path/to/myzig/plugins/loading" }` vào dependencies trong `build.zig.zon`. Trong `build.zig`, dùng cùng dependency myzig và cùng tùy chọn target như phần còn lại của app:
 
 ```zig
 const loading = b.dependency("loading", .{
@@ -14,55 +15,64 @@ const loading = b.dependency("loading", .{
 exe.root_module.addImport("loading", loading);
 ```
 
-Giữ một `loading.Indicator` riêng trong state cho mỗi chỉ báo đang hiển thị.
-Gọi `show` một lần trong mỗi lượt dựng view; kết quả là chỉ số node để có
-thể dùng tiếp với `c.interact` hoặc `c.node`.
+Giữ một `loading.Indicator` trong state của app cho mỗi indicator:
 
-Mỗi instance có đồng hồ riêng. Tạm dừng một chỉ báo không làm dừng chỉ báo
-khác; dựng lại view nhiều lần trong cùng frame không cộng thêm thời gian.
-Tăng `duration` gấp đôi sẽ mất gấp đôi thời gian để đạt cùng pha chuyển động.
+- Gọi `show` một lần cho mỗi indicator trong mỗi lần dựng view.
+- Nó trả về chỉ số node. Truyền chỉ số này cho `c.interact` hoặc chỉnh style qua `c.node`.
+- Mỗi indicator có đồng hồ riêng. Tạm dừng cái này không làm dừng cái khác.
+- Dựng view nhiều lần trong cùng một frame không làm thời gian chạy thêm.
+- Tăng `duration` gấp đôi thì mất gấp đôi thời gian để tới cùng một pha.
 
 ```zig
 const loading = @import("loading");
 
-// Trong state:
-busy: loading.Indicator = .{},
+const State = struct {
+    saving: loading.Indicator = .{},
 
-// Trong view:
-_ = s.busy.show(c, .ring, .{
-    .size = 32, .color = c.theme.accent, .label = "Đang lưu",
-});
+    fn view(s: *State, c: *ui.Context) void {
+        _ = s.saving.show(c, .ring, .{
+            .size = 32, .color = c.theme.accent, .label = "Saving",
+        });
+    }
+};
 ```
 
-`Kind` gồm `arc`, `atom`, `blocks`, `bouncing_dots`, `cascade`,
-`circular_dots`, `classic`, `classic_v2`, `clock`, `comet`, `compass`,
-`dual`, `eclipse`, `flip`, `gather`, `leap`, `linear_dots`, `loading`,
-`morph`, `orbit`, `pulse`, `radar`, `ring`, `ripple`, `slide`, `snake`,
-`swirl`, `trace`, `wave`. `loading.names` chứa tên cùng thứ tự.
+<a id="designs-and-options"></a>
+
+## Mẫu và tùy chọn
+
+`Kind` gồm `arc`, `atom`, `blocks`, `bouncing_dots`, `cascade`, `circular_dots`, `classic`, `classic_v2`, `clock`, `comet`, `compass`, `dual`, `eclipse`, `flip`, `gather`, `leap`, `linear_dots`, `loading`, `morph`, `orbit`, `pulse`, `radar`, `ring`, `ripple`, `slide`, `snake`, `swirl`, `trace` và `wave`, theo đúng thứ tự của `loading.names`.
 
 | Tùy chọn | Ý nghĩa |
 | --- | --- |
-| `size` | Chiều cao theo point, mặc định 20; phải hữu hạn và dương. |
+| `size` | Chiều cao tính bằng điểm, mặc định 20; chiều rộng theo tỉ lệ của mẫu. Phải hữu hạn và dương. |
 | `color` | Mặc định là màu chữ của theme. |
-| `duration` | Số giây mỗi chu kỳ; hữu hạn và dương. `null` dùng thời lượng riêng của mẫu. |
-| `paused` | Giữ thời gian hiện tại, tiếp tục từ đó khi bỏ tạm dừng. |
-| `easing` | `.linear`, `.ease_in_out`, `.stacked`. |
-| `cap` | Đầu nét `.round` hoặc `.flat`. |
-| `sweep` | Blocks: `.diagonal`, `.rows`, `.columns`. |
-| `direction` | Ripple: `.out`, `.in`. |
-| `origin` | Wave: `.center`, `.bottom`. |
-| `label` | Tên cho công cụ hỗ trợ tiếp cận; mặc định là tên mẫu. |
+| `duration` | Số giây mỗi chu kỳ, không bắt buộc; hữu hạn và dương. Mặc định theo nhịp riêng của từng mẫu. |
+| `paused` | Giữ nguyên thời gian đã chạy; chạy tiếp thì đi tiếp từ đó. |
+| `easing` | `.linear`, `.ease_in_out` hoặc `.stacked`, cho các mẫu xoay. |
+| `cap` | `.round` hoặc `.flat`, cho các mẫu vẽ bằng nét. |
+| `sweep` | Blocks: `.diagonal`, `.rows` hoặc `.columns`. |
+| `direction` | Ripple: `.out` hoặc `.in`. |
+| `origin` | Wave: `.center` hoặc `.bottom`. |
+| `label` | Tên cho trình đọc màn hình; mặc định là tên mẫu. |
 
-Khi hệ điều hành yêu cầu giảm chuyển động, chỉ báo đứng yên và không yêu
-cầu frame liên tục. Khi bị cắt khỏi vùng nhìn thấy, nó cũng ngừng yêu cầu
-frame; thông tin này lấy từ lượt vẽ trước. Công cụ hỗ trợ tiếp cận nhận nó
-là progress indicator chưa xác định tiến độ.
+**Hành vi**
 
-Canvas có thể rasterize lại mask khi hình thay đổi. Bản port chưa bảo đảm
-pixel hay chi phí kết xuất giống plugin mygo đã tối ưu.
+- Khi bật giảm chuyển động trên desktop, nó vẽ một tư thế đứng yên và không xin frame animation nào.
+- Khi bị cắt ra ngoài tầm nhìn, nó thôi xin frame. Việc nó có hiện hay không được lấy từ lần vẽ trước.
+- Trình đọc màn hình nhận nó là một progress indicator không xác định tiến độ.
 
-Xem [gallery](../../../examples/loading/README.md). Chạy
-`zig build test-loading -j1` tại gốc repo, hoặc `zig build test -j1` trong
-`plugins/loading` để kiểm tra pixel, đồng hồ và accessibility hoàn toàn offscreen.
-Các test so sánh pha đã vẽ với thời lượng khác nhau, kiểm tra đồng hồ độc
-lập, rebuild cùng frame, tạm dừng/tiếp tục và hành vi khi ra ngoài vùng nhìn thấy.
+[Gallery](../../../examples/loading/README.md) dùng package này.
+
+<details>
+<summary>Test và khác biệt so với mygo</summary>
+
+Chạy `zig build test-loading -j1` ở gốc repo, hoặc `zig build test -j1` trong `plugins/loading`. Các test offscreen kiểm tra pixel, đồng hồ và khả năng truy cập:
+
+- các pha đã render với những `duration` khác nhau;
+- đồng hồ độc lập và việc dựng view nhiều lần;
+- tạm dừng/chạy tiếp và hành vi khi ở ngoài tầm nhìn.
+
+Mask của canvas có thể bị rasterize lại khi hình chuyển động. Bản port này không hứa cho ra đúng pixel hay chi phí render như plugin đã tối ưu của mygo.
+
+</details>

@@ -1,8 +1,11 @@
 # game
 
-Những gì trò chơi cần ngoài những gì ứng dụng làm, hãy chọn tham gia và tránh xa `ui` của myzig: vòng lặp trò chơi theo các bước cố định với đầu vào, máy ảnh, tỷ lệ pixel hoàn hảo (mô-đun `game`) và gamepad trong một bố cục tiêu chuẩn (mô-đun `gamepad`, không cần ui).
+Những thứ game cần mà app thường không cần, phải tự bật và nằm ngoài `ui` của myzig:
 
-Gói hàng là `plugins/game`. `examples/farm` là một trò chơi được xây dựng trên đó, một gói riêng của nó (`cd examples/farm && zig build run`); `build.zig.zon` của nó hiển thị cách ứng dụng phụ thuộc vào plugin:
+- module `game`: vòng lặp game theo bước cố định kèm input, camera, phóng to giữ nét từng pixel;
+- module `gamepad`: gamepad theo một bố cục chuẩn. Module này không cần ui.
+
+Package nằm ở `plugins/game`. `examples/farm` là một game dựng trên nó, là một package riêng (`cd examples/farm && zig build run`). File `build.zig.zon` của nó cho thấy cách một app phụ thuộc vào plugin:
 
 ```zig
 .dependencies = .{
@@ -18,14 +21,14 @@ const plugin = b.dependency("myzig_game", .{ .target = target, .optimize = optim
 
 <a id="the-game-loop"></a>
 
-## Vòng lặp trò chơi
+## Vòng lặp game
 
 ```zig
 const game = @import("game");
 
 const Farm = struct {
     x: f32 = 0,
-    px: f32 = 0, // where it was a step before
+    px: f32 = 0, // vị trí ở bước trước
 
     pub fn update(f: *Farm, in: *game.Input) void {
         f.px = f.x;
@@ -35,7 +38,7 @@ const Farm = struct {
 
     pub fn draw(f: *Farm, c: *ui.Context, size: ui.Size, alpha: f32) void {
         _ = size;
-        const x = f.px + (f.x - f.px) * alpha; // between its last two steps
+        const x = f.px + (f.x - f.px) * alpha; // nằm giữa hai bước cuối
         game.fill(c, .{ .x = x, .y = 40, .w = 16, .h = 16 }, .hex(0x4caf50));
     }
 
@@ -49,47 +52,66 @@ const State = struct {
     runner: game.Runner = .{},
 
     fn view(s: *State, c: *ui.Context) void {
-        game.view(c, &s.farm, &s.runner); // fills its parent
+        game.view(c, &s.farm, &s.runner); // lấp đầy phần tử cha
     }
 };
 ```
 
-`game.view(c, &g, &runner)` chạy một trò chơi, bất kỳ cấu trúc nào có `update(*G, *game.Input)` và `draw(*G, *ui.Context, ui.Size, alpha: f32)`, trong một hộp có thể đặt tiêu điểm, lấp đầy phần tử mẹ của nó, được cắt bớt vào đó:
+`game.view(c, &g, &runner)` chạy một game: bất kỳ struct nào có `update(*G, *game.Input)` và `draw(*G, *ui.Context, ui.Size, alpha: f32)`. Game chạy trong một box nhận được focus, lấp đầy phần tử cha và bị cắt theo nó.
 
-- Các bước được cố định, 60 giây một giây (`game.default_rate`; `pub const rate = 30;` trong trò chơi dành cho người khác), bất kể tốc độ của màn hình. Sau khi tạm dừng, họ bắt kịp nhiều nhất là một phần tư giây. Một khung xây dựng view của nó hai bước một lần.
-- `draw` chạy mọi frame với `alpha`, khoảng cách giữa frame ở bước tiếp theo, để vẽ giữa hai bước cuối cùng.
-- View yêu cầu frame tiếp theo (`c.animationFrame()`): trò chơi hòa liên tục trong khi nó được hiển thị.
-- `game.fill(c, rect, color)` và `game.rounded(c, rect, color, radius)` vẽ các hộp được định vị trong khung nhìn (0, 0 ở góc của nó).
-- `Runner` giữ đồng hồ, đầu vào và số lượng `steps`.
+- Bước cố định, 60 bước mỗi giây (`game.default_rate`), bất kể tần số của màn hình. Muốn khác thì đặt `pub const rate = 30;` trong game.
+- Sau một lần tạm dừng, các bước chạy bù tối đa một phần tư giây.
+- Một frame dựng view hai lần thì chỉ chạy một bước.
+- `draw` chạy mỗi frame kèm `alpha`: frame đã đi được bao xa vào bước kế tiếp, để vẽ ở giữa hai bước cuối.
+- View xin frame kế tiếp (`c.animationFrame()`): game vẽ liên tục khi đang hiện.
+- `game.fill(c, rect, color)` và `game.rounded(c, rect, color, radius)` vẽ các box định vị trong view (0, 0 ở góc của nó).
+- `Runner` giữ đồng hồ, input và số `steps`.
 
 <a id="input"></a>
 
-### Đầu vào
+### Input
 
-`game.Input` nắm giữ những gì bước này nhìn thấy:
+`game.Input` chứa những gì một bước nhìn thấy:
 
-- phím theo vị trí (`game.Key`: `.w` là vị trí của W và `.up`, `.space`, `.shift`...): `down(k)`, `pressed(k)`, `released(k)`;
-- con trỏ: `pointer` (trong view), `over`, `pointerDown(b)`, `pointerPressed(b)`, `pointerReleased(b)`; `wheel`; view `size`; `focused`;
-- `releaseAll()` buông bỏ mọi thứ (khi cửa sổ mất tiêu điểm).
+- phím theo vị trí (`game.Key`: `.w` là chỗ của phím W, và `.up`, `.space`, `.shift`...): `down(k)`, `pressed(k)`, `released(k)`;
+- con trỏ: `pointer` (trong view), `over`, `pointerDown(b)`, `pointerPressed(b)`, `pointerReleased(b)`; `wheel`; `size` của view; `focused`;
+- `releaseAll()` nhả hết mọi thứ (khi cửa sổ mất focus).
 
-View đặt `c.wants_keys`, do đó, các khóa sẽ di chuyển xuống nơi nền tảng báo cáo chúng (Windows, Linux và các trình duyệt cũng vậy). Cho đến khi cạnh đầu tiên xuất hiện, các ký tự đã nhập và phím điều hướng sẽ xuất hiện dưới dạng nhấn, xuống một bước. Các phím Command hoặc Control được để lại trong menu. `runner.input.keyDown(k)` và `keyUp(k)` khóa cấp dữ liệu từ nơi khác (các kiểm thử sử dụng chúng).
+Phím đến như thế nào:
+
+- View đặt `c.wants_keys`, nên phím đến cả lúc nhấn xuống lẫn lúc nhả ra, trên nền tảng nào báo về điều đó (Windows, Linux và trình duyệt đều báo).
+- Cho đến khi cạnh nhấn/nhả đầu tiên tới, ký tự gõ vào và phím điều hướng đến dưới dạng một cú chạm, giữ xuống trong một bước.
+- Phím đi kèm Command hoặc Control được để lại cho menu.
+- `runner.input.keyDown(k)` và `keyUp(k)` đưa phím từ nơi khác vào (test dùng chúng).
 
 <a id="the-camera"></a>
 
-## Máy ảnh
+## Camera
 
 ```zig
 const cam: game.Camera = .{ .x = player.x, .y = player.y, .zoom = 3 };
-if (cam.rect(view_rect, c.scale, tile_rect)) |r| game.fill(c, r, color); // null when out of view
-const world = cam.toWorld(view_rect, c.scale, px, py); // the pointer, in the world
-const seen = cam.visible(view_rect, c.scale); // the world's part in view, for culling
+if (cam.rect(view_rect, c.scale, tile_rect)) |r| game.fill(c, r, color); // null khi nằm ngoài view
+const world = cam.toWorld(view_rect, c.scale, px, py); // con trỏ, trong thế giới game
+const seen = cam.visible(view_rect, c.scale); // phần thế giới đang thấy, để bỏ bớt thứ không cần vẽ
 ```
 
-`Camera` nhìn vào `x, y` của thế giới ở giữa view, `zoom` lớn gấp lần, xoay `rotation` độ theo chiều kim đồng hồ (các hộp luôn căn chỉnh theo trục: xoay, `rect` là hướng thẳng xung quanh). Khi được lật lại, thế giới sẽ di chuyển theo toàn bộ pixel của màn hình, do đó, các ô được vẽ ở toàn bộ đơn vị sẽ giữ các cạnh của chúng nằm trên các pixel. `transform` cho affine `game.Transform` (`apply`, `invert`), `toScreen` theo cách khác từ `toWorld`, và `game.integerFit(w, h, view_rect)` bội số nguyên lớn nhất của kích thước logic phù hợp, được đóng hộp thư, với tỷ lệ của nó.
+`Camera` đặt điểm `x, y` của thế giới vào giữa view:
+
+| Trường | |
+|---|---|
+| `x`, `y` | điểm của thế giới nằm giữa view |
+| `zoom` | phóng to bao nhiêu lần |
+| `rotation` | độ, theo chiều kim đồng hồ |
+
+- Box luôn thẳng theo trục: khi xoay, `rect` là hình chữ nhật bao quanh.
+- Khi không xoay, thế giới dịch theo từng pixel nguyên của màn hình. Tile vẽ ở tọa độ nguyên thì mép luôn nằm đúng pixel.
+- `transform` cho phép biến đổi affine `game.Transform` (`apply`, `invert`).
+- `toScreen` làm chiều ngược lại của `toWorld`.
+- `game.integerFit(w, h, view_rect)` cho bội số nguyên lớn nhất của một kích thước logic mà vẫn vừa view, có viền đen hai bên, kèm tỉ lệ của nó.
 
 <a id="gamepads"></a>
 
-## Tay cầm chơi game
+## Gamepad
 
 ```zig
 const gamepad = @import("gamepad");
@@ -98,44 +120,45 @@ var pads: gamepad.Pads = .{};
 defer pads.deinit();
 var last: gamepad.State = .{};
 
-// once a frame: reads the pads, and looks for new ones once a second
+// mỗi frame một lần: đọc các tay cầm, và mỗi giây tìm tay cầm mới một lần
 pads.update(now_seconds);
 for (pads.list()) |p| {
-    const x, const y = p.state.leftStick(); // -1..1, right and down, radial dead zone 0.15
-    if (p.state.justPressed(last, .south)) jump(); // pressed: a quarter of the way
+    const x, const y = p.state.leftStick(); // -1..1, phải và xuống, vùng chết hình tròn 0.15
+    if (p.state.justPressed(last, .south)) jump(); // tính là nhấn khi đi được một phần tư hành trình
     last = p.state;
 }
 ```
 
-- Các nút theo vị trí, theo bố cục tiêu chuẩn của W3C (`gamepad.Button`): `south east west north`, `left_shoulder right_shoulder left_trigger right_trigger` (0 đến 1), `back start left_stick right_stick`, `up down left right`, `guide`.
+- Nút theo vị trí, như bố cục chuẩn của W3C (`gamepad.Button`): `south east west north`, `left_shoulder right_shoulder left_trigger right_trigger` (0 đến 1), `back start left_stick right_stick`, `up down left right`, `guide`.
 - Trục (`gamepad.Axis`): `left_x left_y right_x right_y`.
 - `State`: `value(b)`, `pressed(b)`, `justPressed(last, b)`, `justReleased(last, b)`, `axis(a)`, `leftStick()`, `rightStick()`.
-- `Pad` có `id` (duy nhất khi ứng dụng chạy: được cắm lại, bảng đệm là bảng mới), `name`, `state` và `connected`. Lên đến 8.
+- Một `Pad` có `id`, `name`, `state` và `connected`. `id` là duy nhất khi app đang chạy: cắm lại thì tay cầm được tính là cái mới.
+- Tối đa 8 tay cầm.
 
-| nền tảng | từ |
+| Nền tảng | Nguồn |
 |---|---|
-| Windows | XInput (`xinput1_4`, được tải với LoadLibrary; Hướng dẫn qua `XInputGetStateEx`, thứ tự 100) |
-| Linux | evdev, `/dev/input/event*` bằng nút gamepad, đọc mà không chặn |
-| macOS, trình duyệt | chưa có (không có miếng đệm nào được liệt kê) |
+| Windows | XInput (`xinput1_4`, nạp bằng LoadLibrary; nút Guide qua `XInputGetStateEx`, ordinal 100) |
+| Linux | evdev, các `/dev/input/event*` có nút gamepad, đọc không chặn |
+| macOS, trình duyệt | chưa có (không liệt kê tay cầm nào) |
 
 <a id="not-yet"></a>
 
-## Chưa hỗ trợ
+## Chưa có
 
-- macOS gamepad (GameController.framework thông qua thời gian chạy Objective-C) và API Gamepad của trình duyệt.
-- Các phần của hình ảnh và canvas ngoài màn hình (mygo's `ImageRegion`): hộp vẽ trò chơi, [canvases](../ui/drawing.md) và `ui.image`.
+- Gamepad trên macOS (GameController.framework qua runtime Objective-C), và Gamepad API của trình duyệt.
+- Vẽ một phần ảnh và canvas ngoài màn hình (`ImageRegion` của mygo): game vẽ bằng box, [canvas](../ui/drawing.md) và `ui.image`.
 
 <a id="example-and-tests"></a>
 
-## Ví dụ và kiểm thử
+## Ví dụ và test
 
-`example/` là một trò chơi nhỏ: đi tới các đồng xu với D và A, mũi tên hoặc gamepad, camera theo sau. `zig build run` hiển thị nó.
+`example/` là một game nhỏ: đi tới các đồng xu bằng D và A, phím mũi tên hoặc gamepad, camera đi theo. `zig build run` chạy nó.
 
 ```sh
 cd plugins/game
-zig build test       # loop, input, camera and pads; the view in a ui.Tester; the example rendered offscreen
-zig build snapshot   # the example's first frame as a PNG (--myzig-snapshot), no window
+zig build test       # vòng lặp, input, camera và tay cầm; view trong ui.Tester; ví dụ render ngoài màn hình
+zig build snapshot   # frame đầu của ví dụ thành file PNG (--myzig-snapshot), không mở cửa sổ
 zig build check -Dtarget=x86_64-linux-gnu
 ```
 
-Các kiểm thử của view nâng cao đồng hồ của Người kiểm tra, không bao giờ là của bức tường: 60 frame là 60 bước (30 đối với trò chơi có tốc độ 30).
+Test của view cho đồng hồ của `ui.Tester` chạy tới, không bao giờ dùng đồng hồ thật: 60 frame là 60 bước (30 với game có rate 30).

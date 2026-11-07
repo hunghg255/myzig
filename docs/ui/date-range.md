@@ -5,8 +5,8 @@
 ![Calendar choosing an inclusive date range with unavailable days.](../images/ui/date-range.png)
 
 `dateRangeInput` commits an inclusive `DateRange` after the user chooses
-both endpoints. Picking the later day first is supported; the resulting
-`start` is always on or before `end`.
+both endpoints. The user may pick the later day first; `start` is always
+on or before `end`.
 
 ```zig
 // App state:
@@ -25,21 +25,28 @@ _ = ui.dateRangeInput(c, &s.period, &s.period_picker, .{
 });
 ```
 
-`CalendarOptions` now supports inclusive `min`/`max` and
-`disabled: ?*const fn (ui.Date) bool`. These also work with `calendar` and
-`dateInput`. A range cannot include any disabled day, even between its
-endpoints. If a callback is supplied, validation visits each day in the
-chosen range; keep it inexpensive.
+`CalendarOptions` supports inclusive `min`/`max` and
+`disabled: ?*const fn (ui.Date) bool`. These work with `calendar` and
+`dateInput` too.
 
-The popup shades the pending range. A first click does not change the
-committed value. Cancel, Escape or a press outside leaves that value
-unchanged; reopening starts a fresh choice. Set `disabled = true` to lock
-the input. No allocator is required.
+- A range cannot include any disabled day, even between its endpoints.
+- With a callback, validation visits each day in the chosen range. Keep
+  it cheap.
 
-Arrows move by days/weeks, Page Up/Down by months, Home/End to the month's
-edges; Enter or Space chooses the current day. Disabled days may be
-visited by the cursor but cannot be chosen. The function returns true
-only after a different complete range is committed.
+**Behavior**
 
-See [dates, times and colors](dates-and-colors.md) and Gallery's
+- The popup shades the pending range.
+- A first click does not change the committed value.
+- Cancel, Escape or a press outside leaves that value unchanged.
+  Reopening starts a fresh choice.
+- `disabled = true` locks the input.
+- No allocator is needed.
+- Arrows move by days and weeks, Page Up/Down by months, Home/End to the
+  month's edges.
+- Enter or Space chooses the current day.
+- The cursor may visit disabled days, but they cannot be chosen.
+- The function returns true only after a different complete range is
+  committed.
+
+See [dates, times and colors](dates-and-colors.md) and the Gallery's
 **Actions & choices** page.

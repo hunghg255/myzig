@@ -1,14 +1,21 @@
 # glass
 
-Kính lỏng cho giao diện native, sau plugin kính của mygo (đo được macOS 27 của `NSGlassEffectView`): nội dung bên dưới khung hiển thị xuyên qua nó, được làm mờ, uốn cong gần các cạnh của nó như qua vành của thấu kính, được làm săn chắc để những gì trên đó đọc được (sáng hơn trong cửa sổ sáng, tối hơn trong cửa sổ tối) và sáng dọc theo viền chân tóc của nó. Nó cũng có một phông nền mờ đơn giản.
+Liquid Glass cho native UI, theo plugin glass của mygo, vốn đo theo `NSGlassEffectView` của macOS 27. Thứ nằm dưới một tấm kính hiện xuyên qua nó:
 
-Gói này là `plugins/glass` (mô-đun `glass`). Xem [Plugin](../plugins.md) để thêm plugin vào ứng dụng.
+- bị làm mờ như kính mờ;
+- bị bẻ cong gần các mép, như nhìn qua vành một thấu kính;
+- được chỉnh tông để chữ trên kính dễ đọc: sáng hơn trong cửa sổ sáng, tối hơn trong cửa sổ tối;
+- được chiếu sáng dọc theo đường viền mảnh.
+
+Nó cũng có một hiệu ứng blur nền đơn thuần.
+
+Package là `plugins/glass` (module `glass`). Xem [Plugin](../plugins.md) để thêm nó vào app.
 
 ```zig
 const glass = @import("glass");
 
 fn view(s: *State, c: *ui.Context) void {
-    // ... the content, which scrolls under the bar ...
+    // ... nội dung, scroll bên dưới thanh ...
     _ = glass.pane(c, .{ .radius = 22 }, .{ .absolute = true, .offset = .{ .x = 12, .y = 12 }, .padding = .all(8) });
     ui.text(c, "On glass", .{});
     c.end();
@@ -17,45 +24,75 @@ fn view(s: *State, c: *ui.Context) void {
 
 <a id="panes"></a>
 
-## Tấm
+## Tấm kính
 
-`glass.pane(c, g, style)` mở một hộp được tạo kiểu bởi `style` (kích thước, phần đệm, vị trí) có các phần tử con theo sau cho đến `c.end()` và trả về id của hộp. `g` là `glass.Glass`:
+`glass.pane(c, g, style)` mở một box và trả về id của nó. `style` cho kích thước, padding và vị trí. Các phần tử con của nó theo sau cho đến `c.end()`. `g` là một `glass.Glass`:
 
-| lĩnh vực | mặc định | |
+| trường | mặc định | |
 |---|---|---|
-| `style` | `.regular` | `.regular`, hoặc `.clear`, hầu như không có âm sắc |
-| `tint` | null | tô màu kính theo một màu, theo chữ cái của nó, làm nút nổi bật |
+| `style` | `.regular` | `.regular`, hoặc `.clear`, gần như không chỉnh tông |
+| `tint` | null | nhuộm kính về một màu, theo alpha của màu đó, như một nút nổi bật |
 | `radius` | 16 | bán kính góc, tính bằng DIP |
 
-`glass.paneOf(c, kind, style)` lấy `glass.Kind`: `.{ .glass = g }` hoặc `.{ .blur = .{ .radius = 12, .corner = 8 } }` để làm mờ phông nền đơn giản của `radius` DIP với các góc tròn.
+`glass.paneOf(c, kind, style)` nhận một `glass.Kind`: `.{ .glass = g }`, hoặc `.{ .blur = .{ .radius = 12, .corner = 8 } }` cho blur nền đơn thuần với bán kính `radius` DIP và góc bo tròn.
 
-Vật liệu tuân theo kích thước của khung khi khung cuối cùng được bố trí: các khung lớn hơn sẽ mờ hơn (tối đa 10 DIP); khung bezel uốn cong 36 DIP cuối cùng (nhiều nhất là một nửa khung) và uốn cong những gì hiển thị lên tới 1,6 lần.
+Chất liệu đi theo kích thước của tấm kính như frame trước đã layout:
+
+- Tấm lớn hơn thì mờ hơn, tối đa 10 DIP.
+- Phần viền cong ở 36 DIP cuối, tối đa nửa tấm.
+- Phần viền bẻ cong thứ hiện qua nó tới 1,6 lần khoảng đó.
 
 <a id="how-it-draws"></a>
 
-## Nó vẽ như thế nào
+## Cách nó vẽ
 
-Ô là một hộp có hiệu ứng phông nền (`ui.Style.effect`; xem [Biến đổi và hiệu ứng](../ui/transforms.md)). Mỗi bộ kết xuất (Metal, Direct3D 11, OpenGL, WebGL 2 và CPU) đọc những gì nó vẽ bên dưới khung và xung quanh khung, làm mờ khung đó và vẽ kính từ khung đó vào vị trí của khung theo thứ tự sơn, trước các phần tử con của khung, vẽ trên kính không bị đóng băng.
+Tấm kính là một box có hiệu ứng nền (`ui.Style.effect`; xem [Biến đổi và hiệu ứng](../ui/transforms.md)). Mọi renderer (Metal, Direct3D 11, OpenGL, WebGL 2 và CPU) làm giống nhau:
 
-GPU vẽ màu của kính bằng `src/glass.metal`, `src/glass.hlsl` và `src/glass.glsl`; bộ kết xuất CPU với bộ đôi của nó, `pixels.glassColor`. Các pixel của chúng khớp nhau trong một mức 255: myzig của `ui.gpu_testing` so sánh từng bộ kết xuất GPU với CPU và các kiểm thử so sánh khung của một khung với `pixels.glass` được vẽ trên khung không có khung đó. Xem [Kết xuất](../ui/rendering.md) để biết bản đối chiếu CPU.
+1. Nó đọc thứ đã vẽ dưới tấm kính và xung quanh, rồi blur lại.
+2. Nó vẽ kính từ đó, tại chỗ của tấm kính trong thứ tự vẽ.
+3. Các phần tử con của tấm kính vẽ sau, lên trên kính, không bị làm mờ.
+
+GPU vẽ màu của kính bằng `src/glass.metal`, `src/glass.hlsl` và `src/glass.glsl`. Renderer CPU dùng bản sinh đôi của chúng, `pixels.glassColor`. Pixel của chúng khớp nhau trong phạm vi một mức trên 255:
+
+- `ui.gpu_testing` so từng renderer GPU với renderer CPU.
+- Các test so frame có tấm kính với `pixels.glass` vẽ lên frame không có nó.
+
+Xem [Render](../ui/rendering.md) để biết về bản sinh đôi CPU.
 
 <a id="what-is-here"></a>
 
-## Ở đây có gì
+## Những gì có ở đây
 
-- `glass.material`: chất liệu, như mygo có. `material.of(style, tint, w, h, scale, dark)` cho `Material` pixel của thiết bị: kính thông thường ánh xạ màu đen thành 54% và màu trắng thành 100% ở chế độ sáng, 15% và 51% ở chế độ tối; hình dáng của khung bezel là hình tròn của Apple, được uốn cong theo định luật Snell. Ngoài ra khoảng cách của hình chữ nhật được làm tròn và được làm mịn bình thường, và đường cong tông màu.
-- `glass.shader`: vật liệu làm tham số của hiệu ứng (`effectOf`), shader của kính (nguồn GPU và bản đối chiếu CPU của nó) và độ mờ đơn giản (`blurOf`).
-- `glass.pixels`: hiệu ứng lên CPU trên bất kỳ pixel BGRA nào (`glass.Image`): phông nền (các pixel bên dưới hình dạng và xung quanh nó cho đến khi độ mờ đạt tới, tính trung bình trên các ô vuông từ 1 đến 8 pixel đối với các điểm ảnh mờ lớn, được làm mờ bởi một Gaussian có thể tách rời, được làm tròn thành 8 bit ở mỗi bước khi kết cấu giữ chúng; bộ kết xuất của myzig đọc nó theo cách tương tự, `src/ui/backdrop.zig`), sau đó đối với mỗi pixel của hình dạng, mẫu của ống kính, có tông màu, tông màu và sáng dọc theo viền, khử răng cưa dọc theo cạnh. `pixels.glass(gpa, image, rect, radii, material)` và `pixels.blur(gpa, image, rect, radii, sigma)`.
+- `glass.material`: chất liệu, giống như trong mygo. `material.of(style, tint, w, h, scale, dark)` trả về một `Material` tính bằng pixel thiết bị.
+  - Kính thường ánh xạ màu đen thành 54% và màu trắng thành 100% ở chế độ sáng, và thành 15% và 51% ở chế độ tối.
+  - Profile của phần viền là squircle của Apple, bẻ cong theo định luật Snell.
+  - Nó cũng có khoảng cách tới hình chữ nhật bo góc, pháp tuyến đã làm mượt, và đường cong tông màu.
+- `glass.shader`: chất liệu dưới dạng tham số của một hiệu ứng (`effectOf`), shader của kính (mã nguồn GPU và bản sinh đôi CPU), và blur đơn thuần (`blurOf`).
+- `glass.pixels`: hiệu ứng chạy trên CPU, trên mọi pixel BGRA (`glass.Image`). `pixels.glass(gpa, image, rect, radii, material)` và `pixels.blur(gpa, image, rect, radii, sigma)`.
+
+<details>
+<summary>Cách <code>glass.pixels</code> vẽ</summary>
+
+1. Nền: các pixel dưới hình, và xung quanh nó trong phạm vi blur với tới.
+2. Với blur lớn, chúng được lấy trung bình trên các ô vuông từ 1 đến 8 pixel.
+3. Một Gaussian tách được làm mờ chúng. Mỗi bước làm tròn về 8 bit, như texture lưu chúng. Các renderer của myzig đọc nền theo cùng cách đó (`src/ui/backdrop.zig`).
+4. Sau đó, với từng pixel của hình: lấy mẫu qua thấu kính, chỉnh tông, nhuộm màu và chiếu sáng dọc viền, khử răng cưa dọc mép.
+
+</details>
 
 <a id="left-out"></a>
 
-## Bị bỏ lại
+## Những gì chưa có
 
-mygo's `ScrollEdge` (cạnh mềm và cứng), độ mờ tăng dần dọc theo mặt nạ, kính tương tác phát triển khi nhấn, tông màu gam màu rộng và các ô được xoay hoặc nghiêng bởi một phép biến đổi (bộ kết xuất vẽ các hiệu ứng theo trục của cửa sổ: một ô được di chuyển hoặc được chia tỷ lệ giống nhau theo cả hai cách sẽ được vẽ; một lượt thì không).
+- `ScrollEdge` của mygo (mép mềm và mép cứng).
+- Blur tăng dần theo một mask.
+- Kính tương tác phồng lên khi bấm giữ.
+- Màu nhuộm wide-gamut.
+- Tấm kính bị xoay hoặc nghiêng bởi một transform. Renderer vẽ hiệu ứng theo các trục của cửa sổ: tấm kính bị dời chỗ, hoặc co giãn đều cả hai chiều, thì được vẽ; bị xoay thì không.
 
 <a id="tests"></a>
 
-## Kiểm tra
+## Test
 
 ```sh
 cd plugins/glass

@@ -1,20 +1,24 @@
 <a id="testing-binary-size-and-adding-a-feature"></a>
 
-# Kiểm tra, kích thước nhị phân và thêm tính năng
+# Test, kích thước binary và thêm tính năng
 
-Cách kiểm tra myzig mà không bao giờ hiển thị cửa sổ hoặc điều khiển màn hình, cách thu nhỏ ứng dụng và danh sách kiểm tra để thêm tính năng. Quay lại [tổng quan](architecture.md); để kiểm tra view riêng của ứng dụng, hãy xem [thử nghiệm giao diện native](ui/testing.md).
+Cách myzig được test mà không bao giờ hiện cửa sổ hay điều khiển màn hình, cách giữ app nhỏ gọn, và danh sách việc cần làm khi thêm một tính năng. Quay lại [phần tổng quan](architecture.md). Để test view của chính app, xem [test native UI](ui/testing.md).
 
 <a id="the-rules"></a>
 
 ## Các quy tắc
 
-- **Không bao giờ hiển thị cửa sổ trên màn hình của nhà phát triển**, không bao giờ lấy nét, không bao giờ tổng hợp các sự kiện chuột hoặc bàn phím, không bao giờ chụp màn hình. Giao diện native được thử nghiệm với `ui.Tester` (đang xử lý, được hiển thị ngoài màn hình), các ứng dụng có `--myzig-snapshot` và `--myzig-script`, các trang có `--myzig-eval` hoặc `--myzig-hidden`: tất cả đều ẩn cửa sổ.
-- **Các kiểm thử không bao giờ chạm đến trạng thái của người dùng**: không có khay nhớ tạm hệ thống (Người kiểm thử có khay nhớ tạm riêng), không có tệp nào bên ngoài thư mục tạm thời, không có giá trị mặc định hoặc khóa đăng ký của người dùng.
-- **Các bài kiểm tra không bao giờ phụ thuộc vào thời gian trên đồng hồ treo tường.** Nâng cao đồng hồ của Người kiểm tra (`t.advance(seconds)`, `t.settle(max)`) và chờ các điều kiện chứ không phải thời lượng. Chỉ `live:` bước và `myzig.runFor` chạy vòng lặp sự kiện thực, để trả lời và xử lý, không bao giờ vượt qua xác nhận.
+- **Không bao giờ hiện cửa sổ trên màn hình của lập trình viên.** Không lấy focus, không giả lập event chuột hay bàn phím, không chụp màn hình.
+- Native UI được test bằng `ui.Tester` (trong tiến trình, render offscreen). App được test bằng `--myzig-snapshot` và `--myzig-script`, page bằng `--myzig-eval` hoặc `--myzig-hidden`. Tất cả đều giữ cửa sổ ẩn.
+- **Test không bao giờ chạm vào dữ liệu của người dùng**: không dùng clipboard của hệ thống (`ui.Tester` có clipboard riêng), không đụng file ngoài thư mục tạm, không đụng defaults hay registry key của người dùng.
+- **Test không bao giờ phụ thuộc vào giờ thật.** Hãy cho đồng hồ của `ui.Tester` chạy tới (`t.advance(seconds)`, `t.settle(max)`), và chờ điều kiện chứ không chờ một khoảng thời gian.
+- Chỉ các bước `live:` và `myzig.runFor` chạy event loop thật. Chúng dành cho reply và tiến trình, không bao giờ để làm một assertion qua được.
+
+<a id="ui-tester"></a>
 
 ## ui.Tester
 
-`ui.Tester` (`src/ui/tester.zig`) chạy `ui.View` không có cửa sổ, thông qua cùng `frame.run` cách sử dụng cửa sổ và hiển thị nó ngoài màn hình: với Metal trên macOS, với bộ kết xuất CPU ở nơi khác và với `-Dportable=true`.
+`ui.Tester` (`src/ui/tester.zig`) chạy một `ui.View` không cần cửa sổ, qua chính `frame.run` mà cửa sổ dùng. Nó render offscreen: bằng Metal trên macOS, bằng CPU renderer ở nơi khác và khi có `-Dportable=true`.
 
 ```zig
 var t: ui.Tester = undefined;
@@ -22,31 +26,57 @@ try t.init(std.testing.allocator, .init(&state, Counter.view), .{ .width = 480, 
 defer t.deinit();
 try t.clickText("Increment");
 try std.testing.expect(t.hasText("1"));
-t.advance(0.3); // animations move by simulated time
+t.advance(0.3); // animation chạy theo thời gian giả lập
 try t.screenshot("/tmp/counter.png");
 ```
 
-Nó cung cấp đầu vào con trỏ (`moveTo`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag`, `scroll`, `wheel`, `clickText`), các phím (`key`, `keyEdge`, `shortcut`, `typeText`, `textOps`), thời gian (`frame`, `advance`, `settle`, với `dt` giây một khung), `resize`, truy vấn (`findText`, `hasText`, `containsText`) và pixel (`render`, `rasterize`, `screenshot`, `pixelSize`). `clipboard` của nó là một bộ đệm riêng. `runScript` chạy các bước mà cờ `--myzig-script` thực hiện: `click:TEXT`, `rclick:TEXT`, `move:TEXT`, `visible:TEXT` (không thành công trừ khi văn bản hiển thị toàn bộ trong cửa sổ), `type:TEXT`, `key:enter|backspace|tab|escape|left|right`, `shortcut:ctrl+shift+p` (tổ hợp phím, tới bộ tăng tốc của thanh menu và view dưới dạng một cửa sổ cung cấp nó), `scroll:DY`, `wheel:DY` (vết khía, lướt), `drag:FROM>TO`, `wait:SECONDS` (mô phỏng), `frames:N`, `live:SECONDS` (vòng lặp thực) và `resize:WxH`.
+| nó cung cấp | method |
+|---|---|
+| input con trỏ | `moveTo`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag`, `scroll`, `wheel`, `clickText` |
+| phím | `key`, `keyEdge`, `shortcut`, `typeText`, `textOps` |
+| thời gian, `dt` giây mỗi frame | `frame`, `advance`, `settle` |
+| kích thước | `resize` |
+| truy vấn | `findText`, `hasText`, `containsText` |
+| pixel | `render`, `rasterize`, `screenshot`, `pixelSize` |
 
-Mọi hành vi của widget đều được kiểm tra thông qua Trình kiểm tra trong `src/ui/tests*.zig` (`tests_overlays_menu.zig`, `tests_controls_date.zig`, `tests_richtext.zig`, ...), được đăng ký trong khối kiểm tra của `ui.zig`.
+`clipboard` của nó là một buffer riêng. `runScript` chạy các bước mà flag `--myzig-script` nhận:
+
+| bước | việc nó làm |
+|---|---|
+| `click:TEXT`, `rclick:TEXT`, `move:TEXT` | |
+| `visible:TEXT` | thất bại nếu chữ không hiện trọn trong cửa sổ |
+| `type:TEXT` | |
+| `key:enter\|backspace\|tab\|escape\|left\|right` | |
+| `shortcut:ctrl+shift+p` | một tổ hợp phím, gửi tới phím tắt của thanh menu và tới view, như cửa sổ gửi |
+| `scroll:DY` | |
+| `wheel:DY` | theo nấc, có trượt quán tính |
+| `drag:FROM>TO` | |
+| `wait:SECONDS` | thời gian giả lập |
+| `frames:N` | |
+| `live:SECONDS` | event loop thật |
+| `resize:WxH` | |
+
+Mỗi hành vi của widget đều có test qua `ui.Tester` trong `src/ui/tests*.zig` (`tests_overlays_menu.zig`, `tests_controls_date.zig`, `tests_richtext.zig`, ...), được đăng ký trong khối test của `ui.zig`.
 
 <a id="headless-flags"></a>
 
-## Headless cờ
+## Flag headless
 
-`src/dev.zig` đọc các cờ mà mọi ứng dụng chấp nhận để thử và kiểm tra ứng dụng đó mà không cần chạm vào màn hình:
+`src/dev.zig` đọc các flag mà app nào cũng nhận, để thử và test app mà không chạm tới màn hình:
 
-| cờ | làm |
+| flag | việc nó làm |
 |---|---|
-| `--myzig-generate=DIR` | ghi client đã tạo (`myzig.js`, `myzig.d.ts`) và thoát |
-| `--myzig-snapshot=PNG` | hiển thị cửa sổ giao diện native đầu tiên ngoài màn hình thành PNG và thoát |
-| `--myzig-script=STEPS` | với `--myzig-snapshot`: trước tiên hãy chạy các bước Kiểm tra này |
-| `--myzig-dark` | với `--myzig-snapshot`: bề ngoài tối tăm |
-| `--myzig-wait=SECONDS` | với `--myzig-snapshot`: chạy vòng lặp sự kiện dài như vậy trước tiên |
-| `--myzig-hidden` | không bao giờ hiển thị cửa sổ; thư mục của app là thư mục tạm (headless) |
-| `--myzig-eval=JS` | đánh giá JS trong mỗi trang khi DOM của nó đã sẵn sàng (ngụ ý bị ẩn) |
+| `--myzig-generate=DIR` | ghi client đã sinh (`myzig.js`, `myzig.d.ts`) rồi thoát |
+| `--myzig-snapshot=PNG` | render offscreen cửa sổ native UI đầu tiên ra PNG rồi thoát |
+| `--myzig-script=STEPS` | đi cùng `--myzig-snapshot`: chạy các bước Tester này trước |
+| `--myzig-dark` | đi cùng `--myzig-snapshot`: giao diện tối |
+| `--myzig-wait=SECONDS` | đi cùng `--myzig-snapshot`: chạy event loop trong khoảng đó trước |
+| `--myzig-hidden` | không bao giờ hiện cửa sổ; các thư mục của app là thư mục tạm (headless) |
+| `--myzig-eval=JS` | chạy JS trong mỗi page khi DOM của nó sẵn sàng (kéo theo hidden) |
 
-Một trang trong `--myzig-eval` báo cáo với `myzig.log(...)` (được in dưới dạng `page: ...` trên stderr) và kết thúc ứng dụng bằng `myzig.window.close()`. `MYZIG_DEBUG=1` giúp các ứng dụng ghi nhật ký cửa sổ và khung của chúng cho các công cụ.
+- Page chạy dưới `--myzig-eval` báo kết quả bằng `myzig.log(...)`, in ra stderr dạng `page: ...`.
+- Nó kết thúc app bằng `myzig.window.close()`.
+- `MYZIG_DEBUG=1` làm app ghi log cửa sổ và frame của nó cho các công cụ.
 
 ```sh
 zig-out/bin/gallery --myzig-snapshot=/tmp/g.png --myzig-script="click:Tasks;type:Hi;key:enter"
@@ -55,43 +85,56 @@ zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v=>{myzig
 
 <a id="the-build-s-test-steps"></a>
 
-## Các bước kiểm tra của bản dựng
+## Các bước test của build
 
-| lệnh | chạy |
+| lệnh | chạy gì |
 |---|---|
-| `zig build test` | unit/widget test của `src/myzig.zig`, test plugin loading và các test qua Tester của `blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi`, `loading` |
-| `zig build test-loading` | plugin và gallery loading: đủ 29 mẫu, thời lượng, đồng hồ độc lập, rebuild, tạm dừng/tiếp tục và giảm chuyển động, vẽ offscreen |
-| `zig build test -Dportable=true` | tương tự với bộ kết xuất CPU và văn bản TrueType của myzig (đường dẫn Linux và Windows, trên máy Mac) |
-| `zig build test-pages` | các trang ẩn trong view web thực: trang xin chào gọi Zig (cuộc gọi, lỗi, dịch vụ không xác định, sự kiện, client được tạo) và `examples/pages` (sơ đồ, kênh, sự kiện, quyền, tải xuống, eval, tìm, PDF, cookie, tin cậy), mỗi trang đều mong đợi `page: ok` trên thiết bị lỗi chuẩn |
-| `zig build test-web` | counter, gallery và gestures dưới Node: frame, trạng thái idle, nhấp chuột, pinch và pan ngang/dọc |
-| `zig build test-web -Dweb-browser="PATH"` | các test Node cùng sự kiện wheel/pinch DOM thật trong Chrome hoặc Edge headless: chế độ delta và việc chặn mặc định |
-| `zig build test-bin` | cài đặt các bài kiểm tra đơn vị dưới dạng `zig-out/bin/myzig-tests` (`.exe` trên Windows), để chạy trên máy khác |
-| `zig build lines` | mỗi tập tin tối đa 600 dòng |
-| `cd cli && zig build test` | kiểm tra đơn vị của CLI: cấu hình, gói, kho lưu trữ, tài nguyên |
-| `cd cli && zig build e2e` | `myzig init` tạo các ứng dụng `zig build` biên dịch theo quá trình bản checkout này |
-| `cd plugins/<name> && zig build test` | kiểm tra plugin |
+| `zig build test` | unit test và test widget của `src/myzig.zig`, test của plugin loading, và test qua Tester của `blackhole`, `chat-glow`, `wind`, `effort-slider`, `mayoi` và `loading` |
+| `zig build test-loading` | plugin loading và gallery của nó: cả 29 mẫu, `duration`, đồng hồ độc lập, dựng lại, tạm dừng/chạy tiếp và giảm chuyển động, render offscreen |
+| `zig build test -Dportable=true` | như trên, với chữ TrueType và CPU renderer của myzig (đường đi của Linux và Windows, chạy trên Mac) |
+| `zig build test-pages` | page ẩn trong webview thật: page của hello gọi Zig (lời gọi, lỗi, service không tồn tại, một event, client đã sinh), và `examples/pages` (scheme, channel, event, quyền, tải xuống, eval, tìm kiếm, PDF, cookie, độ tin cậy), mỗi cái chờ `page: ok` trên stderr |
+| `zig build test-web` | counter, gallery và cử chỉ dưới Node: frame, hành vi khi rảnh, bấm, pinch và pan ngang/dọc |
+| `zig build test-web -Dweb-browser="PATH"` | test Node cộng với event wheel/pinch thật của DOM trong Chrome hoặc Edge headless: các delta mode và việc hủy event |
+| `zig build test-bin` | cài unit test thành `zig-out/bin/myzig-tests` (`.exe` trên Windows), để chạy trên máy khác |
+| `zig build lines` | mọi file tối đa 600 dòng |
+| `cd cli && zig build test` | unit test của CLI: cấu hình, bundle, file nén, resource |
+| `cd cli && zig build e2e` | `myzig init` tạo ra app mà `zig build` compile được với bản checkout này |
+| `cd plugins/<name> && zig build test` | test của một plugin |
 
-Khối kiểm tra của `myzig.zig` cũng phân tích mọi khai báo của mọi mô-đun phụ trợ và mọi phương thức trang (`std.testing.refAllDecls`), do đó, không có lệnh gọi ví dụ nào vẫn phải biên dịch trên nền tảng mà các kiểm thử chạy trên đó.
+Khối test của `myzig.zig` còn phân tích mọi khai báo của mọi module backend và mọi method của page (`std.testing.refAllDecls`). Vì vậy code mà không ví dụ nào gọi vẫn phải compile được trên nền tảng chạy test.
 
 <a id="renderers-against-the-cpu"></a>
 
-### Trình kết xuất chống lại CPU
+### So renderer với CPU
 
-Mọi bộ kết xuất GPU đều được kiểm tra dựa trên bộ kết xuất CPU, ngoài màn hình và bỏ qua nơi thiếu API của nó: `tests_raster.zig` (Metal), `d3d11_test.zig`, `gl_test.zig` (EGL không có bề mặt; llvmpipe của Mesa không cần GPU), `gpu_fx_test.zig` (biến đổi, chuyển màu, hiệu ứng, lớp) và `shader/tests_gpu.zig` (shader ứng dụng và cặp song sinh CPU của chúng). Xem [bản đối chiếu CPU](architecture-rendering.md#the-cpu-twin).
+Mỗi GPU renderer được test so với CPU renderer, offscreen. Mỗi test tự bỏ qua khi thiếu API của nó:
+
+- `tests_raster.zig` (Metal);
+- `d3d11_test.zig`;
+- `gl_test.zig` (EGL surfaceless; llvmpipe của Mesa không cần GPU);
+- `gpu_fx_test.zig` (biến đổi, gradient, hiệu ứng, layer);
+- `shader/tests_gpu.zig` (shader của app và bản song sinh CPU của chúng).
+
+Xem [bản song sinh CPU](architecture-rendering.md#the-cpu-twin).
 
 <a id="browsers"></a>
 
 ### Trình duyệt
 
-Ngoài `test-web`, `src/web/test_wasm.mjs` còn chạy các bài kiểm tra đơn vị được biên dịch cho `wasm32-wasi` trong Nút (`zig test -target wasm32-wasi --test-no-exec`, sau đó là `node src/web/test_wasm.mjs tests.wasm FONT_DIR`) và `src/web/test_browser_run.mjs` chạy một trang web được xây dựng trong headless Crom (Chrome hoặc Edge) ẩn với WebGL. Xem [trình duyệt](browsers.md).
+Ngoài `test-web`:
+
+- `src/web/test_wasm.mjs` chạy unit test compile cho `wasm32-wasi` dưới Node: `zig test -target wasm32-wasi --test-no-exec`, rồi `node src/web/test_wasm.mjs tests.wasm FONT_DIR`.
+- `src/web/test_browser_run.mjs` chạy một site đã build trong Chromium headless ẩn (Chrome hoặc Edge) có WebGL.
+
+Xem [trình duyệt](browsers.md).
 
 <a id="other-platforms-from-one-machine"></a>
 
 ## Các nền tảng khác từ một máy
 
-Linux và Windows được xây dựng từ bất kỳ máy nào, vì vậy các bài kiểm tra chúng sẽ chạy trong vùng chứa:
+Linux và Windows build được từ máy nào cũng được, nên test cho chúng chạy trong container:
 
-- **Linux**: `tools/linux.Dockerfile` là Ubuntu 24.04 với GTK 3, WebKitGTK 4.1, Mesa (EGL, GLES, llvmpipe), libepoxy, phông chữ và Xvfb. Xây dựng trên máy chủ, gắn kết nó, chạy dưới màn hình ảo:
+- **Linux**: `tools/linux.Dockerfile` là Ubuntu 24.04 có GTK 3, WebKitGTK 4.1, Mesa (EGL, GLES, llvmpipe), libepoxy, font và Xvfb. Build trên máy chính, mount vào, chạy dưới một màn hình ảo:
 
   ```sh
   zig build test-bin -Dtarget=aarch64-linux-gnu --prefix zig-out/linux
@@ -99,39 +142,60 @@ Linux và Windows được xây dựng từ bất kỳ máy nào, vì vậy các
   docker run --rm -v "$PWD:/work" myzig-linux xvfb-run -a zig-out/linux/bin/myzig-tests
   ```
 
-  Windows có những cái đã được nhận ra nhưng chưa bao giờ được hiển thị (`linux/window_tests.zig`: câu hỏi kết thúc trước, tiêu đề, khung, tờ rơi); `atspi_bus_test.zig` sử dụng xe buýt tiếp cận thực sự khi có; `MYZIG_XVFB=1` cho phép di chuyển khứ hồi vào bảng nhớ tạm thông qua màn hình ảo.
-- **Windows**: trên chính Windows, `zig build test`. Windows được tạo nhưng không bao giờ được hiển thị và các thông báo mà hành động của người dùng mang lại sẽ được gửi đến các thủ tục cửa sổ của họ (`windows/window_tests.zig`); Tự động hóa giao diện người dùng đang được kiểm thử trong quá trình (`uia_test.zig`). Từ máy Mac, `tools/wine.Dockerfile` chạy bản dựng arm64 (`-Dtarget=aarch64-windows-gnu`) trong Wine 10 trên Xvfb và `tools/wine-amd64.Dockerfile` x86_64 bản dựng trong mô phỏng.
+  - Cửa sổ ở đó được tạo ra thật nhưng không bao giờ hiện (`linux/window_tests.zig`: đóng thì hỏi trước, tiêu đề, frame, flyout).
+  - `atspi_bus_test.zig` dùng accessibility bus thật khi có.
+  - `MYZIG_XVFB=1` bật các test copy/paste khứ hồi qua màn hình ảo.
+- **Windows**: trên chính Windows, `zig build test`.
+  - Cửa sổ được tạo nhưng không bao giờ hiện. Các message mà thao tác của người dùng sinh ra được gửi tới window procedure của chúng (`windows/window_tests.zig`).
+  - UI Automation được test trong tiến trình (`uia_test.zig`).
+  - Từ một máy Mac, `tools/wine.Dockerfile` chạy bản build arm64 (`-Dtarget=aarch64-windows-gnu`) dưới Wine 10 trên Xvfb. `tools/wine-amd64.Dockerfile` chạy bản build x86_64 qua giả lập.
 
 <a id="benchmarks-the-hill-climb"></a>
 
-## Điểm chuẩn: leo đồi
+## Benchmark: hill climb
 
-Hiệu suất công việc được đo bằng `hillclimb/`, một ứng dụng đầu cuối được xây dựng trên myzig dưới dạng thư viện (gói riêng của nó) xây dựng, bố trí và vẽ các cảnh hết khung này đến khung khác và hiển thị chúng ngoài màn hình, dựa trên các khung của chính mygo của cùng một cảnh, không có cửa sổ:
+Việc tối ưu hiệu năng được đo bằng `hillclimb/`, một app terminal dùng myzig như một thư viện (package riêng). Nó dựng, tính layout và paint các cảnh hết frame này tới frame khác, render offscreen, không cần cửa sổ. Nó so sánh chúng với các frame của chính mygo cho cùng các cảnh đó.
 
 ```sh
 cd hillclimb
-zig build run -- --label "what changed"         # every scene; recorded in history.jsonl
+zig build run -- --label "what changed"         # mọi cảnh; ghi vào history.jsonl
 zig build run -- --scene text,list --only myzig --frames 600 --repeat 5
-zig build run -- --only myzig --hash            # hashes of the CPU renderer's pixels
+zig build run -- --only myzig --hash            # hash các pixel của CPU renderer
 ```
 
-Cảnh: hộp, văn bản, cuộn, danh sách, trang tổng quan, bố cục (thẻ bao bọc văn bản chủ yếu như cũ: bố cục nào giữ trên các khung) và các cảnh khác trong `hillclimb/README.md`. Nó báo cáo CPU khung (xây dựng, bố cục, vẽ), mã hóa CPU, thời gian GPU trên macOS (Metal) hoặc kết xuất CPU trên Linux và Windows, xử lý CPU trên mỗi frame và vẽ các mục, dựa trên mygo, lần chạy trước đó và lần chạy tốt nhất; những thay đổi trong vòng 5% là tiếng ồn. Một thay đổi giúp bộ kết xuất CPU nhanh hơn phải giữ nguyên `--hash`. Giữ các thay đổi tăng dần, chạy nhãn và không bao giờ đánh đổi tính chính xác để lấy tốc độ: nhánh tối ưu đi kèm với bài kiểm tra chứng minh rằng nó phù hợp với đường dẫn chậm (như `shaper.zig` và `raster_lanes.zig` đã làm). Kết quả của các máy cụ thể được lưu giữ trong `hillclimb/notes/`.
+**Các cảnh**: boxes, text, scroll, list, dashboard, layout (các thẻ chữ ngắt dòng gần như giữ nguyên: đo những gì layout giữ lại qua các frame), và các cảnh khác trong `hillclimb/README.md`.
+
+**Nó báo về**, so với mygo, lần chạy trước và lần tốt nhất:
+
+- CPU cho frame (dựng, layout, paint) và CPU cho encode;
+- thời gian GPU trên macOS (Metal), hoặc CPU cho render trên Linux và Windows;
+- CPU của tiến trình mỗi frame, và số item được vẽ.
+
+Thay đổi trong vòng 5% là nhiễu.
+
+**Quy tắc:**
+
+- Một thay đổi làm CPU renderer nhanh hơn phải giữ nguyên output của `--hash`.
+- Giữ những thay đổi giúp leo lên, và đặt nhãn cho các lần chạy.
+- Không bao giờ đổi tính đúng lấy tốc độ. Một đường tắt nhanh phải đi kèm test chứng minh nó khớp với đường chậm (như `shaper.zig` và `raster_lanes.zig`).
+- Kết quả của từng máy cụ thể được giữ trong `hillclimb/notes/`.
 
 <a id="binary-size"></a>
 
-## Kích thước nhị phân
+## Kích thước binary
 
-Bộ đếm có dung lượng khoảng 0,7 MB trong `ReleaseSmall` (1,14 MB `ReleaseFast` trên Windows); `myzig build` xây dựng bản phát hành `ReleaseSmall` và bị loại bỏ theo mặc định. Điều gì giữ cho ứng dụng nhỏ gọn:
+Counter khoảng 0.7 MB ở `ReleaseSmall` (1.14 MB `ReleaseFast` trên Windows). `myzig build` mặc định build bản release `ReleaseSmall` và đã strip. Những gì giữ app nhỏ:
 
-- **Trình liên kết loại bỏ những gì không được gọi.** `myzig.App` và `Window` là các loại cụ thể, các dịch vụ và sự kiện ràng buộc được gửi đi bằng mã được tạo cho mỗi loại và các widget là các hàm đơn giản: ứng dụng trả tiền cho các phương thức và widget mà nó tiếp cận. Giữ các tính năng đằng sau các cuộc gọi sử dụng chúng; không đăng ký chúng từ mã mỗi khi ứng dụng chạy (`App.create`, `run`, các menu mặc định).
-- **Thư viện được tải, không được liên kết.** WebKitGTK, libepoxy, libsecret, appindicator, Bảo mật và Thông báo người dùng được mở trong lần sử dụng đầu tiên, do đó, một ứng dụng không có trang hoặc bí mật sẽ không mang dữ liệu đường dẫn mã của chúng.
-- **Công cụ gỡ lỗi là các tùy chọn xây dựng.** Trình kiểm tra giao diện native biên dịch thành không có gì trừ khi `-Dinspector=true` (bật theo mặc định trong Gỡ lỗi).
-- **Dữ liệu nằm ngoài các đường dẫn chung.** Các bảng lớn (dữ liệu ngôn ngữ trong `i18n/data_*.zig`, ngữ pháp của trình soạn thảo mã, chủ đề terminal) nằm trong các mô-đun cần chúng.
+- **Linker bỏ những gì không được gọi.** `myzig.App` và `Window` là kiểu cụ thể. Service đã bind và event được điều phối bằng code sinh riêng cho từng kiểu. Widget là hàm bình thường. Vì vậy app chỉ trả giá cho các method và widget mà nó dùng tới.
+- Giữ tính năng phía sau các lời gọi dùng nó. Đừng đăng ký chúng từ code mà app nào cũng chạy (`App.create`, `run`, các menu mặc định).
+- **Thư viện được nạp, không link.** WebKitGTK, libepoxy, libsecret, appindicator, Security và UserNotifications được mở ở lần dùng đầu. App không có page hay secret thì không mang dữ liệu nào của các đường code đó.
+- **Công cụ debug là tùy chọn build.** Inspector của native UI không compile ra gì trừ khi có `-Dinspector=true` (mặc định bật ở Debug).
+- **Dữ liệu nằm ngoài các đường code chung.** Các bảng lớn (dữ liệu locale trong `i18n/data_*.zig`, grammar của code editor, theme của terminal) nằm trong module cần chúng.
 
-Đo lường trước và sau một thay đổi liên quan đến mục tiêu mà mọi ứng dụng đều đạt được:
+Đo trước và sau một thay đổi chạm vào những gì app nào cũng dùng tới:
 
 ```sh
-zig build -Doptimize=ReleaseSmall
+zig build size -Doptimize=ReleaseSmall -j1
 ls -l zig-out/bin/counter zig-out/bin/hello
 ```
 
@@ -139,12 +203,19 @@ ls -l zig-out/bin/counter zig-out/bin/hello
 
 ## Thêm một tính năng
 
-1. **Trước tiên hãy thiết kế nó trong lớp chia sẻ**: các tùy chọn và loại trong `app_types.zig`, `window_types.zig`, `page_types.zig` hoặc một tệp mới; hành vi không cần hệ điều hành trong mã không có nền tảng. Phản chiếu thiết kế của mygo nơi nó có tính năng, theo thành ngữ Zig.
-2. **Triển khai nó trong mọi backend**: macOS (đầu `src/`, `*_mac.zig`), `src/linux/`, `src/windows/` và `src/web/` để biết những gì trình duyệt có thể thực hiện. Một nền tảng không có nó sẽ nhận được cùng một tuyên bố không làm gì hoặc trả về `null`/`false`, vì vậy các ứng dụng sẽ biên dịch ở mọi nơi.
-3. **Xuất nó** từ `src/myzig.zig` hoặc `src/ui/ui.zig`.
-4. **Tránh xa các ứng dụng không sử dụng nó** (ở trên).
-5. **Kiểm tra**: các widget thông qua `ui.Tester` trong `src/ui/tests_*.zig`; Ánh xạ loại IPC trong `tsgen.zig`; các trang trong `examples/pages` (được điều hành bởi `test-pages`); cửa sổ trong phần phụ trợ' `window_tests.zig`; bộ kết xuất chống lại CPU. Đăng ký tệp kiểm tra trong khối kiểm tra của `ui.zig` hoặc `myzig.zig`.
-6. **Xây dựng mọi nền tảng**: `zig build`, `zig build -Dtarget=x86_64-linux-gnu`, `zig build -Dtarget=x86_64-windows-gnu`, `zig build -Dtarget=x86-windows-gnu`, `zig build web`; chạy `zig build test` (và `-Dportable=true`), kiểm thử Linux trong vùng chứa, `zig build lines`.
-7. **Không có C**: khai báo `extern`, `dlopen`/`dlsym`, COM vtables; không có tệp `@cImport`, `.c` hoặc `.m`.
-8. **Ghi lại tài liệu** trong `docs/` và thêm nó vào ví dụ khi nó hiển thị.
-9. **Leo lên dốc** nếu chạm vào khung: chạy `hillclimb` trước và sau.
+1. **Thiết kế ở lớp dùng chung trước.** Tùy chọn và kiểu nằm trong `app_types.zig`, `window_types.zig`, `page_types.zig` hoặc một file mới. Hành vi không cần tới hệ điều hành nằm trong code không phụ thuộc nền tảng. Theo thiết kế của mygo khi mygo có tính năng đó, viết bằng Zig đúng kiểu.
+2. **Cài đặt ở mọi backend**: macOS (phần trên cùng của `src/`, `*_mac.zig`), `src/linux/`, `src/windows/`, và `src/web/` cho những gì trình duyệt làm được. Nền tảng không hỗ trợ thì có cùng khai báo nhưng không làm gì, hoặc trả về `null`/`false`, để app compile được ở mọi nơi.
+3. **Export** nó từ `src/myzig.zig` hoặc `src/ui/ui.zig`.
+4. **Giữ nó ngoài các app không dùng nó** (xem ở trên).
+5. **Test nó**:
+   - widget qua `ui.Tester` trong `src/ui/tests_*.zig`;
+   - ánh xạ kiểu IPC trong `tsgen.zig`;
+   - page trong `examples/pages` (chạy bằng `test-pages`);
+   - cửa sổ trong `window_tests.zig` của các backend;
+   - renderer so với CPU.
+
+   Đăng ký file test trong khối test của `ui.zig` hoặc `myzig.zig`.
+6. **Build mọi nền tảng**: `zig build`, `zig build -Dtarget=x86_64-linux-gnu`, `zig build -Dtarget=x86_64-windows-gnu`, `zig build -Dtarget=x86-windows-gnu`, `zig build web`. Chạy `zig build test` (và `-Dportable=true`), test Linux trong container, và `zig build lines`.
+7. **Không C**: khai báo `extern`, `dlopen`/`dlsym`, vtable COM; không `@cImport`, không file `.c` hay `.m`.
+8. **Viết tài liệu** trong `docs/`, và thêm vào một ví dụ khi nó có thể hiện ra.
+9. **Hill-climb** nếu nó chạm tới frame: chạy `hillclimb` trước và sau.

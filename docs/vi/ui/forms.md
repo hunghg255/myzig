@@ -1,20 +1,23 @@
 <a id="forms"></a>
 
-# Biểu mẫu
+# Form
 
-Các điều khiển nhãn của trường, hiển thị mô tả hoặc lỗi bên dưới chúng và đặt tên cho chúng cho công nghệ hỗ trợ. Một biểu mẫu sắp xếp các nhãn của các trường của nó thành một cột riêng; một bộ trường nhóm các trường dưới một chú giải và có thể vô hiệu hóa chúng cùng nhau; `ui.validate` kiểm tra giá trị.
+Label, mô tả, lỗi và kiểm tra giá trị cho các control của một form.
 
-<a id="fields"></a>
+- Một **field** gắn label cho một control, hiện mô tả hoặc lỗi bên dưới nó, và đặt tên cho nó để trình đọc màn hình đọc được.
+- Một **form** xếp label của các field thành một cột riêng.
+- Một **fieldset** gom các field dưới một tiêu đề (legend) và có thể vô hiệu hóa chúng cùng lúc.
+- `ui.validate` kiểm tra giá trị.
 
 <!-- demo: forms height=453 -->
 
-![Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.](../../images/ui/forms.png)
+![Một form đã gửi, hiện lỗi trường bắt buộc, lỗi email và lỗi mật khẩu.](../../images/ui/forms.png)
 
-*Biểu mẫu sau khi gửi, hiển thị lỗi trường bắt buộc, email và mật khẩu.*
+*Một form đã gửi, hiện lỗi trường bắt buộc, lỗi email và lỗi mật khẩu.*
 
-## Trường
+<a id="fields"></a>
 
-`ui.field(c, title, options)` gắn nhãn cho điều khiển được tạo tiếp theo, nhãn phía trên nó như trên web và trả về `ui.Field` để kết thúc sau khi điều khiển được tạo:
+## Field
 
 ```zig
 const f = ui.field(c, "Email", .{ .description = "For receipts.", .err = ui.validate.email(s.email.text()) });
@@ -22,20 +25,23 @@ _ = ui.textField(c, &s.email, .{ .width = .{ .px = 260 } });
 f.end();
 ```
 
+`ui.field(c, title, options)` gắn label cho control được dựng ngay sau nó, label nằm phía trên như trên web. Hàm trả về một `ui.Field`: gọi `end` sau khi dựng xong control.
+
 `ui.FieldOptions`:
 
-| lĩnh vực | nó thể hiện điều gì |
+| Trường | Hiện gì |
 |---|---|
-| `description` | văn bản bên dưới điều khiển, có màu bị tắt |
-| `err` | có gì sai với giá trị bên dưới điều khiển trong màu nguy hiểm mà đường viền của điều khiển chiếm giữ; trống là hợp lệ |
+| `description` | một dòng chữ dưới control, màu mờ |
+| `err` | giá trị sai ở đâu, hiện dưới control bằng màu danger, viền control cũng đổi sang màu này; rỗng là hợp lệ |
 
-Một cú nhấp chuột vào nhãn sẽ tập trung điều khiển. Tên có thể truy cập của điều khiển là nhãn, mô tả lỗi (hoặc mô tả) và được đánh dấu là không hợp lệ khi có lỗi. Bất kỳ điều khiển nào cũng hoạt động: trường văn bản, lựa chọn, chuyển đổi, nhập ngày; trường tìm thấy điều khiển đầu tiên được tạo sau nhãn của nó.
+- Bấm vào label thì control nhận focus.
+- Tên của control cho trình đọc màn hình là label. Phần mô tả của nó là lỗi, nếu không có lỗi thì là description.
+- Control bị đánh dấu không hợp lệ khi còn lỗi.
+- Control nào cũng được: text field, select, switch, ô nhập ngày. Field tìm control đầu tiên được dựng sau label của nó.
 
 <a id="forms-1"></a>
 
-## Biểu mẫu
-
-`ui.form(c, options)` đặt nhãn của các trường của nó trong một cột bên cạnh các điều khiển, căn chỉnh sang bên phải, rộng bằng nhãn rộng nhất và ngang bằng với dòng đầu tiên của văn bản điều khiển, giống như cài đặt của macOS (hoặc ở giữa điều khiển không có văn bản, dưới dạng công tắc, mô tả bên dưới nhãn đó hoặc không và liên tiếp với văn bản bên cạnh dấu chấm hoặc biểu tượng: `Style.baselines`). Giữ biểu mẫu trong một biến (các trường của nó thay đổi nó) và tạo các trường bằng `field` của chính nó:
+## Form
 
 ```zig
 var fm = ui.form(c, .{});
@@ -53,13 +59,27 @@ var fm = ui.form(c, .{});
 }
 ```
 
-`ui.FormOptions`: `gap` (12, giữa các trường) và `label_gap` (12, giữa cột nhãn và điều khiển'). Chiều rộng của nhãn được đo khi biểu mẫu được tạo; khi nó thay đổi, khung sẽ được tạo lại ngay lập tức, do đó không có khung nào hiển thị các nhãn không được căn chỉnh.
+`ui.form(c, options)` đặt label của các field thành một cột bên cạnh các control, giống phần cài đặt của macOS. Giữ form trong một biến, vì các field của nó thay đổi nó. Tạo field bằng chính hàm `field` của form.
+
+Các label:
+
+- căn phải, trong một cột rộng bằng label dài nhất;
+- ngang hàng với dòng chữ đầu tiên của control;
+- ngang hàng với giữa control nếu control không có chữ, như switch, dù bên dưới có description hay không;
+- ngang hàng với chữ của một hàng có chấm hoặc icon cạnh chữ (`Style.baselines`).
+
+`ui.FormOptions`:
+
+| Trường | Mặc định | |
+|---|---|---|
+| `gap` | 12 | giữa các field |
+| `label_gap` | 12 | giữa cột label và cột control |
+
+Chiều rộng của label được đo khi dựng form. Khi nó thay đổi, frame được dựng lại ngay, nên không frame nào hiện label bị lệch.
 
 <a id="fieldsets"></a>
 
-## Bộ trường
-
-`ui.fieldset(c, legend, options)` nhóm các trường dưới một chú giải. Với `disabled`, các trường bị làm mờ và không nhận dữ liệu đầu vào: một hộp phía trên chúng sẽ nhận mỗi lần nhấn và tiêu điểm bàn phím sẽ rời khỏi chúng. Kết thúc nó bằng `end`:
+## Fieldset
 
 ```zig
 const set = ui.fieldset(c, "Notifications", .{ .disabled = !s.signed_in });
@@ -69,29 +89,33 @@ snd.end();
 set.end();
 ```
 
-`ui.FieldsetOptions`: `disabled` và `gap` (12). Một tập trường có thể chứa các trường của biểu mẫu (như trên, giữa các lệnh gọi `field` của biểu mẫu) hoặc `ui.field`s đơn giản.
+`ui.fieldset(c, legend, options)` gom các field dưới một legend. Kết thúc bằng `end`.
+
+- Với `disabled`, các field bị làm mờ và không nhận input. Một box phủ lên trên nhận mọi cú bấm, và focus bàn phím rời khỏi chúng.
+- `ui.FieldsetOptions`: `disabled` và `gap` (12).
+- Fieldset có thể chứa field của một form, đặt giữa các lần gọi `field` của form như ở trên, hoặc các `ui.field` thường.
 
 <a id="validation"></a>
 
-## Xác thực
+## Kiểm tra giá trị
 
-`ui.validate` có các bước kiểm tra trả về lỗi để hiển thị, trống khi giá trị hợp lệ, sẵn sàng cho `err` của trường:
+`ui.validate` có các hàm kiểm tra trả về lỗi cần hiện, dùng được ngay cho `err` của field. Lỗi rỗng nghĩa là giá trị hợp lệ.
 
-| kiểm tra | lỗi |
+| Kiểm tra | Lỗi |
 |---|---|
-| `required(s)` | "Bắt buộc." cho một giá trị trống hoặc trống |
-| `email(s)` | "Nhập địa chỉ email." trừ khi nó trông giống như vậy (trống là hợp lệ) |
-| `minLength(c, s, n)` | "Ít nhất n ký tự." ít hơn `n` ký tự (trống là hợp lệ) |
-| `number(c, s, lo, hi)` | "Nhập một con số." hoặc "Giữa lo và hi." (trống là hợp lệ) |
-| `first(errors)` | séc đầu tiên không trống trong số nhiều séc |
+| `required(s)` | "Required." khi giá trị rỗng hoặc chỉ có khoảng trắng |
+| `email(s)` | "Enter an email address." trừ khi trông giống một địa chỉ email (rỗng là hợp lệ) |
+| `minLength(c, s, n)` | "At least n characters." khi ít hơn `n` ký tự (rỗng là hợp lệ) |
+| `number(c, s, lo, hi)` | "Enter a number." hoặc "Between lo and hi." (rỗng là hợp lệ) |
+| `first(errors)` | lỗi không rỗng đầu tiên trong nhiều phép kiểm tra |
 
-Kết hợp `required` với một kiểm tra khác để tìm giá trị phải được cung cấp:
+Kết hợp `required` với một phép kiểm tra khác cho giá trị bắt buộc phải nhập:
 
 ```zig
 .err = ui.validate.first(&.{ ui.validate.required(s.email.text()), ui.validate.email(s.email.text()) }),
 ```
 
-`ui.Validation` đếm lỗi của biểu mẫu, để bật nút gửi hoặc cho biết số lỗi còn lại: `check(err)` chuyển lỗi, đếm lỗi và `ok()` cho biết liệu có lỗi nào không.
+`ui.Validation` đếm số lỗi của form, để bật nút submit hoặc cho biết còn bao nhiêu lỗi. `check(err)` trả lại lỗi và đếm nó. `ok()` cho biết có lỗi nào không.
 
 ```zig
 fn form(s: *State, c: *ui.Context) void {
@@ -115,4 +139,5 @@ fn form(s: *State, c: *ui.Context) void {
 }
 ```
 
-Chỉ hiển thị lỗi của các trường bắt buộc trống khi người dùng cố gắng gửi, như trên và lỗi của nội dung được nhập cùng một lúc. Lỗi là chuỗi trong tiếng Anh; đối với các ngôn ngữ khác, hãy viết séc của riêng bạn (bất kỳ hàm nào trả về một chuỗi đều hoạt động) với các tin nhắn từ [i18n](../i18n.md).
+- Chỉ hiện lỗi của field bắt buộc còn rỗng sau khi người dùng đã thử submit, như ở trên. Lỗi của những gì đã gõ thì hiện ngay.
+- Lỗi là chuỗi tiếng Anh. Với ngôn ngữ khác, tự viết hàm kiểm tra với thông báo lấy từ [i18n](../i18n.md): hàm nào trả về chuỗi cũng được.

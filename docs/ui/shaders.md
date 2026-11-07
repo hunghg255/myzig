@@ -1,13 +1,18 @@
 # Shaders
 
 A view can fill a box with a shader of its own: a function from a point of
-the box to a color, run for every pixel. You write it once, in ZSL, a small
-language in Zig's syntax, and `ui.shader.compile` compiles it at compile
-time into HLSL (Direct3D 11), GLSL (OpenGL 3.3, OpenGL ES 3.0 and WebGL 2),
-Metal, and a CPU twin of Zig code that draws the same pixels, within
-rounding, where no GPU draws: the CPU renderer and `ui.Tester`. So a shader
-works on every platform and in tests, and a mistake in it is a compile
-error of the app.
+the box to a color, run for every pixel. You write it once, in ZSL, a
+small language in Zig's syntax. `ui.shader.compile` compiles it at compile
+time into:
+
+- HLSL (Direct3D 11);
+- GLSL (OpenGL 3.3, OpenGL ES 3.0 and WebGL 2);
+- Metal;
+- a CPU twin of Zig code that draws the same pixels, within rounding,
+  where no GPU draws: the CPU renderer and `ui.Tester`.
+
+So a shader works on every platform and in tests, and a mistake in it is
+a compile error of the app.
 
 <!-- demo: shaders height=288 -->
 
@@ -36,27 +41,32 @@ Longer shaders live in files of their own, `.zsl`, embedded:
 pub const shader = ui.shader.compile("wind", @embedFile("wind.zsl"));
 ```
 
-The examples are made of shaders: `blackhole` (light traced through
-gravity, a drag orbits the camera), `wind` (a texture of characters
-stirred by the wind), `chat-glow` (an orb, a ring, an edge glow and a
-shimmer, sharing a palette), `effort-slider`, `mayoi`, and the gallery.
-Run them with `zig build run-blackhole` and so on.
+The examples are made of shaders. Run them with `zig build run-blackhole`
+and so on:
+
+- `blackhole`: light traced through gravity; a drag orbits the camera.
+- `wind`: a texture of characters stirred by the wind.
+- `chat-glow`: an orb, a ring, an edge glow and a shimmer, sharing a
+  palette.
+- `effort-slider`, `mayoi`, and the gallery.
 
 ## Shader boxes
 
 `ui.shaderBox(c, &shader, values, style)` opens a box styled by `style`,
-filled by the shader; its children follow until `c.end()`. The shader
-replaces the box's background, and is clipped to its rounded corners.
-`values` is a struct whose fields set the shader's uniforms (below).
-`ui.shaderBoxWith(c, &shader, values, style, options)` takes
-`ui.ShaderBoxOptions`, whose `blur` blurs what is under the box before the
-shader reads it with `backdrop(p)`.
+filled by the shader. Its children follow until `c.end()`.
+
+- The shader replaces the box's background, clipped to its rounded
+  corners.
+- `values` is a struct whose fields set the shader's uniforms (below).
+- `ui.shaderBoxWith(c, &shader, values, style, options)` takes
+  `ui.ShaderBoxOptions`. Its `blur` blurs what is under the box before
+  the shader reads it with `backdrop(p)`.
 
 `ui.shaderEffect(c, &shader, values, last_rect, options)` makes the shader
-an effect for any box's `Style.effect`, allocated for this frame: a box
-drawn from what is under it, as frosted glass is ([Transforms and
-effects](transforms.md#backdrop-effects)). `last_rect` is the box's rect in
-the last layout, for the `pointer` uniform.
+an effect for any box's `Style.effect`, allocated for this frame. The box
+is drawn from what is under it, as frosted glass is ([Transforms and
+effects](transforms.md#backdrop-effects)). `last_rect` is the box's rect
+in the last layout, for the `pointer` uniform.
 
 ```zig
 const id = c.peekId("lens");
@@ -71,9 +81,11 @@ c.end();
 pub fn fragment(pos: vec2) vec4 { ... }
 ```
 
-`pos` is the point in the box, in points from its top left corner. The
-function returns the pixel's color, premultiplied (`vec4(r * a, g * a, b *
-a, a)`), drawn over what is under the box: alpha 0 leaves it as it is.
+- `pos` is the point in the box, in points from its top left corner.
+- It returns the pixel's color, premultiplied:
+  `vec4(r * a, g * a, b * a, a)`.
+- The color is drawn over what is under the box. Alpha 0 leaves it as it
+  is.
 
 ## Uniforms
 
@@ -90,10 +102,16 @@ const root = ui.shaderBox(c, &shader, .{
 defer c.end();
 ```
 
-Fields are numbers for `f32`, `i32` and `u32`, `bool`s, and arrays or
-vectors of floats for vectors; a `ui.Color` sets a `vec3` or `vec4`, a
-`ui.Point` a `vec2`. A field naming no uniform is a compile error; a
-uniform left out is zero, with two exceptions:
+| uniform | field |
+|---|---|
+| `f32`, `i32`, `u32` | a number |
+| `bool` | a `bool` |
+| vectors | an array or vector of floats |
+| `vec3`, `vec4` | also a `ui.Color` |
+| `vec2` | also a `ui.Point` |
+
+A field naming no uniform is a compile error. A uniform left out is zero,
+with two exceptions:
 
 - `time`, an `f32` left out, is the context's clock (`c.time`), and the
   box then draws every frame. Give `time` yourself to freeze it (as tests
@@ -101,7 +119,7 @@ uniform left out is zero, with two exceptions:
 - `pointer`, a `vec2` left out, is where the pointer is, in the box's
   points. Set `c.wants_moves = true` for frames as the pointer moves.
 
-Uniforms share the effect's sixteen floats: fifteen are theirs (a `vec3`
+Uniforms share the effect's sixteen floats. Fifteen are theirs (a `vec3`
 takes three), and the last holds the pixels in a point.
 `ui.shader.params(&shader, values, scale)` packs values into an effect's
 parameters, for an `ui.Effect` built by hand.
@@ -110,24 +128,26 @@ parameters, for an `ui.Effect` built by hand.
 
 ZSL is Zig's syntax for what a shader needs:
 
-- At the top: `uniform name: type;`, `const name = value;`, and functions
-  (`fn name(a: f32, b: vec2) f32 { ... }`, at most eight parameters), with
-  `pub fn fragment` among them. Functions may call each other in any
-  order, but not themselves: shaders don't recurse.
+- At the top: `uniform name: type;`, `const name = value;`, and
+  functions, `pub fn fragment` among them.
+- A function is `fn name(a: f32, b: vec2) f32 { ... }`, with at most
+  eight parameters. Functions may call each other in any order, but not
+  themselves: shaders don't recurse.
 - Types: `bool`, `i32`, `u32`, `f32`, `vec2`, `vec3`, `vec4`.
 - Statements: `const` and `var` locals, assignments (`=`, `+=` and the
-  others, components as `v.xy = ...`), `if` / `else`, `while (c) : (i +=
-  1)`, `for (0..n) |i|`, `break`, `continue`, `return`.
+  others, components as `v.xy = ...`), `if` / `else`,
+  `while (c) : (i += 1)`, `for (0..n) |i|`, `break`, `continue`,
+  `return`.
 - Numbers without a type take the one their use needs, as Zig's.
   Conversions are `f32(x)`, `i32(x)`, `u32(x)`.
-- Vectors are made as `vec3(v.xy, 1)` or `vec3(0)`; a float scalar mixes
-  with vectors (`v * 0.5`); `.xyzw` and `.rgba` swizzle.
-- Integers wrap; `<<`, `>>`, `&`, `|`, `^`, `~` and `%` are theirs, and
-  `mod()` the floats'. Hashes of `u32`s (PCG and the like) work the same
-  on every backend.
+- Vectors are made as `vec3(v.xy, 1)` or `vec3(0)`. A float scalar mixes
+  with vectors (`v * 0.5`). `.xyzw` and `.rgba` swizzle.
+- Integers wrap. `<<`, `>>`, `&`, `|`, `^`, `~` and `%` are theirs, and
+  `mod()` is the floats'.
+- Hashes of `u32`s (PCG and the like) work the same on every backend.
 - Comments are `//`.
 
-Builtins: GLSL's `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`,
+Builtins are GLSL's `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`,
 `sinh`, `cosh`, `tanh`, `exp`, `exp2`, `log`, `log2`, `pow`, `sqrt`,
 `inversesqrt`, `abs`, `sign`, `floor`, `ceil`, `fract`, `round`, `trunc`,
 `mod`, `min`, `max`, `clamp`, `mix`, `step`, `smoothstep`, `length`,
@@ -165,8 +185,9 @@ pub fn fragment(pos: vec2) vec4 {
 }
 ```
 
-Prefixes are a way to share code: `chat-glow` compiles each of its shaders
-from `palette ++ @embedFile("orb.zsl")`, a file of functions they all use.
+Prefixes are a way to share code. `chat-glow` compiles each of its
+shaders from `palette ++ @embedFile("orb.zsl")`, a file of functions they
+all use.
 
 ## Errors
 
@@ -177,31 +198,38 @@ column:
 shader 'waves':3:24: mismatched types i32 and f32
 ```
 
-Types are checked as Zig checks them (no implicit conversions between
-`i32`, `u32` and `f32`, beyond untyped numbers), names must be declared,
-a shader too long for its tables is an error (`shader 'x' is too long`),
-and so is recursion. `ui.shader.checkSource(&program, src, msg)` compiles
-at run time, for tests of the compiler.
+- Types are checked as Zig checks them. There are no implicit conversions
+  between `i32`, `u32` and `f32`, beyond untyped numbers.
+- Names must be declared.
+- A shader too long for its tables is an error (`shader 'x' is too long`),
+  and so is recursion.
+- `ui.shader.checkSource(&program, src, msg)` compiles at run time, for
+  tests of the compiler.
 
 ## How it is drawn
 
 A shader box is a backdrop effect ([Transforms and effects](transforms.md)):
-paint marks it in paint order, and each renderer, at the mark, reads what
-it has drawn so far around the box (blurred if asked), and draws the box
-with the shader before drawing on. Direct3D, OpenGL, WebGL and Metal
-compile the generated source once per shader, the first time they draw
-it; the CPU renderer runs the twin, a function generated from the same
-program at compile time. The generated sources are in `shader.effect`
-(`hlsl`, `glsl`, `msl`) and the uniforms' layout in `shader.uniforms`.
+
+1. Paint marks it in paint order.
+2. At the mark, each renderer reads what it has drawn so far around the
+   box, blurred if asked.
+3. It draws the box with the shader, then draws on.
+
+- Direct3D, OpenGL, WebGL and Metal compile the generated source once per
+  shader, the first time they draw it.
+- The CPU renderer runs the twin, a function generated from the same
+  program at compile time.
+- The generated sources are in `shader.effect` (`hlsl`, `glsl`, `msl`).
+  The uniforms' layout is in `shader.uniforms`.
 
 A shader box whose `time` is left to the clock asks for every frame, so
-it keeps the app drawing while it is shown; one without it is drawn with
+it keeps the app drawing while it is shown. One without it is drawn with
 the frames the rest of the view asks for, as any box is.
 
 ## Testing shaders
 
 The CPU twin draws in the Tester, so a test renders the view and looks at
-its pixels; freeze `time` by giving it:
+its pixels. Freeze `time` by giving it:
 
 ```zig
 var s: Pane = .{ .frozen = 4 }; // its view passes .time = s.frozen
@@ -214,9 +242,10 @@ defer px.deinit(gpa);
 // px.bytes: BGRA, px.width × px.height
 ```
 
-The examples' views are tested this way (`zig build test` runs the tests
-in `examples/blackhole`, `wind`, `chat-glow`, `effort-slider` and
-`mayoi`). `src/ui/shader/tests_gpu.zig` draws shaders that use every part
-of the language with Direct3D 11 (on Windows) and OpenGL (through EGL, on
-Linux) and checks that they match the CPU twin within a level or two;
-`ui.gpu_testing` offers the same comparison to plugins' tests.
+- The examples' views are tested this way. `zig build test` runs the
+  tests in `examples/blackhole`, `wind`, `chat-glow`, `effort-slider` and
+  `mayoi`.
+- `src/ui/shader/tests_gpu.zig` draws shaders that use every part of the
+  language with Direct3D 11 (on Windows) and OpenGL (through EGL, on
+  Linux). It checks that they match the CPU twin within a level or two.
+- `ui.gpu_testing` offers the same comparison to plugins' tests.

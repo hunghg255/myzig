@@ -7,7 +7,8 @@
     "live": "cd .. && zig build docs-live && node docs/scripts/live.mjs",
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "prose": "node scripts/prose.mjs"
   },
   "devDependencies": {
     "vitepress": "^1.6.3"

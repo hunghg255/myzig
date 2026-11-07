@@ -1,14 +1,18 @@
 <a id="markdown"></a>
 
-# Giảm giá
+# Markdown
 
-`ui.markdown` hiển thị Markdown bằng phông chữ và màu sắc của cửa sổ: CommonMark với các bảng, danh sách tác vụ, gạch ngang và liên kết tự động của GitHub. Văn bản của nó có thể được lựa chọn, các liên kết báo cáo số lần nhấp chuột của chúng và các khối mã được đánh dấu bằng phông chữ đơn cách bằng nút Sao chép. Nó được tạo ra để phát trực tuyến các câu trả lời từ một mô hình: mã thông báo được gắn vào cuối một câu trả lời dài sẽ có giá bằng với giá của nó khi bắt đầu.
+`ui.markdown` hiển thị Markdown bằng font và màu của cửa sổ: CommonMark cùng bảng, task list, gạch ngang và autolink của GitHub.
+
+- Chữ chọn được, và link báo về khi được bấm.
+- Code block được tô màu cú pháp, dùng font monospace, có nút Copy.
+- Nó được làm cho các câu trả lời stream về từ model. Một token thêm vào cuối một câu trả lời dài tốn đúng bằng khi thêm ở đầu.
 
 <!-- demo: markdown height=520 -->
 
-![Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.](../../images/ui/markdown.png)
+![Markdown đã render với danh sách, trích dẫn, bảng và code Zig được tô màu.](../../images/ui/markdown.png)
 
-*Markdown đã render với danh sách, trích dẫn, bảng và mã Zig tô màu cú pháp.*
+*Markdown đã render với danh sách, trích dẫn, bảng và code Zig được tô màu.*
 
 ```zig
 const Message = struct {
@@ -25,23 +29,34 @@ fn bubble(m: *Message, c: *ui.Context) void {
 }
 ```
 
-`zig build run-markdown-chat` hiển thị các câu trả lời trực tiếp trong (`examples/markdown-chat`); headless: `zig-out/bin/markdown-chat --myzig-snapshot=chat.png --myzig-script="wait:3"`.
+`zig build run-markdown-chat` cho xem các câu trả lời đang stream về (`examples/markdown-chat`). Chạy headless: `zig-out/bin/markdown-chat --myzig-snapshot=chat.png --myzig-script="wait:3"`.
 
 <a id="keeping-a-state"></a>
 
-## Giữ một trạng thái
+## Giữ một state
 
-Cung cấp `ui.markdown` một `ui.Markdown` được giữ ở trạng thái của ứng dụng, một cái cho mỗi tài liệu được hiển thị và nguồn trên mỗi khung. Tạo nó bằng `ui.Markdown.init(gpa)` và giải phóng nó bằng `deinit()`.
+Truyền cho `ui.markdown` một `ui.Markdown` giữ trong state của app, mỗi tài liệu hiển thị một cái, cùng với văn bản nguồn ở mọi frame. Tạo bằng `ui.Markdown.init(gpa)` và giải phóng bằng `deinit()`.
 
-Trạng thái giữ tài liệu được phân tích cú pháp và những gì được tạo từ các khối của nó: hộp và id, nội tuyến, văn bản được hiển thị và các dòng được đánh dấu của chúng. Khi nguồn phát triển, chỉ văn bản được thêm vào mới được phân tích cú pháp: khối ngoài cùng vẫn mở trước nó hoặc chỉ các dòng mới khi không có dòng nào. Các khối trước nó được giữ nguyên, vì vậy view vẫn giữ nguyên những gì nó tạo ra. Bất kỳ thay đổi nào khác của nguồn (bản chỉnh sửa ở giữa) sẽ phân tích lại tất cả, cũng như thay đổi `extensions`.
+State giữ tài liệu đã parse và những gì đã dựng từ các block: box và id của chúng, các inline, chữ đã render và các dòng đã tô màu.
 
-Nếu không có trạng thái (`.state = null`), nguồn sẽ được phân tích cú pháp toàn bộ trên mọi frame: phù hợp với văn bản ngắn, cố định.
+- Khi văn bản nguồn dài thêm, chỉ phần thêm vào được parse. Block ngoài cùng còn mở ngay trước nó, nếu có, cũng được parse lại.
+- Các block phía trước giữ nguyên, nên view giữ lại những gì đã dựng từ chúng.
+- Mọi thay đổi khác của văn bản nguồn, như sửa ở giữa, sẽ parse lại toàn bộ. Đổi `extensions` cũng vậy.
+
+Không có state (`.state = null`) thì văn bản nguồn được parse toàn bộ ở mọi frame. Như vậy vẫn ổn với một đoạn chữ ngắn, cố định.
 
 <a id="streaming"></a>
 
-## Truyền phát
+## Streaming
 
-Trong khi `streaming` được đặt, phần cuối của văn bản hiển thị cú pháp viết nửa vời của nó rất có thể sẽ trở thành: `**bol` hiển thị in đậm, hàng rào mã mở hiển thị dưới dạng mã, liên kết được viết hiển thị dưới dạng văn bản và các dòng vẫn có thể chuyển thành nội dung khác (`---` có thể là phần gạch chân của tiêu đề) hãy chờ xem nội dung tiếp theo. Đặt `streaming` thành false sau khi trả lời xong và phần cuối được đọc chính xác.
+Khi bật `streaming`, phần cuối văn bản hiển thị thứ mà cú pháp viết dở nhiều khả năng sẽ thành:
+
+- `**bol` hiện in đậm.
+- Một code fence đang mở hiện như code.
+- Một link đang viết hiện bằng chữ của nó.
+- Những dòng còn có thể thành thứ khác thì chờ phần tiếp theo, như một dòng `---` có thể là gạch chân của heading.
+
+Đặt `streaming` về false khi câu trả lời xong, và phần cuối được đọc chính xác.
 
 <a id="options"></a>
 
@@ -49,41 +64,55 @@ Trong khi `streaming` được đặt, phần cuối của văn bản hiển th�
 
 `ui.MarkdownOptions`:
 
-| lĩnh vực | mặc định | ý nghĩa |
+| Trường | Mặc định | Ý nghĩa |
 |---|---|---|
-| `state` | null | `ui.Markdown` được giữ trên các khung |
+| `state` | null | `ui.Markdown` giữ qua các frame |
 | `streaming` | false | văn bản vẫn đang được viết |
-| `extensions` | tất cả trên | `ui.MarkdownExtensions` (bên dưới) |
-| `size` | 14 | kích thước của nội dung văn bản; tiêu đề, mã và tỷ lệ khoảng cách với nó |
-| `leading` | 1.45 | chiều cao dòng, kích thước |
-| `selectable` | true | văn bản có thể được chọn và sao chép |
-| `wrap_code` | true | khối mã bao bọc các dòng dài thay vì cắt chúng |
-| `syntax` | true | khối mã màu trong các ngôn ngữ mà người đánh dấu biết |
-| `highlighter` | null | `ui.MarkdownHighlighter` của riêng bạn |
-| `max_column_width` | 320 | các cột của bảng chỉ rộng tối đa thế này; kết thúc văn bản của họ |
-| `key` | null | chìa khóa của hộp xem |
+| `extensions` | bật hết | `ui.MarkdownExtensions` (bên dưới) |
+| `size` | 14 | cỡ chữ thân bài; heading, code và khoảng cách co giãn theo nó |
+| `leading` | 1.45 | chiều cao dòng, tính theo cỡ chữ |
+| `selectable` | true | chữ chọn và copy được |
+| `wrap_code` | true | code block xuống dòng với dòng dài thay vì cắt bớt |
+| `syntax` | true | tô màu code block với các ngôn ngữ mà bộ tô màu biết |
+| `highlighter` | null | một `ui.MarkdownHighlighter` của riêng bạn |
+| `max_column_width` | 320 | cột của bảng rộng tối đa chừng này; chữ trong đó xuống dòng |
+| `key` | null | key của box chứa view |
+| `images` | null | một `ui.MarkdownImageReader` để hiện ảnh ([bên dưới](#what-is-shown)) |
 
-`ui.MarkdownExtensions` có `tables`, `task_lists`, `strikethrough` và `autolinks`, tất cả đều được bật theo mặc định (`.gfm`); `.commonmark` tắt tất cả chúng, đối với CommonMark nghiêm ngặt.
+`ui.MarkdownExtensions` có `tables`, `task_lists`, `strikethrough` và `autolinks`, mặc định bật hết (`.gfm`). `.commonmark` tắt hết, cho CommonMark chuẩn.
 
 <a id="what-it-returns"></a>
 
-## Những gì nó trả về
+## Giá trị trả về
 
-A `ui.MarkdownResult`:
+Một `ui.MarkdownResult`:
 
-- `link`: đích của liên kết đã nhấp vào khung này.
-- `hovered_link`: liên kết bên dưới con trỏ, dưới dạng thanh trạng thái hiển thị liên kết đó.
-- `copied`: mã mà nút Sao chép của khối mã được đặt vào khay nhớ tạm (để hiện toast báo đã chép).
+- `link`: đích của link được bấm trong frame này.
+- `hovered_link`: link dưới con trỏ, như thanh trạng thái hiển thị.
+- `copied`: đoạn code mà nút Copy của code block vừa đưa vào clipboard (để hiện một toast báo việc đó).
 
-Các liên kết không được mở cho bạn: mở chúng bằng `myzig.shell.openUrl` hoặc định tuyến chúng trong ứng dụng.
+Link không được tự mở. Mở bằng `myzig.shell.openUrl`, hoặc điều hướng trong app.
 
 <a id="code-blocks"></a>
 
-## Khối mã
+## Code block
 
-Bộ tô sáng cú pháp tích hợp hỗ trợ từ khóa, chuỗi, số, chú thích, hàm và kiểu của Zig, JavaScript, TypeScript, Go, Python, JSON và shell; các ngôn ngữ họ C (C, C++, C#, Java, Kotlin, Swift, Rust), ngôn ngữ kịch bản (Ruby, PHP, Lua, Perl, R, Julia, PowerShell, SQL), ngôn ngữ hàm (Haskell, Elm, OCaml, F#, Elixir, Erlang, Lisps, Nix), định dạng cấu hình (YAML, TOML, HCL, CMake, INI) và nhiều ngôn ngữ khác. Ngôn ngữ được chọn theo nhãn của khối code (` ```zig `). Với markup (HTML, XML, SVG, Vue, Svelte), bộ tô sáng phân biệt thẻ, thuộc tính và giá trị, đồng thời dùng JavaScript và CSS cho nội dung trong `<script>` và `<style>`; với Markdown là tiêu đề, trích dẫn, danh sách, nhấn mạnh, code và liên kết; với diff là dòng thêm, dòng xóa và dòng hunk. Mỗi dòng được xử lý từ trạng thái mà dòng trước để lại (đang ở trong chú thích khối hoặc chuỗi nhiều dòng), nên khi một khối được stream vào, chỉ những dòng mới cần tô sáng.
+Info string của fence (` ```zig `) chọn ngôn ngữ. Bộ tô màu có sẵn tô từ khóa, chuỗi, số, comment, hàm và kiểu của:
 
-Công cụ tô sáng của riêng bạn là một hàm nối thêm `ui.Span`s (bù vào dòng, với `color`, `weight`, `italic`, ...) cho một dòng trong một ngôn ngữ và trả về false cho một ngôn ngữ mà nó không biết, trở lại văn bản thuần túy:
+- Zig, JavaScript và TypeScript, Go, Python, JSON và shell;
+- các ngôn ngữ họ C: C, C++, C#, Java, Kotlin, Swift, Rust;
+- các ngôn ngữ script: Ruby, PHP, Lua, Perl, R, Julia, PowerShell, SQL;
+- các ngôn ngữ hàm: Haskell, Elm, OCaml, F#, Elixir, Erlang, các Lisp, Nix;
+- các định dạng cấu hình: YAML, TOML, HCL, CMake, INI;
+- và nhiều nữa.
+
+Một số ngôn ngữ được tô những thứ khác:
+
+- Markup (HTML, XML, SVG, Vue, Svelte): tag, thuộc tính và giá trị của chúng. Code trong `<script>` được tô như JavaScript, các rule trong `<style>` như CSS.
+- Markdown: heading, trích dẫn, danh sách, nhấn mạnh, code và link.
+- Diff: các dòng thêm, dòng xóa và dòng hunk.
+
+Nó tô từng dòng một, từ trạng thái mà dòng trước để lại (đang trong block comment, chuỗi nhiều dòng). Nhờ vậy một block đang stream về chỉ tô các dòng mới.
 
 ```zig
 fn highlight(_: ?*anyopaque, gpa: std.mem.Allocator, language: []const u8, code: []const u8, dark: bool, out: *std.ArrayList(ui.Span)) bool {
@@ -97,46 +126,73 @@ fn highlight(_: ?*anyopaque, gpa: std.mem.Allocator, language: []const u8, code:
 _ = ui.markdown(c, src, .{ .state = &s.md, .highlighter = .{ .func = highlight } });
 ```
 
-`Highlighter.ctx` được chuyển trở lại hàm cho công cụ đánh dấu có trạng thái riêng.
+Bộ tô màu của riêng bạn là một hàm thêm các `ui.Span` cho một dòng thuộc một ngôn ngữ. Span là các offset trong dòng, kèm `color`, `weight`, `italic`, ... Hàm trả về false với ngôn ngữ nó không biết, khi đó dòng hiện như chữ thường. `Highlighter.ctx` được truyền lại cho hàm, dành cho bộ tô màu có state riêng.
 
 <a id="what-is-shown"></a>
 
 ## Những gì được hiển thị
 
-- Tiêu đề (ATX và settext), đoạn văn, ngắt quãng cứng và mềm.
-- Nhấn mạnh, nhấn mạnh, gạch ngang, kéo dài mã.
-- Liên kết và hình ảnh theo đích đến hoặc tham chiếu cũng như liên kết tự động (`www.` của GitHub và các URL trần có `autolinks`). Hình ảnh hiển thị mô tả của chúng (văn bản thay thế), in nghiêng, trừ khi các tùy chọn' `images` (a `ui.MarkdownImageReader`) đọc chúng: sau đó mỗi hình ảnh hiển thị bên dưới đoạn văn của nó (a `ui.MarkdownImage`: byte bên dưới một khóa hoặc SVG) và chỉ một đoạn hình ảnh sẽ không có mô tả. Ví dụ: ứng dụng tự giải quyết các đích đến, chỉ các tệp cục bộ.
-- Chặn dấu ngoặc kép, danh sách theo thứ tự và dấu đầu dòng, lồng nhau, chặt chẽ và lỏng lẻo cũng như danh sách nhiệm vụ bằng các hộp kiểm của chúng.
-- Khối mã có hàng rào và thụt vào.
-- Các bảng với sự căn chỉnh của các cột.
-- Nghỉ giải lao theo chủ đề. Các khối HTML và nội tuyến HTML được hiển thị dưới dạng văn bản nên không có gì ẩn trong chúng.
+- Heading (ATX và setext), đoạn văn, ngắt dòng cứng và mềm.
+- Nhấn mạnh, nhấn mạnh mạnh, gạch ngang, code span.
+- Link và ảnh theo đích hoặc theo tham chiếu, và autolink. Với `autolinks`, có thêm `www.` và URL trần như GitHub.
+- Trích dẫn, danh sách có thứ tự và gạch đầu dòng, lồng nhau, sát và thưa, và task list với checkbox.
+- Code block dạng fence và dạng thụt lề.
+- Bảng, với cách căn của các cột.
+- Đường kẻ ngang. HTML block và HTML inline hiện như chữ, nên không có gì bị giấu trong đó.
 
-Trình phân tích cú pháp chuyển các ví dụ về đặc tả CommonMark 0.31.2 và các phần mở rộng của GitHub, mỗi phần được phân tích cú pháp toàn bộ, nối thêm một byte mỗi lần và theo khối (`src/ui/markdown/tests_spec_*.zig`).
+**Ảnh** hiện phần mô tả (chữ thay thế), in nghiêng. Khi `images` của tùy chọn (một `ui.MarkdownImageReader`) đọc được ảnh:
 
-Một quy tắc được nới cho tiếng Trung, Nhật và Hàn, vốn không đặt khoảng trắng quanh phần nhấn mạnh: cạnh một chữ CJK, dấu câu toàn độ rộng hoặc dấu ngoặc kép cong, `*` và `~~` mở và đóng cả ở chỗ dấu câu sẽ chặn chúng trong CommonMark, nên `**结论。**后文` là chữ đậm. `_` và một `~` đơn giữ quy tắc của CommonMark. Không ví dụ nào của đặc tả có chữ CJK ở đó, nên tất cả vẫn pass.
+- mỗi ảnh hiện dưới đoạn văn của nó, dạng `ui.MarkdownImage`: dữ liệu byte theo một key, hoặc một SVG;
+- một đoạn văn chỉ có ảnh thì bỏ phần mô tả;
+- app tự phân giải đích của ảnh, chẳng hạn chỉ cho file cục bộ.
+
+Bộ parse vượt qua các ví dụ của đặc tả CommonMark 0.31.2 và các phần mở rộng của GitHub. Mỗi ví dụ được parse nguyên khối, thêm vào từng byte một và theo từng đoạn (`src/ui/markdown/tests_spec_*.zig`).
+
+<details>
+<summary>Nhấn mạnh trong tiếng Trung, Nhật và Hàn</summary>
+
+Các ngôn ngữ này không đặt khoảng trắng quanh phần nhấn mạnh, nên một quy tắc được nới lỏng. Cạnh một ký tự CJK, dấu câu toàn độ rộng hoặc dấu ngoặc kép cong, `*` và `~~` vẫn mở và đóng ở cả những chỗ mà CommonMark sẽ chặn vì dấu câu. Vì vậy `**结论。**后文` được in đậm.
+
+`_` và một dấu `~` đơn giữ quy tắc của CommonMark. Không ví dụ nào của đặc tả có chữ CJK ở đó, nên tất cả vẫn qua.
+
+</details>
 
 <a id="the-document"></a>
 
 ## Tài liệu
 
-`ui.MarkdownDocument` là tài liệu được phân tích cú pháp, dành cho các ứng dụng muốn có cấu trúc thay vì dạng xem: `MarkdownDocument.parse(gpa, source, extensions)` phân tích toàn bộ văn bản và tài liệu được tạo bằng `init(gpa, extensions)` lấy văn bản có `set(source)` và `append(more)`. Các khối là một mảng phẳng theo thứ tự tài liệu, theo sau mỗi khối là các phần tử con của nó: `len()`, `block(i)` (`kind`, `level`, `parent`, `start` và `end` trong nguồn, ...), `children(i)` để lặp lại `language(i)` của một khối mã, `alignments(table)` và `inlines(i)`, được phân tích cú pháp lần đầu tiên được yêu cầu. Giải phóng nó bằng `deinit()`.
+`ui.MarkdownDocument` là tài liệu đã parse, dành cho app cần cấu trúc chứ không cần view. Giải phóng bằng `deinit()`.
+
+- `MarkdownDocument.parse(gpa, source, extensions)` parse toàn bộ một văn bản.
+- Tài liệu tạo bằng `init(gpa, extensions)` nhận văn bản qua `set(source)` và `append(more)`.
+
+Các block là một mảng phẳng theo thứ tự trong tài liệu, mỗi block theo sau là các phần tử con của nó:
+
+| Phương thức | |
+|---|---|
+| `len()` | số block |
+| `block(i)` | `kind`, `level`, `parent`, `start` và `end` trong văn bản nguồn, ... |
+| `children(i)` | để duyệt |
+| `language(i)` | của một code block |
+| `alignments(table)` | của các cột trong bảng |
+| `inlines(i)` | được parse ở lần đầu được hỏi tới |
 
 <a id="testing"></a>
 
-## Kiểm tra
+## Test
 
-Markdown là văn bản và các hộp, vì vậy Người kiểm tra sẽ tìm thấy nó như tìm thấy bất kỳ văn bản nào:
+Markdown là chữ và box, nên `ui.Tester` tìm thấy nó như mọi chữ khác:
 
 ```zig
-// Chat's view calls ui.markdown and keeps a clicked link in s.clicked.
+// View của Chat gọi ui.markdown và giữ link được bấm trong s.clicked.
 var s: Chat = .{ .md = .init(gpa) };
 defer s.md.deinit();
 var t: ui.Tester = undefined;
 try t.init(gpa, .init(&s, Chat.view), .{});
 defer t.deinit();
 try std.testing.expect(t.hasText("LRU cache"));
-try t.clickText("the docs"); // a link
+try t.clickText("the docs"); // một link
 try std.testing.expectEqualStrings("https://ziglang.org", s.clicked.?);
 ```
 
-Xem [Testing](testing.md) và [Rich text](rich-text.md) để biết trình chỉnh sửa đọc và ghi Markdown.
+Xem [Testing](testing.md), và [Rich text](rich-text.md) cho một trình soạn thảo đọc và ghi Markdown.

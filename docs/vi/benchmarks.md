@@ -2,98 +2,86 @@
 
 # Benchmark
 
-Chi phí của một ứng dụng myzig so với [mygo](https://github.com/egoist/mygo),
-dự án mà myzig được port từ đó, và [Electron](https://www.electronjs.org).
-Thời gian dựng khung hình của giao diện native so với mygo nằm ở phần leo đồi
-([hillclimb/README.md](../../hillclimb/README.md)); kích thước nhị phân nằm ở
-[Kiểm thử, kích thước và tính năng](architecture-testing.md).
+Một app myzig tốn bao nhiêu so với [mygo](https://github.com/egoist/mygo), dự án mà myzig port lại, và [Electron](https://www.electronjs.org).
 
-## Bộ nhớ của một cửa sổ trang web trên Windows
+- Thời gian vẽ frame của native UI so với mygo lấy từ hill climb ([hillclimb/README.md](../../hillclimb/README.md)).
+- Kích thước binary nằm ở [Test, kích thước và tính năng](architecture-testing.md).
 
-Một cửa sổ mở `about:blank`, đo bộ nhớ của toàn bộ cây tiến trình của ứng
-dụng (ứng dụng và mọi tiến trình WebView2 hoặc Chromium mà nó khởi chạy),
-tính theo private bytes, lấy trung vị của năm lần chạy:
+<a id="memory-of-a-page-window-on-windows"></a>
+
+## Bộ nhớ của một cửa sổ page trên Windows
+
+Một cửa sổ mở `about:blank`. Bộ nhớ là private bytes của cả cây tiến trình của app: chính app và mọi tiến trình WebView2 hay Chromium mà nó khởi chạy. Mỗi con số là trung vị của năm lần chạy.
 
 | tiến trình (MiB) | myzig 0.1.7 | mygo | Electron 38 |
 |---|---:|---:|---:|
-| ứng dụng | 3.7 | 47.4 | 36.3 |
-| browser (WebView2 Manager) | 29.8 | 30.4 | nằm trong ứng dụng |
+| app | 3.7 | 47.4 | 36.3 |
+| browser (WebView2 Manager) | 29.8 | 30.4 | nằm trong app |
 | GPU | 51.8 | 50.9 | 77.1 |
-| renderer (trang web) | 19.4 | 23.5 | 22.6 |
+| renderer (page) | 19.4 | 23.5 | 22.6 |
 | network service | 11.5 | 11.2 | 13.1 |
 | storage service | 7.3 | 7.3 | nằm trong browser |
 | crash handler | 2.4 | 2.4 | không có |
 | **tổng** | **127.2** | **173.7** | **149.0** |
 | số tiến trình | 7 | 7 | 4 |
 
-| trên ổ đĩa | myzig | mygo | Electron |
+| trên đĩa | myzig | mygo | Electron |
 |---|---:|---:|---:|
-| những gì ứng dụng mang theo | 1.2 MiB (`hello.exe`) | 6.8 MiB | 324 MiB (Chromium riêng) |
+| những gì app phải kèm theo | 1.2 MiB (`hello.exe`) | 6.8 MiB | 324 MiB (Chromium riêng của nó) |
 
-Windows 10 19045, Core i5-1145G7, WebView2 Runtime 155, myzig build
-ReleaseSmall, mygo ở commit 9c05b11 build bằng Go 1.27 (`-s -w`). Các cửa sổ
-đều ẩn; trang myzig bị ẩn sẽ yêu cầu WebView2 dùng mức bộ nhớ thấp
-([Trang web](pages.md)). Với `about:blank` mức này tiết kiệm không đáng kể:
-khi giữ mức bình thường, như một cửa sổ đang hiển thị, tổng của myzig là
-130.7 MiB.
+Windows 10 19045, Core i5-1145G7, WebView2 Runtime 155, myzig ReleaseSmall, mygo ở commit 9c05b11 build bằng Go 1.27 (`-s -w`).
 
-Ý nghĩa:
+Các cửa sổ đều bị ẩn. Một page myzig bị ẩn sẽ xin WebView2 mức bộ nhớ thấp ([Pages](pages.md)), nhưng với `about:blank` thì tiết kiệm được rất ít. Với mức bình thường, như cửa sổ đang hiện, tổng của myzig là 130.7 MiB.
 
-- **Phần lớn bộ nhớ thuộc về engine trình duyệt**, và myzig với mygo dùng
-  chung một engine: các tiến trình WebView2 của hai bên chỉ chênh nhau vài
-  MiB. Electron chạy Chromium riêng, ít tiến trình hơn (tiến trình chính
-  kiêm luôn browser, storage cũng chạy trong đó) nhưng tiến trình GPU lớn
-  hơn.
-- **Phần của riêng myzig khoảng 4 MiB**: file thực thi, bộ nhớ nó cấp phát
-  và các DLL hệ thống nó nạp. Go runtime của mygo khoảng 47 MiB, tiến trình
-  chính của Electron (Node và browser) khoảng 36 MiB.
-- Một trang thật sẽ cộng thêm vào renderer và tiến trình GPU phần mà DOM,
-  script và hình ảnh của nó cần, ở framework nào cũng như nhau.
+Ý nghĩa của bảng:
+
+- **Phần lớn bộ nhớ thuộc về browser engine.** myzig và mygo dùng cùng một engine: các tiến trình WebView2 của chúng chỉ chênh nhau vài MiB.
+- Electron chạy Chromium riêng. Nó có ít tiến trình hơn, vì tiến trình chính cũng là browser và chạy luôn phần storage. Tiến trình GPU của nó lớn hơn.
+- **Phần riêng của myzig khoảng 4 MiB**: file thực thi, các vùng nhớ nó cấp phát và các DLL hệ thống nó nạp.
+- Go runtime của mygo khoảng 47 MiB. Tiến trình chính của Electron (Node và browser) khoảng 36 MiB.
+- Một page thật sẽ thêm vào renderer và tiến trình GPU phần mà DOM, script và hình ảnh của nó cần, framework nào cũng vậy.
+
+<a id="why-task-manager-shows-several-processes"></a>
 
 ### Vì sao Task Manager hiện nhiều tiến trình
 
-WebView2 là Chromium, và Chromium chia công việc ra nhiều tiến trình để một
-lỗi crash hay một trang bị tấn công chỉ nằm trong tiến trình của nó:
+WebView2 là Chromium. Chromium chia việc ra nhiều tiến trình, để một lần crash hay một page bị chiếm quyền chỉ nằm gọn trong tiến trình của nó:
 
 | trong Task Manager | việc nó làm |
 |---|---|
-| WebView2 Manager | tiến trình browser: khởi chạy và giám sát các tiến trình còn lại |
+| WebView2 Manager | tiến trình browser: khởi chạy và giám sát các tiến trình kia |
 | WebView2 GPU Process | ghép lớp và vẽ bằng GPU |
 | WebView2 Utility: Network Service | mọi request mạng |
 | WebView2 Utility: Storage Service | localStorage, IndexedDB, cache |
-| WebView2: *tiêu đề trang* | renderer: DOM và JavaScript của trang |
+| WebView2: *tiêu đề page* | renderer: DOM và JavaScript của page |
 
-Ứng dụng WebView2 nào cũng có các tiến trình này; myzig không thêm tiến
-trình nào. Tùy bản Windows và bản runtime, Task Manager có khi gom chúng dưới
-ứng dụng, có khi để riêng thành "Microsoft Edge WebView2" trong mục
-background processes, khiến ứng dụng trông như chỉ tốn vài MiB. Để so sánh
-các bản build, hãy cộng ứng dụng và mọi tiến trình `msedgewebview2.exe` của
-nó trong tab Details, hoặc chạy script bên dưới, script này đi theo cây tiến
-trình.
+App WebView2 nào cũng có chúng; myzig không thêm tiến trình nào.
 
-### Dùng ít bộ nhớ hơn
+Một số bản Windows và phiên bản runtime liệt kê chúng dưới app. Số khác liệt kê riêng, với tên "Microsoft Edge WebView2" trong nhóm tiến trình nền, khi đó app trông như chỉ tốn vài MiB. Để so sánh các bản build:
 
-Chromium nhận cờ qua biến môi trường `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`,
-đặt trước khi ứng dụng khởi chạy. Đo với frontend của ví dụ hello (mỗi cấu
-hình chạy một lần, nên sai số vài MiB):
+- cộng app và tất cả tiến trình `msedgewebview2.exe` của nó trong tab Details, hoặc
+- chạy script bên dưới, script này đi theo cây tiến trình.
 
-| cờ | số tiến trình | tổng (MiB) |
+<a id="using-less"></a>
+
+### Dùng ít hơn
+
+Chromium nhận flag từ `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, đặt trước khi app khởi động. Đo với frontend của ví dụ hello, mỗi cấu hình một lần chạy, nên sai số vài MiB:
+
+| flag | số tiến trình | tổng (MiB) |
 |---|---:|---:|
 | không có | 7 | 131 |
 | `--in-process-gpu` | 6 | 120 |
 | `--disable-gpu` | 7 | 93 |
 | `--disable-gpu --in-process-gpu --enable-features=NetworkServiceInProcess2` | 5 | 80 |
 
-`--disable-gpu` vẽ trang bằng CPU: ổn với form và bảng, chậm hơn với
-animation, danh sách cuộn dài, canvas và WebGL. Các cờ in-process gộp phần
-GPU hoặc mạng vào tiến trình browser, nên một lỗi crash ở đó sẽ kéo sập
-trang; chúng cũng là phần nội bộ của Chromium mà bản runtime sau có thể bỏ.
-Browser, renderer, storage service và crash handler thì luôn chạy.
+- `--disable-gpu` vẽ page bằng CPU. Ổn với form và bảng, chậm hơn với animation, danh sách dài cần scroll, canvas và WebGL.
+- Các flag in-process gộp phần GPU hoặc mạng vào tiến trình browser. Crash ở đó sẽ kéo page sập theo.
+- Đó là chi tiết nội bộ của Chromium, một bản cập nhật runtime có thể bỏ chúng.
+- Browser, renderer, storage service và crash handler luôn chạy.
+
+<a id="measuring-it-again"></a>
 
 ### Đo lại
 
-[hillclimb/webview-memory](../../hillclimb/webview-memory/README.md) có ba
-ứng dụng và `measure.ps1`, script chạy lần lượt từng ứng dụng mà không hiện
-cửa sổ nào và in ra bảng ở trên. Kết quả theo ngày, kèm so sánh myzig 0.1.5
-với 0.1.7, nằm trong
-[hillclimb/notes](../../hillclimb/notes/webview-memory-vs-mygo-electron-2026-10-22.md).
+[hillclimb/webview-memory](../../hillclimb/webview-memory/README.md) có ba app và `measure.ps1`. Script chạy lần lượt từng app mà không hiện cửa sổ nào và in ra bảng ở trên. Kết quả có ghi ngày, so sánh myzig 0.1.5 với 0.1.7, nằm trong [hillclimb/notes](../../hillclimb/notes/webview-memory-vs-mygo-electron-2026-10-22.md).

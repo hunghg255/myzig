@@ -1,16 +1,16 @@
 <a id="styling-and-themes"></a>
 
-# Kiểu dáng và chủ đề
+# Style và theme
 
-Hình thức của hộp là một phần của `ui.Style`, bên cạnh bố cục của nó: nền, đường viền, các góc tròn, bóng, độ mờ. Các widget lấy màu từ chủ đề của khung, `c.theme`, theo giao diện sáng hoặc tối của hệ thống trừ khi ứng dụng sửa lỗi đó.
+Vẻ ngoài của một box là một phần của `ui.Style`, nằm cạnh layout của nó: nền, viền, góc bo, bóng, độ mờ. Widget lấy màu từ theme của frame, `c.theme`. Theme này theo giao diện sáng hoặc tối của hệ thống, trừ khi app cố định nó.
 
-![Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.](../../images/ui/controls.png)
+![Các control trong Gallery với theme sáng.](../../images/ui/controls.png)
 
-*Gallery đang chạy với giao diện sáng: nút bấm, công tắc, thanh trượt và ô nhập văn bản.*
+*Các control trong Gallery với theme sáng.*
 
-![Cùng các điều khiển Gallery với giao diện tối.](../../images/ui/controls-dark.png)
+![Cùng các control đó với theme tối.](../../images/ui/controls-dark.png)
 
-*Cùng các điều khiển Gallery với giao diện tối.*
+*Cùng các control đó với theme tối.*
 
 ```zig
 ui.column(c, .{
@@ -26,56 +26,64 @@ defer ui.end(c);
 
 <a id="the-look-of-a-box"></a>
 
-## Vẻ ngoài của một chiếc hộp
+## Vẻ ngoài của một box
 
-| lĩnh vực | nó vẽ cái gì |
+| trường | vẽ gì |
 |---|---|
-| `background: ?Color` | điền vào, bên trong các góc tròn |
-| `border: ?Color`, `border_width` (1) | một đường viền bên trong cạnh của hộp |
-| `radius` | bán kính các góc, tính bằng điểm; `1e4` (`roundedFull()`) tạo thành một viên thuốc hoặc một vòng tròn |
-| `corners` | cách chúng uốn cong: `.circular` (CSS's) hoặc `.continuous` (`continuous()`), như macOS và iOS uốn cong chúng |
-| `shadow: ?Shadow` | bóng Gaussian: `color`, `blur` (độ lệch chuẩn, 12 theo mặc định) và `y` (giảm, 4) |
-| `opacity` | hộp và nội dung của nó cùng nhau, 0 đến 1 |
-| `gradient: ?*const Gradient` | màu tuyến tính, xuyên tâm hoặc hình nón trên nền |
-| `blur` | làm mờ hộp và các phần tử con của nó như được vẽ (CSS's `filter: blur()`) |
-| `effect: ?*const Effect` | kéo chiếc hộp từ những gì bên dưới nó (kính mờ) |
-
-Các góc liên tục ("hình tròn", đường cong góc liên tục của Core Animation và hình chữ nhật bo tròn của SwiftUI) để các cạnh ở xa góc hơn, khoảng 1,53 lần bán kính và uốn cong dần dần, do đó, thẻ hoặc nút trông giống như hệ thống. Chúng định hình nền và đường viền của hộp, bóng của hộp, hình ảnh của hộp (`ui.image`'s `corners`), độ dốc của hộp và những gì nó cắt ra, đồng thời mọi bộ kết xuất đều vẽ chúng giống nhau (CPU và GPU). Hiệu ứng phông nền giữ các góc tròn.
+| `background: ?Color` | màu nền, bên trong các góc bo |
+| `border: ?Color`, `border_width` (1) | viền nằm bên trong mép box |
+| `radius` | bán kính góc, tính bằng điểm; `1e4` (`roundedFull()`) tạo hình viên thuốc hoặc hình tròn |
+| `corners` | cách góc cong: `.circular` (như CSS), hoặc `.continuous` (`continuous()`), như macOS và iOS bo góc |
+| `shadow: ?Shadow` | bóng Gaussian: `color`, `blur` (độ lệch chuẩn, mặc định 12) và `y` (độ đổ xuống, 4) |
+| `opacity` | độ trong suốt của box cùng nội dung, từ 0 tới 1 |
+| `gradient: ?*const Gradient` | màu tuyến tính, tỏa tròn hoặc hình nón phủ lên nền |
+| `blur` | làm mờ box và các phần tử con khi vẽ (như `filter: blur()` của CSS) |
+| `effect: ?*const Effect` | vẽ box từ những gì nằm bên dưới nó (kính mờ) |
 
 ```zig
 ui.card(c, .{ .radius = 18, .corners = .continuous, .shadow = .{ .blur = 18, .y = 6 } });
 const tile = ui.div(c).w(64).h(64).rounded(14).continuous().bg(th.accent);
 ```
 
-Chuyển màu, làm mờ, hiệu ứng phông nền và chuyển đổi đều có một trang riêng: [chuyển đổi và hiệu ứng](transforms.md). Độ dốc được giữ cho đến khi khung được vẽ, vì vậy hãy truyền một hằng số, bộ nhớ của ứng dụng hoặc khung (`c.alloc().create(ui.Gradient)`).
+**Góc liên tục** là kiểu "squircle": đường cong góc liên tục của Core Animation và hình chữ nhật bo góc của SwiftUI. Nhờ đó card hay nút trông giống của hệ thống.
+
+- Cạnh bắt đầu cong từ xa góc hơn, khoảng 1,53 lần bán kính, và uốn dần dần.
+- Chúng định hình nền và viền của box, bóng, ảnh (`corners` của `ui.image`), gradient và vùng bị cắt.
+- Mọi renderer vẽ chúng giống hệt nhau, cả CPU lẫn GPU.
+- Hiệu ứng backdrop vẫn giữ góc tròn thường.
+
+Gradient, blur, hiệu ứng backdrop và transform có trang riêng: [transform và hiệu ứng](transforms.md). Gradient được giữ cho tới khi frame được vẽ. Hãy truyền một hằng số, bộ nhớ của app, hoặc bộ nhớ của frame (`c.alloc().create(ui.Gradient)`).
 
 <a id="colors"></a>
 
-## Màu sắc
+## Màu
 
-`ui.Color` là sRGB với alpha thẳng, mỗi kênh từ 0 đến 1:
+`ui.Color` là sRGB với alpha thẳng, mỗi kênh từ 0 tới 1:
 
 ```zig
 const blue: ui.Color = .hex(0x0a84ff);
-const faint = blue.alpha(0.15);                 // multiplies its opacity
-const between = c.theme.surface.mix(blue, 0.3); // 30% of the way to blue
+const faint = blue.alpha(0.15);                 // nhân với độ đục của nó
+const between = c.theme.surface.mix(blue, 0.3); // đi được 30% quãng đường tới màu xanh
 const ink: ui.Color = .{ .r = 0.1, .g = 0.1, .b = 0.12 };
 ```
 
-`ui.Color.white`, `.black` và `.transparent` là các hằng số.
-
-Đối với bảng màu, `ui.oklch(l, c, h)` tạo màu trong Oklch, giống như CSS của `oklch()`: độ sáng từ 0 đến 1, sắc độ từ khoảng 0 đến 0,4 và màu sắc tính theo độ. Màu sắc của một độ sáng trông sáng như nhau, do đó, bảng màu ở cùng một độ sáng và sắc độ vẫn đồng đều và vùng nhấn của điểm nhấn cũng có màu sắc tối hơn một chút. Màu sRGB không thể hiển thị bị mất sắc độ, giữ được độ sáng và màu sắc. `ui.toOklch(color)` quay lại là `[3]f32`.
+`ui.Color.white`, `.black` và `.transparent` là hằng số.
 
 ```zig
 const accent = ui.oklch(0.62, 0.19, 255);
 const hover = ui.oklch(0.55, 0.19, 255);
 ```
 
+Để làm bảng màu, `ui.oklch(l, c, h)` tạo một màu trong không gian Oklch, như `oklch()` của CSS:
+
+- `l`: độ sáng từ 0 tới 1. `c`: độ bão hòa từ khoảng 0 tới 0,4. `h`: sắc độ tính bằng độ.
+- Các màu cùng độ sáng trông sáng như nhau. Bảng màu gồm nhiều sắc độ ở cùng độ sáng và độ bão hòa sẽ đều nhau, và màu hover của accent là cùng sắc độ nhưng tối hơn một chút.
+- Màu mà sRGB không hiển thị được sẽ giảm độ bão hòa, giữ nguyên độ sáng và sắc độ.
+- `ui.toOklch(color)` chuyển ngược lại, trả về `[3]f32`.
+
 <a id="state-not-selectors"></a>
 
-## Trạng thái, không phải bộ chọn
-
-Không có bộ chọn và không có lớp giả: khung nhìn biết trạng thái và các hộp kiểu từ nó. Di chuột, nhấn và lấy nét đến từ sự tương tác của hộp; `c.animate` giảm bớt giá trị hướng tới mục tiêu, do đó, sự thay đổi về giao diện sẽ diễn ra sinh động thay vì đột ngột:
+## State, không phải selector
 
 ```zig
 const i = c.open(.{ .padding = .xy(12, 6), .radius = 6 }, null);
@@ -85,32 +93,37 @@ const t = c.animate(it.id, 0, if (it.hovered) 1 else 0, 18);
 c.node(i).style.background = c.theme.surface.mix(c.theme.surface_hover, t);
 ```
 
-`ui.div(...).hover(color)` thực hiện việc này làm nền. Xem [widget tùy chỉnh](custom-widgets.md) để biết các tương tác và [chuyển động](motion.md) để biết các lò xo, khung hình chính và chuyển tiếp.
+Không có selector và không có pseudo-class. View biết state, và đặt style cho box dựa trên state đó.
 
-Di chuột theo tổ tiên, như `:hover` của CSS thực hiện: một hàng được di chuột trong khi con trỏ ở trên một nút bên trong nó, do đó, một hàng hiển thị các nút của nó khi di chuột sẽ giữ chúng trong khi con trỏ đi tới chúng.
+- Hover, bấm và focus đến từ tương tác của box.
+- `c.animate` đưa dần một giá trị về đích, nên vẻ ngoài thay đổi có animation chứ không đột ngột.
+- `ui.div(...).hover(color)` làm việc này cho màu nền.
+- Hover đi theo tổ tiên, như `:hover` của CSS. Một dòng được coi là đang hover khi con trỏ nằm trên một nút bên trong nó. Nhờ vậy dòng chỉ hiện nút khi hover vẫn giữ các nút đó khi con trỏ di tới chúng.
+
+Xem [widget tùy biến](custom-widgets.md) về tương tác và [chuyển động](motion.md) về spring, keyframe và transition.
 
 <a id="the-theme"></a>
 
-## Chủ đề
+## Theme
 
-`ui.Theme` chứa các màu mà mọi widget sử dụng và phông chữ:
+`ui.Theme` chứa các màu mà mọi widget dùng, và các font:
 
-| lĩnh vực | dùng cho |
+| trường | dùng cho |
 |---|---|
-| `dark` | cho dù đó là một chủ đề tối |
+| `dark` | đây có phải theme tối không |
 | `background` | cửa sổ |
-| `surface`, `surface_hover` | thẻ, trường, nút phụ; khi di chuột, và mục được chọn trong danh sách, menu, bảng |
-| `text`, `muted` | văn bản và văn bản phụ (nhãn, phần giữ chỗ) |
-| `border` | ranh giới, dải phân cách |
-| `accent`, `accent_hover`, `accent_text` | các nút chính, công tắc đang bật, vùng chọn văn bản và văn bản trên màu nhấn |
-| `ring` | viền và quầng sáng của phần tử đang có tiêu điểm bàn phím |
-| `track`, `knob` | các rãnh và nút bấm của thanh trượt, công tắc và thanh tiến trình |
-| `danger`, `success`, `warning` | hành động phá hoại và lỗi; hoàn tất; điều cần chú ý |
-| `shadow` | màu sắc của bóng tối |
-| `font`, `mono_font` | họ phông chữ, null cho ([text](text.md)) của hệ thống |
-| `tooltip_delay` | số giây con trỏ dừng trước khi tooltip hiện; 0 là 0.6, âm là hiện ngay ([overlays](overlays.md#tooltips)) |
+| `surface`, `surface_hover` | card, ô nhập, nút phụ; trạng thái hover của chúng, và mục được chọn trong list, menu và table |
+| `text`, `muted` | chữ, và chữ phụ (label, placeholder) |
+| `border` | viền, đường phân cách |
+| `accent`, `accent_hover`, `accent_text` | nút chính, switch đang bật, vùng chọn chữ, và chữ nằm trên màu accent |
+| `ring` | viền và quầng sáng của thứ đang có focus bàn phím |
+| `track`, `knob` | rãnh và núm của slider, switch và thanh tiến trình |
+| `danger`, `success`, `warning` | thao tác phá hủy và lỗi; đã xong; thứ cần chú ý |
+| `shadow` | màu của bóng |
+| `font`, `mono_font` | họ font, null để dùng font hệ thống ([chữ](text.md)) |
+| `tooltip_delay` | số giây con trỏ đứng yên trước khi tooltip hiện; 0 nghĩa là 0,6, số âm là hiện ngay ([overlay](overlays.md#tooltips)) |
 
-`ui.Theme.light` và `ui.Theme.dark_theme` là của myzig: [bảng màu](#bảng-màu) zinc. Một cửa sổ sử dụng cái này hoặc cái kia làm giao diện của hệ thống, chuyển đổi khi nó thay đổi. Để sửa màu của cửa sổ, hãy đặt chủ đề cho cửa sổ:
+`ui.Theme.light` và `ui.Theme.dark_theme` là theme của myzig: [bảng màu](#palettes) zinc. Cửa sổ dùng cái này hay cái kia theo giao diện của hệ thống, và tự đổi khi hệ thống đổi. Để cố định màu của một cửa sổ, hãy cho nó một theme:
 
 ```zig
 var mine = ui.Theme.dark_theme;
@@ -119,24 +132,23 @@ mine.font = "Inter";
 _ = try app.newWindow(.{ .title = "Player", .theme = mine, .content = .{ .view = .init(&state, State.view) } });
 ```
 
-Trong view, `ui.themes.apply(c, theme)` tạo chủ đề cho khung (những widget nào được tạo sau khi đọc và nền của cửa sổ); gọi nó đầu tiên. `myzig.isDark()` và `myzig.accentColor()` đọc diện mạo và giọng nói của hệ thống bên ngoài view.
+- Trong view, `ui.themes.apply(c, theme)` đặt một theme làm theme của frame. Các widget dựng sau lệnh này đọc theme đó, nền cửa sổ cũng vậy. Hãy gọi nó đầu tiên.
+- `myzig.isDark()` và `myzig.accentColor()` đọc giao diện và màu accent của hệ thống từ bên ngoài view.
 
-<a id="named-themes"></a>
+<a id="palettes"></a>
 
 ## Bảng màu
 
 <!-- demo: palettes height=230 -->
 
-![Các nút, công tắc và thanh trượt theo chủ đề của một bảng màu.](../../images/ui/controls.png)
+![Nút, switch và slider theo theme của một bảng màu.](../../images/ui/controls.png)
 
-`ui.Palette` là một trong các chủ đề của [shadcn/ui](https://ui.shadcn.com): một nền xám với màu chính của riêng nó, hoặc lấy một màu nhấn làm màu chính:
+`ui.Palette` là một trong các theme của [shadcn/ui](https://ui.shadcn.com): một nền xám có màu chính riêng, hoặc lấy một trong các accent làm màu chính.
 
 | | |
 |---|---|
 | `base` | `neutral`, `stone`, `zinc` (mặc định), `mauve`, `olive`, `mist`, `taupe` |
-| `accent` | `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, `yellow`; null để dùng màu của nền |
-
-`ui.themes.use` biến một bảng màu thành chủ đề của khung hình, sáng hay tối theo cửa sổ; hãy gọi nó đầu tiên trong view:
+| `accent` | `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, `yellow`; null để dùng màu riêng của nền |
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {
@@ -145,17 +157,27 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`palette.theme(dark)` là chính `ui.Theme`, để cố định cửa sổ ở một giao diện hoặc chuyển sang nó có hoạt hình:
+`ui.themes.use` đặt một bảng màu làm theme của frame, sáng hoặc tối theo cửa sổ. Hãy gọi nó đầu tiên trong view.
 
 ```zig
 _ = try app.newWindow(.{ .theme = ui.Palette.theme(.{ .accent = .rose }, true), .content = .{ .view = .init(&state, State.view) } });
 ```
 
-Màu dùng cho văn bản hoặc biểu tượng thì lấy `theme.accentInk()`, không lấy `theme.accent`: màu chính có sắc độ thường tối khi ở chế độ tối, màu vàng thì sáng khi ở chế độ sáng, nên nó được kéo về gần màu văn bản để đọc được.
+`palette.theme(dark)` chính là `ui.Theme`. Dùng nó để cố định cửa sổ ở một giao diện, hoặc để chuyển sang theme đó có animation.
 
-## Chủ đề được đặt tên
+Với chữ hay icon mang màu accent, hãy dùng `theme.accentInk()`, không dùng `theme.accent`. Màu chính có sắc thường tối khi ở theme tối, còn màu vàng lại sáng khi ở theme sáng. `accentInk()` kéo màu về gần màu chữ trong những trường hợp đó, để đọc được.
 
-`ui.themes.builtins` liệt kê các chủ đề của myzig theo tên: `light`, `dark`, `light-high-contrast` và `dark-high-contrast`. `ui.themes.find(list, name)` trước tiên tìm tên trong danh sách riêng của ứng dụng, sau đó trong myzig, rồi trong các bảng màu (`stone-light`, `blue-dark`, `stone-blue-dark`), đối với chủ đề được lưu trong cài đặt theo tên:
+<a id="named-themes"></a>
+
+## Theme có tên
+
+`ui.themes.builtins` liệt kê các theme của myzig theo tên: `light`, `dark`, `light-high-contrast` và `dark-high-contrast`.
+
+Với theme được lưu trong cài đặt theo tên, `ui.themes.find(list, name)` tìm tên đó:
+
+1. trong danh sách riêng của app;
+2. trong danh sách của myzig;
+3. trong các bảng màu (`stone-light`, `blue-dark`, `stone-blue-dark`).
 
 ```zig
 const app_themes = [_]ui.themes.Named{
@@ -168,13 +190,17 @@ fn view(s: *State, c: *ui.Context) void {
 }
 ```
 
-`ui.themes.forAppearance(dark, light_theme, dark_theme)` chọn màu sáng hoặc tối trong một cặp, `ui.themes.withAccent(theme, color)` tạo điểm nhấn khác cho chủ đề (với con trỏ và văn bản màu đen trên đó ở nơi màu trắng sẽ không nổi bật, như màu vàng) và `ui.themes.mix(a, b, t)` pha trộn mọi màu của hai chủ đề.
+| hàm | |
+|---|---|
+| `ui.themes.forAppearance(dark, light_theme, dark_theme)` | chọn theme sáng hoặc tối trong một cặp |
+| `ui.themes.withAccent(theme, color)` | đổi accent của theme, kèm màu hover, và chữ đen trên accent khi chữ trắng không nổi bật, như trên nền vàng |
+| `ui.themes.mix(a, b, t)` | trộn mọi màu của hai theme |
 
 <a id="switching-themes-animated"></a>
 
-## Chuyển đổi chủ đề, hoạt hình
+## Đổi theme có animation
 
-`ui.ThemeSwitcher` (`ui.themes.Switcher`) thay đổi từ chủ đề này sang chủ đề khác với mỗi lần giảm màu, giống như hệ thống thực hiện khi hình thức của nó thay đổi. Giữ nó ở trạng thái, thay đổi nó bằng `switchTo` và `apply` trước tiên trong view:
+`ui.ThemeSwitcher` (`ui.themes.Switcher`) chuyển từ theme này sang theme khác, mọi màu đều đổi dần, giống hệ thống khi đổi giao diện. Giữ nó trong state, đổi bằng `switchTo`, và `apply` nó đầu tiên trong view:
 
 ```zig
 const State = struct {
@@ -191,24 +217,36 @@ const State = struct {
 };
 ```
 
-Trước `switchTo` đầu tiên, chủ đề riêng của cửa sổ sẽ hiển thị. `duration` theo mặc định là 0,3 giây; `changing()` cho biết liệu một thay đổi có đang diễn ra hay không và `current()` chủ đề được hiển thị ngay bây giờ. Màu sắc không chuyển động nên chủ đề thay đổi mượt mà ngay cả khi người dùng yêu cầu ít chuyển động hơn.
+- Trước lần `switchTo` đầu tiên, theme riêng của cửa sổ được hiển thị.
+- `duration` mặc định là 0,3 giây.
+- `changing()` cho biết có đang chuyển hay không. `current()` là theme đang hiển thị.
+- Màu đổi không làm gì di chuyển, nên theme vẫn đổi mượt kể cả khi người dùng yêu cầu giảm chuyển động.
 
 <a id="the-desktop-s-preferences"></a>
 
-## Tùy chọn của máy tính để bàn
+## Tùy chọn của desktop
 
-`ui.preferences.apply(c)`, được gọi đầu tiên trong view, làm cho khung tuân theo cài đặt của người dùng và trả về chúng dưới dạng `ui.Preferences`:
+`ui.preferences.apply(c)`, gọi đầu tiên trong view, làm frame theo cài đặt của người dùng. Nó trả về các cài đặt đó dưới dạng `ui.Preferences`:
 
-| lĩnh vực | từ |
+| trường | lấy từ |
 |---|---|
-| `accent` | màu nhấn mà người dùng đã chọn, null trong đó màn hình không có |
-| `high_contrast` | macOS's Tăng độ tương phản, chủ đề tương phản của Windows', chủ đề tương phản cao GTK |
-| `text_scale` | Windows' kích thước văn bản, độ phân giải phông chữ của GTK, thông thường là 1 |
-| `reduce_motion` | cài đặt chuyển động giảm thiểu của hệ thống (xem [chuyển động](motion.md)) |
+| `accent` | màu accent người dùng chọn, null nếu desktop không có |
+| `high_contrast` | Increase contrast của macOS, contrast theme của Windows, theme tương phản cao của GTK |
+| `text_scale` | cỡ chữ của Windows, độ phân giải font của GTK, 1 là bình thường |
+| `reduce_motion` | cài đặt giảm chuyển động của hệ thống (xem [chuyển động](motion.md)) |
 
-Chủ đề lấy điểm nhấn và với độ tương phản cao, đường viền và văn bản phụ gần với màu của văn bản hơn (`ui.preferences.highContrast(theme)`); văn bản được chia tỷ lệ từ `text_scale` đến `c.setZoom`. Máy tính để bàn được hỏi một lần cho mỗi quá trình; `ui.preferences.refresh()` hỏi lại khi nào nó cho biết cài đặt của nó đã thay đổi.
+- Theme nhận màu accent.
+- Khi bật tương phản cao, viền và chữ phụ được kéo gần màu chữ hơn (`ui.preferences.highContrast(theme)`).
+- Chữ được phóng theo `text_scale` qua `c.setZoom`.
+- Desktop chỉ được hỏi một lần mỗi process. `ui.preferences.refresh()` hỏi lại, dùng khi desktop báo cài đặt đã đổi.
 
-Cài đặt riêng của ứng dụng sẽ ghi đè cài đặt của máy tính để bàn đối với ngữ cảnh: `ui.preferences.setHighContrast(c, on)`, `setTextScale(c, scale)` và `setAccent(c, color)`, mỗi cài đặt sẽ lấy null để theo dõi lại máy tính để bàn. `ui.preferences.get(c)` đọc nội dung của khung mà không áp dụng khung đó.
+Cài đặt riêng của app ghi đè cài đặt của desktop cho context đó. Mỗi hàm nhận null để quay về theo desktop:
+
+- `ui.preferences.setHighContrast(c, on)`
+- `setTextScale(c, scale)`
+- `setAccent(c, color)`
+
+`ui.preferences.get(c)` đọc những gì frame đang theo mà không áp dụng.
 
 ```zig
 fn view(s: *State, c: *ui.Context) void {

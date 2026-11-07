@@ -1,20 +1,27 @@
 <a id="menus-and-selects"></a>
 
-# Menu và lựa chọn
+# Menu và select
 
-Menu được vẽ trong cửa sổ bởi myzig: menu ngữ cảnh được mở bằng nhấp chuột phải, menu của một nút, nút menu, với các mục, dấu kiểm, phím tắt được hiển thị, dấu phân cách và menu con; và chọn, trình đơn thả xuống chọn một trong danh sách các chuỗi. Để biết về thanh menu của ứng dụng cũng như các menu ngữ cảnh và menu khay của chính hệ thống, hãy xem [Menu](../menus.md); để biết các lệnh mà ứng dụng cung cấp dưới dạng mục menu, nút và phím tắt cùng lúc, hãy xem [Hành động](navigation.md#actions).
+Các menu do myzig vẽ ngay trong cửa sổ:
 
-<a id="a-menu-s-state-and-items"></a>
+- context menu mở bằng chuột phải;
+- menu của một nút, và menu button;
+- các mục có dấu check, hiện shortcut, separator và submenu;
+- select: drop-down chọn một chuỗi trong một danh sách.
+
+Thanh menu của app, context menu và tray menu của hệ thống nằm ở trang [Menus](../menus.md). Các lệnh mà app đưa ra cùng lúc dưới dạng mục menu, nút và shortcut nằm ở [Actions](navigation.md#actions).
 
 <!-- demo: menu height=520 -->
 
-![Menu Sort by đang mở, với Name được chọn.](../../images/ui/menu.png)
+![Menu Sort by đang mở, mục Name được chọn.](../../images/ui/menu.png)
 
-*Menu Sort by đang mở, với Name được chọn.*
+*Menu Sort by đang mở, mục Name được chọn.*
 
-## Trạng thái và các mục của menu
+<a id="a-menu-s-state-and-items"></a>
 
-Trạng thái của menu là `ui.Menu` được ứng dụng lưu giữ, mỗi trạng thái một menu:
+## State và các mục của menu
+
+State của một menu là một `ui.Menu` do app giữ, mỗi menu một cái:
 
 ```zig
 const State = struct {
@@ -26,7 +33,7 @@ const State = struct {
 };
 ```
 
-Mọi cách hiển thị menu đều trả về `*ui.MenuPanel` khi nó mở (null khi đóng). Các hạng mục của nó được xây dựng khi nó mở cửa; thì đó là `end`:
+Mọi cách hiển thị menu đều trả về một `*ui.MenuPanel` khi menu đang mở, null khi đóng. Dựng các mục khi menu đang mở, rồi gọi `end` của nó:
 
 ```zig
 if (ui.contextMenu(c, &s.ctx, row)) |m| {
@@ -42,26 +49,37 @@ if (ui.contextMenu(c, &s.ctx, row)) |m| {
 }
 ```
 
-`MenuPanel.item(label, opts)` là true trong khung mà mục được chọn (được nhấp vào hoặc Enter hoặc Space trên đó), thao tác này sẽ đóng menu. `ui.MenuItemOptions`:
+`MenuPanel.item(label, opts)` là true trong frame mục được chọn: được bấm, hoặc nhấn Enter hay Space trên nó. Chọn xong thì menu đóng.
 
-| trường | Mặc định | |
+| `ui.MenuItemOptions` | Mặc định | |
 |---|---|---|
-| `shortcut` | `""` | một tổ hợp phím được nó hiển thị, giống như phím tắt thực hiện tương tự: nó chỉ hiển thị nó |
-| `checked` | null | đánh dấu vào đó khi true và nhường chỗ cho một dấu kiểm khi false |
-| `disabled` | false | chuyển sang màu xám: không thể chọn được |
-| `icon` | `""` | Biểu tượng SF (hoặc biểu tượng dòng của myzig của tên đó ở ngoài macOS) trước nhãn |
+| `shortcut` | `""` | tổ hợp phím hiện cạnh mục, là shortcut làm cùng việc: nó chỉ hiển thị thôi |
+| `checked` | null | dấu check cạnh mục khi true, và chừa chỗ cho dấu check khi false |
+| `disabled` | false | bị làm xám: không chọn được |
+| `icon` | `""` | một SF Symbol (hoặc icon nét cùng tên của myzig ngoài macOS) trước label |
 
-Viết các phím tắt bằng các ký hiệu của máy Mac và để `ui.keys.label` viết chúng giống như nền tảng thực hiện: `ui.keys.label("⇧⌘S")` là `⇧⌘S` trên macOS và `Ctrl+Shift+S` trên Linux và Windows. Một mục chỉ hiển thị lối tắt của nó; tự trả lời các phím bằng `c.shortcut(...)` hoặc đặt tên lệnh một lần dưới dạng [hành động](navigation.md#actions), có mục menu hiển thị lối tắt và trả lời lệnh đó.
+**Shortcut.** Viết chúng bằng ký hiệu của Mac. `ui.keys.label` viết lại theo cách của nền tảng: `ui.keys.label("⇧⌘S")` là `⇧⌘S` trên macOS và `Ctrl+Shift+S` trên Linux và Windows.
 
-`separator()` vẽ ranh giới giữa các nhóm mục. `submenu(label)` thêm một mục mở menu con khi con trỏ nằm trên đó hoặc cho Right hoặc Enter; nó trả về bảng điều khiển của menu con khi nó đang mở. Các menu con có chiều sâu bốn (`max_depth` trong `src/ui/menu.zig`) và bàn phím di chuyển giữa 64 mục đầu tiên của menu.
+Mục menu chỉ hiển thị shortcut. Tự xử lý phím bằng `c.shortcut(...)`. Hoặc đặt tên lệnh một lần dưới dạng [action](navigation.md#actions): mục menu của nó vừa hiện shortcut vừa xử lý phím.
 
-Di chuyển Up và Down giữa các mục (bỏ qua những mục bị vô hiệu hóa), các menu con Phải và Trái mở và đóng, và Escape đóng menu trong cùng. Giống như các menu của hệ thống, một menu đang mở sẽ đưa nút nhấn ra bên ngoài nó, thao tác này sẽ đóng nó lại và không đi xa hơn nữa. Con trỏ chỉ làm nổi bật một mục khi nó di chuyển, do đó, việc mở menu bên dưới con trỏ nằm yên sẽ giữ lại điểm nổi bật của bàn phím.
+- `separator()` vẽ một đường kẻ giữa các nhóm mục.
+- `submenu(label)` thêm một mục mở ra submenu. Submenu mở khi con trỏ dừng trên mục, hoặc khi nhấn Right hay Enter. Nó trả về panel của submenu khi đang mở.
+- Submenu lồng tối đa bốn cấp (`max_depth` trong `src/ui/menu.zig`).
+- Bàn phím di chuyển trong 64 mục đầu tiên của menu.
+
+**Phím và con trỏ:**
+
+- Up và Down di chuyển giữa các mục, bỏ qua mục bị disable.
+- Right và Left mở và đóng submenu.
+- Escape đóng menu trong cùng.
+- Menu đang mở nhận cú bấm bên ngoài nó, như menu của hệ thống. Cú bấm đó đóng menu và không đi tiếp.
+- Con trỏ chỉ highlight một mục khi nó di chuyển. Nên menu mở ra dưới con trỏ đứng yên vẫn giữ highlight của bàn phím.
 
 <a id="context-menus"></a>
 
-## Menu ngữ cảnh
+## Context menu
 
-`ui.contextMenu(c, &menu, target)` cung cấp cho phần tử `target` (một tương tác của hộp của nó, được xây dựng với các phần tử con của nó) một menu mở ra ở nơi nó được nhấp chuột phải hoặc bên dưới nó cho Shift+F10 trong khi nó có tiêu điểm:
+`ui.contextMenu(c, &menu, target)` gắn một menu cho phần tử `target`. `target` là interaction của box phần tử đó, đã build cùng phần tử con. Menu mở tại chỗ bấm chuột phải, hoặc bên dưới phần tử khi nhấn Shift+F10 lúc nó có focus:
 
 ```zig
 const row = ui.pressable(c, .{ .width = .fill, .padding = .all(12), .radius = 8, .background = c.theme.surface_hover }, null);
@@ -73,13 +91,13 @@ if (ui.contextMenu(c, &s.ctx, row)) |m| {
 }
 ```
 
-Gọi nó theo tên các phần tử bên trong `target`, để phần tử trong cùng có menu nhận được cú nhấp chuột: hàng của danh sách có menu riêng, bên trong danh sách có một menu làm nền.
+Gọi nó sau các phần tử nằm trong `target`. Khi đó phần tử có menu nằm trong cùng sẽ nhận cú bấm: một hàng của list có menu riêng, nằm trong list có menu cho phần nền.
 
 <a id="menus-of-a-button"></a>
 
-## Menu của một nút
+## Menu của nút
 
-`ui.buttonMenu(c, &menu, button)` cung cấp cho một nút một menu, mở ra bên dưới nó khi con trỏ đi xuống nút đó (giống như các nút bật lên của hệ thống, do đó, nhấn, kéo đến một mục và thả ra sẽ chọn mục đó) và đóng khi nhấn lần thứ hai:
+`ui.buttonMenu(c, &menu, button)` gắn menu cho một nút.
 
 ```zig
 const more = ui.button(c, "More", .{});
@@ -90,7 +108,11 @@ if (ui.buttonMenu(c, &s.more, more)) |m| {
 }
 ```
 
-`ui.menuButton(c, title, &menu, opts)` là một nút riêng hiển thị `title` và một mũi tên, mở menu bên dưới nút đó: khi con trỏ đi xuống nút đó hoặc nhấn Enter, Space hoặc Down khi nút đó có tiêu điểm.
+- Menu mở bên dưới nút ngay khi con trỏ nhấn xuống, như pop-up button của hệ thống.
+- Nên nhấn, kéo tới một mục rồi thả tay là chọn mục đó.
+- Bấm lần hai thì menu đóng.
+
+`ui.menuButton(c, title, &menu, opts)` là một nút riêng, hiện `title` kèm mũi tên. Nó mở menu bên dưới khi con trỏ nhấn xuống, hoặc khi nhấn Enter, Space hay Down lúc nút có focus.
 
 ```zig
 if (ui.menuButton(c, "Sort by", &s.sort, .{})) |m| {
@@ -105,9 +127,13 @@ if (ui.menuButton(c, "Sort by", &s.sort, .{})) |m| {
 
 <a id="opening-a-menu-from-code"></a>
 
-## Mở menu từ mã
+## Mở menu từ code
 
-`ui.menu(c, &menu)` xây dựng menu `menu` bất cứ nơi nào nó được mở và đó là chức năng mà các chức năng trên gọi. Mở nó bằng `Menu.openAt(point)` (góc trên cùng bên trái của nó tại một điểm của cửa sổ) hoặc `Menu.openBelow(rect)` (bên dưới hình chữ nhật hoặc phía trên hình chữ nhật nếu không có chỗ) và đóng nó bằng `close()`; `isOpen()` cho biết nó có mở hay không.
+`ui.menu(c, &menu)` dựng menu `menu` ở nơi nó được mở. Các hàm ở trên đều gọi nó.
+
+- `Menu.openAt(point)` mở menu với góc trên bên trái tại một điểm của cửa sổ.
+- `Menu.openBelow(rect)` mở menu bên dưới một hình chữ nhật, hoặc bên trên nếu không đủ chỗ.
+- `close()` đóng nó. `isOpen()` cho biết nó có đang mở không.
 
 ```zig
 if (c.shortcut(.{ .key = 'k', .cmd = true })) s.palette.openAt(.{ .x = 200, .y = 80 });
@@ -119,35 +145,37 @@ if (ui.menu(c, &s.palette)) |m| {
 
 <a id="selects"></a>
 
-## Lựa chọn
+## Select
 
 <!-- demo: selects height=168 -->
 
-![Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.](../../images/ui/selects.png)
+![Select, combobox và autocomplete đang đóng.](../../images/ui/selects.png)
 
-*Select, combobox chọn phông chữ và ô tự động gợi ý thành phố.*
+*Select, combobox và autocomplete đang đóng.*
 
-`ui.select(c, &selected, options, &state, opts)` là trình đơn thả xuống chọn một trong `options` (chuỗi) thành `selected.*`, một chỉ mục. Trạng thái của nó là `ui.SelectState` được ứng dụng lưu giữ:
+`ui.select(c, &selected, options, &state, opts)` là một drop-down. Nó chọn một trong `options` (các chuỗi) và ghi chỉ số vào `selected.*`. State của nó là một `ui.SelectState` do app giữ:
 
 ```zig
 const sizes = [_][]const u8{ "Small", "Medium", "Large" };
-// In the app's state: size: usize = 1, size_box: ui.SelectState = .{},
+// Trong state của app: size: usize = 1, size_box: ui.SelectState = .{},
 
 if (ui.select(c, &s.size, &sizes, &s.size_box, .{ .width = .{ .px = 160 } }).changed) s.save();
 ```
 
-Một cú nhấp chuột vào nó hoặc Enter, Space, Up hoặc Down trong khi nó có tiêu điểm, sẽ mở các tùy chọn bên dưới nó (phía trên nơi không còn chỗ); các mũi tên, Home và End di chuyển giữa chúng, Enter, Space hoặc một cú nhấp chuột sẽ chọn một và Escape hoặc nhấn bên ngoài sẽ đóng chúng, danh sách sẽ thực hiện thao tác này, giống như các menu bật lên của hệ thống. Tiêu điểm quay trở lại vùng chọn. Với nhiều tùy chọn hơn số chỗ mà cửa sổ có thể chứa, danh sách sẽ cao bằng khoảng trống ở phía lớn hơn của vùng chọn và các tùy chọn của nó sẽ cuộn.
+- Bấm vào thì các lựa chọn mở ra bên dưới, hoặc bên trên nếu không đủ chỗ. Enter, Space, Up hay Down lúc nó có focus cũng vậy.
+- Phím mũi tên, Home và End di chuyển giữa các lựa chọn. Enter, Space hoặc bấm chuột để chọn.
+- Escape hoặc bấm bên ngoài sẽ đóng danh sách. Danh sách nhận luôn cú bấm đó, như pop-up menu của hệ thống.
+- Focus trở lại select.
+- Khi số lựa chọn nhiều hơn chỗ trong cửa sổ, danh sách cao bằng phần chỗ ở phía rộng hơn của select. Các lựa chọn scroll được.
 
-`ui.SelectOptions`:
-
-| trường | Mặc định | |
+| `ui.SelectOptions` | Mặc định | |
 |---|---|---|
 | `width` | `.{ .px = 200 }` | |
-| `size` | 14 | kích thước phông chữ |
-| `placeholder` | `"Choose…"` | hiển thị khi `selected.*` vượt quá các tùy chọn |
+| `size` | 14 | cỡ chữ |
+| `placeholder` | `"Choose…"` | hiện khi `selected.*` vượt quá số lựa chọn |
 | `disabled` | false | |
-| `label` | `""` | đặt tên cho công nghệ hỗ trợ |
+| `label` | `""` | tên cho công nghệ hỗ trợ |
 
-`ui.SelectResult` có `changed` (một tùy chọn mới đã được chọn trong khung này), `open` và `focused`.
+`ui.SelectResult` có `changed` (một lựa chọn mới được chọn trong frame này), `open` và `focused`.
 
-Đối với trường có văn bản lọc các tùy chọn theo kiểu người dùng, hãy sử dụng `ui.combobox`; để biết các đề xuất trong trường văn bản tự do, `ui.autocomplete` (cả trong [Nhập văn bản](text-input.md)).
+Với một trường mà chữ gõ vào lọc các lựa chọn, dùng `ui.combobox`. Với gợi ý bên dưới một ô nhập chữ tự do, dùng `ui.autocomplete`. Cả hai nằm ở [Text input](text-input.md).

@@ -1,9 +1,6 @@
-# Cuộn và thu phóng bằng cử chỉ
+# Cuộn và pinch để thu phóng
 
-`Div.handleInput(state, callback)` cho phép chart, canvas hoặc widget tự
-xử lý cuộn và pinch trên touchpad. Callback chạy trên main thread, trước
-lượt dựng view kế tiếp, và trả về việc có nhận sự kiện hay không. Con trỏ
-state phải còn hợp lệ trong suốt thời gian phần tử hiển thị.
+`Div.handleInput(state, callback)` cho phép biểu đồ, canvas hay phần tử khác tự xử lý scroll và thu phóng bằng touchpad.
 
 ```zig
 fn input(s: *State, e: ui.InputEvent) bool {
@@ -14,40 +11,58 @@ fn input(s: *State, e: ui.InputEvent) bool {
     return true;
 }
 
+// Trong view:
 const plot = ui.div(c).size(400, 240).handleInput(s, input);
 defer plot.end();
+// Vẽ biểu đồ ở đây.
 ```
 
-`kind` là `.scroll` hoặc `.zoom`. `x`, `y` là vị trí con trỏ tương đối với
-phần tử, có tính transform. `dx`, `dy` là số point cuộn, dương sang phải
-và xuống dưới; `precise` phân biệt touchpad với nấc bánh xe khi nền tảng
-cung cấp thông tin đó. `scale` là hệ số nhân: 2 nghĩa là phóng lớn gấp đôi.
-`ctrl`, `shift`, `cmd` là các phím bổ trợ.
+- Callback chạy trên main thread trước lần dựng view kế tiếp.
+- Nó trả về việc nó có nhận event hay không.
+- Giữ con trỏ state hợp lệ trong khi phần tử còn hiện.
 
-Sự kiện đến handler trong cùng dưới con trỏ. Trả về `false` chuyển tiếp
-cho handler cha, rồi cơ chế cuộn bình thường. Sự kiện cuộn đã được nhận
-không cuộn container bên ngoài. Pinch không làm container cuộn. Hệ số
-không hữu hạn, không dương hoặc bằng 1 bị bỏ qua.
+| `ui.InputEvent` | |
+|---|---|
+| `kind` | `.scroll` hoặc `.zoom` |
+| `x`, `y` | vị trí con trỏ, tính theo phần tử và transform của nó |
+| `dx`, `dy` | lượng scroll theo điểm, dương là sang phải và xuống dưới |
+| `precise` | touchpad chứ không phải nấc bánh xe chuột, ở nền tảng phân biệt được |
+| `scale` | hệ số thu phóng: 2 là to gấp đôi |
+| `ctrl`, `shift`, `cmd` | các phím bổ trợ đang giữ |
 
-macOS dùng sự kiện magnification. GTK 3 nhận pinch ở desktop có hỗ trợ,
-đặc biệt Wayland. Windows coi delta bánh xe phân số kèm Ctrl là pinch;
-nấc bánh xe nguyên vẫn là scroll kèm Ctrl. Trình duyệt dùng Ctrl kèm delta
-pixel, bao gồm cả chuột phát kiểu Ctrl-wheel này. Chỉ chặn zoom mặc định
-của trình duyệt khi view nhận sự kiện.
+**Hoạt động**
 
-Kiểm thử headless với `t.pinch(x, y, scale)`; kết quả cho biết có handler
-nhận hay không. `t.scroll` và `t.wheel` cũng đi qua handler. Hai phương thức
-cuộn của Tester dùng `dy` dương hướng lên như trước, còn `InputEvent.dy`
-được đổi sang dương hướng xuống.
+- Input tới handler hiển thị nằm trong cùng dưới con trỏ.
+- Trả về false thì input được chuyển cho handler của phần tử cha, rồi cho việc scroll thông thường.
+- Scroll đã được xử lý thì không cuộn box bao quanh. Pinch thì không bao giờ cuộn.
+- Hệ số scale không hữu hạn, không dương, hoặc bằng 1 thì bị bỏ qua.
 
-Xem [ví dụ gestures](../../../examples/gestures/main.zig). `zig build
-test-web -j1` cũng kiểm tra pinch và pan ngang/dọc trên bản WebAssembly
-dưới Node, không mở cửa sổ trình duyệt.
+**Nền tảng**
 
-Windows cũng chuyển `WM_MOUSEHWHEEL` thành `dx` của handler, dương sang
-phải, kể cả khi giữ Ctrl. Cuộn ngang không bị đổi thành pinch.
+- **macOS**: event magnification.
+- **Linux**: GTK 3 nhận ra pinch trên touchpad ở nơi desktop cung cấp, đáng kể là Wayland.
+- **Windows**: delta bánh xe lẻ kèm Ctrl là thu phóng của precision touchpad. Nấc bánh xe nguyên kèm Ctrl vẫn là scroll.
+- **Windows**: `WM_MOUSEHWHEEL` đi vào `dx` (dương là sang phải), kể cả khi giữ Ctrl. Scroll ngang không bao giờ thành pinch.
+- **Trình duyệt**: Ctrl kèm delta bánh xe tính theo pixel là pinch, đúng như trình duyệt báo về. Thiết bị Ctrl-wheel gửi delta pixel cũng được tính.
+- **Trình duyệt**: thu phóng mặc định của trình duyệt chỉ bị chặn khi view xử lý event.
 
-Thêm `-Dweb-browser="/path/to/chrome-or-edge"` vào `zig build test-web`
-để kiểm tra thêm `WheelEvent` thật trong trình duyệt headless: delta theo
-pixel, dòng và trang; Ctrl-pinch; chỉ chặn mặc định khi handler nhận sự
-kiện. Test không hiện cửa sổ hay tạo input ở cấp hệ điều hành.
+**Test**
+
+- `t.pinch(x, y, scale)` trả về việc có handler nhận nó hay không.
+- `t.scroll(x, y, dy)` và `t.wheel(x, y, dy)` cũng đi qua handler. `dy` của chúng dương là lên trên; `InputEvent` nhận nó với dương là xuống dưới.
+- `zig build test-web -j1` kiểm tra pinch và kéo ngang, dọc trong bản build WebAssembly chạy dưới Node, không mở cửa sổ trình duyệt.
+
+Xem [ví dụ gestures](../../../examples/gestures/main.zig).
+
+<details>
+<summary>Event bánh xe thật của trình duyệt</summary>
+
+Truyền `-Dweb-browser="/path/to/chrome-or-edge"` cho `zig build test-web` để test thêm `WheelEvent` thật của DOM trong một trình duyệt headless:
+
+- delta theo pixel, dòng và trang;
+- pinch bằng Ctrl;
+- chỉ hủy event mặc định với các event đã được xử lý.
+
+Nó không hiện cửa sổ nào và không giả lập input hệ thống.
+
+</details>

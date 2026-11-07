@@ -2,24 +2,32 @@
 
 # Bắt đầu
 
-myzig giúp xây dựng ứng dụng desktop bằng Zig. Cửa sổ hiển thị giao diện native do myzig tự vẽ, hoặc trang web trong webview hệ thống. Frontend gọi code Zig qua client được sinh tự động. Hướng dẫn này trình bày cách cài công cụ, tạo và chạy ứng dụng, build bản phát hành rồi khám phá các ví dụ.
+myzig dùng để làm app desktop bằng Zig. Một cửa sổ hiện một trong hai thứ:
+
+- native UI do myzig tự vẽ, viết hoàn toàn bằng Zig;
+- một trang web trong webview của hệ thống, có frontend gọi code Zig của bạn qua một client được sinh tự động.
+
+Trang này cài công cụ, tạo một app, chạy nó và build bản phát hành. Sau đó điểm qua các ví dụ.
 
 <a id="install"></a>
 
 ## Cài đặt
 
-Bạn cần **Zig 0.17.0** trở lên (`minimum_zig_version` trong `build.zig.zon`). myzig nạp thư viện hệ thống của Linux và Windows khi ứng dụng khởi động, thay vì liên kết lúc build. Vì vậy có thể build cho hai nền tảng này từ máy khác bằng `-Dtarget=...` mà không cần cài thêm thư viện. Ứng dụng macOS liên kết các framework của Apple nên cần macOS SDK khi build.
+Bạn cần **Zig 0.17.0** trở lên (`minimum_zig_version` trong `build.zig.zon`).
 
-Ứng dụng cần những gì để chạy:
+- myzig nạp những gì Linux và Windows có sẵn khi app khởi động, thay vì link chúng. Nhờ vậy app cho hai nền tảng này build được từ bất kỳ máy nào (`-Dtarget=...`), không cần gì thêm.
+- App macOS link các framework của Apple, nên phải build ở nơi có macOS SDK.
 
-| | Khi build | Khi chạy |
+App cần gì để chạy:
+
+| | để build | để chạy |
 |---|---|---|
-| macOS | macOS SDK (Xcode hoặc Command Line Tools) | Không cần cài thêm |
-| Linux | Không cần cài thêm | GTK 3; WebKitGTK (`libwebkit2gtk-4.1` hoặc `-4.0`) khi dùng trang web |
-| Windows | Không cần cài thêm | WebView2 Runtime khi dùng trang web (có sẵn trên Windows 11) |
-| trình duyệt | không có gì | một trình duyệt có WebGL 2 (xem [Trình duyệt](browsers.md)) |
+| macOS | macOS SDK (Xcode hoặc Command Line Tools) | không cần gì |
+| Linux | không cần gì | GTK 3; WebKitGTK (`libwebkit2gtk-4.1` hoặc `-4.0`) cho trang web |
+| Windows | không cần gì | WebView2 Runtime cho trang web (Windows 11 có sẵn) |
+| trình duyệt | không cần gì | một trình duyệt có WebGL 2 (xem [Trình duyệt](browsers.md)) |
 
-Nhận myzig và xây dựng công cụ dòng lệnh:
+Lấy myzig về, rồi build công cụ dòng lệnh:
 
 ```sh
 git clone https://github.com/hunghg255/myzig
@@ -27,20 +35,27 @@ cd myzig/cli
 zig build -Doptimize=ReleaseSmall    # zig-out/bin/myzig
 ```
 
-Đặt `cli/zig-out/bin` trên `PATH` của bạn hoặc chạy công cụ từ bản checkout với `zig build run -- <command>` trong `cli/`. `myzig doctor` kiểm tra xem máy có thể xây dựng và chạy các ứng dụng: Zig, SDK và thư viện của nền tảng (macOS SDK; GTK 3 và WebKitGTK; WebView2 Runtime).
+Thêm `cli/zig-out/bin` vào `PATH`. Hoặc chạy công cụ ngay trong bản checkout bằng `zig build run -- <command>` trong `cli/`.
 
-myzig trước đây có tên nanoui. Mô-đun, các cờ (`--myzig-*`), runtime của trang (`window.myzig`) và URL scheme (`myzig://`) đã dùng tên mới. Hệ thống build vẫn xuất mô-đun với tên `nanoui` để tương thích với ứng dụng dùng tên cũ.
+`myzig doctor` kiểm tra máy có build và chạy được app không: Zig, cùng SDK và thư viện của nền tảng (macOS SDK; GTK 3 và WebKitGTK; WebView2 Runtime).
+
+<details>
+<summary>myzig trước đây tên là nanoui</summary>
+
+Module, các flag (`--myzig-*`), runtime của trang (`window.myzig`) và URL scheme (`myzig://`) đều mang tên mới. Build vẫn xuất module dưới tên `nanoui`, cho các app còn import tên cũ.
+
+</details>
 
 <a id="create-an-app"></a>
 
-## Tạo một ứng dụng
+## Tạo app
 
 ```sh
-myzig init hello                  # native UI (the default template)
-myzig init hello --template web   # a web page calling Zig
+myzig init hello                  # native UI (template mặc định)
+myzig init hello --template web   # một trang web gọi Zig
 ```
 
-`init` tạo một ứng dụng trong một thư mục mới hoặc trống. Đó là gói Zig có `build.zig.zon` phụ thuộc vào myzig:
+`init` tạo app trong một thư mục mới hoặc thư mục rỗng. App là một package Zig, có `build.zig.zon` phụ thuộc vào myzig:
 
 ```
 hello/
@@ -53,13 +68,21 @@ hello/
   .gitignore
 ```
 
-Chọn nguồn myzig: `--myzig PATH` dùng bản checkout cục bộ và tạo phụ thuộc dạng đường dẫn; `--myzig URL` dùng nguồn mà `zig fetch` có thể tải. Nếu không có hai cờ này, `init` dùng bản checkout trong `MYZIG_ROOT`, nếu có; nếu không thì dùng kho myzig. `--name` đặt tên ứng dụng khác tên thư mục. Sau khi tạo mẫu web, công cụ chạy bước sinh client một lần để ghi client của frontend; dùng `--skip-generate` để hoãn việc đó đến lần chạy `myzig dev` đầu tiên.
+| Tùy chọn | |
+|---|---|
+| `--myzig PATH` | một bản checkout, trở thành dependency dạng path |
+| `--myzig URL` | thứ mà `zig fetch` sẽ tải về |
+| không có cả hai | bản checkout mà `MYZIG_ROOT` chỉ tới, nếu không thì repository myzig |
+| `--name` | tên app khác với tên thư mục |
+| `--skip-generate` | bỏ qua lần build đầu của template web; lần `myzig dev` đầu tiên sẽ làm việc đó |
+
+Template web được build một lần ngay sau khi tạo, để ghi client được sinh cho frontend.
 
 <a id="native-ui"></a>
 
-### Giao diện native
+### Native UI
 
-`src/main.zig` của mẫu gốc là một bộ đếm:
+`src/main.zig` của template native là một bộ đếm:
 
 ```zig
 const std = @import("std");
@@ -100,13 +123,17 @@ test "the button counts" {
 }
 ```
 
-View là một chức năng của trạng thái ứng dụng, chạy cho mọi frame. Một widget trả lời những gì đã xảy ra với nó trong khung trước đó (`.clicked`); khi điều đó thay đổi trạng thái, khung sẽ được tạo lại trước khi được vẽ. Kiểm thử chạy cùng một view trong `ui.Tester`, không có cửa sổ. Xem [Giao diện native](ui/README.md).
+- View là một hàm của state của app, chạy ở mọi frame.
+- Widget trả lời chuyện đã xảy ra với nó ở frame trước (`.clicked`). Khi điều đó làm đổi state, frame được build lại trước khi vẽ.
+- Test chạy cùng view đó trong một `ui.Tester`, không cần cửa sổ.
+
+Xem [Native UI](ui/README.md).
 
 <a id="a-web-page"></a>
 
-### Một trang web
+### Trang web
 
-Mẫu web liên kết một dịch vụ và hiển thị `frontend/` trong một cửa sổ:
+Template web bind một service và hiện `frontend/` trong một cửa sổ:
 
 ```zig
 const std = @import("std");
@@ -147,7 +174,10 @@ import { Greeter } from "/myzig.js";
 document.getElementById("greeting").textContent = await Greeter.greet("Ada");
 ```
 
-`assets` là `frontend/myzig_assets.zig`, CLI ghi: các tệp của frontend được nhúng vào ứng dụng và được phân phát tại `myzig://localhost/`. `/myzig.js` là client được tạo từ các dịch vụ liên kết, được nhập bởi `frontend/myzig.d.ts`. Xem [Trang](pages.md) và [Bindings](bindings.md).
+- `assets` là `frontend/myzig_assets.zig`, do CLI ghi ra. Nó chứa các file của frontend, được nhúng vào app và phục vụ tại `myzig://localhost/`.
+- `/myzig.js` là client sinh ra từ các service đã bind, có kiểu trong `frontend/myzig.d.ts`.
+
+Xem [Trang web](pages.md) và [Binding](bindings.md).
 
 <a id="develop"></a>
 
@@ -155,95 +185,111 @@ document.getElementById("greeting").textContent = await Greeter.greet("Ada");
 
 ```sh
 cd hello
-myzig dev            # build, run, and rebuild and restart as files change
-zig build run        # or with Zig alone
-zig build test       # the app's tests
+myzig dev            # build, chạy, rồi build lại và khởi động lại khi file đổi
+zig build run        # hoặc chỉ dùng Zig
+zig build test       # các test của app
 ```
 
-`myzig dev` xem các tệp của ứng dụng thông qua hệ thống (không có polling ý kiến nào), viết lại client của mẫu web khi dịch vụ thay đổi và, với `dev_command` và `dev_url` trong `myzig.zon`, trước tiên hãy chạy máy chủ nhà phát triển (Vite, ...) và trỏ ứng dụng tới nó thông qua `MYZIG_DEV_URL`. Các đối số sau `--` sẽ chuyển đến ứng dụng. Xem [CLI](cli.md) và [Cấu hình](configuration.md).
+`myzig dev`:
+
+- theo dõi file của app qua hệ thống; không có gì chạy polling;
+- ghi lại client của template web khi các service đổi;
+- nếu `myzig.zon` có `dev_command` và `dev_url`, chạy một dev server (Vite, ...) trước, rồi trỏ app tới đó qua `MYZIG_DEV_URL`;
+- chuyển các tham số sau `--` cho app.
+
+Xem [CLI](cli.md) và [Cấu hình](configuration.md).
 
 <a id="check-an-app-without-a-window"></a>
 
-## Kiểm tra ứng dụng không có cửa sổ
+## Kiểm tra app không cần cửa sổ
 
-Các ứng dụng lấy cờ chạy ẩn, các kiểm thử và tác nhân sử dụng thay vì hiển thị cửa sổ:
+App nhận các flag để chạy ẩn. Test và agent dùng chúng thay vì hiện cửa sổ:
 
 ```sh
-zig-out/bin/hello --myzig-snapshot=shot.png                 # draw the first native UI window to a PNG
+zig-out/bin/hello --myzig-snapshot=shot.png                 # vẽ cửa sổ native UI đầu tiên ra PNG
 zig-out/bin/hello --myzig-snapshot=shot.png --myzig-script="click:Increment" --myzig-dark
-zig-out/bin/hello --myzig-snapshot=shot.png --myzig-wait=1  # run the loop for a second first
+zig-out/bin/hello --myzig-snapshot=shot.png --myzig-wait=1  # chạy vòng lặp một giây trước
 zig-out/bin/hello --myzig-eval='myzig.call("Greeter.greet","Ada").then(v => { myzig.log(v); myzig.window.close() })'
-zig-out/bin/hello --myzig-generate=frontend                 # write myzig.js and myzig.d.ts, and exit
-zig-out/bin/hello --myzig-hidden                            # run, never showing a window
+zig-out/bin/hello --myzig-generate=frontend                 # ghi myzig.js và myzig.d.ts, rồi thoát
+zig-out/bin/hello --myzig-hidden                            # chạy, không bao giờ hiện cửa sổ
 ```
 
-`--myzig-eval` chạy tập lệnh trên mỗi trang sau khi DOM của nó sẵn sàng; trang báo cáo với `myzig.log()` và kết thúc quá trình chạy với `myzig.window.close()`. Ảnh chụp nhanh, tập lệnh và Trình kiểm tra nằm trong [Thử nghiệm](ui/testing.md).
+`--myzig-eval` chạy một script trong mỗi trang khi DOM của trang đã sẵn sàng. Trang báo về bằng `myzig.log()`, và kết thúc lần chạy bằng `myzig.window.close()`. Snapshot, script và `ui.Tester` có trong [Test](ui/testing.md).
 
 <a id="build-the-release"></a>
 
-## Xây dựng bản phát hành
+## Build bản phát hành
 
 ```sh
-myzig build                        # this platform and architecture
-myzig build --platform windows     # from any machine
+myzig build                        # nền tảng và kiến trúc hiện tại
+myzig build --platform windows     # từ bất kỳ máy nào
 myzig build --platform linux --arch aarch64
-myzig build --platform web         # a static site (native UI only)
+myzig build --platform web         # một site tĩnh (chỉ native UI)
 ```
 
-`build` biên dịch một nhị phân `ReleaseSmall` bị lược bỏ (`--optimize fast` hoặc `safe` cho các loại khác) và đóng gói nó trong `dist/<platform>-<arch>`: `.app` và `.dmg` trên macOS, `.exe` với các tài nguyên biểu tượng và phiên bản của nó và `.zip` (và một trình cài đặt, với NSIS) cho Windows, một thư mục, `.tar.gz` và `.deb` cho Linux. Một bộ đếm có dung lượng khoảng 0,7 MB. Xem [Phân phối](distribution.md).
+`build` biên dịch một binary `ReleaseSmall` đã strip; `--optimize fast` hoặc `safe` cho các chế độ khác. Nó đóng gói binary vào `dist/<platform>-<arch>`:
+
+| Nền tảng | Gói |
+|---|---|
+| macOS | một `.app` và một `.dmg` |
+| Windows | một `.exe` kèm icon và thông tin phiên bản, một `.zip`, và một bộ cài nếu có NSIS |
+| Linux | một thư mục, một `.tar.gz` và một `.deb` |
+
+App bộ đếm nặng khoảng 0,7 MB. Xem [Phân phối](distribution.md).
 
 <a id="the-examples"></a>
 
 ## Các ví dụ
 
-Các ví dụ của kho lưu trữ được xây dựng với `zig build` từ gốc của nó, thành `zig-out/bin` và mỗi ví dụ chạy với `zig build run-<name>`:
+Các ví dụ của repository được build bằng `zig build` từ thư mục gốc, ra `zig-out/bin`. Mỗi ví dụ chạy bằng `zig build run-<name>`:
 
-| ví dụ | nó thể hiện điều gì |
+| ví dụ | nội dung |
 |---|---|
-| `counter` | ứng dụng giao diện native nhỏ nhất: view là một chức năng của trạng thái |
-| `gallery` | tham quan bộ công cụ giao diện native: bố cục, văn bản, mọi widget, lớp phủ, bản vẽ, chuyển động, kéo và thả |
-| `hello` | một trang web gọi Zig: các dịch vụ bị ràng buộc, các sự kiện đã nhập, client được tạo |
-| `todo` | một ứng dụng web nhỏ hoàn chỉnh: các dịch vụ và sự kiện đã nhập, tính bền vững, hộp thoại, menu, cửa sổ được đồng bộ hóa |
-| `native` | màn hình nền từ một trang: thanh menu, biểu tượng khay, hộp thoại, thông báo, bảng nhớ tạm |
-| `pages` | kiểm tra các trang: lược đồ, kênh, sự kiện, quyền, lượt tải xuống, đánh giá, tìm, PDF, cookie, tin cậy |
-| `documents` | trình chỉnh sửa ghi chú trên `myzig.Documents`: menu Tệp, cửa sổ cho mỗi ghi chú, tự động lưu, khôi phục |
-| `notes` | ghi chú được chỉnh sửa dưới dạng văn bản có định dạng, với thanh công cụ, liên kết và phím tắt Markdown |
-| `markdown-chat` | trả lời trực tuyến dưới dạng Markdown |
-| `code-editor` | trình soạn thảo mã, trình xem khác biệt và vùng văn bản |
-| `text-buffer` | 100 000 sợi dây chỉ được bày ra trước mắt |
-| `text-input` | một trường văn bản được xây dựng từ các kiểu nhập văn bản nguyên thủy |
-| `clipboard` | một mô hình dữ liệu được sao chép và kéo dưới dạng văn bản, HTML và JSON |
-| `drag-drop` | kéo trong và giữa các cửa sổ, ra các ứng dụng khác, thả các tập tin vào |
-| `chart-streaming` | dạng sóng cuộn của 15 000 mẫu, 1 000 mẫu mới mỗi giây |
-| `confetti` | bản demo của canvas-confetti trong giao diện native |
-| `piano` | một cây đàn piano tổng hợp được chơi bằng `myzig.audio` |
-| `timeline` | vài thanh thiếu niên trên một đầu phát (`ui.motion.timeline`) |
-| `blackhole` | một tia lỗ đen được vạch ra trong một shader được viết một lần |
-| `chat-glow` | một cuộc trò chuyện rực sáng, với các bóng đổ cho quả cầu, chiếc nhẫn và ánh sáng lung linh |
-| `wind` | một khung ký tự được khuấy bởi trình tạo bóng gió |
-| `effort-slider` | thanh trượt "bộ não thiên hà", với các bóng đổ và chuyển động |
-| `mayoi` | một trò chơi nhỏ được vẽ dưới dạng một shader |
-| `farm` | trò chơi nông trại trên plugin trò chơi: `cd examples/farm && zig build run` |
+| `counter` | app native UI nhỏ nhất: view là một hàm của state |
+| `gallery` | dạo qua bộ công cụ native UI: layout, chữ, mọi widget, overlay, vẽ, chuyển động, kéo thả |
+| `hello` | một trang web gọi Zig: service đã bind, event có kiểu, client được sinh |
+| `todo` | một app web nhỏ nhưng đầy đủ: service và event có kiểu, lưu trữ, dialog, menu, các cửa sổ đồng bộ với nhau |
+| `native` | desktop từ một trang web: thanh menu, icon khay hệ thống, dialog, thông báo, clipboard |
+| `pages` | test cho trang web: scheme, channel, event, quyền, tải xuống, eval, tìm kiếm, PDF, cookie, độ tin cậy |
+| `documents` | trình soạn ghi chú trên `myzig.Documents`: menu File, mỗi ghi chú một cửa sổ, tự lưu, khôi phục |
+| `notes` | ghi chú soạn bằng rich text, có thanh công cụ, liên kết và phím tắt Markdown |
+| `markdown-chat` | câu trả lời stream về dưới dạng Markdown |
+| `code-editor` | trình soạn code, trình xem diff và text area |
+| `text-buffer` | 100 000 dòng trong một rope, chỉ layout phần đang hiện |
+| `text-input` | một ô nhập chữ dựng từ các thành phần cơ bản của text input |
+| `clipboard` | một mô hình dữ liệu được sao chép và kéo dưới dạng text, HTML và JSON |
+| `drag-drop` | kéo trong và giữa các cửa sổ, ra các app khác, thả file vào |
+| `chart-streaming` | dạng sóng cuộn liên tục 15 000 mẫu, thêm 1 000 mẫu mỗi giây |
+| `confetti` | các demo của canvas-confetti trong native UI |
+| `piano` | một cây đàn piano tổng hợp, chơi bằng `myzig.audio` |
+| `timeline` | nhiều tween trên một đầu phát (`ui.motion.timeline`) |
+| `blackhole` | một hố đen dựng bằng ray tracing trong một shader chỉ viết một lần |
+| `chat-glow` | một khung chat phát sáng, với shader cho quả cầu, vòng tròn và ánh lấp lánh |
+| `wind` | một tấm chữ bị shader gió khuấy động |
+| `effort-slider` | slider "galaxy brain", với shader và chuyển động |
+| `mayoi` | một game nhỏ vẽ bằng một shader duy nhất |
+| `loading` | 29 chỉ báo đang tải native của loading.dev, có điều khiển kích thước, màu, easing, đầu nét và tạm dừng |
+| `farm` | một game nông trại trên plugin game: `cd examples/farm && zig build run` |
 
-Các plugin đều có ví dụ riêng (`plugins/<name>/example`).
+Các plugin có ví dụ riêng (`plugins/<name>/example`).
 
-Các bước khác của quá trình xây dựng gốc:
+Các bước khác của build ở thư mục gốc:
 
 ```sh
-zig build test                    # unit and widget tests
-zig build test -Dportable=true    # the same with myzig's own text and CPU renderer
-zig build test-pages              # pages run hidden: hello calling Zig, and examples/pages
-zig build web                     # counter and gallery for browsers, in zig-out/web/<name>
-zig build test-web                # those run headless under Node
-zig build gen                     # write the hello example's generated client
-zig build lines                   # every file at most 600 lines
+zig build test                    # test đơn vị và test widget
+zig build test -Dportable=true    # như trên, với phần chữ và renderer CPU của myzig
+zig build test-pages              # chạy ẩn các trang web: hello gọi Zig, và examples/pages
+zig build web                     # counter và gallery cho trình duyệt, trong zig-out/web/<name>
+zig build test-web                # chạy chúng headless dưới Node
+zig build gen                     # ghi client được sinh của ví dụ hello
+zig build lines                   # mọi file tối đa 600 dòng
 ```
 
 <a id="next-steps"></a>
 
-## Các bước tiếp theo
+## Bước tiếp theo
 
-- [Ứng dụng](app.md): vòng đời của ứng dụng, một phiên bản duy nhất, liên kết sâu, thông báo.
-- [Cửa sổ](windows.md): tùy chọn, sự kiện, thanh tiêu đề, bảng thả xuống.
-- [Menu, khay và phím tắt chung](menus.md).
-- [Giao diện native](ui/README.md) hoặc [Trang](pages.md), tùy theo cửa sổ của bạn hiển thị.
+- [Ứng dụng](app.md): vòng đời, chạy một instance duy nhất, deep link, thông báo.
+- [Cửa sổ](windows.md): tùy chọn, event, thanh tiêu đề, flyout.
+- [Menu, khay hệ thống và phím tắt toàn cục](menus.md).
+- [Native UI](ui/README.md) hoặc [Trang web](pages.md), tùy cửa sổ của bạn hiện gì.

@@ -1,24 +1,26 @@
 # Drag and drop
 
-`ui.DragDrop` drags data within a window of native UI: boxes that drag
-data (`draggable`) and boxes that take it (`target`). Once the pointer
-pressing a draggable moves 4 points, a translucent copy of the box
-follows the pointer, and the press is no longer a click; the innermost
-target under the pointer that takes one of the data's formats gets it
-when the pointer lets go, with the effect both ends allow (copy, move,
-link). Escape gives up a drag.
-
-The data is a `myzig.transfer.Data`: items in typed formats, the same
-data the clipboard and the system's drag and drop carry (see
-[Data transfer](../data-transfer.md)). A drag that leaves the window goes
-on in the system's drag and drop where myzig has one (Windows, OLE), to
-other windows and other apps.
+`ui.DragDrop` drags data within a window of native UI: from boxes that
+drag data (`draggable`) to boxes that take it (`target`).
 
 <!-- demo: drag-and-drop height=386 -->
 
 ![Draggable task cards in To do, Doing and Done columns, beside a trash target.](../images/ui/drag-and-drop.png)
 
 *Draggable task cards in To do, Doing and Done columns, beside a trash target.*
+
+- A drag starts when the pointer pressing a draggable moves 4 points. A
+  translucent copy of the box follows the pointer, and the press is no
+  longer a click.
+- On release, the innermost target under the pointer that takes one of
+  the data's formats gets it. The effect is one both ends allow: copy,
+  move or link.
+- Escape gives up a drag.
+- The data is a `myzig.transfer.Data`: items in typed formats, the same
+  data the clipboard and the system's drag and drop carry (see
+  [Data transfer](../data-transfer.md)).
+- A drag that leaves the window goes on in the system's drag and drop,
+  to other windows and other apps, where myzig has one (Windows, OLE).
 
 ## A board of cards
 
@@ -74,11 +76,14 @@ The app keeps one `ui.DragDrop` per window, and frees it with `deinit()`.
 
 ## Sources
 
-`dnd.draggable(c, style, opts)` opens a box styled with `style` whose
-children follow, then `end()`. In the frame the pointer pressing it has
-moved far enough, `starting` is true: `offer(data)` starts the drag with
-the data, which the drag then owns. A draggable that does not offer
-anything stays a press, so a row can drag only some of the time.
+`dnd.draggable(c, style, opts)` opens a box styled with `style`. Its
+children follow, then `end()`.
+
+- `starting` is true in the frame the pointer pressing it has moved far
+  enough. `offer(data)` then starts the drag with the data, which the
+  drag owns from then on.
+- A draggable that offers nothing stays a press, so a row can drag only
+  some of the time.
 
 `ui.DraggableOptions`:
 
@@ -88,13 +93,22 @@ anything stays a press, so a row can drag only some of the time.
 | `count` | 1 | how many values the drag holds, shown beside the pointer when several (the rows chosen in a list, dragged together) |
 | `dim` | true | dims the box while its data drags |
 
-`end()` returns whether it is `dragging`, and `finished`, a
-`ui.DragFinished`, in the frame its drag ended: the `effect` the target
-did (`.move` means the source removes its value) and `canceled` (Escape,
-or let go over nothing that takes it); `escaped` tells a drag given up
-(Escape, `cancel()`) from one let go over no target, and `screen` is
-where a drag that went on in the system's ended, in screen points
-([Data transfer](../data-transfer.md#drags-that-leave-the-window)).
+`end()` returns:
+
+| Field | |
+|---|---|
+| `dragging` | whether its data drags now |
+| `finished` | a `ui.DragFinished`, in the frame its drag ended |
+
+`ui.DragFinished` has:
+
+- `effect`: what the target did. `.move` means the source removes its
+  value.
+- `canceled`: Escape, or let go over nothing that takes it.
+- `escaped`: tells a drag given up (Escape, `cancel()`) from one let go
+  over no target.
+- `screen`: where a drag that went on in the system's ended, in screen
+  points ([Data transfer](../data-transfer.md#drags-that-leave-the-window)).
 
 ```zig
 if (d.end().finished) |f| {
@@ -109,18 +123,21 @@ as items above it come and go.
 
 `dnd.target(c, index, opts)` makes the box `index` (from `c.open`) a
 target, before its children are built. It returns a
-`ui.DropTargetResult`: `over`, while data it would take drags over it
-(highlight it then), and `dropped`, a `ui.Drop`, in the frame data was
-let go on it.
+`ui.DropTargetResult`:
+
+- `over`: while data it would take drags over it. Highlight it then.
+- `dropped`: a `ui.Drop`, in the frame data was let go on it.
 
 `ui.DropTargetOptions` has `formats` (the formats it takes; empty takes
 any), `effects` (copy) and `disabled`.
 
-A `ui.Drop` has the `data`, valid until the next frame (read it, or
-`clone` it to keep it), the `effect` agreed and `at`, where the pointer
-let go, in window points. When both ends allow several effects, copy is
-preferred, and holding Shift asks for a move; a target can also read the
-modifiers (`c.input.ctrl`, `c.input.shift`) to decide itself.
+A `ui.Drop` has:
+
+- `data`, valid until the next frame. Read it, or `clone` it to keep it.
+- `effect`, the effect agreed. When both ends allow several, copy is
+  preferred, and holding Shift asks for a move. A target can also read
+  the modifiers (`c.input.ctrl`, `c.input.shift`) to decide itself.
+- `at`, where the pointer let go, in window points.
 
 The data can be read in any of its formats:
 
@@ -134,16 +151,17 @@ The data can be read in any of its formats:
 
 ## The preview
 
-`dnd.preview(c)` draws the copy of the source that follows the pointer,
-over everything: call it once, last in the view. `dnd.dragging()` is true
-while data drags, and `dnd.cancel()` gives the drag up from code.
+- `dnd.preview(c)` draws the copy of the source that follows the
+  pointer, over everything. Call it once, last in the view.
+- `dnd.dragging()` is true while data drags.
+- `dnd.cancel()` gives the drag up from code.
 
 ## Out of the window, and into it
 
 A drag leaves the window in the system's drag and drop when the
-`DragDrop` has an `external`: `myzig.systemDrag(window)` returns one
-where myzig has the system's drag (Windows, through OLE) and null
-elsewhere, where drags stay in the window.
+`DragDrop` has an `external`. `myzig.systemDrag(window)` returns one
+where myzig has the system's drag (Windows, through OLE). Elsewhere it
+returns null, and drags stay in the window.
 
 ```zig
 const win = try app.newWindow(.{
@@ -154,22 +172,24 @@ const win = try app.newWindow(.{
 board.dnd.external = myzig.systemDrag(win);
 ```
 
-Data dragged out can offer several formats, some made only when a target
-asks (`transfer.lazy`): a note as text for a text editor, and as JSON for
-another window of the app. `transfer.fileData(gpa, paths)` drags files
-to a file manager.
+- Data dragged out can offer several formats, some made only when a
+  target asks (`transfer.lazy`). For example, a note as text for a text
+  editor, and as JSON for another window of the app.
+- `transfer.fileData(gpa, paths)` drags files to a file manager.
+- Files dropped on a window from a file manager or another app come to
+  the window's `on_drop` callback,
+  `fn (ctx, *myzig.Window, paths: []const []const u8) void`. Wrap them
+  in `transfer.fileData` to hand them to the same code as drops within
+  the window.
 
-Files dropped on a window from a file manager or another app come to the
-window's `on_drop` callback, `fn (ctx, *myzig.Window, paths: []const []const u8) void`;
-wrap them in `transfer.fileData` to hand them to the same code as drops
-within the window. See `examples/drag-drop` for two windows that drag
-notes, text, URLs and files between each other and other apps, and
+See `examples/drag-drop` for two windows that drag notes, text, URLs and
+files between each other and other apps, and
 [Data transfer](../data-transfer.md) for the formats.
 
 ## Testing
 
-`ui.Tester.drag(x1, y1, x2, y2)` presses at one point, moves past the
-threshold to the other and lets go, and `moveTo` moves the pointer step
-by step, to check a target's highlight on the way (see
-[Testing](testing.md)). Drags in tests never touch the system's drag and
-drop.
+- `ui.Tester.drag(x1, y1, x2, y2)` presses at one point, moves past the
+  threshold to the other and lets go.
+- `moveTo` moves the pointer step by step, to check a target's highlight
+  on the way (see [Testing](testing.md)).
+- Drags in tests never touch the system's drag and drop.

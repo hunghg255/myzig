@@ -1,8 +1,8 @@
 <a id="web-views-in-native-ui"></a>
 
-# Lượt xem trang web trong giao diện native
+# Web view trong native UI
 
-Một cửa sổ giao diện native có thể hiển thị các trang web trong các hộp riêng: ngăn trợ giúp, bản xem trước, một trang frontend web của ứng dụng bên cạnh các điều khiển gốc của ứng dụng đó. `ui.webView` đặt webview của hệ thống (WebView2, WebKitGTK, WKWebView) vào hộp bố cục, mọi frame:
+`ui.webView` hiện một trang web trong một box của cửa sổ native UI: khung trợ giúp, bản xem trước, hoặc một trang của frontend web nằm cạnh các control native. Nó đặt web view của hệ thống (WebView2, WebKitGTK, WKWebView) vào một box của layout, ở mỗi frame:
 
 ```zig
 const State = struct {
@@ -22,43 +22,73 @@ const State = struct {
 };
 ```
 
-`ui.WebView` là nội dung ứng dụng giữ lại: trang được tạo khung đầu tiên hiển thị trang đó và tồn tại cho đến khi `destroy()` hoặc cửa sổ của trang đó đóng lại. `page` của nó là trang của nền tảng, với các phương thức tương tự như của cửa sổ (`load`, `eval`, `evalResult`, `goBack`, `setZoom`, …) và `shown` cho biết khung cuối cùng hiển thị nó ở đâu (null khi bị ẩn).
+App giữ một `ui.WebView`:
 
-`ui.WebViewOptions`:
+- Trang được tạo ở frame đầu tiên hiện nó. Nó sống tới khi gọi `destroy()` hoặc cửa sổ của nó đóng.
+- `page` là trang của nền tảng, có các method như của cửa sổ (`load`, `eval`, `evalResult`, `goBack`, `setZoom`, …).
+- `shown` cho biết frame trước hiện nó ở đâu, null khi đang ẩn.
 
-| lĩnh vực | |
+| `ui.WebViewOptions` | |
 |---|---|
-| `page` | các tùy chọn của trang, dưới dạng `PageOptions` của cửa sổ (đọc khi trang được tạo) |
-| `width`, `height` | kích thước của hộp, `.fill` theo mặc định |
-| `grow`, `min_width`, `min_height` | như bất kỳ hộp nào |
-| `padding`, `background`, `border`, `border_width`, `radius` | xung quanh trang, trong hộp |
-| `key` | khóa của hộp, để trang theo sau nó khi view được sắp xếp lại |
+| `page` | tùy chọn của trang, như `PageOptions` của cửa sổ (đọc lúc tạo trang) |
+| `width`, `height` | kích thước box, mặc định `.fill` |
+| `grow`, `min_width`, `min_height` | như mọi box |
+| `padding`, `background`, `border`, `border_width`, `radius` | quanh trang, trong box |
+| `key` | key của box, để trang đi theo nó khi view đổi thứ tự |
 
 <a id="what-it-does"></a>
 
 ## Nó làm gì
 
-- **Vị trí.** Sau mỗi khung, trang được đặt vào hộp nội dung của hộp, gắn vào các pixel của thiết bị và được cắt bằng các hộp cuộn và hộp kẹp xung quanh nó. Nó ẩn khi không có cái nào hiển thị, khi hộp của nó mờ dần thành không có gì hoặc khi view ngừng xây dựng nó; nó giữ trang của nó trong khi ẩn. Một cửa sổ có thể hiển thị một số.
-- **Cùng một trang với cửa sổ.** Cầu nối, dịch vụ liên kết, sự kiện (`Event.emit(window)` và `broadcast` cũng tiếp cận lượt xem web), kênh, lược đồ, độ tin cậy và `eval` hoạt động như trong một cửa sổ trang. `myzig.window.close()` từ một trang được nhúng sẽ để cửa sổ mở.
-- **Bàn phím.** Tab dừng ở view web và di chuyển vào trang (Shift+Tab từ cuối); trên Windows, Tab qua phần cuối của trang sẽ quay lại giao diện native. Việc nhấp vào trang sẽ khiến giao diện native mất tập trung; nhấp vào giao diện native sẽ đưa bàn phím trở lại.
-- **Giao diện native trên đó.** Những gì giao diện native vẽ trên view web — cửa sổ bật lên, menu, hộp thoại và phông nền, toast, chú giải công cụ và các hộp được vẽ sau nó — hiển thị phía trên trang, trong *bìa*: một cửa sổ con xếp lớp trên Windows, một widget phía trên nó trong GtkOverlay của cửa sổ trên Linux, một NSView trên macOS, được vẽ bởi bộ kết xuất CPU với độ trong suốt, chỉ khi có thứ gì đó chồng lên nhau và chỉ khi nó thay đổi. Bìa lấy con trỏ ở nơi nó mờ và gửi nó đến giao diện native; trang này có được nó ở mọi nơi khác.
-- **Kéo vùng.** Các phần tử được tạo kiểu `--app-region: drag` trong trang sẽ di chuyển cửa sổ, như trong cửa sổ trang.
+**Vị trí**
+
+- Sau mỗi frame, trang được đặt vào content box của box, khớp với pixel của thiết bị và bị cắt bởi các box scroll và clip bao quanh.
+- Nó ẩn đi khi không còn phần nào hiện ra, khi box của nó mờ hẳn, hoặc khi view thôi dựng nó. Khi ẩn nó vẫn giữ trang.
+- Một cửa sổ có thể hiện nhiều web view.
+
+**Cùng một trang như của cửa sổ**
+
+- Bridge, các service được bind, event, channel, scheme, trust và `eval` hoạt động như trong cửa sổ trang.
+- `Event.emit(window)` và `broadcast` cũng tới được web view.
+- `myzig.window.close()` gọi từ trang nhúng thì cửa sổ vẫn mở.
+- Phần tử có style `--app-region: drag` kéo được cửa sổ, như trong cửa sổ trang.
+
+**Bàn phím**
+
+- Tab dừng ở web view rồi đi vào trang; Shift+Tab đi vào từ cuối trang.
+- Trên Windows, Tab qua khỏi hai đầu trang thì quay về native UI.
+- Bấm vào trang thì native UI mất focus. Bấm vào native UI thì nó lấy lại bàn phím.
+
+**Native UI phía trên.** Popover, menu, dialog cùng nền mờ của chúng, toast, tooltip và các box vẽ sau web view hiện phía trên trang, trong một *cover*:
+
+- Renderer CPU vẽ nó với độ trong suốt, chỉ ở chỗ có thứ chồng lên và chỉ khi có thay đổi.
+- Chỗ nào nó không trong suốt thì nó nhận con trỏ và chuyển cho native UI. Mọi chỗ khác thì trang nhận con trỏ.
+- Trên Windows nó là cửa sổ con layered, trên Linux là một widget phía trên trang trong GtkOverlay của cửa sổ, trên macOS là một NSView.
 
 <a id="testing-it"></a>
 
-## Đang thử nghiệm nó
+## Test
 
-`v.probe()` đọc lại vị trí thực sự của view native và vị trí của nó; `v.probeCover()`, `v.coverMatchesFrame()` và `v.clickCover(x, y)` thực hiện tương tự cho bìa. `examples/embed-webview` chạy kiểm tra riêng với `--check` (`zig build test-pages` chạy kiểm tra ẩn trên Windows).
+| | |
+|---|---|
+| `v.probe()` | đọc lại vị trí thật của view native và vị trí nó nên ở |
+| `v.probeCover()`, `v.coverMatchesFrame()`, `v.clickCover(x, y)` | như trên, cho cover |
+
+`examples/embed-webview` tự kiểm tra với `--check`. `zig build test-pages` chạy nó ở chế độ ẩn trên Windows.
 
 <a id="platforms"></a>
 
 ## Nền tảng
 
-| | làm thế nào |
+| | cách làm |
 |---|---|
-| Windows | bộ điều khiển WebView2 có cửa sổ trong cửa sổ "clip" con ở phần hiển thị; bìa là các cửa sổ con nhiều lớp (`UpdateLayeredWindow`) |
-| Linux | vùng vẽ di chuyển vào GtkOverlay ở view web đầu tiên; mỗi trang là một trang con GtkLayout được đặt thông qua `get-child-position`; bìa là các vùng vẽ có hình dạng đầu vào |
-| macOS | một clip NSView (che đi các giới hạn của nó) trên view của bề mặt, với WKWebView trong đó; bìa được lật ngược NSView có `hitTest:` rơi qua nơi trong suốt |
-| trình duyệt | không có sẵn |
+| Windows | một WebView2 controller dạng windowed trong cửa sổ con "clip" đặt ở phần nhìn thấy; cover là các cửa sổ con layered (`UpdateLayeredWindow`) |
+| Linux | drawing area chuyển vào một GtkOverlay khi có web view đầu tiên; mỗi trang là một phần tử con GtkLayout, đặt vị trí qua `get-child-position`; cover là các drawing area có input shape |
+| macOS | một NSView clip (cắt theo bounds của nó) phía trên view của surface, chứa WKWebView; cover là các NSView lật trục, có `hitTest:` cho con trỏ đi xuyên qua chỗ trong suốt |
+| trình duyệt | không có |
 
-Chưa hoàn tất: chuyển đổi hộp của view web (nó được đặt ở giới hạn của nó), độ mờ không phải là không có hoặc đầy đủ và trang trong cây khả năng truy cập của giao diện native.
+Chưa làm:
+
+- transform cho box của web view: nó được đặt theo bounds;
+- opacity khác 0 hoặc 1;
+- trang trong cây accessibility của native UI.

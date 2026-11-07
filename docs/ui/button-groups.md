@@ -1,11 +1,14 @@
 # Button and toggle groups
 
+Joined buttons for related actions, and toggles for one or several
+choices.
+
 <!-- demo: button-groups height=360 -->
 
 ![Joined actions and single or multiple toggle choices.](../images/ui/button-groups.png)
 
-`buttonGroup` joins related actions. Close the group with `end` after
-adding its buttons:
+`buttonGroup` joins related actions. Add its buttons, then close it with
+`end`:
 
 ```zig
 var group = ui.buttonGroup(c, .{ .label = "Document actions" });
@@ -14,11 +17,11 @@ if (group.button("Duplicate", .{})) duplicate();
 group.end();
 ```
 
-`ButtonGroupOptions` accepts `vertical`, `label` and `disabled`. Each button
-also accepts the usual `ButtonOptions`. Disabled actions do not activate
-or take keyboard focus.
+- `ButtonGroupOptions`: `vertical`, `label` and `disabled`.
+- Each button takes the usual `ButtonOptions`.
+- Disabled actions do not activate or take keyboard focus.
 
-`toggleGroup` keeps one boolean per item in app-owned memory:
+`toggleGroup` keeps one boolean per item in memory the app owns:
 
 ```zig
 // State, retained between frames:
@@ -32,15 +35,21 @@ _ = ui.toggleGroup(c, &.{
 }, &s.styles, .{ .multiple = true, .label = "Formatting" });
 ```
 
-Each `ToggleGroupItem` has a label, optional icon name and disabled flag.
-The default is single selection: initialize at most one selected flag.
-Set `multiple = true` to allow several. `allow_empty = false` keeps the
-last choice selected. The flags and items must have equal lengths.
+- A `ToggleGroupItem` has a label, an optional icon name and a disabled
+  flag.
+- The default is single selection: set at most one flag at the start.
+- `multiple = true` allows several.
+- `allow_empty = false` keeps the last choice selected.
+- The flags and the items must have the same length.
 
-Both groups form one Tab stop. Arrows, Home and End move focus, skipping
-disabled buttons; Space and Enter activate the focused button. Vertical
-groups use Up/Down, horizontal groups respect right-to-left layout. Toggle
-buttons expose their checked state to assistive technology.
+**Keyboard**
+
+- Each group is one Tab stop.
+- Arrows, Home and End move the focus and skip disabled buttons.
+- Space and Enter activate the focused button.
+- Vertical groups use Up and Down. Horizontal groups follow right-to-left
+  layout.
+- Toggle buttons tell assistive technology whether they are checked.
 
 See the Gallery's **Actions & choices** page and
 [focus groups](navigation.md).

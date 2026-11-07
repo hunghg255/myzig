@@ -1,14 +1,14 @@
 # terminal
 
-Thiết bị đầu cuối dành cho giao diện native: view chạy shell của người dùng hoặc bất kỳ chương trình nào trong terminal giả, với trình mô phỏng terminal của [Ghostty](https://ghostty.org), libghostty-vt, được tải trong thời gian chạy (LoadLibrary trên Windows, dlopen ở nơi khác): không có gì được liên kết và không có C nào được biên dịch.
+Một terminal cho native UI: một view chạy shell của người dùng, hoặc chương trình bất kỳ, trong một pseudo-terminal. Bộ giả lập là libghostty-vt của [Ghostty](https://ghostty.org), được nạp lúc chạy (LoadLibrary trên Windows, dlopen ở nơi khác). Không link gì cả và không compile dòng C nào.
 
-Gói này là `plugins/terminal` (mô-đun `terminal`); nó phụ thuộc vào [mainthread](mainthread.md). Xem [Plugin](../plugins.md) để thêm plugin vào ứng dụng.
+Package là `plugins/terminal` (module `terminal`). Nó phụ thuộc vào [mainthread](mainthread.md). Xem [Plugin](../plugins.md) để biết cách thêm nó vào app.
 
 <a id="a-terminal-window"></a>
 
-## Một cửa sổ đầu cuối
+## Một cửa sổ terminal
 
-`example/main.zig` là toàn bộ ứng dụng: một cửa sổ chạy shell, được đặt tên theo nó, đóng khi nó thoát.
+`example/main.zig` là toàn bộ app: một cửa sổ chạy shell, lấy tiêu đề theo shell, và đóng khi shell thoát.
 
 ```zig
 const std = @import("std");
@@ -57,7 +57,10 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-`terminal.view(c, term, opts)` rút terminal và lấy đầu vào của nó; `ViewOptions` là `padding` (4 điểm xung quanh lưới) và `autofocus` (lấy tiêu điểm bàn phím khi không có gì).
+`terminal.view(c, term, opts)` vẽ terminal và nhận input cho nó. `ViewOptions` gồm:
+
+- `padding`: 4 điểm quanh lưới ký tự;
+- `autofocus`: lấy focus bàn phím khi chưa có gì giữ focus.
 
 <a id="options"></a>
 
@@ -65,62 +68,124 @@ pub fn main(init: std.process.Init) !void {
 
 `terminal.Options`, cho `Terminal.create(gpa, io, options)`:
 
-| lĩnh vực | mặc định | |
+| trường | mặc định | |
 |---|---|---|
-| `command` | shell | chương trình và các đối số của nó, được người gọi giữ cho đến khi nó bắt đầu |
-| `dir` | quá trình này | thư mục làm việc |
-| `env` | không có | `"KEY=value"` được thêm vào trên `TERM`, `COLORTERM` và `LANG` mà terminal đặt |
-| `no_program` | false | không có chương trình: terminal hiển thị những gì `feed` cung cấp cho nó |
-| `theme`, `dark_theme` | màu sắc của cửa sổ | màu sắc trong cửa sổ sáng và tối |
+| `command` | shell | chương trình và tham số của nó; bên gọi phải giữ chúng cho tới khi chương trình khởi động |
+| `dir` | của tiến trình này | thư mục làm việc |
+| `env` | không có | các `"KEY=value"` thêm vào trên `TERM`, `COLORTERM` và `LANG` mà terminal tự đặt |
+| `no_program` | false | không chạy chương trình nào: terminal hiện những gì `feed` đưa vào |
+| `theme`, `dark_theme` | màu của cửa sổ | màu trong cửa sổ sáng và tối |
 | `cursor` | `.block` | `.block`, `.bar` hoặc `.underline` |
-| `scrollback` | 10MB | về số byte đầu ra cần giữ phía trên màn hình |
+| `scrollback` | 10 MB | khoảng bao nhiêu byte output được giữ lại phía trên màn hình |
 | `font_size` | 13 | tính bằng điểm |
-| `font_family` | null | một gia đình của riêng mình; chủ đề đơn cách khi null |
-| `font_features` | `""` | Các tính năng của OpenType, như `ui.TextStyle.features` sử dụng chúng (`"calt=0"`) |
-| `font_weight` | 0 | 100 đến 900, nặng hơn ba trăm; 0 cho thường xuyên và in đậm |
-| `on_event` | null | `.{ .ctx, .func }`: `.output` (vẽ lại), `.title`, `.bell`, `.exit`, và `.notify` (thông báo trên màn hình mà một chương trình được yêu cầu với OSC 9 hoặc OSC 777; `t.notification()` là tiêu đề và nội dung của nó), trên luồng chính |
-| `open_link` | null | mở một liên kết Ctrl+click đã chọn (siêu liên kết, URL, đường dẫn tệp); nếu không thì hệ thống sẽ mở URL |
-| `copy_on_select` | false | sao chép những gì thao tác kéo, nhấp đúp hoặc nhấp ba lần sẽ chọn khi con trỏ buông ra |
-| `scroll_multiplier` | `.{ .precision = 1, .discrete = 3 }` | nhân tốc độ cuộn, như `mouse-scroll-multiplier` của Ghostty: `precision` cho quãng đường của touchpad, `discrete` khoảng số hàng một nấc bánh xe chuột cuộn (3 là nấc của hệ thống); có thể đổi `term.opts.scroll_multiplier` khi terminal đang hiện |
-| `read_clipboard` | null | đọc văn bản của clipboard để dán; hệ thống khi null |
+| `font_family` | null | một họ font riêng; null thì dùng font monospace của theme |
+| `font_features` | `""` | các OpenType feature, theo cách `ui.TextStyle.features` nhận (`"calt=0"`) |
+| `font_weight` | 0 | từ 100 tới 900, chữ đậm nặng hơn ba trăm; 0 cho chữ thường và đậm mặc định |
+| `on_event` | null | `.{ .ctx, .func }`, được gọi trên main thread (xem bên dưới) |
+| `open_link` | null | mở link mà Ctrl+bấm đã chọn (hyperlink, URL, đường dẫn file); không có thì hệ thống mở URL |
+| `copy_on_select` | false | copy những gì vừa được chọn bằng kéo, bấm đúp hay bấm ba lần, ngay khi thả con trỏ |
+| `scroll_multiplier` | `.{ .precision = 1, .discrete = 3 }` | hệ số scroll, như `mouse-scroll-multiplier` của Ghostty (xem bên dưới) |
+| `read_clipboard` | null | đọc chữ trong clipboard khi paste; null thì dùng clipboard của hệ thống |
 
-`Terminal` cũng có `send(bytes)` (nhập vào chương trình), `paste(data)`, `feed(bytes)` (hiển thị byte như thể chương trình đã ghi chúng), `resize(cols, rows, cell_w, cell_h)`, `start()`, `title(gpa)`, `text(gpa)` (văn bản của màn hình), `snapshot(gpa)` (các chuỗi thoát để khôi phục màn hình), `exitCode()` và `waitOutput(seen)` (dành cho các bài kiểm tra và công cụ).
+`on_event` nhận các event sau, trên main thread:
+
+- `.output`: cần vẽ lại.
+- `.title`: tiêu đề đã đổi.
+- `.bell`.
+- `.exit`: chương trình đã kết thúc.
+- `.notify`: một thông báo desktop mà chương trình yêu cầu bằng OSC 9 hoặc OSC 777. `t.notification()` trả về tiêu đề và nội dung của nó.
+
+`scroll_multiplier` có hai trường. `term.opts.scroll_multiplier` có thể đổi trong lúc terminal đang hiện.
+
+- `precision` nhân quãng đường của touchpad.
+- `discrete` là khoảng số hàng mà một nấc con lăn scroll. 3 là một nấc của hệ thống.
+
+Một `Terminal` còn có các method sau, dùng cho test và công cụ:
+
+| method | |
+|---|---|
+| `send(bytes)` | gõ vào chương trình |
+| `paste(data)` | paste |
+| `feed(bytes)` | hiện các byte như thể chương trình đã ghi ra |
+| `resize(cols, rows, cell_w, cell_h)` | |
+| `start()` | |
+| `title(gpa)` | |
+| `text(gpa)` | chữ trên màn hình |
+| `snapshot(gpa)` | các escape sequence để khôi phục màn hình |
+| `exitCode()`, `waitOutput(seen)` | |
 
 <a id="what-it-does"></a>
 
-## Nó làm gì
+## Nó làm được gì
 
-- **Chương trình** chạy trong một terminal giả: trên Windows Windows ConPTY của nhóm terminal (`conpty.dll` với `OpenConsole.exe`, do mygo vận chuyển nó), nếu không thì Windows' sở hữu; ở nơi khác `/dev/ptmx` thông qua libc. Shell là `$SHELL` (khác là `/bin/zsh` trên macOS, `/bin/sh` ở nơi khác) và PowerShell trên Windows; `TERM=xterm-256color` và `COLORTERM=truecolor` được đặt. Nó bắt đầu ở kích thước mà frame đầu tiên của view cung cấp cho nó. Một luồng trình đọc cung cấp đầu ra của nó cho trình mô phỏng, một luồng trình ghi nhập vào đó theo thứ tự và các sự kiện sẽ đến ứng dụng trên luồng chính: không có polling ý kiến ​​nào.
-- **Màn hình**: màu sắc (16, 256, 24-bit), in đậm, in nghiêng, mờ, đảo ngược, vô hình, gạch chân (bằng màu riêng của chúng), các dòng xuyên qua, cuộn lùi và màn hình thay thế, con trỏ (rỗng trong khi view không được tập trung), vùng chọn và thanh cuộn trong khi cuộn lùi hiển thị. Văn bản là phông chữ đơn cách của myzig, theo một kiểu được đặt trên lưới.
-- **Phím** như các chương trình yêu cầu: chuỗi kế thừa, ModifyOtherKeys của xterm hoặc giao thức bàn phím Kitty (bộ mã hóa khóa của Ghostty), với các mũi tên, phím chức năng, Ctrl và Alt; văn bản đã nhập sẽ đi theo khóa của nó, văn bản IME khi nó xuất hiện. Ctrl+Shift+C, V và A (Lệnh trên macOS) sao chép, dán và chọn tất cả; trên Windows Ctrl+C sao chép khi nội dung nào đó được chọn (và ngắt nếu không) và dán Ctrl+V; Shift+Trang Up và Down cuộn theo trang.
-- **Con trỏ**: báo cáo (X10, bình thường, nút, bất kỳ chuyển động nào; SGR và các mã hóa khác) cho các chương trình sử dụng chuột, thay vào đó là chọn Shift; kéo để chọn ô, nhấp đúp vào từ, nhấp ba lần vào dòng, và Shift-click mở rộng hoặc thu hẹp vùng chọn từ chỗ nó bắt đầu, kể cả qua nhiều dòng; bánh xe cuộn cuộn lùi hoặc gửi mũi tên trên màn hình của chương trình toàn màn hình (cuộn thay thế) hoặc báo cáo bánh xe.
-- **Dán** được đặt trong ngoặc khi chương trình yêu cầu (chế độ 2004) và báo cáo tiêu điểm (chế độ 1004) được gửi.
-- **Tiêu đề** (OSC 0 và 2) xuất hiện dưới dạng sự kiện `.title`; `title()` đọc chúng.
-- **Liên kết**: Ctrl+nhấp chuột (Lệnh+nhấp vào macOS) mở siêu liên kết (OSC 8), URL được in dưới dạng văn bản hoặc đường dẫn tệp thông qua `open_link` (các URL tuyệt đối có trong hệ thống không có nó): `/abs/path`, `~/notes.md`, `./a.go`, `src/app.go:12:3`, `main.go:250`, `notes.md` (tên tệp có phần mở rộng, không phải số như 1.2.3) và trên Windows `C:\dir\file`, `C:/dir/file`, `dir\file` và `.\file`.
-- **Chủ đề**: Bảng màu của VS Code trên các màu cửa sổ của myzig, theo giao diện của cửa sổ; 617 chủ đề mà Ghostty gửi đến, theo tên (`terminal.ghosttyTheme("Dracula")`, `ghosttyThemeCount`, `ghosttyThemeName(i)`) và các tệp chủ đề ở định dạng của Ghostty (`terminal.Theme.parse`).
+**Chương trình**
+
+- Chạy trong một pseudo-terminal. Trên Windows là ConPTY của nhóm Windows Terminal (`conpty.dll` cùng `OpenConsole.exe`, như mygo đóng gói), nếu không có thì dùng ConPTY sẵn của Windows. Ở nơi khác là `/dev/ptmx` qua libc.
+- Shell là `$SHELL`, nếu không có thì `/bin/zsh` trên macOS và `/bin/sh` ở nơi khác. Trên Windows là PowerShell.
+- `TERM=xterm-256color` và `COLORTERM=truecolor` được đặt sẵn.
+- Nó khởi động với kích thước mà frame đầu tiên của view đưa cho.
+- Một thread đọc chuyển output của nó vào bộ giả lập. Một thread ghi gõ vào nó theo đúng thứ tự.
+- Event tới app trên main thread. Không có gì phải poll.
+
+**Màn hình**
+
+- Màu (16, 256, 24-bit), đậm, nghiêng, mờ, đảo màu, ẩn.
+- Gạch chân với màu riêng, gạch ngang giữa và gạch trên.
+- Scrollback và màn hình phụ (alternate screen).
+- Con trỏ nhập, rỗng ruột khi view không có focus.
+- Vùng chọn, và thanh scroll khi đang xem scrollback.
+- Chữ dùng font monospace của myzig, thành từng đoạn cùng style đặt trên lưới.
+
+**Phím**
+
+- Phím được gửi theo cách chương trình yêu cầu: chuỗi kiểu cũ, modifyOtherKeys của xterm hoặc giao thức bàn phím của Kitty (bộ mã hóa phím của Ghostty).
+- Bao gồm phím mũi tên, phím chức năng, Ctrl và Alt. Chữ gõ được gửi theo phím, chữ từ bộ gõ được gửi nguyên như nó tới.
+- Ctrl+Shift+C, V và A (Command trên macOS) để copy, paste và chọn tất cả.
+- Trên Windows, Ctrl+C copy khi đang có vùng chọn, nếu không thì ngắt chương trình. Ctrl+V để paste.
+- Shift+Page Up và Page Down scroll theo trang.
+
+**Con trỏ**
+
+- Chương trình nào nhận chuột thì nhận các report: X10, normal, button, any-motion, theo SGR và các kiểu mã hóa khác. Giữ Shift thì chọn chữ thay vì gửi report.
+- Kéo để chọn ô, bấm đúp chọn từ, bấm ba lần chọn dòng.
+- Shift-bấm mở rộng hoặc thu hẹp vùng chọn tính từ chỗ bắt đầu, kể cả qua nhiều dòng.
+- Con lăn scroll scrollback. Trên màn hình của chương trình toàn màn hình, nó gửi phím mũi tên (alternate scroll), hoặc gửi report con lăn.
+
+**Phần còn lại**
+
+- **Paste** được bọc trong bracketed paste khi chương trình yêu cầu (mode 2004), và report focus (mode 1004) được gửi đi.
+- **Tiêu đề** (OSC 0 và 2) tới dưới dạng event `.title`; `title()` đọc chúng.
+- **Link**: Ctrl+bấm (Command+bấm trên macOS) mở một hyperlink (OSC 8), một URL in ra dạng chữ, hoặc một đường dẫn file. Việc mở đi qua `open_link`. Không có nó thì hệ thống mở URL và đường dẫn tuyệt đối.
+- Các đường dẫn nó nhận ra: `/abs/path`, `~/notes.md`, `./a.go`, `src/app.go:12:3`, `main.go:250`, và `notes.md` (tên file có phần mở rộng, không phải một con số như 1.2.3).
+- Trên Windows còn có `C:\dir\file`, `C:/dir/file`, `dir\file` và `.\file`.
+- **Theme**: bảng màu của VS Code đặt trên màu cửa sổ của myzig, theo giao diện sáng/tối của cửa sổ.
+- 617 theme mà Ghostty kèm theo, gọi theo tên (`terminal.ghosttyTheme("Dracula")`, `ghosttyThemeCount`, `ghosttyThemeName(i)`).
+- File theme theo định dạng của Ghostty (`terminal.Theme.parse`).
 
 <a id="the-libraries"></a>
 
 ## Các thư viện
 
-`src/myzig-plugin.json` đặt tên cho các bản dựng mà plugin liên kết, cho mỗi nền tảng bằng SHA-256 và URL tải xuống: các bản phát hành libghostty-vt (Ghostty `befcdfd2c3a1`) và ConPTY 1.25.260930003 của mygo. Plugin tìm kiếm chúng:
+`src/myzig-plugin.json` ghi các bản build mà plugin bind, cho từng nền tảng, kèm SHA-256 và URL tải về. Đó là các bản phát hành của mygo cho libghostty-vt (Ghostty `befcdfd2c3a1`) và ConPTY 1.25.260930003. Plugin tìm chúng theo thứ tự:
 
-1. trong các tên tệp `$MYZIG_GHOSTTY_VT` (`$MYZIG_CONPTY`, `$MYZIG_OPENCONSOLE`; mygo's `$MYGO_...` nữa);
-2. bên cạnh tệp thực thi, nơi ứng dụng gửi chúng;
-3. trong `<cache>/myzig/natives/<sha256>/`, sau đó là `<cache>/mygo/natives/<sha256>/` của mygo (bộ đệm là `%LOCALAPPDATA%`, `~/Library/Caches`, `$XDG_CACHE_HOME` hoặc `~/.cache`).
+1. trong file mà `$MYZIG_GHOSTTY_VT` chỉ tới (`$MYZIG_CONPTY`, `$MYZIG_OPENCONSOLE`; cả `$MYGO_...` của mygo);
+2. cạnh file thực thi, nơi app đóng gói chúng;
+3. trong `<cache>/myzig/natives/<sha256>/`, rồi `<cache>/mygo/natives/<sha256>/` của mygo (cache là `%LOCALAPPDATA%`, `~/Library/Caches`, `$XDG_CACHE_HOME` hoặc `~/.cache`).
 
-`terminal.download.fetchAll(gpa, io)` tải xuống những gì còn thiếu vào bộ đệm, kiểm tra SHA-256, như ví dụ; một ứng dụng không bao giờ gọi nó không có client HTTP. Cấu trúc mà plugin chuyển đi được kiểm tra dựa trên bố cục mà thư viện báo cáo khi nó tải, do đó, thư viện của phiên bản khác không tải được thay vì bộ nhớ bị hỏng.
+- `terminal.download.fetchAll(gpa, io)` tải những gì còn thiếu vào cache và kiểm tra SHA-256, như ví dụ đã làm.
+- App không bao giờ gọi nó thì không mang theo HTTP client nào.
+- Các struct mà plugin truyền đi được đối chiếu với layout mà thư viện báo về lúc nạp. Thư viện khác phiên bản sẽ không nạp được, thay vì làm hỏng bộ nhớ.
 
-Để gửi các thư viện cùng với một ứng dụng, hãy đặt chúng vào thư mục `resources/` của nó (xem [Distribution](../distribution.md)): trên Windows và Linux chúng nằm cạnh tệp thực thi. CLI chưa đặt chúng vào macOS của gói `Contents/MacOS`.
+Để đóng gói các thư viện cùng app, đặt chúng vào thư mục `resources/` của app (xem [Phân phối](../distribution.md)). Trên Windows và Linux, chúng nằm cạnh file thực thi. CLI chưa đặt chúng vào `Contents/MacOS` của bundle macOS.
 
 <a id="tests"></a>
 
-## Kiểm tra
+## Test
 
 ```sh
 cd plugins/terminal
-zig build test                              # libghostty-vt, ConPTY or a pty, ui.Tester (skipped without the library)
-zig build check -Dtarget=x86_64-linux-gnu   # type-check another platform
-zig build snapshot                          # the example's first second, offscreen
-zig build run                               # the example, in a window
+zig build test                              # libghostty-vt, ConPTY hoặc pty, ui.Tester (bỏ qua nếu thiếu thư viện)
+zig build check -Dtarget=x86_64-linux-gnu   # kiểm tra kiểu cho nền tảng khác
+zig build snapshot                          # giây đầu tiên của ví dụ, offscreen
+zig build run                               # chạy ví dụ trong cửa sổ
 ```

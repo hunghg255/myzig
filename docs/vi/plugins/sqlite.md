@@ -1,25 +1,26 @@
 # sqlite
 
-SQLite từ Zig và từ các trang. Plugin sử dụng thư viện của hệ thống, được tải khi cơ sở dữ liệu đầu tiên mở: không có mã C nào được biên dịch, không có gì được liên kết hoặc vận chuyển.
+SQLite cho Zig và cho trang web. Plugin dùng thư viện của hệ thống, nạp khi database đầu tiên được mở. Không có code C nào được biên dịch, và không có gì bị link hay đóng gói kèm.
 
 | nền tảng | thư viện |
 |---|---|
-| Windows 10 trở lên | `winsqlite3.dll` (một phần của Windows) hoặc `sqlite3.dll` |
+| Windows 10 trở lên | `winsqlite3.dll` (có sẵn trong Windows), hoặc `sqlite3.dll` |
 | macOS | `/usr/lib/libsqlite3.dylib` |
-| Linux | `libsqlite3.so.0` (gói `libsqlite3-0`, `sqlite-libs`) |
+| Linux | `libsqlite3.so.0` (package `libsqlite3-0`, `sqlite-libs`) |
 
-`MYZIG_SQLITE_LIBRARY` đặt tên cho một công trình khác. Không có thư viện, việc mở không thành công bằng `error.SqliteMissing`.
+- `MYZIG_SQLITE_LIBRARY` chỉ định một bản build khác.
+- Không có thư viện thì việc mở database thất bại với `error.SqliteMissing`.
 
-Gói này là `plugins/sqlite` (mô-đun `sqlite`). Xem [Plugin](../plugins.md) để thêm plugin vào ứng dụng.
+Package là `plugins/sqlite` (module `sqlite`). Xem [Plugin](../plugins.md) để biết cách thêm vào app.
 
 <a id="from-zig"></a>
 
-## Sử dụng từ Zig
+## Dùng từ Zig
 
 ```zig
 const sqlite = @import("sqlite");
 
-var db = try sqlite.Db.open("notes.db", .{}); // or ":memory:"
+var db = try sqlite.Db.open("notes.db", .{}); // hoặc ":memory:"
 defer db.close();
 try db.execScript("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, title TEXT, done INTEGER)");
 const r = try db.exec("INSERT INTO notes(title, done) VALUES (?, ?)", .{ "Hello", false });
@@ -33,38 +34,53 @@ try db.transaction(ctx, struct {
     fn body(d: *sqlite.Db, c: @TypeOf(ctx)) !void {
         _ = try d.exec("INSERT INTO notes(title, done) VALUES (?, 0)", .{c.title});
     }
-}.body); // committed, or rolled back when body fails
+}.body); // được commit, hoặc rollback khi body thất bại
 ```
 
-`Db.open(path, options)` lấy `OpenOptions`:
+`Db.open(path, options)` nhận `OpenOptions`:
 
-| lĩnh vực | mặc định | |
+| `OpenOptions` | Mặc định | |
 |---|---|---|
-| `read_only` | false | mở mà không viết |
-| `busy_timeout_ms` | 5000 | khoảng thời gian một câu lệnh chờ khóa của kết nối khác; 0 thất bại cùng một lúc |
-| `guarded` | false | từ chối SQL kiểm soát các giao dịch, đính kèm tệp hoặc tải tiện ích mở rộng (đối với các trang SQL gửi) |
+| `read_only` | false | mở mà không ghi |
+| `busy_timeout_ms` | 5000 | thời gian một câu lệnh chờ khóa của connection khác; 0 thì thất bại ngay |
+| `guarded` | false | từ chối SQL điều khiển transaction, attach file hoặc nạp extension (cho SQL do trang gửi) |
 
 <a id="statements-and-values"></a>
 
-### Tuyên bố và giá trị
+### Câu lệnh và giá trị
 
-- `exec`, `all` và `one` lấy một câu lệnh (dấu sau `;` và các nhận xét đều ổn; nhiều lỗi hơn với `error.MultipleStatements`; `execScript` chạy một số) và một bộ đối số được liên kết với `?1`, `?2`... (`:name`, `$name` và `@name` cũng liên kết theo chỉ mục của họ). Mọi tham số đều cần một giá trị (`error.WrongParameterCount`).
-- Giá trị giới hạn: `null`, bools (0 hoặc 1), số nguyên (trong `i64`), số float hữu hạn, văn bản (`[]const u8`, UTF-8 hợp lệ), `sqlite.blob(bytes)`, enums (tên của chúng), `sqlite.Value` và các tùy chọn trong số này.
-- Các hàng được đọc thành cấu trúc theo tên cột: số nguyên, số float, bools, enum (từ văn bản), `[]const u8` (đã sao chép), `sqlite.Value` và các tùy chọn (NULL). Trường có giá trị mặc định có thể không có cột hoặc NULL trong đó.
-- `prepare` cung cấp `Statement` cho `bind` (hoặc `bindAll`), `step`, đọc (`int`, `float`, `text`, `bytes`, `value`, `read(T)`), `reset` để tái sử dụng và `finalize`. `query` trả về động `Rows` của `Value`s; `execValues` liên kết một lát `Value`s.
-- `begin`, `commit`, `rollback` và `inTransaction` dành cho các giao dịch `transaction` không phù hợp.
+**Một câu lệnh.** `exec`, `all` và `one` nhận một câu lệnh và một tuple tham số.
+
+- Dấu `;` ở cuối và comment đều được. Nhiều câu lệnh hơn thì thất bại với `error.MultipleStatements`. `execScript` chạy được nhiều câu.
+- Tham số bind vào `?1`, `?2`... `:name`, `$name` và `@name` cũng bind theo chỉ số của chúng.
+- Mọi tham số đều phải có giá trị (`error.WrongParameterCount`).
+
+**Giá trị bind được:** `null`, bool (0 hoặc 1), số nguyên (trong phạm vi `i64`), số thực hữu hạn, chữ (`[]const u8`, UTF-8 hợp lệ), `sqlite.blob(bytes)`, enum (theo tên), `sqlite.Value`, và optional của các kiểu này.
+
+**Dòng kết quả** được đọc vào struct theo tên cột.
+
+- Kiểu trường: số nguyên, số thực, bool, enum (từ chữ), `[]const u8` (được sao chép), `sqlite.Value` và optional (NULL).
+- Trường có giá trị mặc định có thể không có cột tương ứng, hoặc cột đó là NULL.
+
+**Mức thấp hơn**
+
+- `prepare` trả về một `Statement`. Bạn có thể `bind` (hoặc `bindAll`), `step`, đọc (`int`, `float`, `text`, `bytes`, `value`, `read(T)`), `reset` để dùng lại và `finalize`.
+- `query` trả về `Rows` động gồm các `Value`. `execValues` bind một slice các `Value`.
+- `begin`, `commit`, `rollback` và `inTransaction` dành cho các transaction mà `transaction` không phù hợp.
 
 <a id="errors-and-threads"></a>
 
-### Lỗi và luồng
+### Lỗi và thread
 
-Lỗi là lỗi Zig: `error.Constraint`, `error.Busy`, `error.Interrupted`, `error.InvalidSql`, `error.Sqlite` và các lỗi khác có tên trong `sqlite.Error`; sau `error.Sqlite`, `db.diagnostics` có mã mở rộng của SQLite và tin nhắn của nó `diagnostics.text()`. `Db` được sử dụng bởi một luồng tại một thời điểm; `interrupt()` dừng một câu lệnh đang chạy từ một câu lệnh khác.
+- Lỗi là lỗi Zig: `error.Constraint`, `error.Busy`, `error.Interrupted`, `error.InvalidSql`, `error.Sqlite`, và các lỗi khác có tên trong `sqlite.Error`.
+- Sau `error.Sqlite`, `db.diagnostics` có mã lỗi mở rộng của SQLite và `diagnostics.text()` có thông báo lỗi.
+- Mỗi lúc chỉ một thread dùng một `Db`. `interrupt()` dừng câu lệnh đang chạy từ một thread khác.
 
 <a id="from-pages"></a>
 
-## Sử dụng từ trang web
+## Dùng từ trang web
 
-Liên kết dịch vụ và phục vụ khách hàng:
+Bind service và phục vụ client:
 
 ```zig
 var service: sqlite.Service = .init(gpa, .{}); // .directory, .busy_timeout_ms
@@ -76,7 +92,7 @@ try app.bind(&service);
 ```js
 import { open } from "/plugins/sqlite.js";
 
-const db = await open("app.db"); // a file name in the app's data directory, or ":memory:"
+const db = await open("app.db"); // tên file trong thư mục dữ liệu của app, hoặc ":memory:"
 await db.execute("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, title TEXT)");
 const { changes, lastInsertId } = await db.execute("INSERT INTO notes(title) VALUES (?)", ["Hi"]);
 const { columns, rows } = await db.query("SELECT id, title FROM notes WHERE id = ?", [lastInsertId]);
@@ -84,24 +100,46 @@ await db.transaction([{ sql: "DELETE FROM notes WHERE id = ?", params: [1] }]);
 await db.close();
 ```
 
-- **Giá trị:** `null`, số, chuỗi, booleans (0 hoặc 1), `bigint`s cho các số nguyên vượt quá 2^53 (kết quả cung cấp cho chúng dưới dạng `bigint`s, `lastInsertId` luôn) và `Uint8Array`s (bất kỳ view `ArrayBuffer` nào) cho các đốm màu. Những gì JSON không thể thực hiện sẽ di chuyển dưới dạng các chuỗi thuộc loại của nó, được khách hàng quay lại.
-- **Tên, không bao giờ đường dẫn:** các trang mở tên tệp trong `directory` của dịch vụ (thư mục dữ liệu của ứng dụng theo mặc định): không có thư mục, `..`, `:`, Windows' tên dành riêng (`CON`, `COM1`...) hoặc liên kết tượng trưng. Thư mục được tạo cho cơ sở dữ liệu có thể ghi được; `open(name, { readOnly: true })` mở một tệp chỉ đọc.
-- **SQL được bảo vệ:** một câu lệnh cho mỗi cuộc gọi và không có `BEGIN`, `COMMIT` hoặc `SAVEPOINT` (sử dụng `transaction`, tức là `BEGIN IMMEDIATE` và khôi phục nếu có bất kỳ lỗi nào), `ATTACH`, `DETACH` hoặc `VACUUM INTO`.
-- **Mỗi trang:** một kết nối thuộc về trang đã mở nó: các cửa sổ khác không thể sử dụng id của nó và nó sẽ đóng khi trang điều hướng, tải lại hoặc đóng hoặc hủy kích hoạt dịch vụ. Một trang được tải lại sẽ mở lại cơ sở dữ liệu của nó.
-- **Các lệnh gọi luồng chính:** chạy ở đó, giống như tất cả các phương thức bị ràng buộc; giữ các truy vấn ngắn gọn (`LIMIT`).
+| `sqlite.ServiceOptions` | Mặc định | |
+|---|---|---|
+| `directory` | null | nơi chứa database của trang; null là thư mục dữ liệu của app |
+| `busy_timeout_ms` | 5000 | |
 
-`sqlite.ServiceOptions`: `directory` (null: thư mục dữ liệu của ứng dụng), `busy_timeout_ms` (5000).
+**Giá trị**
+
+- `null`, số, chuỗi, boolean (0 hoặc 1), và `Uint8Array` (bất kỳ view nào của `ArrayBuffer`) cho blob.
+- `bigint` cho số nguyên vượt quá 2^53. Kết quả trả chúng về dạng `bigint`, và `lastInsertId` luôn là `bigint`.
+- Những gì JSON không chở được thì đi dưới dạng chuỗi kèm loại của nó. Client chuyển nó về lại.
+
+**Tên file, không bao giờ là đường dẫn.** Trang mở các tên file trong `directory` của service.
+
+- Không thư mục, không `..`, không `:`, không tên dành riêng của Windows (`CON`, `COM1`...) và không symbolic link.
+- Thư mục được tạo ra cho database có thể ghi.
+- `open(name, { readOnly: true })` mở database ở chế độ chỉ đọc.
+
+**SQL có bảo vệ.** Mỗi lần gọi một câu lệnh. Những câu sau bị từ chối:
+
+- `BEGIN`, `COMMIT` hoặc `SAVEPOINT`. Hãy dùng `transaction`, tức `BEGIN IMMEDIATE` và rollback khi có bất kỳ lỗi nào.
+- `ATTACH`, `DETACH` hoặc `VACUUM INTO`.
+
+**Theo từng trang.** Một connection thuộc về trang đã mở nó.
+
+- Cửa sổ khác không dùng được id của nó.
+- Nó đóng khi trang điều hướng, reload hoặc đóng, hoặc khi service deinit.
+- Trang reload thì mở lại database của mình.
+
+**Main thread.** Các lời gọi chạy trên main thread, như mọi method đã bind. Hãy giữ truy vấn ngắn (`LIMIT`).
 
 <a id="example-and-tests"></a>
 
-## Ví dụ và kiểm thử
+## Ví dụ và test
 
-`example/` là trang ghi chú; `zig build run` hiển thị nó.
+`example/` là một trang ghi chú. `zig build run` cho xem nó.
 
 ```sh
 cd plugins/sqlite
-zig build test               # the engine against the system's SQLite on temporary databases, and the page
-zig build test -Dpage=false  # without the page (no webview needed)
-zig build test-page          # the example's page alone, hidden, through the real webview
+zig build test               # engine chạy với SQLite của hệ thống trên database tạm, và trang web
+zig build test -Dpage=false  # không có trang (không cần webview)
+zig build test-page          # chỉ trang của ví dụ, chạy ẩn, qua webview thật
 zig build check -Dtarget=x86_64-linux-gnu
 ```

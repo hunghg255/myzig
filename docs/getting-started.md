@@ -1,18 +1,24 @@
 # Getting started
 
-myzig builds desktop apps in Zig. A window shows either native UI that
-myzig draws itself, written in Zig alone, or a web page in the system's
-webview whose frontend calls your Zig code through a generated client.
+myzig builds desktop apps in Zig. A window shows one of two things:
+
+- native UI that myzig draws itself, written in Zig alone;
+- a web page in the system's webview, whose frontend calls your Zig code
+  through a generated client.
+
 This page installs the tools, makes an app, runs it and builds its
-release, then tours the examples.
+release. Then it tours the examples.
 
 ## Install
 
 You need **Zig 0.17.0** or later (`minimum_zig_version` in
-`build.zig.zon`). myzig loads what Linux and Windows have when the app
-starts instead of linking it, so their apps build from any machine
-(`-Dtarget=...`) with nothing else; macOS apps link Apple's frameworks,
-so they build where the macOS SDK is.
+`build.zig.zon`).
+
+- myzig loads what Linux and Windows have when the app starts, instead of
+  linking it. So their apps build from any machine (`-Dtarget=...`) with
+  nothing else.
+- macOS apps link Apple's frameworks, so they build where the macOS SDK
+  is.
 
 What the app needs to run:
 
@@ -31,15 +37,21 @@ cd myzig/cli
 zig build -Doptimize=ReleaseSmall    # zig-out/bin/myzig
 ```
 
-Put `cli/zig-out/bin` on your `PATH`, or run the tool from the checkout
-with `zig build run -- <command>` in `cli/`. `myzig doctor` checks that the
-machine can build and run apps: Zig, the platform's SDK and libraries (the
-macOS SDK; GTK 3 and WebKitGTK; the WebView2 Runtime).
+Put `cli/zig-out/bin` on your `PATH`. Or run the tool from the checkout
+with `zig build run -- <command>` in `cli/`.
 
-myzig was called nanoui. The module, its flags (`--myzig-*`), the page
-runtime (`window.myzig`) and the URL scheme (`myzig://`) carry the new
-name; the build still exports the module as `nanoui` too, for apps that
-import the old name.
+`myzig doctor` checks that the machine can build and run apps: Zig, and
+the platform's SDK and libraries (the macOS SDK; GTK 3 and WebKitGTK; the
+WebView2 Runtime).
+
+<details>
+<summary>myzig was called nanoui</summary>
+
+The module, its flags (`--myzig-*`), the page runtime (`window.myzig`)
+and the URL scheme (`myzig://`) carry the new name. The build still
+exports the module as `nanoui` too, for apps that import the old name.
+
+</details>
 
 ## Create an app
 
@@ -62,12 +74,16 @@ hello/
   .gitignore
 ```
 
-Where myzig comes from: `--myzig PATH` names a checkout, which becomes a
-path dependency; `--myzig URL` names what `zig fetch` fetches. Without it,
-`init` uses the checkout `MYZIG_ROOT` names, else the myzig repository.
-`--name` gives the app a name other than its directory's. The web
-template is built once after it is made, to write the frontend's
-generated client (`--skip-generate` leaves that to the first `myzig dev`).
+| Option | |
+|---|---|
+| `--myzig PATH` | a checkout, which becomes a path dependency |
+| `--myzig URL` | what `zig fetch` fetches |
+| neither | the checkout `MYZIG_ROOT` names, else the myzig repository |
+| `--name` | a name other than the directory's |
+| `--skip-generate` | skips the web template's first build; the first `myzig dev` does it |
+
+The web template is built once after it is made, to write the frontend's
+generated client.
 
 ### Native UI
 
@@ -112,11 +128,13 @@ test "the button counts" {
 }
 ```
 
-The view is a function of the app's state, run for every frame. A widget
-answers what happened to it in the previous frame (`.clicked`); when that
-changes the state, the frame is built again before it is drawn. The test
-runs the same view in a `ui.Tester`, without a window. See
-[Native UI](ui/README.md).
+- The view is a function of the app's state, run for every frame.
+- A widget answers what happened to it in the previous frame
+  (`.clicked`). When that changes the state, the frame is built again
+  before it is drawn.
+- The test runs the same view in a `ui.Tester`, without a window.
+
+See [Native UI](ui/README.md).
 
 ### A web page
 
@@ -161,11 +179,13 @@ import { Greeter } from "/myzig.js";
 document.getElementById("greeting").textContent = await Greeter.greet("Ada");
 ```
 
-`assets` is `frontend/myzig_assets.zig`, which the CLI writes: the
-frontend's files embedded into the app and served at
-`myzig://localhost/`. `/myzig.js` is the client generated from the bound
-services, typed by `frontend/myzig.d.ts`. See [Pages](pages.md) and
-[Bindings](bindings.md).
+- `assets` is `frontend/myzig_assets.zig`, which the CLI writes. It holds
+  the frontend's files, embedded into the app and served at
+  `myzig://localhost/`.
+- `/myzig.js` is the client generated from the bound services, typed by
+  `frontend/myzig.d.ts`.
+
+See [Pages](pages.md) and [Bindings](bindings.md).
 
 ## Develop
 
@@ -176,16 +196,19 @@ zig build run        # or with Zig alone
 zig build test       # the app's tests
 ```
 
-`myzig dev` watches the app's files through the system (nothing polls),
-writes the web template's client again when the services change, and,
-with a `dev_command` and `dev_url` in `myzig.zon`, runs a dev server
-(Vite, ...) first and points the app at it through `MYZIG_DEV_URL`.
-Arguments after `--` go to the app. See [The CLI](cli.md) and
-[Configuration](configuration.md).
+`myzig dev`:
+
+- watches the app's files through the system; nothing polls;
+- writes the web template's client again when the services change;
+- with a `dev_command` and `dev_url` in `myzig.zon`, runs a dev server
+  (Vite, ...) first, and points the app at it through `MYZIG_DEV_URL`;
+- passes arguments after `--` to the app.
+
+See [The CLI](cli.md) and [Configuration](configuration.md).
 
 ## Check an app without a window
 
-Apps take flags that run them hidden, which tests and agents use instead
+Apps take flags that run them hidden. Tests and agents use them instead
 of showing windows:
 
 ```sh
@@ -197,8 +220,8 @@ zig-out/bin/hello --myzig-generate=frontend                 # write myzig.js and
 zig-out/bin/hello --myzig-hidden                            # run, never showing a window
 ```
 
-`--myzig-eval` runs a script in each page once its DOM is ready; the page
-reports with `myzig.log()` and ends the run with `myzig.window.close()`.
+`--myzig-eval` runs a script in each page once its DOM is ready. The page
+reports with `myzig.log()`, and ends the run with `myzig.window.close()`.
 Snapshots, scripts and the Tester are in [Testing](ui/testing.md).
 
 ## Build the release
@@ -210,17 +233,21 @@ myzig build --platform linux --arch aarch64
 myzig build --platform web         # a static site (native UI only)
 ```
 
-`build` compiles a stripped `ReleaseSmall` binary (`--optimize fast` or
-`safe` for the others) and packages it in `dist/<platform>-<arch>`: a
-`.app` and a `.dmg` on macOS, an `.exe` with its icon and version
-resources and a `.zip` (and an installer, with NSIS) for Windows, a
-directory, a `.tar.gz` and a `.deb` for Linux. A counter is about 0.7 MB.
-See [Distribution](distribution.md).
+`build` compiles a stripped `ReleaseSmall` binary; `--optimize fast` or
+`safe` gives the others. It packages it in `dist/<platform>-<arch>`:
+
+| Platform | Package |
+|---|---|
+| macOS | a `.app` and a `.dmg` |
+| Windows | an `.exe` with its icon and version resources, a `.zip`, and an installer with NSIS |
+| Linux | a directory, a `.tar.gz` and a `.deb` |
+
+A counter is about 0.7 MB. See [Distribution](distribution.md).
 
 ## The examples
 
 The repository's examples build with `zig build` from its root, into
-`zig-out/bin`, and each runs with `zig build run-<name>`:
+`zig-out/bin`. Each runs with `zig build run-<name>`:
 
 | example | what it shows |
 |---|---|

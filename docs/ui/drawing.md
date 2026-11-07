@@ -1,10 +1,12 @@
 # Drawing
 
-When boxes, text and icons aren't enough, draw: `ui.canvas` gives a draw
-function a `ui.Painter`, which fills and strokes paths with colors and
-gradients, through transforms and clips. `ui.svg` draws SVG documents the
-same way. Charts are drawn on canvases too ([Charts](chart.md)); for
-per-pixel effects, see [Shaders](shaders.md).
+When boxes, text and icons aren't enough, draw.
+
+- `ui.canvas` gives a draw function a `ui.Painter`. It fills and strokes
+  paths with colors and gradients, through transforms and clips.
+- `ui.svg` draws SVG documents the same way.
+- Charts are drawn on canvases too ([Charts](chart.md)).
+- For per-pixel effects, see [Shaders](shaders.md).
 
 The gallery's Drawing page has the examples below
 (`examples/gallery/drawing.zig`, `zig build run-gallery`).
@@ -38,24 +40,22 @@ const Wave = struct {
 };
 ```
 
-`ui.canvas(c, size, options, ctx, draw)` makes a box `size` points large
-and calls `draw(ctx, painter)` to record what it shows. A side of 0 fills
-the parent along it: the canvas is drawn at the size it had in the last
-layout, which `p.size` tells. `ui.CanvasOptions` has `key` (an id that
-survives reordering), `opacity` and `radius`, which rounds the picture's
-corners and clips what is drawn there.
+`ui.canvas(c, size, options, ctx, draw)` makes a box `size` points large.
+It calls `draw(ctx, painter)` to record what it shows.
 
-`p.visible()` is the part of the canvas in view, in the coordinates it
-draws in: its box within the scrolling boxes and clips around it and the
-window, as the last frame painted it, taken back through the transforms of
-its boxes and the painter's own, so a canvas zoomed in sees as much less of
-itself as shows. A drawing taller than the window (a long document, a
-chart's many points) skips what falls outside it; a frame that scrolled it
-draws once more with the part as it now is. Until a frame painted it, it is
-the whole canvas. Outside the painter, `ui.canvasVisibility(c, id, whole)`
-answers the same for the canvas that will take box id `id` (`c.peekId`),
-so an animation can pause while its canvas is scrolled out of view (the
-[loading plugin](../plugins/loading.md) does).
+- A side of 0 fills the parent along it.
+- The canvas is drawn at the size it had in the last layout. `p.size` tells
+  it.
+
+| `ui.CanvasOptions` | |
+|---|---|
+| `key` | an id that survives reordering |
+| `opacity` | |
+| `radius` | rounds the picture's corners and clips what is drawn there |
+
+**The part in view.** `p.visible()` is the part of the canvas in view, in
+the coordinates it draws in. A drawing taller than the window, as a long
+document or a chart's many points, skips what falls outside it:
 
 ```zig
 const v = p.visible();
@@ -66,8 +66,25 @@ for (s.lines, 0..) |l, i| {
 }
 ```
 
-The canvas returns its box's index, so it can take the pointer like any
-box:
+- A frame that scrolled it draws once more, with the part as it now is.
+- Until a frame painted it, it is the whole canvas.
+- Outside the painter, `ui.canvasVisibility(c, id, whole)` answers the same
+  for the canvas that will take box id `id` (`c.peekId`). An animation can
+  pause while its canvas is scrolled out of view, as the
+  [loading plugin](../plugins/loading.md) does.
+
+<details>
+<summary>How the part in view is found</summary>
+
+It is the canvas's box within the scrolling boxes and clips around it and
+the window, as the last frame painted it. It is taken back through the
+transforms of its boxes and the painter's own. So a canvas zoomed in sees
+as much less of itself as shows.
+
+</details>
+
+**The pointer.** The canvas returns its box's index, so it can take the
+pointer like any box:
 
 ```zig
 const box = ui.canvas(c, .{ .w = 0, .h = 200 }, .{}, s, draw);
@@ -77,18 +94,20 @@ if (it.clicked) if (it.rect) |r| s.addPoint(c.input.mouse.x - r.x, c.input.mouse
 
 ### How it is drawn
 
-The Painter records commands; it draws nothing itself. The recording is
-rasterized on the CPU (`src/ui/canvas_render.zig`), with antialiasing, at
-the window's scale, into a picture in the image atlas, which every
-renderer then draws as it draws `ui.image`. A canvas is rasterized again
-only when what it records changes: the picture is keyed by a hash of the
-recording, so a frame that draws the same thing costs only the recording
-and the hash. A canvas that changes every frame (an animation) is
-rasterized every frame, so keep those small, or move the animated part to a
-box's transform ([Transforms](transforms.md)).
+The Painter records commands; it draws nothing itself.
 
-Paths, gradient stops and dashes given to the Painter are copied: pass any
-memory, even the stack.
+- The recording is rasterized on the CPU (`src/ui/canvas_render.zig`),
+  with antialiasing, at the window's scale.
+- It goes into a picture in the image atlas. Every renderer draws that as
+  it draws `ui.image`.
+- The picture is keyed by a hash of the recording. A canvas is rasterized
+  again only when what it records changes.
+- A frame that draws the same thing costs only the recording and the hash.
+- A canvas that changes every frame, as an animation, is rasterized every
+  frame. Keep those small, or move the animated part to a box's transform
+  ([Transforms](transforms.md)).
+- Paths, gradient stops and dashes given to the Painter are copied. Pass
+  any memory, even the stack.
 
 ## Paths
 
@@ -111,8 +130,11 @@ from the canvas's top left, y going down.
 | `append(data, transform)` | another path's `ui.PathData`, transformed |
 
 A path made with its own allocator (`ui.Path.init(gpa)`) can be kept
-across frames and reused: `reset()` empties it, `deinit()` frees it, and
-`data()` gives its `ui.PathData` (verbs and points) for `p.fillData`.
+across frames and reused:
+
+- `reset()` empties it;
+- `deinit()` frees it;
+- `data()` gives its `ui.PathData` (verbs and points) for `p.fillData`.
 
 ## Filling and stroking
 
@@ -122,10 +144,9 @@ p.fillRule(&path, .color(c.theme.text), .evenodd); // holes where subpaths overl
 p.stroke(&path, .color(accent), .{ .width = 2.5, .join = .round, .cap = .round });
 ```
 
-`ui.FillRule` is `.nonzero` (the default of `fill`) or `.evenodd`. A
-`ui.Stroke`:
+`ui.FillRule` is `.nonzero` (the default of `fill`) or `.evenodd`.
 
-| field | default | meaning |
+| `ui.Stroke` | Default | |
 |---|---|---|
 | `width` | 1 | in points |
 | `join` | `.miter` | `ui.LineJoin`: `.miter`, `.round`, `.bevel` |
@@ -154,12 +175,16 @@ p.fillCircle(50, 50, 40, .{ .radial = .{
 } });
 ```
 
-`ui.LinearGradient` goes `from` one point `to` another; `ui.RadialGradient`
-goes out from `focal` (the center unless given) to the circle of `radius`
-around `center`. Both take `stops` (`ui.GradientStop`: `offset` 0 to 1 and
-`color`), `spread` (`.pad`, `.reflect` or `.repeat`: what happens past the
-ends) and a `transform` from the gradient's space to the drawing's (SVG's
-`gradientTransform`).
+- `ui.LinearGradient` goes `from` one point `to` another.
+- `ui.RadialGradient` goes out from `focal` to the circle of `radius`
+  around `center`. `focal` is the center unless given.
+
+Both take:
+
+- `stops`, of `ui.GradientStop`: `offset` 0 to 1 and `color`;
+- `spread`, what happens past the ends: `.pad`, `.reflect` or `.repeat`;
+- `transform`, from the gradient's space to the drawing's (SVG's
+  `gradientTransform`).
 
 ## Transforms, clips and layers
 
@@ -174,17 +199,21 @@ p.restore();
 
 - `save()` and `restore()` keep and bring back the transform, clip and
   opacity.
-- `transform(t)` draws what follows through a `ui.Transform` (after the
-  transforms already set); `translate(x, y)`, `scaleBy(sx, sy)` and
-  `rotate(radians, cx, cy)` are shorthands. `ui.Transform` has
-  `translation`, `scaling`, `rotation` (radians), `skewX`, `skewY`, `then`,
-  `apply` and `invert`. (Boxes are transformed with `ui.Affine`, in
-  degrees; canvases with `ui.Transform`, in radians, as Canvas 2D is.)
+- `transform(t)` draws what follows through a `ui.Transform`, after the
+  transforms already set.
+- `translate(x, y)`, `scaleBy(sx, sy)` and `rotate(radians, cx, cy)` are
+  shorthands.
+- `ui.Transform` has `translation`, `scaling`, `rotation` (radians),
+  `skewX`, `skewY`, `then`, `apply` and `invert`.
 - `clip(path, rule)` and `clipRect(rect)` keep what follows inside, within
   the clips already set.
 - `setAlpha(a)` fades what follows, until `restore`.
 - `beginLayer(opacity)` and `endLayer()` draw a group apart, then blend it
-  with `opacity`: a translucent group whose overlaps don't show.
+  with `opacity`. The result is a translucent group whose overlaps don't
+  show.
+
+Boxes are transformed with `ui.Affine`, in degrees. Canvases use
+`ui.Transform`, in radians, as Canvas 2D does.
 
 ## SVG
 
@@ -196,43 +225,56 @@ _ = ui.svg(c, gear, .{ .width = 16, .color = c.theme.accent }); // its currentCo
 ```
 
 `ui.svg(c, bytes, options)` draws an SVG document as a canvas does, at the
-window's scale, and returns false (drawing nothing) if the bytes aren't
-one. `ui.SvgOptions`:
+window's scale. It returns false, and draws nothing, if the bytes aren't
+one.
 
-| field | meaning |
+| `ui.SvgOptions` | |
 |---|---|
 | `width`, `height` | its size in points; a side of 0 keeps the document's proportions, both 0 its own size |
 | `color` | what `currentColor` is; null is the theme's text color, so icons follow light and dark |
 | `opacity` | its opacity |
 | `key` | an id among its siblings |
 
-The picture is kept: a frame showing the same bytes at the same size and
+The picture is kept. A frame showing the same bytes at the same size and
 color draws it without parsing them again.
 
-What of SVG is drawn (`src/ui/svg_draw.zig`): the root's `viewBox`
-fitted with `preserveAspectRatio`, groups and nested `svg`s, paths and the
-basic shapes, `use` of elements and symbols, transforms, fills and strokes
-in colors and gradients (linear and radial, by reference, in either unit
-system), their opacities, group opacity, and clip paths. Colors may be hex,
-`rgb()`, `hsl()`, names or `currentColor`, and styles may come from
-attributes, `style`, or simple CSS rules in `<style>` (selectors by
-element, class and id). Text, masks, filters, markers and patterns are left
-out: convert text to paths when you export the file.
-
 `ui.rasterizeSvg(gpa, bytes, w, h, current_color)` draws a document into
-premultiplied BGRA pixels, `w` × `h`, without a window: for icons made
-ahead of time, and tests. Free the result with `gpa`.
+premultiplied BGRA pixels, `w` × `h`, without a window. It is for icons
+made ahead of time, and for tests. Free the result with `gpa`.
+
+<details>
+<summary>What of SVG is drawn</summary>
+
+From `src/ui/svg_draw.zig`:
+
+- the root's `viewBox`, fitted with `preserveAspectRatio`;
+- groups and nested `svg`s;
+- paths and the basic shapes;
+- `use` of elements and symbols;
+- transforms;
+- fills and strokes in colors and gradients: linear and radial, by
+  reference, in either unit system;
+- their opacities, group opacity, and clip paths.
+
+Colors may be hex, `rgb()`, `hsl()`, names or `currentColor`. Styles may
+come from attributes, `style`, or simple CSS rules in `<style>`, with
+selectors by element, class and id.
+
+Text, masks, filters, markers and patterns are left out. Convert text to
+paths when you export the file.
+
+</details>
 
 ## Images
 
-Pictures from files (PNG, and on macOS whatever ImageIO reads) are not
-drawn on a canvas but shown with `ui.image`; see [Text](text.md) and
+Pictures from files are not drawn on a canvas but shown with `ui.image`.
+That is PNG, and on macOS whatever ImageIO reads. See [Text](text.md) and
 [Buttons and media](buttons.md).
 
 ## Testing drawings
 
-A canvas draws in the Tester as in a window, through the same rasterizer,
-so a test can render the view and look at pixels:
+A canvas draws in the Tester as in a window, through the same rasterizer.
+A test can render the view and look at pixels:
 
 ```zig
 var t: ui.Tester = undefined;

@@ -1,7 +1,7 @@
 # Command palette
 
-`ui.commandPalette` provides searchable commands in a modal dialog. It
-returns the original index in the app's items when a command is activated.
+`ui.commandPalette` shows searchable commands in a modal dialog. It
+returns the item's index in the app's list when a command is activated.
 
 <!-- demo: panels height=520 -->
 
@@ -18,17 +18,20 @@ const items: []const ui.CommandItem = &.{
 if (ui.commandPalette(c, &s.commands, items, .{})) |index| s.runCommand(index);
 ```
 
-Keep `CommandState` in app state. `show`, `close` and `toggle` control its
-overlay; `query` is its search buffer and `selected` the active original
-item index. Each reopening clears the query. Build the palette after the
-rest of the view so its controls have the last chance to handle input.
+Keep `CommandState` in app state:
+
+- `show`, `close` and `toggle` open and close it.
+- `query` is its search buffer. Each reopening clears it.
+- `selected` is the active item's index in the app's list.
+
+Build the palette after the rest of the view, so its controls handle
+input last.
 
 ## Items and options
 
-An item has `title`, optional `group`, `keywords`, `icon`, `shortcut`
-(display text) and `disabled`. Place items of a group together. Search
-matches title and keywords, ignoring ASCII case; prefix matches come first.
-The palette displays disabled matches and skips them during navigation.
+An item has a `title` and, optionally, `group`, `keywords`, `icon`,
+`shortcut` (display text) and `disabled`. Place the items of a group
+together.
 
 | `CommandOptions` | Default | Meaning |
 |---|---|---|
@@ -39,15 +42,19 @@ The palette displays disabled matches and skips them during navigation.
 | `search_label` | `"Search commands"` | Accessible search-field name |
 | `empty_label` | `"No commands found."` | Text for an empty result |
 
-Typing keeps the search field focused. Up/Down wrap through enabled
-matches; Home/End go to the first/last. Enter activates the current match,
-and a pointer click activates a result. Space remains ordinary search
-text. The active result scrolls into view and is exposed to assistive
-technology as the search field's active descendant.
+**Search and keys**
 
-Tab stays inside the dialog. Escape or a click on its backdrop closes
-it; activation closes it too. Closing restores the trigger's focus. This
-frequently used menu opens without an entrance animation.
+- Search matches title and keywords, ignoring ASCII case. Prefix
+  matches come first.
+- Disabled matches are shown, and navigation skips them.
+- Typing keeps the search field focused. Space is ordinary search text.
+- Up/Down wrap through enabled matches. Home/End go to the first/last.
+- Enter or a click activates a result, and closes the palette.
+- The active result scrolls into view. Screen readers get it as the
+  search field's active descendant.
+- Tab stays in the dialog. Escape or a click on the backdrop closes it.
+- Closing gives the focus back to the trigger.
+- It opens without an entrance animation, since it is used often.
 
 ## Shared actions
 
@@ -59,7 +66,7 @@ if (s.actions.commandPalette(c, &s.commands, .{})) |cmd| s.run(cmd);
 ```
 
 It returns the action's enum tag and updates `actions.last`, like
-`menuItem` and `button`. Shortcut labels are presentation; continue to use
+`menuItem` and `button`. Shortcut labels are only shown. Keep calling
 `actions.shortcuts(c)` to dispatch those key combinations.
 
 See [Gallery](../../examples/gallery/feedback.zig) for commands opening a

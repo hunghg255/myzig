@@ -1,12 +1,13 @@
 # game
 
 What games need beyond what apps do, opt-in and kept out of myzig's `ui`:
-a game loop in fixed steps with its input, a camera, pixel-perfect scaling
-(module `game`), and gamepads in one standard layout (module `gamepad`,
-which needs no ui).
+
+- module `game`: a game loop in fixed steps with its input, a camera,
+  pixel-perfect scaling;
+- module `gamepad`: gamepads in one standard layout. It needs no ui.
 
 The package is `plugins/game`. `examples/farm` is a game built on it, a
-package of its own (`cd examples/farm && zig build run`); its
+package of its own (`cd examples/farm && zig build run`). Its
 `build.zig.zon` shows how an app depends on the plugin:
 
 ```zig
@@ -57,15 +58,15 @@ const State = struct {
 };
 ```
 
-`game.view(c, &g, &runner)` runs a game, any struct with
-`update(*G, *game.Input)` and `draw(*G, *ui.Context, ui.Size, alpha: f32)`,
-in a focusable box that fills its parent, clipped to it:
+`game.view(c, &g, &runner)` runs a game: any struct with
+`update(*G, *game.Input)` and `draw(*G, *ui.Context, ui.Size, alpha: f32)`.
+It runs in a focusable box that fills its parent, clipped to it.
 
-- Steps are fixed, 60 a second (`game.default_rate`; `pub const rate = 30;`
-  in the game for another), whatever the display's rate. After a pause they
-  catch up a quarter of a second at most. A frame that builds its view
-  twice steps once.
-- `draw` runs every frame with `alpha`, how far the frame is into the next
+- Steps are fixed, 60 a second (`game.default_rate`), whatever the
+  display's rate. Put `pub const rate = 30;` in the game for another.
+- After a pause, steps catch up a quarter of a second at most.
+- A frame that builds its view twice steps once.
+- `draw` runs every frame with `alpha`: how far the frame is into the next
   step, to draw between the last two steps.
 - The view asks for the next frame (`c.animationFrame()`): a game draws
   continuously while it is shown.
@@ -84,12 +85,15 @@ in a focusable box that fills its parent, clipped to it:
   `focused`;
 - `releaseAll()` lets go of everything (when the window loses focus).
 
-The view sets `c.wants_keys`, so keys come going down and up where the
-platform reports them (Windows, Linux and browsers do). Until the first
-such edge comes, typed characters and navigation keys arrive as taps, down
-for one step. Keys with Command or Control are left to the menus.
-`runner.input.keyDown(k)` and `keyUp(k)` feed keys from elsewhere (tests
-use them).
+How keys arrive:
+
+- The view sets `c.wants_keys`, so keys come going down and up where the
+  platform reports them (Windows, Linux and browsers do).
+- Until the first such edge comes, typed characters and navigation keys
+  arrive as taps, down for one step.
+- Keys with Command or Control are left to the menus.
+- `runner.input.keyDown(k)` and `keyUp(k)` feed keys from elsewhere
+  (tests use them).
 
 ## The camera
 
@@ -100,14 +104,21 @@ const world = cam.toWorld(view_rect, c.scale, px, py); // the pointer, in the wo
 const seen = cam.visible(view_rect, c.scale); // the world's part in view, for culling
 ```
 
-A `Camera` looks at the world's `x, y` in the middle of the view, `zoom`
-times as large, turned `rotation` degrees clockwise (boxes stay
-axis-aligned: turned, `rect` is the rect around). Unturned, the world moves
-by whole pixels of the screen, so tiles drawn at whole units keep their
-edges on pixels. `transform` gives the affine `game.Transform` (`apply`,
-`invert`), `toScreen` the other way from `toWorld`, and
-`game.integerFit(w, h, view_rect)` the largest whole multiple of a logical
-size that fits, letterboxed, with its scale.
+A `Camera` puts the world's `x, y` in the middle of the view:
+
+| Field | |
+|---|---|
+| `x`, `y` | the world's point in the middle of the view |
+| `zoom` | how many times as large |
+| `rotation` | degrees, clockwise |
+
+- Boxes stay axis-aligned: turned, `rect` is the rect around.
+- Unturned, the world moves by whole pixels of the screen. Tiles drawn at
+  whole units keep their edges on pixels.
+- `transform` gives the affine `game.Transform` (`apply`, `invert`).
+- `toScreen` goes the other way from `toWorld`.
+- `game.integerFit(w, h, view_rect)` gives the largest whole multiple of
+  a logical size that fits, letterboxed, with its scale.
 
 ## Gamepads
 
@@ -134,8 +145,9 @@ for (pads.list()) |p| {
 - Axes (`gamepad.Axis`): `left_x left_y right_x right_y`.
 - `State`: `value(b)`, `pressed(b)`, `justPressed(last, b)`,
   `justReleased(last, b)`, `axis(a)`, `leftStick()`, `rightStick()`.
-- A `Pad` has an `id` (unique while the app runs: plugged in again, a pad
-  is a new one), its `name`, `state` and `connected`. Up to 8.
+- A `Pad` has an `id`, its `name`, `state` and `connected`. The `id` is
+  unique while the app runs: plugged in again, a pad is a new one.
+- Up to 8 pads.
 
 | platform | from |
 |---|---|

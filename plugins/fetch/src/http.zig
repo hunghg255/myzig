@@ -32,7 +32,7 @@ pub const Head = struct {
     /// Where the response came from, after redirects.
     url: []const u8,
     redirected: bool,
-    /// Names in lower case; never Set-Cookie, which pages cannot hold.
+    /// Names in lower case; never Set-Cookie or Set-Cookie2, which pages cannot hold.
     headers: []const Header,
 };
 
@@ -112,7 +112,7 @@ pub fn perform(client: *http.Client, arena: std.mem.Allocator, req: Request, sin
     var headers: std.ArrayList(Header) = .empty;
     var it = response.head.iterateHeaders();
     while (it.next()) |h| {
-        if (eql(h.name, "set-cookie")) continue;
+        if (eql(h.name, "set-cookie") or eql(h.name, "set-cookie2")) continue;
         const name = try std.ascii.allocLowerString(arena, h.name);
         try headers.append(arena, .{ .name = name, .value = try arena.dupe(u8, h.value) });
     }

@@ -123,6 +123,10 @@ pub const Conn = struct {
                 if (std.mem.eql(u8, o, p)) break;
             } else return error.HandshakeInvalid;
             c.protocol = try gpa.dupe(u8, p);
+        } else if (options.protocols.len > 0) {
+            // RFC 6455 4.1: a server that picks none of the offered
+            // subprotocols fails the connection.
+            return error.HandshakeInvalid;
         }
         return c;
     }

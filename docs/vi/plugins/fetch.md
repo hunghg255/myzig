@@ -2,9 +2,10 @@
 
 Request HTTP và HTTPS do Zig thực hiện (`std.http.Client`). Trang web dùng một `fetch` chuẩn; Zig dùng `fetch.perform`. Request đi ra từ Zig chứ không phải từ webview, nên:
 
-- chúng không bị CORS ràng buộc: server nào cũng trả lời, và mọi header của response đều đọc được trừ `Set-Cookie`;
+- chúng không bị CORS ràng buộc: server nào cũng trả lời, và mọi header của response đều đọc được trừ `Set-Cookie` và `Set-Cookie2`;
 - chúng đặt được bất kỳ header nào, kể cả `Origin`, `Cookie`, `Referer` và `User-Agent`;
-- body được stream tới trang ngay khi Zig đọc, và abort sẽ hủy request ở phía Zig.
+- body được stream tới trang ngay khi Zig đọc, và abort sẽ hủy request ở phía Zig;
+- URL có tên người dùng hoặc mật khẩu bị từ chối với một `TypeError`: hãy gửi header `Authorization` thay vào đó.
 
 Package là `plugins/fetch` (module `fetch`). Nó phụ thuộc [mainthread](mainthread.md). Xem [Plugins](../plugins.md) để thêm nó vào app.
 

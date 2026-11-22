@@ -61,10 +61,12 @@ export async function fetch(input, init = {}) {
   const req = typeof Request !== "undefined" && input instanceof Request ? input : null;
   const url = new URL(req ? req.url : input instanceof URL ? input.href : String(input), location.href);
   if (url.protocol !== "http:" && url.protocol !== "https:") return globalThis.fetch(input, init);
+  if (url.username || url.password) throw new TypeError("fetch: URL must not include credentials");
   if (!window.myzig) throw new Error("fetch plugin: not in a myzig page");
   listen();
 
-  const signal = init.signal ?? req?.signal ?? null;
+  // An explicit null signal drops the Request's.
+  const signal = init.signal === undefined ? req?.signal ?? null : init.signal;
   signal?.throwIfAborted();
   let method = init.method ?? req?.method ?? "GET";
   if (NORMALIZED.has(method.toUpperCase())) method = method.toUpperCase();
@@ -75,9 +77,11 @@ export async function fetch(input, init = {}) {
     const type = r.headers.get("content-type");
     if (type && !headers.has("content-type")) headers.set("content-type", type);
     body = new Uint8Array(await r.arrayBuffer());
-  } else if (init.body === undefined && req?.body) {
+  } else if (req?.body) {
     body = new Uint8Array(await req.arrayBuffer());
   }
+  // Reading the body yields: it may have been aborted before Zig sees it.
+  signal?.throwIfAborted();
   if (body && (method === "GET" || method === "HEAD")) throw new TypeError(`fetch: a ${method} request cannot have a body`);
 
   const id = crypto.randomUUID();

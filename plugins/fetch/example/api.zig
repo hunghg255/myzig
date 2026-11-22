@@ -1,7 +1,7 @@
 //! A small HTTP server on 127.0.0.1, for the example's page to fetch from
 //! and for the plugin's tests: no request leaves the machine.
 //!
-//!   GET  /hello     "hello", with headers (and a Set-Cookie pages never see)
+//!   GET  /hello     "hello", with headers (and a Set-Cookie and Set-Cookie2 pages never see)
 //!   ANY  /echo      the method, the X-Custom header and the body, a line each
 //!   GET  /redirect  302 to /hello;  /loop  302 to itself
 //!   GET  /stream    "one", then "two" once `gate` is set (chunked)
@@ -70,6 +70,7 @@ pub const Server = struct {
             return req.respond("hello", .{ .extra_headers = &.{
                 .{ .name = "X-Test", .value = "1" },
                 .{ .name = "Set-Cookie", .value = "secret=1" },
+                .{ .name = "Set-Cookie2", .value = "secret=2" },
                 .{ .name = "Content-Type", .value = "text/plain" },
             } });
         }

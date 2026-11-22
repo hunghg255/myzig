@@ -80,6 +80,10 @@ export class WebSocket extends EventTarget {
     this.#url = u.href;
     const list = typeof protocols === "string" ? [protocols] : [...protocols];
     if (new Set(list).size !== list.length) throw new SyntaxError("WebSocket: duplicate subprotocols");
+    // RFC 6455 subprotocols are nonempty HTTP tokens; refuse others before Zig sees them.
+    for (const p of list) {
+      if (!p || /[^!#$%&'*+\-.^_`|~0-9A-Za-z]/.test(p)) throw new SyntaxError(`WebSocket: invalid subprotocol ${JSON.stringify(p)}`);
+    }
     if (!window.myzig) throw new Error("WebSocket plugin: not in a myzig page");
     listen();
     sockets.set(this.#id, this);

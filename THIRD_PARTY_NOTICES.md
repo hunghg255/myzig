@@ -32,6 +32,13 @@ into the work area (#723), `WEBVIEW2_USER_DATA_FOLDER` without the loader
 (#657), and a quit that AppKit's event loop outlives (#805). It is
 reviewed through upstream `afff19d9`, adding the theme's tooltip delay
 (#1062) and CJK-aware Markdown emphasis (#1057, #1066).
+Through upstream `a0eaaaaf` it ports bug fixes of the fetch and websocket
+plugins (#1105, #1235, #1236, #1345, #1347, #1458), the watch plugin's
+file grants (#1237), generated TypeScript names (#1294, #1341, #1421),
+wheel reversal (#1356), GFM's tagfilter (#2193), recovery copies that
+failed to open (#1125) and the CLI's checks of MIME types and update
+URLs (#1241, #1753); the commits it has not reviewed yet are pending
+there.
 [`UPSTREAM.md`](UPSTREAM.md) lists each mygo commit since `976f17c` and
 what the port did with it.
 Its loading.dev shapes, path data and timing functions retain Jakub

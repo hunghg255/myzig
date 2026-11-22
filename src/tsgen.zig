@@ -7,6 +7,37 @@ const std = @import("std");
 /// by name across services.
 pub const Decl = struct { name: []const u8, source: []const u8 };
 
+/// Names the generated declarations use for themselves or TypeScript's
+/// own types, which an app's type of the same name must not shadow.
+const reserved_type_names = [_][]const u8{ "Channel", "Promise", "Record" };
+
+/// The declaration name of an app's struct or enum: its short name, or,
+/// for a reserved one, that prefixed with its container's (`main.Promise`
+/// is `MainPromise`).
+fn declName(comptime T: type) []const u8 {
+    comptime {
+        const name = shortName(T);
+        for (reserved_type_names) |r| {
+            if (!std.mem.eql(u8, name, r)) continue;
+            const full = @typeName(T);
+            const end = full.len - name.len -| 1;
+            const start = if (std.mem.lastIndexOfScalar(u8, full[0..end], '.')) |dot| dot + 1 else 0;
+            var parent: []const u8 = "";
+            var upper = true;
+            for (full[start..end]) |c| {
+                if (!std.ascii.isAlphanumeric(c)) {
+                    upper = true;
+                    continue;
+                }
+                parent = parent ++ .{if (upper) std.ascii.toUpper(c) else c};
+                upper = false;
+            }
+            return (if (parent.len > 0 and !std.ascii.isDigit(parent[0])) parent else "App") ++ name;
+        }
+        return name;
+    }
+}
+
 pub fn shortName(comptime T: type) []const u8 {
     if (@hasDecl(T, "myzig_name")) return T.myzig_name;
     const full = @typeName(T);
@@ -81,7 +112,7 @@ pub fn tsType(comptime T: type, comptime decls: *[]const Decl) []const u8 {
                 else => @compileError("myzig: unsupported pointer type " ++ @typeName(T)),
             },
             .@"enum" => |e| {
-                const name = shortName(T);
+                const name = declName(T);
                 if (!hasDecl(decls.*, name)) {
                     var src: []const u8 = "export type " ++ name ++ " =";
                     for (e.field_names, 0..) |f, i| src = src ++ (if (i == 0) " " else " | ") ++ "\"" ++ f ++ "\"";
@@ -92,7 +123,7 @@ pub fn tsType(comptime T: type, comptime decls: *[]const Decl) []const u8 {
             .@"struct" => |s| {
                 if (s.is_tuple) @compileError("myzig: tuples are not supported: " ++ @typeName(T));
                 if (@hasDecl(T, "myzig_channel")) return "Channel<" ++ tsType(T.myzig_channel, decls) ++ ">";
-                const name = shortName(T);
+                const name = declName(T);
                 if (!hasDecl(decls.*, name)) {
                     // Reserve the name first so recursive types terminate.
                     const index = decls.len;
@@ -135,6 +166,8 @@ pub fn service(comptime T: type) Service {
         @setEvalBranchQuota(100_000);
         var decls: []const Decl = &.{};
         const name = shortName(T);
+        if (std.mem.eql(u8, name, "Channel") or std.mem.eql(u8, name, "myzig"))
+            @compileError("myzig: a service may not be named " ++ name ++ ", which the generated client exports itself");
         var dts: []const u8 = "export declare const " ++ name ++ ": {\n";
         var js: []const u8 = "export const " ++ name ++ " = Object.freeze({\n";
         for (methodNames(T)) |m| {
@@ -244,6 +277,22 @@ test "types" {
         "export interface Todo {\n  id: number;\n  title: string;\n  done: boolean;\n  note?: string | null;\n}",
         decls[0].source,
     );
+}
+
+const Promise = struct { done: bool };
+const Record = enum { kept, dropped };
+
+test "an app's types named as TypeScript's or the client's own get another name" {
+    const Channel = struct { name: []const u8 };
+    const Task = struct { promise: Promise, record: Record, channel: Channel };
+    comptime var decls: []const Decl = &.{};
+    try std.testing.expectEqualStrings("Task", comptime tsType(Task, &decls));
+    try std.testing.expectEqualStrings("TsgenPromise", decls[1].name);
+    try std.testing.expectEqualStrings("export interface TsgenPromise {\n  done: boolean;\n}", decls[1].source);
+    try std.testing.expectEqualStrings("TsgenRecord", decls[2].name);
+    try std.testing.expect(!std.mem.eql(u8, decls[3].name, "Channel"));
+    try std.testing.expect(std.mem.endsWith(u8, decls[3].name, "Channel"));
+    try std.testing.expect(std.mem.indexOf(u8, decls[0].source, "promise: TsgenPromise;") != null);
 }
 
 test "lifecycle, helpers without the service and skipped names are not exposed" {

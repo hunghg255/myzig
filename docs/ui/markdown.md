@@ -85,9 +85,11 @@ exactly.
 | `key` | null | the key of the view's box |
 | `images` | null | a `ui.MarkdownImageReader` that shows images ([below](#what-is-shown)) |
 
-`ui.MarkdownExtensions` has `tables`, `task_lists`, `strikethrough` and
-`autolinks`, all on by default (`.gfm`). `.commonmark` turns them all
-off, for strict CommonMark.
+`ui.MarkdownExtensions` has `tables`, `task_lists`, `strikethrough`,
+`autolinks` and `tagfilter`, all on by default (`.gfm`). `.commonmark`
+turns them all off, for strict CommonMark. `tagfilter` is GitHub's: as
+HTML, the document escapes the raw tags a browser reads to their end
+(`<script>`, `<style>`, `<textarea>`, `<iframe>`, ...).
 
 ## What it returns
 

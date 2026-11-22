@@ -51,6 +51,31 @@ test "wheel: a notch glides, notches add up and stop at the end" {
     try testing.expectEqual(@as(u32, 0), t.ctx.wheel.count());
 }
 
+test "wheel: a notch the other way turns at once" {
+    var s: One = .{};
+    var t: ui.Tester = undefined;
+    try tester(&t, &s);
+    defer t.deinit();
+    for (0..4) |_| t.wheel(100, 100, -100);
+    t.advance(1);
+    try testing.expectApproxEqAbs(@as(f32, 400), offset(&t, s.id), 0.01);
+    // Three notches down, then one up on their way: the box turns where
+    // it is, rather than going on down two notches first.
+    for (0..3) |_| t.wheel(100, 100, -100);
+    t.advance(0.03);
+    const at = offset(&t, s.id);
+    try testing.expect(at > 400 and at < 600);
+    // The notch's frame moves the box on to where it turns.
+    t.wheel(100, 100, 100);
+    const turn = offset(&t, s.id);
+    try testing.expect(turn >= at and turn < 700);
+    t.advance(0.02);
+    try testing.expect(offset(&t, s.id) < turn);
+    t.advance(1);
+    try testing.expectApproxEqAbs(turn - 100, offset(&t, s.id), 1);
+    try testing.expectEqual(@as(u32, 0), t.ctx.wheel.count());
+}
+
 test "wheel: glideBy glides a box from elsewhere, as a notch over it" {
     var s: One = .{};
     var t: ui.Tester = undefined;

@@ -118,7 +118,11 @@ const Fake = struct {
 
 /// Text documents: the content is the file's bytes.
 const Text = struct {
+    /// Set by a test: reads fail, as of a copy the app cannot open.
+    var refuse = false;
+
     fn read(a: std.mem.Allocator, bytes: []const u8) anyerror![]u8 {
+        if (refuse) return error.Corrupt;
         return a.dupe(u8, bytes);
     }
     fn write(_: std.mem.Allocator, content: *const []u8, w: *std.Io.Writer) anyerror!void {
@@ -313,6 +317,32 @@ test "documents: recovery after a crash brings unsaved changes back, edited" {
     const back = try f.read("c.txt");
     defer gpa.free(back);
     try std.testing.expectEqualStrings("saved", back);
+}
+
+test "documents: a recovery copy that fails to open stays for the next launch" {
+    var f = try Fixture.init();
+    defer f.deinit();
+    {
+        const ds = try f.docs(.off);
+        const u = try ds.new();
+        setText(u, "keep me");
+        f.fake.runTimers();
+        crash(ds);
+    }
+    {
+        Text.refuse = true;
+        defer Text.refuse = false;
+        const ds = try f.docs(.off);
+        defer ds.destroy();
+        try ds.start(&.{});
+        // Nothing restored: a new document, as at any launch.
+        for (ds.docs.items) |d| try std.testing.expect(!d.edited);
+    }
+    const ds = try f.docs(.off);
+    defer ds.destroy();
+    try ds.start(&.{});
+    try std.testing.expectEqual(@as(usize, 1), ds.docs.items.len);
+    try std.testing.expectEqualStrings("keep me", ds.docs.items[0].content);
 }
 
 /// What a crash leaves: documents freed without a word, the session's

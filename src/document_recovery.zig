@@ -7,7 +7,8 @@
 //! Each kind of documents keeps them in `<data>/Recovery/<kind>`, in a
 //! session of the running instance which a locked file tells is alive:
 //! another instance leaves it alone, and the next launch takes the
-//! sessions no instance holds. A session's `index` lists its copies, one
+//! sessions no instance holds, removing the copies it opens again. A
+//! session's `index` lists its copies, one
 //! a line: `id \t path \t name \t mtime \t size`.
 const std = @import("std");
 const file = @import("document_file.zig");
@@ -27,7 +28,12 @@ pub const Orphan = struct {
     entry: Entry,
     /// The copy's bytes, as the document's `write` made them.
     bytes: []u8,
+    /// Its session, in `Store.claimed`.
+    session: usize = 0,
 };
+
+/// A session `claim` took: locked until `release`.
+const Claimed = struct { dir: []u8, lock: std.Io.File };
 
 pub const Store = struct {
     gpa: std.mem.Allocator,
@@ -38,6 +44,8 @@ pub const Store = struct {
     session: ?[]u8 = null,
     lock: ?std.Io.File = null,
     entries: std.ArrayList(Entry) = .empty,
+    /// The sessions `claim` took, until `release`.
+    claimed: std.ArrayList(Claimed) = .empty,
 
     /// `data` is the app's data directory, `kind` names the kind of
     /// documents (any characters: those not safe in a file name become -).
@@ -52,6 +60,8 @@ pub const Store = struct {
 
     /// Unlocks the session, removing it when it keeps no copy (at quit).
     pub fn deinit(s: *Store) void {
+        s.release(&.{}, &.{});
+        s.claimed.deinit(s.gpa);
         if (s.lock) |l| l.close(s.io);
         if (s.session) |dir| {
             if (s.entries.items.len == 0) std.Io.Dir.cwd().deleteTree(s.io, dir) catch {};
@@ -124,18 +134,19 @@ pub const Store = struct {
 
     /// Takes the sessions no instance holds (a crash's, a quit's that kept
     /// documents): their copies, which the caller opens and then frees
-    /// with `freeOrphans`. The sessions are removed: the documents opened
-    /// from them keep their copies in this session.
+    /// with `freeOrphans`. The sessions stay locked until `release`, which
+    /// removes only the copies the caller restored: one that failed to
+    /// open stays for the next launch.
     pub fn claim(s: *Store) ![]Orphan {
         var out: std.ArrayList(Orphan) = .empty;
         errdefer freeOrphans(s.gpa, out.items);
         const cwd = std.Io.Dir.cwd();
         var root = cwd.openDir(s.io, s.root, .{ .iterate = true }) catch return out.toOwnedSlice(s.gpa);
         defer root.close(s.io);
-        var claimed: std.ArrayList([]u8) = .empty;
+        var found: std.ArrayList([]u8) = .empty;
         defer {
-            for (claimed.items) |d| s.gpa.free(d);
-            claimed.deinit(s.gpa);
+            for (found.items) |d| s.gpa.free(d);
+            found.deinit(s.gpa);
         }
         var it = root.iterate();
         while (try it.next(s.io)) |ent| {
@@ -145,32 +156,79 @@ pub const Store = struct {
                 s.gpa.free(dir);
                 continue;
             };
-            try claimed.append(s.gpa, dir);
+            found.append(s.gpa, dir) catch |err| {
+                s.gpa.free(dir);
+                return err;
+            };
         }
-        for (claimed.items) |dir| {
-            const lock_path = try std.fs.path.join(s.gpa, &.{ dir, "lock" });
+        for (found.items) |*dir| {
+            const lock_path = try std.fs.path.join(s.gpa, &.{ dir.*, "lock" });
             defer s.gpa.free(lock_path);
-            // Alive: another instance holds its lock.
+            // Alive: another instance holds its lock (or this one claimed it).
             const lock = cwd.createFile(s.io, lock_path, .{ .lock = .exclusive, .lock_nonblocking = true, .truncate = false }) catch continue;
-            defer {
+            s.claimed.append(s.gpa, .{ .dir = dir.*, .lock = lock }) catch |err| {
                 lock.close(s.io);
-                cwd.deleteTree(s.io, dir) catch {};
-            }
-            const index_path = try std.fs.path.join(s.gpa, &.{ dir, "index" });
+                return err;
+            };
+            dir.* = &.{};
+            const session = s.claimed.items.len - 1;
+            const index_path = try std.fs.path.join(s.gpa, &.{ s.claimed.items[session].dir, "index" });
             defer s.gpa.free(index_path);
             const index = file.readAll(s.gpa, s.io, index_path, 1 << 20) catch continue;
             defer s.gpa.free(index);
             var lines = std.mem.splitScalar(u8, index, '\n');
             while (lines.next()) |line| {
                 const e = parseLine(line) orelse continue;
-                const copy_path = try std.fs.path.join(s.gpa, &.{ dir, e.id });
+                const copy_path = try std.fs.path.join(s.gpa, &.{ s.claimed.items[session].dir, e.id });
                 defer s.gpa.free(copy_path);
                 const bytes = file.readAll(s.gpa, s.io, copy_path, 1 << 30) catch continue;
                 errdefer s.gpa.free(bytes);
-                try out.append(s.gpa, .{ .entry = try dupeEntry(s.gpa, e), .bytes = bytes });
+                try out.append(s.gpa, .{ .entry = try dupeEntry(s.gpa, e), .bytes = bytes, .session = session });
             }
         }
         return out.toOwnedSlice(s.gpa);
+    }
+
+    /// Ends a `claim`: removes the copies of the orphans `restored` marks
+    /// (which this session now keeps), and a session left without copies;
+    /// the others stay, for the next launch to try again. Unlocks them.
+    pub fn release(s: *Store, orphans: []const Orphan, restored: []const bool) void {
+        const cwd = std.Io.Dir.cwd();
+        for (s.claimed.items, 0..) |c, session| {
+            defer {
+                c.lock.close(s.io);
+                s.gpa.free(c.dir);
+            }
+            const index_path = std.fs.path.join(s.gpa, &.{ c.dir, "index" }) catch continue;
+            defer s.gpa.free(index_path);
+            const index = file.readAll(s.gpa, s.io, index_path, 1 << 20) catch "";
+            defer if (index.len > 0) s.gpa.free(index);
+            var kept: std.Io.Writer.Allocating = .init(s.gpa);
+            defer kept.deinit();
+            var gone: std.ArrayList([]const u8) = .empty;
+            defer gone.deinit(s.gpa);
+            var lines = std.mem.splitScalar(u8, index, '\n');
+            while (lines.next()) |line| {
+                const e = parseLine(line) orelse continue;
+                const done = for (orphans, 0..) |o, k| {
+                    if (o.session == session and k < restored.len and restored[k] and std.mem.eql(u8, o.entry.id, e.id)) break true;
+                } else false;
+                if (done) gone.append(s.gpa, e.id) catch {} else kept.writer.print("{s}\n", .{line}) catch {};
+            }
+            if (kept.written().len == 0) {
+                cwd.deleteTree(s.io, c.dir) catch {};
+                continue;
+            }
+            if (gone.items.len == 0) continue;
+            // The index first: a copy it no longer lists is never opened.
+            file.writeAppFile(s.gpa, s.io, index_path, kept.written()) catch continue;
+            for (gone.items) |id| {
+                const path = std.fs.path.join(s.gpa, &.{ c.dir, id }) catch continue;
+                defer s.gpa.free(path);
+                cwd.deleteFile(s.io, path) catch {};
+            }
+        }
+        s.claimed.clearRetainingCapacity();
     }
 };
 
@@ -263,6 +321,10 @@ test "recovery copies survive a crash and are claimed once" {
     const orphans = try next.claim();
     defer freeOrphans(gpa, orphans);
     try std.testing.expectEqual(@as(usize, 2), orphans.len);
+    // Claimed: locked until released.
+    const meanwhile = try alive.claim();
+    defer freeOrphans(gpa, meanwhile);
+    try std.testing.expectEqual(@as(usize, 0), meanwhile.len);
     for (orphans) |o| {
         if (std.mem.eql(u8, o.entry.id, "a1")) {
             try std.testing.expectEqualStrings("/x/notes.md", o.entry.path);
@@ -273,7 +335,17 @@ test "recovery copies survive a crash and are claimed once" {
             try std.testing.expectEqualStrings("Untitled 2", o.entry.name);
         }
     }
+    // Only b2 opened again: a1 stays for the next launch.
+    const restored = [_]bool{ !std.mem.eql(u8, orphans[0].entry.id, "a1"), !std.mem.eql(u8, orphans[1].entry.id, "a1") };
+    next.release(orphans, &restored);
     const again = try next.claim();
     defer freeOrphans(gpa, again);
-    try std.testing.expectEqual(@as(usize, 0), again.len);
+    try std.testing.expectEqual(@as(usize, 1), again.len);
+    try std.testing.expectEqualStrings("a1", again[0].entry.id);
+    try std.testing.expectEqualStrings("edited", again[0].bytes);
+    next.release(again, &.{true});
+    const last = try next.claim();
+    defer freeOrphans(gpa, last);
+    try std.testing.expectEqual(@as(usize, 0), last.len);
+    next.release(last, &.{});
 }

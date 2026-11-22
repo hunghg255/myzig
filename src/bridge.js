@@ -22,7 +22,13 @@
     new Promise((resolve, reject) => {
       const id = nextId++;
       pending.set(id, { resolve, reject });
-      post({ t: "call", id, m: method, a: args });
+      try {
+        post({ t: "call", id, m: method, a: args });
+      } catch (e) {
+        // Arguments JSON can't hold (a BigInt, a cycle): nothing was sent.
+        pending.delete(id);
+        reject(e);
+      }
     });
 
   const on = (name, fn) => {

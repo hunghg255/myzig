@@ -139,8 +139,11 @@ pub const Extensions = packed struct {
     task_lists: bool = true,
     strikethrough: bool = true,
     autolinks: bool = true,
+    /// GFM's tagfilter: as HTML, the raw tags whose content a browser reads
+    /// to their end (`<script>`, `<style>`, `<textarea>`, ...) are escaped.
+    tagfilter: bool = true,
 
-    pub const commonmark: Extensions = .{ .tables = false, .task_lists = false, .strikethrough = false, .autolinks = false };
+    pub const commonmark: Extensions = .{ .tables = false, .task_lists = false, .strikethrough = false, .autolinks = false, .tagfilter = false };
     pub const gfm: Extensions = .{};
 };
 

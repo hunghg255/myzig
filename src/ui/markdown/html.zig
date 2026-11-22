@@ -18,6 +18,20 @@ const W = struct {
         if (w.out.items.len > 0 and w.out.items[w.out.items.len - 1] != '\n') w.put("\n");
     }
 
+    /// Raw HTML as written, but the '<' of the tags GFM's tagfilter
+    /// disallows, escaped (`Extensions.tagfilter`).
+    fn raw(w: *W, s: []const u8) void {
+        if (!w.d.ext.tagfilter) return w.put(s);
+        var from: usize = 0;
+        for (s, 0..) |ch, i| {
+            if (ch != '<' or !tagFiltered(s[i..])) continue;
+            w.put(s[from..i]);
+            w.put("&lt;");
+            from = i + 1;
+        }
+        w.put(s[from..]);
+    }
+
     fn esc(w: *W, s: []const u8) void {
         for (s) |c| switch (c) {
             '&' => w.put("&amp;"),
@@ -129,7 +143,7 @@ const W = struct {
         var content: std.ArrayList(u8) = .empty;
         defer content.deinit(w.gpa);
         w.d.contentInto(i, &content, w.gpa) catch @panic("OOM");
-        if (escape) w.esc(content.items) else w.put(content.items);
+        if (escape) w.esc(content.items) else w.raw(content.items);
         if (content.items.len > 0 or w.d.block(i).seg_b > w.d.block(i).seg_a) w.put("\n");
     }
 
@@ -189,7 +203,7 @@ const W = struct {
                     w.esc(x.text(j));
                     w.put("</code>");
                 },
-                .html => if (plain) w.esc(x.text(j)) else w.put(x.text(j)),
+                .html => if (plain) w.esc(x.text(j)) else w.raw(x.text(j)),
                 .emph, .strong, .strike => {
                     const tag = switch (n.kind) {
                         .emph => "em",
@@ -244,6 +258,24 @@ const W = struct {
 pub fn render(d: *Document, gpa: std.mem.Allocator, out: *std.ArrayList(u8)) void {
     var w: W = .{ .d = d, .gpa = gpa, .out = out };
     w.block(0, false);
+}
+
+/// The tags cmark-gfm's tagfilter escapes: those whose content a browser
+/// reads to their end.
+const disallowed_tags = [_][]const u8{ "title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext" };
+
+/// Whether `s` starts with an opening or closing tag of `disallowed_tags`:
+/// the name in any case, then a space, '>' or "/>".
+fn tagFiltered(s: []const u8) bool {
+    if (s.len < 3 or s[0] != '<') return false;
+    const name = s[if (s[1] == '/') 2 else 1..];
+    for (disallowed_tags) |tag| {
+        if (name.len <= tag.len or !std.ascii.eqlIgnoreCase(name[0..tag.len], tag)) continue;
+        const after = name[tag.len];
+        if (after == '>' or std.mem.indexOfScalar(u8, " \t\n\x0b\x0c\r", after) != null) return true;
+        if (after == '/' and name.len > tag.len + 1 and name[tag.len + 1] == '>') return true;
+    }
+    return false;
 }
 
 /// Markdown to HTML, for tests: the caller frees the result.

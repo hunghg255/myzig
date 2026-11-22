@@ -125,6 +125,10 @@ pub fn glide(c: *Context) void {
             }
             g.ch.advance(c.time);
             if (g.queued != 0) {
+                // Notches the other way than the travel left stop it and
+                // start over from where the box is: reversing the wheel
+                // turns at once, not after the notches still on their way.
+                if (g.ch.moving and (g.queued > 0) != (g.ch.goal() > g.ch.value)) g.ch = .init(g.ch.value, c.time);
                 g.ch.retarget(g.ch.goal() + g.queued, animation);
                 g.queued = 0;
             }

@@ -73,7 +73,9 @@ pub fn mimePackage(gpa: std.mem.Allocator, c: Config) !?[]u8 {
         if (!defined) continue;
         if (!any) try w.writeAll("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n");
         any = true;
-        try w.print("  <mime-type type=\"{s}\">\n", .{t});
+        try w.writeAll("  <mime-type type=\"");
+        try @import("plist.zig").escape(w, t);
+        try w.writeAll("\">\n");
         if (fa.name.len > 0) {
             try w.writeAll("    <comment>");
             try @import("plist.zig").escape(w, fa.name);

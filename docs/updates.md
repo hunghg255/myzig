@@ -40,7 +40,7 @@ Add the public key to `myzig.zon`, with where releases are published:
 | Field | |
 |---|---|
 | `github` | a public repository whose releases hold the updates, tagged `v1.2.0` and so on (`tag_prefix`); apps read the manifests of its latest release |
-| `url` | instead of `github`, for your own server or an [S3 bucket](#publishing-to-s3): the URL of a directory |
+| `url` | instead of `github`, for your own server or an [S3 bucket](#publishing-to-s3): the URL of a directory, without a query or fragment |
 
 - `url` can be https, or http on an intranet. Apps trust the signature,
   not the transport.

@@ -269,8 +269,9 @@ pub fn freshOut(ctx: Ctx, c: Config, out: []const u8) ![]const u8 {
 
 /// Whether directory `dir` is `path` or holds it (both resolved).
 fn holds(dir: []const u8, path: []const u8) bool {
-    const same = if (builtin.os.tag == .windows) std.ascii.eqlIgnoreCase else std.mem.eql;
-    if (path.len < dir.len or !same(path[0..dir.len], dir)) return false;
+    if (path.len < dir.len) return false;
+    const same = if (builtin.os.tag == .windows) std.ascii.eqlIgnoreCase(path[0..dir.len], dir) else std.mem.eql(u8, path[0..dir.len], dir);
+    if (!same) return false;
     return path.len == dir.len or std.fs.path.isSep(path[dir.len]) or std.fs.path.isSep(dir[dir.len - 1]);
 }
 

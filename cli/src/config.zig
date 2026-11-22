@@ -143,6 +143,20 @@ pub const LoadError = error{ConfigInvalid} || std.mem.Allocator.Error;
 /// What went wrong, for the message the CLI prints.
 pub var message: []const u8 = "";
 
+/// Whether `t` is a MIME type of a file: `type/subtype`, both HTTP tokens,
+/// without parameters.
+fn validMimeType(t: []const u8) bool {
+    const slash = std.mem.indexOfScalar(u8, t, '/') orelse return false;
+    const token = struct {
+        fn ok(s: []const u8) bool {
+            if (s.len == 0) return false;
+            for (s) |ch| if (!std.ascii.isAlphanumeric(ch) and std.mem.indexOfScalar(u8, "!#$%&'*+-.^_`|~", ch) == null) return false;
+            return true;
+        }
+    }.ok;
+    return token(t[0..slash]) and token(t[slash + 1 ..]);
+}
+
 pub fn invalid(gpa: std.mem.Allocator, comptime f: []const u8, args: anytype) LoadError {
     message = try std.fmt.allocPrint(gpa, f, args);
     return error.ConfigInvalid;
@@ -325,6 +339,8 @@ pub fn validate(gpa: std.mem.Allocator, c: Config) LoadError!void {
         if (fa.ext.len == 0) return invalid(gpa, "file_associations[{d}] has no ext", .{i});
         for (fa.ext) |e| if (!validName(e, "0123456789", "_+-"))
             return invalid(gpa, "file_associations[{d}]: \"{s}\" is not a file name extension (without the dot)", .{ i, e });
+        if (fa.mime_type.len > 0 and !validMimeType(fa.mime_type))
+            return invalid(gpa, "file_associations[{d}].mime_type \"{s}\" is not a MIME type (type/subtype, as text/markdown, without parameters)", .{ i, fa.mime_type });
         if (!std.mem.eql(u8, fa.role, "Editor") and !std.mem.eql(u8, fa.role, "Viewer"))
             return invalid(gpa, "file_associations[{d}].role is Editor or Viewer", .{i});
     }
@@ -433,6 +449,12 @@ test "mistakes are named" {
     try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
     c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .file_associations = &.{.{ .ext = &.{".md"} }} };
     try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
+    for ([_][]const u8{ "text", "text/", "/markdown", "text/markdown; charset=utf-8", "text/mark\"down", "text/x\ny", "a/b/c" }) |t| {
+        c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .file_associations = &.{.{ .ext = &.{"md"}, .mime_type = t }} };
+        try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
+    }
+    c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .file_associations = &.{.{ .ext = &.{"md"}, .mime_type = "application/vnd.my-app+json" }} };
+    try validate(gpa, c);
     c = .{ .root = "/a", .name = "A", .identifier = "com.a", .version = "1", .macos = .{ .icon = "icon.png" } };
     try std.testing.expectError(error.ConfigInvalid, validate(gpa, c));
 }

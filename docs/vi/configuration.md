@@ -97,7 +97,7 @@ Một file association gồm:
 |---|---|---|
 | `ext` | bắt buộc | phần mở rộng, không có dấu chấm (`.{ "md", "markdown" }`) |
 | `name` | `<EXT> file` | tên của loại file trong hệ thống |
-| `mime_type` | `application/x-<executable>-<ext>` | kiểu MIME; package Linux định nghĩa kiểu này khi nó thuộc về myzig |
+| `mime_type` | `application/x-<executable>-<ext>` | kiểu MIME, dạng `type/subtype` không có tham số; package Linux định nghĩa kiểu này khi nó thuộc về myzig |
 | `role` | `Editor` | `Editor` hoặc `Viewer` (macOS) |
 
 Các package đăng ký chúng với hệ thống:

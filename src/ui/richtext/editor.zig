@@ -296,6 +296,8 @@ pub const RichText = struct {
     /// An input method's composition replaces the last one (or the
     /// selection), with the selection inside it.
     pub fn setMarked(rt: *RichText, s: []const u8, sel_start: usize, sel_len: usize) void {
+        // An empty composition with nothing composed leaves the selection be.
+        if (s.len == 0 and rt.marked == null) return;
         const marks = rt.typingMarks();
         const at = if (rt.marked) |m| Pos{ .block = m.block, .off = m.a } else rt.sel.lo();
         rt.replaceSelection(s, marks, .typing);

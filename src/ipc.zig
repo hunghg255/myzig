@@ -137,11 +137,15 @@ const Envelope = struct {
 
 /// Handles one message from `page` (the window's, or one inside its
 /// native UI), on the main thread.
-pub fn handleMessage(window: *Window, page: anytype, body: []const u8) void {
+pub fn handleMessage(window: *Window, page: anytype, body_in: []const u8) void {
     const app = window.app;
     var arena: std.heap.ArenaAllocator = .init(app.gpa);
     defer arena.deinit();
     const a = arena.allocator();
+    // Text cut inside an emoji holds half a surrogate pair, which
+    // JSON.stringify writes as an escape std.json refuses: U+FFFD stands
+    // for it, so the call is still answered.
+    const body = wellFormed(a, body_in) catch return;
     // Envelope.a holds a call's arguments, but a channel message's "a" is a flag.
     const env = std.json.parseFromSliceLeaky(Envelope, a, body, .{ .ignore_unknown_fields = true }) catch
         parseChannelMessage(a, body) orelse {
@@ -232,4 +236,55 @@ pub fn stillOpen(app: *App, window: *Window, page: anytype) bool {
     for (app.windows.items) |w| if (w == window)
         return w.page == page or std.mem.indexOfScalar(@TypeOf(page), w.web_views.items, page) != null;
     return false;
+}
+
+/// `json` with each `\u` escape of half a surrogate pair written as
+/// `\ufffd`; `json` itself when it has none.
+fn wellFormed(gpa: std.mem.Allocator, json: []const u8) ![]const u8 {
+    if (std.mem.indexOf(u8, json, "\\ud") == null and std.mem.indexOf(u8, json, "\\uD") == null) return json;
+    var out: std.ArrayList(u8) = .empty;
+    var i: usize = 0;
+    while (i < json.len) {
+        if (json[i] != '\\' or i + 1 >= json.len) {
+            try out.append(gpa, json[i]);
+            i += 1;
+            continue;
+        }
+        const hi = surrogateAt(json, i) orelse {
+            try out.appendSlice(gpa, json[i..@min(json.len, i + 2)]);
+            i += 2;
+            continue;
+        };
+        if (hi < 0xdc00) if (surrogateAt(json, i + 6)) |lo| if (lo >= 0xdc00) {
+            try out.appendSlice(gpa, json[i .. i + 12]);
+            i += 12;
+            continue;
+        };
+        try out.appendSlice(gpa, "\\ufffd");
+        i += 6;
+    }
+    return out.items;
+}
+
+/// The surrogate a `\uXXXX` escape at `i` writes, or null.
+fn surrogateAt(json: []const u8, i: usize) ?u16 {
+    if (i + 6 > json.len or json[i] != '\\' or json[i + 1] != 'u') return null;
+    const v = std.fmt.parseInt(u16, json[i + 2 .. i + 6], 16) catch return null;
+    return if (v >= 0xd800 and v <= 0xdfff) v else null;
+}
+
+test wellFormed {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const plain = "{\"a\":[\"x\\\\ud83d\"]}";
+    // An escaped backslash before "ud83d" is no escape of a surrogate.
+    try std.testing.expectEqualStrings(plain, try wellFormed(a, plain));
+    const none = "{\"a\":[\"x\"]}";
+    try std.testing.expect((try wellFormed(a, none)).ptr == none.ptr);
+    try std.testing.expectEqualStrings("[\"\\ud83d\\ude00\"]", try wellFormed(a, "[\"\\ud83d\\ude00\"]"));
+    try std.testing.expectEqualStrings("[\"cut \\ufffd\",\"\\ufffd!\"]", try wellFormed(a, "[\"cut \\ud83d\",\"\\uDE00!\"]"));
+    // Parsed, the half is U+FFFD.
+    const v = try std.json.parseFromSliceLeaky([]const []const u8, a, try wellFormed(a, "[\"ab\\ud83d\"]"), .{});
+    try std.testing.expectEqualStrings("ab\u{fffd}", v[0]);
 }

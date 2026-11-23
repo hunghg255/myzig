@@ -183,6 +183,23 @@ const Field = struct {
     }
 };
 
+test "text field: typing ends the drag of a press" {
+    var s: Field = .{};
+    _ = s.buf.insert(0, "85");
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, Field.view), .{});
+    defer t.deinit();
+    const r = t.findText("85").?;
+    t.moveTo(r.x + 1, r.y + r.h / 2);
+    t.ctx.pointerDown();
+    t.frame();
+    // The button still down, at the text's start.
+    t.typeChars("80");
+    t.ctx.pointerUp();
+    t.frame();
+    try testing.expectEqualStrings("8085", s.buf.text());
+}
+
 test "text input: composition, selection, the clipboard, scrolling" {
     var s: Field = .{};
     var t: ui.Tester = undefined;

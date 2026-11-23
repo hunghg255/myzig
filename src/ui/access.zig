@@ -84,10 +84,12 @@ pub const Role = enum(u8) {
     }
 
     /// Whether elements of the role are named by the text inside them,
-    /// rather than showing it as elements of their own.
+    /// rather than showing it as elements of their own. Headings and column
+    /// headers show what is inside them too, as ARIA's children of theirs
+    /// are not presentational: a button in them is reached.
     pub fn leaf(r: Role) bool {
         return switch (r) {
-            .group, .list, .scroll_area, .dialog, .alert_dialog, .popup, .status, .tab_list, .tab_panel, .table, .row, .cell, .column_header, .tree, .list_item, .toolbar, .radio_group, .menu, .menu_bar => false,
+            .group, .list, .scroll_area, .dialog, .alert_dialog, .popup, .status, .tab_list, .tab_panel, .table, .row, .cell, .column_header, .tree, .list_item, .toolbar, .radio_group, .menu, .menu_bar, .heading => false,
             else => true,
         };
     }
@@ -95,7 +97,7 @@ pub const Role = enum(u8) {
     /// Whether elements of the role take their name from their content
     /// while still showing it (a row, a list's item, a toast).
     pub fn namedByContent(r: Role) bool {
-        return r.leaf() or r == .list_item or r == .row or r == .status or r == .cell or r == .column_header;
+        return r.leaf() or r == .list_item or r == .row or r == .status or r == .cell or r == .column_header or r == .heading;
     }
 };
 
@@ -451,5 +453,6 @@ test "descriptions merge, and none are kept while nobody listens" {
     try std.testing.expect(d.disabled);
     try std.testing.expectEqual(Checked.on, d.checked.?);
     try std.testing.expect(Role.button.leaf() and !Role.list.leaf() and Role.row.namedByContent());
+    try std.testing.expect(!Role.heading.leaf() and Role.heading.namedByContent());
     try std.testing.expect(Role.slider.ranged() and !Role.button.ranged());
 }

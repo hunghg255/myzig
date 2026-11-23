@@ -147,3 +147,31 @@ test "nothing is described while no assistive technology listens" {
     t.frame();
     try std.testing.expect(t.ctx.access.described.count() > 0);
 }
+
+const Section = struct {
+    fn view(_: *Section, c: *ui.Context) void {
+        ui.column(c, .{ .padding = .all(12) });
+        defer ui.end(c);
+        // A heading of a row: its title and a button in it.
+        c.describe(c.peekId(null), .{ .role = .heading, .level = 2 });
+        ui.row(c, .{ .gap = 8 });
+        ui.text(c, "Members", .{});
+        _ = ui.button(c, "Invite", .{});
+        ui.end(c);
+    }
+};
+
+test "a heading names itself by its text and keeps a button inside it" {
+    var s: Section = .{};
+    var t: ui.Tester = undefined;
+    try t.init(std.testing.allocator, .init(&s, Section.view), .{});
+    defer t.deinit();
+    t.ctx.access.enabled = true;
+    t.frame();
+    var tree: Tree = .init(std.testing.allocator);
+    defer tree.deinit();
+    tree.build(&t.ctx);
+    const h = tree.byName(.heading, "Members Invite") orelse tree.byName(.heading, "Members") orelse return error.NoHeading;
+    try std.testing.expect(h.child_count > 0);
+    try std.testing.expect(tree.byName(.button, "Invite") != null);
+}

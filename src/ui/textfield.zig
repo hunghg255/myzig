@@ -156,7 +156,8 @@ fn apply(buffer: *TextBuffer, e: *EditState, op: ctx_mod.TextOp, opts: Options, 
             e.marked = null;
             result.changed = true;
         },
-        .set_marked => |m| {
+        // An empty composition with nothing composed leaves the selection be.
+        .set_marked => |m| if (m.text.len > 0 or e.marked != null) {
             const range = e.marked orelse .{ lo, hi };
             const n = buffer.replace(range[0], range[1], m.text);
             e.marked = if (n == 0) null else .{ range[0], range[0] + n };
@@ -351,6 +352,9 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
             .escape => c.focus = 0,
             else => {},
         };
+        // An edit ends the drag of a press: the pointer still down would
+        // take the caret back to it, and the next key would land there.
+        if (result.changed) e.selecting = false;
         if (result.changed or result.submitted) c.changed = true;
         // Escape gave the focus up during this build.
         if (c.focus != it.id) {
@@ -464,6 +468,17 @@ test "composition, selection, commands" {
     try std.testing.expect(e.marked != null);
     apply(&b, &e, .{ .set_marked = .{ .text = "日本", .sel_start = 6, .sel_len = 0 } }, .{}, .{ .write = noClip }, &r);
     apply(&b, &e, .{ .insert = "日本" }, .{}, .{ .write = noClip }, &r);
+    try std.testing.expectEqualStrings("hello Zig日本", b.text());
+    try std.testing.expect(e.marked == null);
+    // An empty composition with nothing composed keeps the selection;
+    // one that ends a composition takes it out.
+    apply(&b, &e, .{ .command = .select_word_left }, .{}, .{ .write = noClip }, &r);
+    apply(&b, &e, .{ .set_marked = .{ .text = "", .sel_start = 0, .sel_len = 0 } }, .{}, .{ .write = noClip }, &r);
+    try std.testing.expectEqualStrings("hello Zig日本", b.text());
+    try std.testing.expect(e.caret != e.anchor);
+    apply(&b, &e, .{ .command = .move_line_end }, .{}, .{ .write = noClip }, &r);
+    apply(&b, &e, .{ .set_marked = .{ .text = "x", .sel_start = 1, .sel_len = 0 } }, .{}, .{ .write = noClip }, &r);
+    apply(&b, &e, .{ .set_marked = .{ .text = "", .sel_start = 0, .sel_len = 0 } }, .{}, .{ .write = noClip }, &r);
     try std.testing.expectEqualStrings("hello Zig日本", b.text());
     try std.testing.expect(e.marked == null);
     apply(&b, &e, .{ .command = .delete_word_backward }, .{}, .{ .write = noClip }, &r);

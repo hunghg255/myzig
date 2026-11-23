@@ -242,3 +242,30 @@ test "codecs: damaged files decode what they can, or fail" {
     try std.testing.expectError(error.UnsupportedFormat, formats.open(gpa, .{ .bytes = "not audio at all" }, false));
     try std.testing.expectError(error.InvalidOgg, formats.open(gpa, .{ .bytes = "OggS" }, false));
 }
+
+const Liar = struct {
+    left: usize = 1,
+    fn read(ptr: *anyopaque, dst: []f32) anyerror!usize {
+        const l: *Liar = @ptrCast(@alignCast(ptr));
+        if (l.left == 0) return 0;
+        l.left -= 1;
+        @memset(dst[0..4], 0.5);
+        return 2;
+    }
+    fn seek(_: *anyopaque, _: u64) anyerror!void {}
+    fn deinit(_: *anyopaque) void {}
+};
+
+test "codecs: a header claiming a huge length reserves no more than a bound" {
+    var l: Liar = .{};
+    const d: audio.Decoder = .{
+        .ptr = &l,
+        .vtable = &.{ .read = Liar.read, .seek = Liar.seek, .deinit = Liar.deinit },
+        .rate = 48000,
+        .channels = 2,
+        .frames = 1 << 40,
+    };
+    const s = try audio.Sound.decode(std.testing.allocator, d);
+    defer s.release();
+    try std.testing.expectEqual(@as(u64, 2), s.frames());
+}

@@ -538,12 +538,17 @@ pub const Surface = struct {
             const sc: S = .{ .key = base, .ctrl = ctrl, .alt = alt, .shift = in.shift };
             const first = self.ctx.keys_first;
             if (!first and self.window.app.accelerator(sc)) return true;
-            if (ctrl and self.ctx.focused_text != null and self.editShortcut(base)) return true;
+            // Files on the clipboard (with their paths as text, as some apps
+            // copy them): the view may take Ctrl+V for them first, as ⌘V
+            // on macOS; the field pastes the text when it doesn't.
+            const files_first = ctrl and !alt and base == 'v' and @import("clipboard.zig").hasFiles();
+            if (ctrl and self.ctx.focused_text != null and !files_first and self.editShortcut(base)) return true;
             self.ctx.shortcut_taken = false;
             in.shortcut = sc;
             self.frame();
             in.shortcut = null;
             if (self.ctx.shortcut_taken) return true;
+            if (files_first and self.ctx.focused_text != null and self.editShortcut(base)) return true;
             if (first and self.window.app.accelerator(sc)) return true;
         }
         if (key) |k| {

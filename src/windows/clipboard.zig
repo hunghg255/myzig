@@ -69,6 +69,11 @@ pub fn writeImage(gpa: std.mem.Allocator, bytes: []const u8) !void {
     if (!write(&.{ .{ format("PNG"), bytes }, .{ CF_DIB, dib } })) return error.Clipboard;
 }
 
+/// Whether files are on the clipboard (copied in Explorer), with text or not.
+pub fn hasFiles() bool {
+    return IsClipboardFormatAvailable(CF_HDROP) != 0;
+}
+
 /// The paths of the files on the clipboard (copied in Explorer), or null.
 pub fn readFiles(gpa: std.mem.Allocator) !?[][]u8 {
     if (IsClipboardFormatAvailable(CF_HDROP) == 0) return null;

@@ -8,6 +8,7 @@ const std = @import("std");
 const font = @import("tt/font.zig");
 const tt_raster = @import("tt/raster.zig");
 const icons = @import("icons.zig");
+const atlas_svg = @import("atlas_svg.zig");
 const Bitmap = @import("text_engine.zig").Bitmap;
 
 const initial_size: u32 = 512;
@@ -263,6 +264,7 @@ pub const Atlas = struct {
     }
 
     fn rasterizeSymbol(a: *Atlas, name: []const u8, point_size: f32, weight: u8) ?Sprite {
+        if (atlas_svg.find(name, point_size)) |src| return a.svgSymbol(src);
         const icon = icons.find(name) orelse return null;
         // Icons are drawn on a 24-unit grid, a little larger than the
         // text they sit beside, as SF Symbols are.
@@ -274,9 +276,39 @@ pub const Atlas = struct {
         var r = tt_raster.Raster.init(a.gpa, w, h) catch return null;
         defer r.deinit(a.gpa);
         const k = @as(f32, @floatFromInt(side)) / 24;
-        icons.draw(icon, &r, k, @floatFromInt(pad), 1.6 + 0.35 * @as(f32, @floatFromInt(weight)));
+        const sw = 1.6 + 0.35 * @as(f32, @floatFromInt(weight));
+        // On the pixel grid: its middle line on a pixel's middle when its
+        // stroke is an odd number of pixels wide, between two when even
+        // (`svg.nudge`), or a one-pixel line blurs over two.
+        const stroke = @round(sw * k);
+        const middle = 12 * k;
+        var shift = (if (@mod(stroke, 2) == 1) @as(f32, 0.5) else 0) - (middle - @floor(middle));
+        if (shift > 0.5) shift -= 1;
+        if (shift <= -0.5) shift += 1;
+        icons.draw(icon, &r, k, @as(f32, @floatFromInt(pad)) + shift, sw);
         a.scratch.resize(a.gpa, w * h) catch return null;
         r.coverage(a.scratch.items);
+        a.blit(at, w, h, a.scratch.items);
+        const pp = @as(f32, pad) / a.scale;
+        return .{
+            .uv = a.uv(at, w, h),
+            .x = -pp,
+            .y = -pp,
+            .w = @as(f32, @floatFromInt(w)) / a.scale,
+            .h = @as(f32, @floatFromInt(h)) / a.scale,
+        };
+    }
+
+    /// An icon drawn from SVG (`atlas_svg.zig`), as a symbol's mask.
+    fn svgSymbol(a: *Atlas, src: atlas_svg.Source) ?Sprite {
+        const side: u32 = @intFromFloat(@ceil(src.side * a.scale));
+        if (side == 0 or side + 2 * pad > max_size) return null;
+        const w = side + 2 * pad;
+        const h = side + 2 * pad;
+        const at = a.place(w, h) orelse return null;
+        a.scratch.resize(a.gpa, w * h) catch return null;
+        @memset(a.scratch.items, 0);
+        atlas_svg.mask(a.gpa, src.bytes, side, a.scratch.items, w, pad, pad) catch return null;
         a.blit(at, w, h, a.scratch.items);
         const pp = @as(f32, pad) / a.scale;
         return .{

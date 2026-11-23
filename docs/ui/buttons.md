@@ -105,14 +105,34 @@ ui.icon(c, "doc.text", .{ .size = 13, .frame = 18, .color = c.theme.muted });
 | `frame` | | a square box the symbol is centered in, so symbols of different widths line up in a column of rows |
 
 - On macOS every SF Symbol is available.
-- On Linux, Windows and in browsers, myzig draws its own line icons, in
-  the manner of Lucide (`src/ui/icons.zig`). It has the symbols its
-  widgets and apps name. A name it does not have draws nothing there.
-- Use these names in apps meant for every platform. For a picture of
-  your own, use an image or an [SVG](drawing.md).
+- On Linux and Windows, myzig draws [Lucide](https://lucide.dev)'s icon
+  for each name below (`src/ui/lucide.zig`; `ui.lucide_symbols.* = false`
+  goes back to its own line icons, `src/ui/icons.zig`). A name it does
+  not have draws nothing there.
+- Use these names in apps meant for every platform.
+- Every icon is drawn on the pixel grid: a line a pixel wide (Lucide's at
+  1x) covers one pixel, not half of two.
+
+An app's own icons go through the same path, its menus' and controls'
+too: hand myzig a lookup by name, before the first frame. Any of Lucide's
+1,539 icons is `ui.lucide.svg("name")`, and an app carries only those it
+names.
+
+```zig
+fn icon(name: []const u8) ?[]const u8 {
+    if (std.mem.eql(u8, name, "branch")) return ui.lucide.svg("git-branch");
+    if (std.mem.eql(u8, name, "logo")) return @embedFile("logo.svg");
+    return null; // myzig's own (Lucide's for SF Symbols' names)
+}
+
+ui.app_icons.* = icon;
+```
+
+An SVG drawn with `ui.svg` itself takes `.crisp = true` to be drawn on the
+pixel grid the same way.
 
 <details>
-<summary>The names myzig draws off macOS</summary>
+<summary>The SF Symbols' names myzig draws off macOS</summary>
 
 | | |
 |---|---|

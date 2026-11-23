@@ -115,7 +115,10 @@ pub const IconOptions = struct {
     color: ?Color = null,
 };
 
-/// An SF Symbol: `ui.icon(c, "star.fill", .{ .color = c.theme.accent })`.
+/// An icon by name: the app's (`ui.app_icons`), Lucide's for an SF
+/// Symbol's name (`ui.lucide_symbols`), or the SF Symbol (macOS) or
+/// myzig's line icon (`atlas_svg.zig` says which).
+/// `ui.icon(c, "star.fill", .{ .color = c.theme.accent })`.
 pub fn icon(c: *Context, name: []const u8, opts: IconOptions) void {
     const style: Style = if (opts.frame) |f| .{ .width = .{ .px = f }, .height = .{ .px = f } } else .{};
     _ = c.leaf(style, .{ .icon = .{ .name = name, .size = opts.size, .weight = opts.weight, .color = opts.color orelse c.theme.text } }, null);

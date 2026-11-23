@@ -274,8 +274,10 @@ pub fn smoothstep(e0: f32, e1: f32, x: f32) f32 {
     return t * t * (3 - 2 * t);
 }
 
-/// The signed distance to a rounded box centered at 0, and the sum of the
-/// absolute values of its gradient (what `fwidth` measures per pixel).
+/// The signed distance to a rounded box centered at 0, and its gradient's
+/// length: 1, the distance being exact. (The sum of the gradient's
+/// absolute values, what `fwidth` measures, smooths a diagonal edge over
+/// 1.4 pixels: corners came out fainter and softer than straight edges.)
 pub fn roundedBox(px: f32, py: f32, hw: f32, hh: f32, r: f32) [2]f32 {
     const qx = @abs(px) - hw + r;
     const qy = @abs(py) - hh + r;
@@ -283,7 +285,7 @@ pub fn roundedBox(px: f32, py: f32, hw: f32, hh: f32, r: f32) [2]f32 {
     const my = @max(qy, 0);
     const len = @sqrt(mx * mx + my * my);
     const d = len + @min(@max(qx, qy), 0) - r;
-    const grad: f32 = if (len > 0) (mx + my) / len else 1;
+    const grad: f32 = 1;
     return .{ d, grad };
 }
 
@@ -305,7 +307,7 @@ pub inline fn clipCover(i: *const gpu.Instance, wx: f32, wy: f32, inv: f32) f32 
         const e = r * corner.extent;
         if ((wx > c[0] + e and wx < c[2] - e) or (wy > c[1] + e and wy < c[3] - e)) return 1;
         const g = corner.distance(qx, qy, hw, hh, r, inv / 16, round.corners);
-        const aa = @max((@abs(g[1]) + @abs(g[2])) * inv, 0.0001) * 0.5;
+        const aa = @max(@sqrt(g[1] * g[1] + g[2] * g[2]) * inv, 0.0001) * 0.5;
         return 1 - smoothstep(-aa, aa, g[0]);
     }
     // Between the corners, nothing is cut.
@@ -410,13 +412,14 @@ fn shadeQuad(bytes: []u8, at: usize, c: [4]f32, bc: [4]f32, bw: f32, sd: [2]f32,
     const aa = @max(sd[1] * inv, 0.0001) * 0.5;
     const coverage = 1 - smoothstep(-aa, aa, sd[0]);
     if (coverage <= 0) return;
-    var col = c;
-    if (bw > 0 and bc[3] > 0) {
-        const t = smoothstep(-bw - aa, -bw + aa, sd[0]);
-        for (0..4) |k| col[k] = c[k] + (bc[k] - c[k]) * t;
-    }
-    const a = col[3] * coverage * cut;
-    blend(bytes, at, col[0] * a, col[1] * a, col[2] * a, a);
+    // Fill and border mix premultiplied: a pixel the border's inner edge
+    // crosses holds each by its share, with no fringe of either's color
+    // at the other's opacity.
+    const t = if (bw > 0 and bc[3] > 0) smoothstep(-bw - aa, -bw + aa, sd[0]) else 0;
+    const k = coverage * cut;
+    const fa = c[3] * (1 - t) * k;
+    const ba = bc[3] * t * k;
+    blend(bytes, at, c[0] * fa + bc[0] * ba, c[1] * fa + bc[1] * ba, c[2] * fa + bc[2] * ba, fa + ba);
 }
 
 /// Where a texture coordinate falls between texels, as Metal's linear

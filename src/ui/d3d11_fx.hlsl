@@ -131,7 +131,7 @@ float2 rounded_box(float2 p, float2 half_size, float r) {
     float2 m = max(q, 0.0);
     float len = sqrt(m.x * m.x + m.y * m.y);
     float d = len + min(max(q.x, q.y), 0.0) - r;
-    return float2(d, len > 0.0 ? (m.x + m.y) / len : 1.0);
+    return float2(d, 1.0);
 }
 
 // How much of the pixel the clip lets through (d3d11.hlsl's clip_cover).
@@ -245,7 +245,7 @@ float clip_cover(float4 c, float clip_round, float2 w, float inv) {
         float e = r * cont_extent;
         if ((w.x > c.x + e && w.x < c.z - e) || (w.y > c.y + e && w.y < c.w - e)) return 1.0;
         float3 g = cont_distance(q, h, r, inv / 16.0, corners);
-        return coverage_of(float2(g.x, abs(g.y) + abs(g.z)), inv);
+        return coverage_of(float2(g.x, length(g.yz)), inv);
     }
     if ((w.x > c.x + r && w.x < c.z - r) || (w.y > c.y + r && w.y < c.w - r)) return 1.0;
     uint bit = q.y < 0.0 ? (q.x < 0.0 ? 1u : 2u) : (q.x < 0.0 ? 8u : 4u);

@@ -56,7 +56,7 @@ clicked, or Enter or Space on it. Choosing it closes the menu.
 | `shortcut` | `""` | a key combination shown by it, as the shortcut that does the same: it only shows it |
 | `checked` | null | a check mark by it when true, and room for one when false |
 | `disabled` | false | grayed out: it cannot be chosen |
-| `icon` | `""` | an SF Symbol (or myzig's line icon of that name off macOS) before the label |
+| `icon` | `""` | an SF Symbol (Lucide's icon for it off macOS, or the app's own, `ui.app_icons`) before the label |
 
 **Shortcuts.** Write them with the Mac's symbols. `ui.keys.label` writes
 them as the platform does: `ui.keys.label("⇧⌘S")` is `⇧⌘S` on macOS and

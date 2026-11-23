@@ -121,7 +121,7 @@ fn distance(px: f32, py: f32, hw: f32, hh: f32, r: f32) [3]f32 {
 fn cover(m: Map, d: [3]f32, inv: f32) [2]f32 {
     const dx = d[1] * m.ia + d[2] * m.ib;
     const dy = d[1] * m.ic + d[2] * m.id;
-    const aa = @max((@abs(dx) + @abs(dy)) * inv, 0.0001) * 0.5;
+    const aa = @max(@sqrt(dx * dx + dy * dy) * inv, 0.0001) * 0.5;
     return .{ 1 - raster.smoothstep(-aa, aa, d[0]), aa };
 }
 
@@ -201,7 +201,7 @@ fn shade(i: *const gpu.Instance, kind: f32, m: Map, lx: f32, ly: f32, rows: []co
         const k = cv[0] * c[3];
         return .{ t[0] * k, t[1] * k, t[2] * k, t[3] * k };
     }
-    // A quad's fill and border mix straight; a gradient's premultiplied.
+    // Fill (a color's or a gradient's) and border mix premultiplied.
     var col: [4]f32 = undefined;
     const bw = i.border_width;
     const bc = i.border_color;
@@ -213,9 +213,11 @@ fn shade(i: *const gpu.Instance, kind: f32, m: Map, lx: f32, ly: f32, rows: []co
         for (0..4) |k| col[k] = (g[k] + (pb[k] - g[k]) * t) * cv[0];
         return col;
     }
-    for (0..4) |k| col[k] = c[k] + (bc[k] - c[k]) * t;
-    const a = col[3] * cv[0];
-    return .{ col[0] * a, col[1] * a, col[2] * a, a };
+    const fa = c[3] * (1 - t) * cv[0];
+    const ba = bc[3] * t * cv[0];
+    for (0..3) |k| col[k] = c[k] * fa + bc[k] * ba;
+    col[3] = fa + ba;
+    return col;
 }
 
 /// Draws the rows `b` covers of instance `i`, which takes the general path.

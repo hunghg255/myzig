@@ -122,7 +122,7 @@ vec2 rounded_box(vec2 p, vec2 half_size, float r) {
     vec2 m = max(q, 0.0);
     float len = sqrt(m.x * m.x + m.y * m.y);
     float d = len + min(max(q.x, q.y), 0.0) - r;
-    return vec2(d, len > 0.0 ? (m.x + m.y) / len : 1.0);
+    return vec2(d, 1.0);
 }
 
 float clamp01(float x) { return clamp(x, 0.0, 1.0); }
@@ -237,7 +237,7 @@ float clip_cover(vec4 c, float clip_round, vec2 w, float inv) {
         float e = r * cont_extent;
         if ((w.x > c.x + e && w.x < c.z - e) || (w.y > c.y + e && w.y < c.w - e)) return 1.0;
         vec3 g = cont_distance(q, h, r, inv / 16.0, corners);
-        return coverage_of(vec2(g.x, abs(g.y) + abs(g.z)), inv);
+        return coverage_of(vec2(g.x, length(g.yz)), inv);
     }
     if ((w.x > c.x + r && w.x < c.z - r) || (w.y > c.y + r && w.y < c.w - r)) return 1.0;
     uint bit = q.y < 0.0 ? (q.x < 0.0 ? 1u : 2u) : (q.x < 0.0 ? 8u : 4u);

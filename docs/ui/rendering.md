@@ -41,8 +41,8 @@ shader, written once for Metal and translated line for line:
 - **Text** comes from a glyph atlas. It grows as glyphs are needed and
   uploads only when it changes. CoreText rasterizes the glyphs on macOS;
   myzig's own TrueType reader (`src/ui/tt/`) does elsewhere.
-- **Icons** are SF Symbols on macOS, and line icons drawn by myzig
-  (`icons.zig`) elsewhere.
+- **Icons** are SF Symbols on macOS, and Lucide's (`lucide.zig`, or the
+  app's own SVG, `atlas_svg.zig`) elsewhere, drawn on the pixel grid.
 - **Pictures** are decoded once and packed into a BGRA atlas
   (`images.zig`).
 

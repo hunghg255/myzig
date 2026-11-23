@@ -171,6 +171,7 @@ pub const Atlas = struct {
     }
 
     fn rasterizeSymbol(a: *Atlas, name: []const u8, point_size: f32, weight: u8) ?Sprite {
+        if (@import("atlas_svg.zig").find(name, point_size)) |src| return a.svgSymbol(src);
         const pool = objc.Pool.push();
         defer pool.pop();
         const base = objc.msg(?objc.Object, objc.class("NSImage"), "imageWithSystemSymbolName:accessibilityDescription:", .{
@@ -212,6 +213,37 @@ pub const Atlas = struct {
         objc.msg(void, objc.class("NSGraphicsContext"), "restoreGraphicsState", .{});
         a.pixels.resize(a.gpa, bw * bh) catch return null;
         for (a.pixels.items, 0..) |*m, i| m.* = rgba[i * 4 + 3];
+        a.upload(origin, bw, bh);
+        const as: f32 = @floatFromInt(a.size);
+        const p: f32 = @as(f32, pad) / scale;
+        return .{
+            .uv = .{
+                @as(f32, @floatFromInt(origin[0])) / as,
+                @as(f32, @floatFromInt(origin[1])) / as,
+                @as(f32, @floatFromInt(origin[0] + bw)) / as,
+                @as(f32, @floatFromInt(origin[1] + bh)) / as,
+            },
+            .x = -p,
+            .y = -p,
+            .w = @as(f32, @floatFromInt(bw)) / scale,
+            .h = @as(f32, @floatFromInt(bh)) / scale,
+        };
+    }
+
+    /// An icon the app draws from SVG (`atlas_svg.zig`), as a symbol's mask.
+    fn svgSymbol(a: *Atlas, src: @import("atlas_svg.zig").Source) ?Sprite {
+        const scale = a.scale;
+        const side: u32 = @intFromFloat(@ceil(src.side * scale));
+        if (side == 0 or side + 2 * pad > max_size) return null;
+        const bw = side + 2 * pad;
+        const bh = side + 2 * pad;
+        const origin = a.allocate(bw, bh) orelse blk: {
+            a.makeRoom();
+            break :blk a.allocate(bw, bh) orelse return null;
+        };
+        a.pixels.resize(a.gpa, bw * bh) catch return null;
+        @memset(a.pixels.items, 0);
+        @import("atlas_svg.zig").mask(a.gpa, src.bytes, side, a.pixels.items, bw, pad, pad) catch return null;
         a.upload(origin, bw, bh);
         const as: f32 = @floatFromInt(a.size);
         const p: f32 = @as(f32, pad) / scale;

@@ -75,6 +75,10 @@ pub const Context = struct {
     time: f64 = 0,
     frame: u64 = 0,
     input: Input = .{},
+    /// The focused field's caret, as it last stood (`textfield.caretInk`),
+    /// and when it moved there: its blink starts over from each move.
+    caret_key: u64 = 0,
+    caret_at: f64 = 0,
 
     nodes: std.ArrayList(Node) = .empty,
     stack: std.ArrayList(u32) = .empty,

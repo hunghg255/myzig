@@ -246,6 +246,30 @@ pub fn caretWidth(c: *const Context, w: f32) f32 {
     return @max(w, 1 / @max(c.scale, 1));
 }
 
+/// Whether carets blink. They show for a half period from each move (a
+/// key, a click, an arrow), as the system's do, then blink. Off: always shown.
+pub var caret_blink: bool = !@import("builtin").is_test;
+/// Half a blink, in seconds: Windows' default (530 ms).
+pub const blink_half: f64 = 0.53;
+
+/// The caret's color in this frame: `ink`, or clear while it is blinked
+/// off. The caret stays a box either way (the boxes after it keep their
+/// ids). `id`, `at` and `len` say where it is: a change starts it over.
+pub fn caretInk(c: *Context, id: u64, at: usize, len: usize, ink: types.Color) types.Color {
+    if (!caret_blink) return ink;
+    var h = std.hash.Wyhash.init(id);
+    h.update(std.mem.asBytes(&[_]usize{ at, len }));
+    const key = h.final();
+    if (key != c.caret_key) {
+        c.caret_key = key;
+        c.caret_at = c.time;
+    }
+    const t = @mod(c.time - c.caret_at, 2 * blink_half);
+    const on = t < blink_half;
+    c.frameIn(@floatCast(if (on) blink_half - t else 2 * blink_half - t));
+    return if (on) ink else ink.alpha(0);
+}
+
 pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
     const th = c.theme;
     const style: types.TextStyle = .{ .size = opts.size };
@@ -401,7 +425,7 @@ pub fn textField(c: *Context, buffer: *TextBuffer, opts: Options) Result {
         _ = c.leaf(.{ .absolute = true, .width = .{ .px = x1 - x0 }, .height = .{ .px = 1.5 }, .background = th.text, .offset = .{ .x = x0 - e.scroll_x, .y = lh - 1 } }, .none, null);
     };
     if (focused and hi == lo and opts.caret_width > 0) {
-        _ = c.leaf(.{ .absolute = true, .width = .{ .px = caretWidth(c, opts.caret_width) }, .height = .{ .px = lh }, .background = th.accentInk(), .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
+        _ = c.leaf(.{ .absolute = true, .width = .{ .px = caretWidth(c, opts.caret_width) }, .height = .{ .px = lh }, .background = caretInk(c, it.id, e.caret, s.len, th.accentInk()), .offset = .{ .x = caret_x - e.scroll_x } }, .none, null);
     }
     // Its value, but a password's; never its children's texts as its name.
     if (c.access.enabled) {

@@ -259,14 +259,14 @@ float shadow_alpha(float px, float py, float hw, float hh, float corner, float s
     return alpha;
 }
 
-// The signed distance to a rounded box centered at 0, and the sum of the
-// absolute values of its gradient (what fwidth measures).
+// The signed distance to a rounded box centered at 0, and its gradient's
+// length: 1, the distance being exact (raster.zig's roundedBox).
 vec2 rounded_box(vec2 p, vec2 half_size, float r) {
     vec2 q = abs(p) - half_size + r;
     vec2 m = max(q, 0.0);
     float len = sqrt(m.x * m.x + m.y * m.y);
     float d = len + min(max(q.x, q.y), 0.0) - r;
-    return vec2(d, len > 0.0 ? (m.x + m.y) / len : 1.0);
+    return vec2(d, 1.0);
 }
 
 float coverage_of(vec2 sd, float inv) {
@@ -278,7 +278,7 @@ float coverage_of(vec2 sd, float inv) {
 vec2 shape_box(vec2 p, vec2 h, float radius, float inv) {
     if (radius < 0.0) {
         vec3 g = cont_distance(p, h, min(-radius, min(h.x, h.y)), inv / 16.0, 15u);
-        return vec2(g.x, abs(g.y) + abs(g.z));
+        return vec2(g.x, length(g.yz));
     }
     return rounded_box(p, h, min(radius, min(h.x, h.y)));
 }
@@ -298,7 +298,7 @@ float clip_cover(vec4 c, float clip_round, vec2 w, float inv) {
         float e = r * cont_extent;
         if ((w.x > c.x + e && w.x < c.z - e) || (w.y > c.y + e && w.y < c.w - e)) return 1.0;
         vec3 g = cont_distance(q, h, r, inv / 16.0, corners);
-        return coverage_of(vec2(g.x, abs(g.y) + abs(g.z)), inv);
+        return coverage_of(vec2(g.x, length(g.yz)), inv);
     }
     if ((w.x > c.x + r && w.x < c.z - r) || (w.y > c.y + r && w.y < c.w - r)) return 1.0;
     uint bit = q.y < 0.0 ? (q.x < 0.0 ? 1u : 2u) : (q.x < 0.0 ? 8u : 4u);
@@ -439,7 +439,7 @@ vec3 distance3(vec2 p, vec2 h, float r) {
 vec2 cover_of(Map m, vec3 d, float inv) {
     float dx = d.y * m.inv.x + d.z * m.inv.y;
     float dy = d.y * m.inv.z + d.z * m.inv.w;
-    float aa = max((abs(dx) + abs(dy)) * inv, 0.0001) * 0.5;
+    float aa = max(length(vec2(dx, dy)) * inv, 0.0001) * 0.5;
     return vec2(1.0 - smoothstep(-aa, aa, d.x), aa);
 }
 
@@ -489,9 +489,8 @@ vec4 general(vec2 world, float inv) {
         vec4 pb = premul(bc);
         return (g + (pb - g) * b) * (cv.x * cut);
     }
-    vec4 col = c + (bc - c) * b;
-    float a = col.a * cv.x;
-    return vec4(col.rgb * a, a) * cut;
+    // Fill and border mix premultiplied (raster.zig's shadeQuad).
+    return (premul(c) * (1.0 - b) + premul(bc) * b) * (cv.x * cut);
 }
 
 vec4 shade() {
@@ -544,12 +543,9 @@ vec4 shade() {
     float aa = max(sd.y * inv, 0.0001) * 0.5;
     float coverage = 1.0 - smoothstep(-aa, aa, sd.x);
     float bw = v_params.y;
-    if (bw > 0.0 && v_border_color.a > 0.0) {
-        float b = smoothstep(-bw - aa, -bw + aa, sd.x);
-        c = c + (v_border_color - c) * b;
-    }
-    float a = c.a * coverage * cut;
-    return vec4(c.rgb * a, a);
+    // Fill and border mix premultiplied (raster.zig's shadeQuad).
+    float b = (bw > 0.0 && v_border_color.a > 0.0) ? smoothstep(-bw - aa, -bw + aa, sd.x) : 0.0;
+    return (premul(c) * (1.0 - b) + premul(v_border_color) * b) * (coverage * cut);
 }
 
 void main() {

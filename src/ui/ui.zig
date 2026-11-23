@@ -64,6 +64,13 @@ pub const Span = types.Span;
 pub const heading = widgets.heading;
 pub const icon = widgets.icon;
 pub const IconOptions = widgets.IconOptions;
+/// Icons the app draws itself (`atlas_svg.app_icons`): set it to a lookup
+/// by name before the first frame. `lucide_symbols`: Lucide's icons for
+/// SF Symbols' names, where there are none (on by default).
+pub const app_icons = &@import("atlas_svg.zig").app_icons;
+pub const lucide_symbols = &@import("atlas_svg.zig").lucide_symbols;
+/// Lucide's icons, shipped with myzig: `lucide.svg("trash-2")`.
+pub const lucide = @import("lucide.zig");
 pub const label = widgets.label;
 pub const button = widgets.button;
 pub const ButtonOptions = widgets.ButtonOptions;

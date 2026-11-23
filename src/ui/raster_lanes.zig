@@ -91,16 +91,16 @@ pub fn quadEdges(bytes: []u8, row: usize, x0: usize, x1: usize, q: QuadRow) void
         const my = @max(qy, splat(0));
         const len = @sqrt(mx * mx + my * my);
         const sd = len + @min(@max(qx, qy), splat(0)) - splat(q.r);
-        const grad = @select(f32, len > splat(0), (mx + my) / len, splat(1));
+        const grad = splat(1);
         const aa = @max(grad * splat(q.inv), splat(0.0001)) * splat(0.5);
         const coverage = splat(1) - smoothstep(-aa, aa, sd);
-        var col: [4]V = .{ splat(q.c[0]), splat(q.c[1]), splat(q.c[2]), splat(q.c[3]) };
-        if (q.has_border) {
-            const t = smoothstep(splat(-q.bw) - aa, splat(-q.bw) + aa, sd);
-            for (0..4) |k| col[k] = splat(q.c[k]) + (splat(q.bc[k]) - splat(q.c[k])) * t;
-        }
-        const a = col[3] * coverage;
-        blendRun(bytes, row + x * 4, .{ col[2] * a, col[1] * a, col[0] * a, a }, @min(lanes, x1 - x));
+        // Fill and border mix premultiplied (raster.zig's shadeQuad).
+        const t = if (q.has_border) smoothstep(splat(-q.bw) - aa, splat(-q.bw) + aa, sd) else splat(0);
+        const fa = splat(q.c[3]) * (splat(1) - t) * coverage;
+        const ba = splat(q.bc[3]) * t * coverage;
+        var col: [3]V = undefined;
+        for (0..3) |k| col[k] = splat(q.c[k]) * fa + splat(q.bc[k]) * ba;
+        blendRun(bytes, row + x * 4, .{ col[2], col[1], col[0], fa + ba }, @min(lanes, x1 - x));
     }
 }
 

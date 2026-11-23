@@ -158,7 +158,7 @@ pub fn distance(px: f32, py: f32, hw: f32, hh: f32, r: f32, step: f32, corners: 
 pub fn box(px: f32, py: f32, hw: f32, hh: f32, radius: f32, inv: f32) [2]f32 {
     if (!(radius < 0)) return @import("raster.zig").roundedBox(px, py, hw, hh, @min(radius, @min(hw, hh)));
     const g = distance(px, py, hw, hh, @min(-radius, @min(hw, hh)), inv / 16, 15);
-    return .{ g[0], @abs(g[1]) + @abs(g[2]) };
+    return .{ g[0], @sqrt(g[1] * g[1] + g[2] * g[2]) };
 }
 
 /// How far the corners of `radius` reach along the edges from a corner:

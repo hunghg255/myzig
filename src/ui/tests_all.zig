@@ -143,6 +143,9 @@ test {
     _ = @import("svg_style.zig");
     _ = @import("svg_pathdata.zig");
     _ = @import("tests_svg.zig");
+    _ = @import("svg.zig");
+    _ = @import("lucide.zig");
+    _ = @import("atlas_svg.zig");
     _ = @import("chart/chart.zig");
     _ = @import("tests_chart.zig");
     _ = @import("markdown/scan.zig");

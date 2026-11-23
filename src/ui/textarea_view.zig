@@ -414,8 +414,10 @@ pub fn view(c: *Context, ta: *TextArea, box: types.Style, cfg: Config) Result {
             if (line == caret_pos.line and sub == caret_pos.sub) {
                 const xc = x0 + caret_pos.x;
                 caret_rect = .{ .x = view_rect.x + gutter_w + xc, .y = view_rect.y + y - f.scroll, .w = 1.5, .h = row_h };
-                if (focused and !cfg.read_only and ta.sel.empty() and cfg.caret_width > 0)
-                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = @import("textfield.zig").caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = th.accentInk(), .offset = .{ .x = xc, .y = y } }, .none, null);
+                if (focused and !cfg.read_only and ta.sel.empty() and cfg.caret_width > 0) {
+                    const tf = @import("textfield.zig");
+                    _ = c.leaf(.{ .absolute = true, .width = .{ .px = tf.caretWidth(c, cfg.caret_width) }, .height = .{ .px = row_h }, .background = tf.caretInk(c, it.id, ta.sel.caret, ta.len(), th.accentInk()), .offset = .{ .x = xc, .y = y } }, .none, null);
+                }
             }
         }
         // What the view adds after the line's end.

@@ -27,6 +27,10 @@ pub const SvgOptions = struct {
     color: ?Color = null,
     opacity: f32 = 1,
     key: ?[]const u8 = null,
+    /// An icon of strokes (Lucide's, Feather's): drawn on the pixel grid
+    /// (`nudge`), so a line a pixel or so wide covers a pixel, not half of
+    /// two. Icons myzig draws (`ui.icon`) are.
+    crisp: bool = false,
 };
 
 /// Draws an SVG document; false (and nothing drawn) if it isn't one.
@@ -36,22 +40,62 @@ pub fn svg(c: *Context, bytes: []const u8, opts: SvgOptions) bool {
     if (!(size.w > 0 and size.h > 0)) return false;
     const id = c.peekId(opts.key);
     const color = opts.color orelse c.theme.text;
+    const shift: f32 = if (opts.crisp) nudge(c.alloc(), bytes, size.w * c.scale) else 0;
     var h = std.hash.Wyhash.init(0x737667);
     h.update(bytes);
-    h.update(std.mem.asBytes(&[_]f32{ color.r, color.g, color.b, color.a }));
+    h.update(std.mem.asBytes(&[_]f32{ color.r, color.g, color.b, color.a, shift }));
     const Source = struct {
         bytes: []const u8,
         color: Color,
         size: types.Size,
+        shift: f32,
         pub fn render(s: @This(), gpa: std.mem.Allocator, out: []u8, w: usize, hh: usize, base: path.Transform) !void {
             var arena = std.heap.ArenaAllocator.init(gpa);
             defer arena.deinit();
             const cmds = try record(arena.allocator(), s.bytes, s.size, s.color);
-            try render_mod.render(gpa, cmds, out, w, hh, base);
+            try render_mod.render(gpa, cmds, out, w, hh, base.then(.translation(s.shift, s.shift)));
         }
     };
-    _ = canvas.picture(c, id, size, size, .{ .key = opts.key, .opacity = opts.opacity }, h.final(), Source{ .bytes = bytes, .color = color, .size = size });
+    _ = canvas.picture(c, id, size, size, .{ .key = opts.key, .opacity = opts.opacity }, h.final(), Source{ .bytes = bytes, .color = color, .size = size, .shift = shift });
     return true;
+}
+
+/// How far (in pixels, both ways) to move an icon `px` pixels wide so its
+/// strokes fall on the pixel grid. An icon's lines are mostly on whole
+/// units of its grid, its middle line among them: a stroke an odd number
+/// of pixels wide (one, at 1x) is sharp with its middle on a pixel's
+/// middle, an even one (two, at 2x) with it between pixels. Its stroke
+/// width is the root's `stroke-width` over its viewBox; no stroke, no move.
+pub fn nudge(arena: std.mem.Allocator, bytes: []const u8, px: f32) f32 {
+    const at = std.mem.indexOf(u8, bytes, "<svg") orelse return 0;
+    const end = std.mem.indexOfScalarPos(u8, bytes, at, '>') orelse return 0;
+    const doc = xml.parse(arena, bytes[at .. end + 1]) catch return 0;
+    if (doc.elements.len == 0 or !(px > 0)) return 0;
+    const root = doc.elements[0];
+    const sw = std.fmt.parseFloat(f32, std.mem.trim(u8, root.attr("stroke-width") orelse return 0, " ")) catch return 0;
+    const vb = draw_mod.viewBox(root) orelse return 0;
+    if (!(vb[2] > 0) or !(sw > 0)) return 0;
+    const stroke = @round(sw * px / vb[2]);
+    const want: f32 = if (@mod(stroke, 2) == 1) 0.5 else 0;
+    const middle = px / 2;
+    var d = want - (middle - @floor(middle));
+    if (d > 0.5) d -= 1;
+    if (d <= -0.5) d += 1;
+    return d;
+}
+
+test "an icon's strokes moved onto the pixel grid" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const icon = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M5 12h14\"/></svg>";
+    // 14 or 16 pixels (1x): a stroke of one pixel, its middle between two: half a pixel over.
+    try std.testing.expectEqual(@as(f32, 0.5), nudge(arena.allocator(), icon, 14));
+    try std.testing.expectEqual(@as(f32, 0.5), nudge(arena.allocator(), icon, 16));
+    // 28 pixels (2x): two pixels wide, between two already.
+    try std.testing.expectEqual(@as(f32, 0), nudge(arena.allocator(), icon, 28));
+    // 15 pixels: its middle on a pixel's middle already.
+    try std.testing.expectEqual(@as(f32, 0), nudge(arena.allocator(), icon, 15));
+    try std.testing.expectEqual(@as(f32, 0), nudge(arena.allocator(), "<svg viewBox=\"0 0 24 24\"><rect/></svg>", 14));
 }
 
 /// A size from the document's own and what is asked for.

@@ -196,3 +196,39 @@ test "a scrolling box without its scroll bar paints none, and still scrolls" {
     t.scroll(100, 100, -60);
     try testing.expect(offset(&t, s.id) > 0);
 }
+
+const OverView = struct {
+    view_id: u64 = 0,
+    list: u64 = 0,
+
+    fn view(s: *OverView, c: *ui.Context) void {
+        s.view_id = c.peekId(null);
+        _ = c.open(.{ .width = .fill, .height = .fill, .scroll = true }, null);
+        _ = c.leaf(.{ .width = .fill, .height = .{ .px = 1000 } }, .none, null);
+        // A popover over it, its list scrolling.
+        _ = c.openOverlay(.{ .absolute = true, .offset = .{ .x = 20, .y = 20 }, .width = .{ .px = 160 }, .height = .{ .px = 100 } }, "pop");
+        s.list = c.peekId(null);
+        _ = c.open(.{ .width = .fill, .height = .{ .px = 100 }, .scroll = true }, null);
+        _ = c.leaf(.{ .width = .fill, .height = .{ .px = 150 } }, .none, null);
+        c.end();
+        c.end();
+        c.end();
+    }
+};
+
+test "wheel: an overlay's list at its end leaves the view behind it alone" {
+    var s: OverView = .{};
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&s, OverView.view), .{ .width = 200, .height = 200 });
+    defer t.deinit();
+    t.moveTo(100, 60);
+    for (0..4) |_| t.wheel(100, 60, -40);
+    t.advance(1);
+    try testing.expectEqual(@as(f32, 50), offset(&t, s.list));
+    try testing.expectEqual(@as(f32, 0), offset(&t, s.view_id));
+    // Off the popover, the view scrolls.
+    t.moveTo(100, 180);
+    t.wheel(100, 180, -40);
+    t.advance(1);
+    try testing.expect(offset(&t, s.view_id) > 0);
+}

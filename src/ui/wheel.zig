@@ -1,9 +1,10 @@
 //! The notches of a mouse wheel, after mygo's: a scrolling box glides
 //! through a notch along a short ease out, as browsers scroll it, rather
 //! than jumping the whole notch at once; notches in a row add up, and a
-//! box at its end leaves them to the box around it. A touchpad's small
-//! moves already follow the fingers (`applyScroll`); with less motion, a
-//! notch scrolls at once too.
+//! box at its end leaves them to the box around it, in the same layer: an
+//! overlay's (a popover, a menu) never to the view behind it
+//! (`context_events.pointerLayer`). A touchpad's small moves already follow
+//! the fingers (`applyScroll`); with less motion, a notch scrolls at once too.
 //!
 //! A glide moves its box by what it went since the last frame, so what
 //! else moves the offset meanwhile (the app, a touchpad, a key) takes over:
@@ -12,6 +13,7 @@ const std = @import("std");
 const curve = @import("motion_curve.zig");
 const motion = @import("motion.zig");
 const Context = @import("context.zig").Context;
+const events = @import("context_events.zig");
 
 /// How a notch scrolls.
 pub const animation: curve.Animation = .curve(0.15, .ease_out);
@@ -47,12 +49,13 @@ fn limitOf(c: *Context, id: u64) f32 {
 pub fn applyWheel(c: *Context, dy: f32) bool {
     if (dy == 0) return c.applyScroll(0);
     if (motion.reduced(c)) return scrollAtOnce(c, dy);
+    const layer = events.pointerLayer(c);
     var under = false;
     var i = c.hits.items.len;
     while (i > 0) {
         i -= 1;
         const h = c.hits.items[i];
-        if (!h.scroll or !h.contains(c.input.mouse)) continue;
+        if (!h.scroll or !h.contains(c.input.mouse) or !events.inLayer(c, h, layer)) continue;
         under = true;
         const g = c.wheel.getPtr(h.id);
         const ahead: f64 = if (g) |x| x.ahead() else 0;
@@ -87,12 +90,13 @@ pub fn glideBy(c: *Context, id: u64, dy: f32) void {
 /// A notch with less motion: at once, the box around one at its end
 /// taking it.
 fn scrollAtOnce(c: *Context, dy: f32) bool {
+    const layer = events.pointerLayer(c);
     var under = false;
     var i = c.hits.items.len;
     while (i > 0) {
         i -= 1;
         const h = c.hits.items[i];
-        if (!h.scroll or !h.contains(c.input.mouse)) continue;
+        if (!h.scroll or !h.contains(c.input.mouse) or !events.inLayer(c, h, layer)) continue;
         under = true;
         const limit = limitOf(c, h.id);
         const gop = c.scroll.getOrPut(c.gpa, h.id) catch return true;

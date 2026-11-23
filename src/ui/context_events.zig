@@ -50,13 +50,49 @@ fn hotPath(c: *Context, h: Hit) void {
     }
 }
 
-/// Scrolls the innermost scrolling box under the pointer.
-pub fn applyScroll(c: *Context, dy: f32) bool {
+/// The box at the top of the tree that hit `h` is in (a child of the
+/// root: the view, or an overlay), from the tree it was painted in; null
+/// when that tree is gone.
+fn layerOf(c: *Context, h: Hit) ?u32 {
+    if (h.index >= c.nodes.items.len or c.nodes.items[h.index].id != h.id) return null;
+    var at = h.index;
+    while (at != 0) {
+        const parent = c.nodes.items[at].parent;
+        if (parent == 0 or parent == none) return at;
+        at = parent;
+    }
+    return 0;
+}
+
+/// The layer the pointer is over: the topmost box under it's. The wheel
+/// over an overlay (a popover, a menu, a dialog) scrolls what is in it,
+/// never the view behind, even when nothing in it can scroll further.
+pub fn pointerLayer(c: *Context) ?u32 {
     var i = c.hits.items.len;
     while (i > 0) {
         i -= 1;
         const h = c.hits.items[i];
-        if (h.scroll and h.contains(c.input.mouse)) {
+        if (h.contains(c.input.mouse)) return layerOf(c, h);
+    }
+    return null;
+}
+
+/// Whether the wheel may scroll hit `h`'s box: it is in `layer` (the one
+/// under the pointer), or either is not known.
+pub fn inLayer(c: *Context, h: Hit, layer: ?u32) bool {
+    const want = layer orelse return true;
+    const got = layerOf(c, h) orelse return true;
+    return got == want;
+}
+
+/// Scrolls the innermost scrolling box under the pointer.
+pub fn applyScroll(c: *Context, dy: f32) bool {
+    const layer = pointerLayer(c);
+    var i = c.hits.items.len;
+    while (i > 0) {
+        i -= 1;
+        const h = c.hits.items[i];
+        if (h.scroll and h.contains(c.input.mouse) and inLayer(c, h, layer)) {
             const gop = c.scroll.getOrPut(c.gpa, h.id) catch return false;
             if (!gop.found_existing) gop.value_ptr.* = 0;
             gop.value_ptr.* = @max(0, gop.value_ptr.* - dy);

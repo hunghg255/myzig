@@ -434,3 +434,36 @@ test "more carets: a line below, the next match" {
     try testing.expect(t.shortcut(primary('z', false)));
     try expectText(&s, "ab\ncd\nab");
 }
+
+test "typing ends the drag of a press: the pointer still down keeps the caret no more" {
+    var s: Notes = undefined;
+    var t: ui.Tester = undefined;
+    try setup(&t, &s, "85");
+    defer t.deinit();
+    defer s.ta.deinit();
+    const r = t.findText("85").?;
+    t.moveTo(r.x + 1, r.y + r.h / 2);
+    t.ctx.pointerDown();
+    t.frame();
+    try testing.expectEqual(@as(usize, 0), s.ta.sel.caret);
+    // The button still down, at the text's start.
+    t.typeChars("80");
+    t.ctx.pointerUp();
+    t.frame();
+    try expectText(&s, "8085");
+}
+
+test "an empty composition with nothing composed keeps the selection, and adds no undo" {
+    var s: Notes = undefined;
+    var t: ui.Tester = undefined;
+    try setup(&t, &s, "alpha beta");
+    defer t.deinit();
+    defer s.ta.deinit();
+    t.textOps(&.{.{ .command = .select_word_left }});
+    try testing.expect(!s.ta.sel.empty());
+    t.textOps(&.{.{ .set_marked = .{ .text = "", .sel_start = 0, .sel_len = 0 } }});
+    try expectText(&s, "alpha beta");
+    try testing.expect(!s.ta.sel.empty());
+    s.ta.undo();
+    try expectText(&s, "alpha beta");
+}

@@ -199,6 +199,7 @@ test {
     _ = @import("relaunch.zig");
     _ = @import("ui/metal_present_test.zig");
     _ = @import("notify_types.zig");
+    _ = @import("ipc.zig");
     switch (builtin.os.tag) {
         .windows => {
             _ = @import("windows/page_lifetime_test.zig");

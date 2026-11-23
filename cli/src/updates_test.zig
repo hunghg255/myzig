@@ -83,6 +83,7 @@ test "the updates of the configuration" {
         .{ .{ .public_key = pub_text, .github = "app" }, "updates.github \"app\" is not owner/name" },
         .{ .{ .public_key = pub_text, .url = "ftp://dl.example.com" }, "updates.url \"ftp://dl.example.com\" is not an http(s) URL" },
         .{ .{ .public_key = pub_text, .url = "http://" }, "updates.url \"http://\" is not an http(s) URL" },
+        .{ .{ .public_key = pub_text, .url = "https://dl.example.com/app?token=1" }, "updates.url \"https://dl.example.com/app?token=1\" has a query or fragment: it is the URL of a directory, to which the names of the update files are appended" },
         .{ .{ .public_key = pub_text, .github = "a/b", .s3 = .{ .bucket = "b" } }, "updates.s3 needs url, the HTTPS URL that serves the files of the bucket, in place of github" },
         .{ .{ .public_key = pub_text, .url = "https://x", .s3 = .{ .bucket = "b", .endpoint = "https://r2.example.com/bucket" } }, "updates.s3.endpoint \"https://r2.example.com/bucket\" has a path: the endpoint is the service's, and bucket names the bucket" },
     };

@@ -51,7 +51,9 @@ fn url(s: []const u21, i: usize) ?usize {
         if (startsWith(s, i, scheme)) {
             var e = i + scheme.len;
             const begin = e;
-            while (e < s.len and urlChar(s[e])) e += 1;
+            // A URL sends what is not ASCII encoded: it ends at the first
+            // such character, as the CJK text that follows one without a space.
+            while (e < s.len and s[e] < 0x7f and urlChar(s[e])) e += 1;
             if (e > begin) return e;
         }
     }
@@ -249,6 +251,9 @@ test "URLs printed as text" {
     try expectAt(row, 33, "", .url, false);
     try expectAt(row, 40, "http://x.org/y", .url, false);
     try expectAt(row, 58, "mailto:me@x.org", .url, false);
+    // Chinese right after a URL, and full-width punctuation, end it.
+    try expectAt("打开https://example.com/docs查看", 5, "https://example.com/docs", .url, false);
+    try expectAt("见 https://x.org/a，然后", 3, "https://x.org/a", .url, false);
 }
 
 test "file paths printed as text" {

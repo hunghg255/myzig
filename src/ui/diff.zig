@@ -222,7 +222,11 @@ pub fn lines(gpa: std.mem.Allocator, a: []const []const u8, b: []const []const u
 /// an empty last line.
 pub fn splitLines(gpa: std.mem.Allocator, s: []const u8) ![][]const u8 {
     var out: std.ArrayList([]const u8) = .empty;
-    var it = std.mem.splitScalar(u8, s, '\n');
+    // An empty text has no line, and a final newline ends the last line
+    // rather than starting another: an added file has no deleted line 1,
+    // and no empty line follows the last.
+    if (s.len == 0) return out.toOwnedSlice(gpa);
+    var it = std.mem.splitScalar(u8, if (s[s.len - 1] == '\n') s[0 .. s.len - 1] else s, '\n');
     while (it.next()) |l| try out.append(gpa, l);
     return out.toOwnedSlice(gpa);
 }

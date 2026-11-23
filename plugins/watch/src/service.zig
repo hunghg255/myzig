@@ -90,30 +90,47 @@ pub const Service = struct {
     options: Options,
     tasks: std.ArrayList(*Task) = .empty,
     next_serial: u64 = 1,
+    /// Whether each root was a directory at `init`: a file granted stays a
+    /// file grant even if a directory takes its path.
+    root_dirs: []bool = &.{},
 
     /// Checks the roots (names, absolute paths that exist). Main thread.
     pub fn init(gpa: std.mem.Allocator, io: Io, options: Options) !Service {
         try mainthread.init();
-        for (options.roots) |r| {
+        const dirs = try gpa.alloc(bool, options.roots.len);
+        errdefer gpa.free(dirs);
+        for (options.roots, dirs) |r, *dir| {
             if (!validName(r.name)) return error.InvalidRootName;
             if (!std.fs.path.isAbsolute(r.path)) return error.RootNotAbsolute;
-            _ = try Io.Dir.cwd().statFile(io, r.path, .{});
+            dir.* = (try Io.Dir.cwd().statFile(io, r.path, .{})).kind == .directory;
         }
-        return .{ .gpa = gpa, .io = io, .options = options };
+        return .{ .gpa = gpa, .io = io, .options = options, .root_dirs = dirs };
     }
 
     pub fn deinit(s: *Service) void {
         while (s.tasks.items.len > 0) s.drop(s.tasks.items.len - 1);
         s.tasks.deinit(s.gpa);
+        s.gpa.free(s.root_dirs);
+    }
+
+    /// False when the root at `index` is no longer the kind of entry
+    /// (file or directory) it was at `init`: an editor's save replaces a
+    /// file with a file, but a directory in a file's place is not granted.
+    fn sameKind(s: *const Service, index: usize) bool {
+        if (index >= s.root_dirs.len) return true;
+        const st = Io.Dir.cwd().statFile(s.io, s.options.roots[index].path, .{}) catch return true;
+        return (st.kind == .directory) == s.root_dirs[index];
     }
 
     /// Starts a watch; returns once everything is watched. Errors are the
     /// page's codes: Denied, NotFound, Limit, PathEncoding, Io.
     pub fn start(s: *Service, call: *myzig.Call, request: StartRequest) !void {
         s.sweep(call.window.app);
-        const root = for (s.options.roots) |r| {
-            if (std.mem.eql(u8, r.name, request.name)) break r;
+        const index = for (s.options.roots, 0..) |r, i| {
+            if (std.mem.eql(u8, r.name, request.name)) break i;
         } else return error.Denied;
+        const root = s.options.roots[index];
+        if (!s.sameKind(index)) return error.Io;
         if (request.recursive and !root.recursive) return error.Denied;
         const rel = std.mem.trim(u8, request.path, "/");
         if (rel.len > 0 and !root.recursive and std.mem.indexOfScalar(u8, rel, '/') != null) return error.Denied;
@@ -316,4 +333,27 @@ test "lifetime regression: a queued watch batch after its window was freed" {
     t.allocator.destroy(window);
     Service.deliver(msg);
     try t.expectEqual(@as(usize, 0), s.tasks.items.len);
+}
+
+test "a file root stays a file grant when a directory takes its path" {
+    const t = std.testing;
+    var tmp = t.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(t.io, .{ .sub_path = "notes.txt", .data = "hi" });
+    const dir = try tmp.dir.realPathFileAlloc(t.io, ".", t.allocator);
+    defer t.allocator.free(dir);
+    const file = try std.fs.path.join(t.allocator, &.{ dir, "notes.txt" });
+    defer t.allocator.free(file);
+    const roots = [_]Root{ .{ .name = "notes", .path = file }, .{ .name = "all", .path = dir } };
+    var s = try Service.init(t.allocator, t.io, .{ .roots = &roots });
+    defer s.deinit();
+    try t.expect(s.sameKind(0) and s.sameKind(1));
+    // An editor's save: a new file at the path.
+    try tmp.dir.deleteFile(t.io, "notes.txt");
+    try tmp.dir.writeFile(t.io, .{ .sub_path = "notes.txt", .data = "saved" });
+    try t.expect(s.sameKind(0));
+    try tmp.dir.deleteFile(t.io, "notes.txt");
+    try tmp.dir.createDir(t.io, "notes.txt", .default_dir);
+    try t.expect(!s.sameKind(0));
+    try t.expect(s.sameKind(1));
 }

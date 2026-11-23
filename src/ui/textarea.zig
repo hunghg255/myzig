@@ -133,6 +133,8 @@ pub const TextArea = struct {
         ta.sel = .at(a + s.len);
         ta.doc.end(ta.sel);
         ta.marked = null;
+        // An edit ends a drag: the pointer still down would take the caret back.
+        ta.dragging = false;
         ta.goal_x = null;
         ta.reveal = true;
         ta.changed = true;

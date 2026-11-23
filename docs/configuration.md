@@ -99,7 +99,7 @@ A file association is:
 |---|---|---|
 | `ext` | required | extensions without the dot (`.{ "md", "markdown" }`) |
 | `name` | `<EXT> file` | the type's name in the system |
-| `mime_type` | `application/x-<executable>-<ext>` | the MIME type; Linux packages define the type when it is myzig's |
+| `mime_type` | `application/x-<executable>-<ext>` | the MIME type, `type/subtype` without parameters; Linux packages define the type when it is myzig's |
 | `role` | `Editor` | `Editor` or `Viewer` (macOS) |
 
 The packages register these with the system:

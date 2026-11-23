@@ -71,6 +71,7 @@ test "a GET: status, lower-case headers without Set-Cookie, the body" {
     try testing.expectEqualStrings("1", seen.header("x-test").?);
     try testing.expectEqualStrings("text/plain", seen.header("content-type").?);
     try testing.expectEqual(null, seen.header("set-cookie"));
+    try testing.expectEqual(null, seen.header("set-cookie2"));
     try testing.expect(!seen.head.?.redirected);
     try testing.expectEqualStrings("hello", seen.body.items);
 }

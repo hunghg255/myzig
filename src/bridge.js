@@ -22,7 +22,13 @@
     new Promise((resolve, reject) => {
       const id = nextId++;
       pending.set(id, { resolve, reject });
-      post({ t: "call", id, m: method, a: args });
+      try {
+        post({ t: "call", id, m: method, a: args });
+      } catch (e) {
+        // Arguments JSON can't hold (a BigInt, a cycle): nothing was sent.
+        pending.delete(id);
+        reject(e);
+      }
     });
 
   const on = (name, fn) => {
@@ -311,6 +317,10 @@
     value: Object.freeze({ call, on, once, log, Channel, onChannel, window: win, platform, version: "0.1.20" }),
   });
 
+  // WebKit runs the microtasks scripts queued once an event's listener
+  // returns: with one for pagehide, an eval answering as a navigation away
+  // commits is answered before the page is frozen in the back/forward cache.
+  window.addEventListener("pagehide", () => {});
   const ready = () => post({ t: "dom-ready" });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
   else ready();

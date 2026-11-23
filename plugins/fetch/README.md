@@ -6,7 +6,7 @@ HTTP(S) requests for myzig apps, after mygo's
 leave from Zig (`std.http.Client`), so that:
 
 - they are not subject to CORS: any server answers, and every response
-  header is readable but `Set-Cookie`;
+  header is readable but `Set-Cookie` and `Set-Cookie2`;
 - they may set any header, `Origin`, `Cookie`, `Referer` and `User-Agent`
   included;
 - the body streams to the page as Zig reads it, and aborting cancels the

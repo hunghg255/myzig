@@ -5,11 +5,13 @@ standard `fetch`; Zig uses `fetch.perform`. The requests leave from Zig
 rather than from the webview, so:
 
 - they are not subject to CORS: any server answers, and every response
-  header is readable except `Set-Cookie`;
+  header is readable except `Set-Cookie` and `Set-Cookie2`;
 - they may set any header, `Origin`, `Cookie`, `Referer` and `User-Agent`
   included;
 - the body streams to the page as Zig reads it, and aborting cancels the
-  request in Zig.
+  request in Zig;
+- a URL with a user name or password is refused with a `TypeError`: send
+  an `Authorization` header instead.
 
 The package is `plugins/fetch` (module `fetch`). It depends on
 [mainthread](mainthread.md). See [Plugins](../plugins.md) for adding it to

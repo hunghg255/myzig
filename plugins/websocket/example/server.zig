@@ -7,7 +7,7 @@
 //!   /hello      sends "token: <the X-Token header>", "protocol: <chosen>", then closes 4000 "bye"
 //!   /fragments  sends "hel" + "lo" in two frames with a ping between them
 //!   /bad        sends a masked frame, which a server must not
-//!   /deaf       reads, never answers a close
+//!   /deaf       reads, never answers a close, and picks no subprotocol
 //!   other       refuses the upgrade (404)
 const std = @import("std");
 const ws = @import("websocket");
@@ -88,6 +88,7 @@ pub const Server = struct {
         @memcpy(route, path);
         var key_buf: [64]u8 = undefined;
         @memcpy(key_buf[0..key.len], key);
+        if (std.mem.eql(u8, route, "/deaf")) protocol = null;
         var extra: [1]std.http.Header = undefined;
         if (protocol) |p| extra[0] = .{ .name = "Sec-WebSocket-Protocol", .value = p };
         _ = try req.respondWebSocket(.{ .key = key_buf[0..key.len], .extra_headers = if (protocol != null) extra[0..1] else &.{} });

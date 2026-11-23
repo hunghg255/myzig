@@ -346,8 +346,17 @@ pub fn Documents(comptime T: type, comptime Window: type) type {
             const store = if (self.store) |*s| s else return 0;
             const orphans = store.claim() catch return 0;
             defer recovery.freeOrphans(self.gpa, orphans);
+            // What this session now keeps a copy of; the rest stay where
+            // they are, for the next launch.
+            const restored = self.gpa.alloc(bool, orphans.len) catch {
+                store.release(orphans, &.{});
+                return 0;
+            };
+            defer self.gpa.free(restored);
+            @memset(restored, false);
+            defer store.release(orphans, restored);
             var n: usize = 0;
-            for (orphans) |o| {
+            for (orphans, restored) |o, *done| {
                 const e = o.entry;
                 if (e.path.len > 0 and self.find(e.path) != null) continue;
                 const content = self.opts.read(self.gpa, o.bytes) catch continue;
@@ -372,6 +381,7 @@ pub fn Documents(comptime T: type, comptime Window: type) type {
                     self.drop(d);
                     continue;
                 };
+                done.* = store.has(&d.copy_id);
                 n += 1;
             }
             return n;

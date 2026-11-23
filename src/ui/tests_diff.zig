@@ -51,7 +51,15 @@ test "hunks of known cases" {
     try testing.expectEqualSlices(diff.Hunk, &.{ .{ .a0 = 1, .a1 = 2, .b0 = 1, .b1 = 2 }, .{ .a0 = 3, .a1 = 4, .b0 = 3, .b1 = 5 } }, chg);
     const empty = try hunksOf("", "x\ny");
     defer gpa.free(empty);
-    try testing.expectEqualSlices(diff.Hunk, &.{.{ .a0 = 0, .a1 = 1, .b0 = 0, .b1 = 2 }}, empty);
+    try testing.expectEqualSlices(diff.Hunk, &.{.{ .a0 = 0, .a1 = 0, .b0 = 0, .b1 = 2 }}, empty);
+}
+
+test "lines: none in an empty text, none after a final newline" {
+    for ([_]struct { []const u8, usize }{ .{ "", 0 }, .{ "\n", 1 }, .{ "a", 1 }, .{ "a\n", 1 }, .{ "a\n\n", 2 }, .{ "a\nb", 2 } }) |c| {
+        const l = try diff.splitLines(gpa, c[0]);
+        defer gpa.free(l);
+        try testing.expectEqual(c[1], l.len);
+    }
 }
 
 test "random edits: the hunks turn the old lines into the new" {
@@ -139,7 +147,8 @@ test "rows: changes with context, the rest collapsed until expanded; split rows 
     try testing.expectEqual(model.Kind.deleted, rows[4].kind);
     try testing.expectEqual(model.Kind.added, rows[5].kind);
     try testing.expectEqual(@as(?u32, 20), rows[5].pair);
-    try testing.expectEqual(@as(u32, 17), rows[9].hidden);
+    // The 16 lines after the context: no empty line after the final newline.
+    try testing.expectEqual(@as(u32, 16), rows[9].hidden);
     try testing.expectEqual(@as(usize, 1), dv.stats().added);
     dv.expand(rows[0].run);
     dv.build();

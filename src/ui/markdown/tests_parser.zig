@@ -290,3 +290,20 @@ test "appending keeps the blocks before the end, and parses only the end" {
     defer whole.deinit();
     try testing.expectEqual(whole.len(), d.len());
 }
+
+test "GFM's tagfilter escapes the tags a browser reads to their end" {
+    const gpa = std.testing.allocator;
+    // The GFM spec's example.
+    const md = "<strong> <title> <style> <em>\n\n<blockquote>\n  <xmp> is disallowed.  <XMP> is also disallowed.\n</blockquote>\n";
+    const got = html.toHtml(gpa, md, .gfm);
+    defer gpa.free(got);
+    try std.testing.expectEqualStrings("<p><strong> &lt;title> &lt;style> <em></p>\n<blockquote>\n  &lt;xmp> is disallowed.  &lt;XMP> is also disallowed.\n</blockquote>\n", got);
+    // Closing and self-closing tags too; not tags that only start alike.
+    const more = html.toHtml(gpa, "a </script> <script/> <scripts> <iframe\tsrc=x>\n", .gfm);
+    defer gpa.free(more);
+    try std.testing.expectEqualStrings("<p>a &lt;/script> &lt;script/> <scripts> &lt;iframe\tsrc=x></p>\n", more);
+    // CommonMark keeps raw HTML whole.
+    const cm = html.toHtml(gpa, "<script>x</script>\n", .commonmark);
+    defer gpa.free(cm);
+    try std.testing.expectEqualStrings("<script>x</script>\n", cm);
+}

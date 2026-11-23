@@ -30,6 +30,7 @@ Mỗi nền tảng và kiến trúc có manifest riêng: một file JSON phục 
 
 - Updater có public key (`public_key`) sẽ từ chối manifest không có chữ ký, và bản tải về mà khóa đó không ký.
 - Bản tải về lớn hơn `size`, hoặc lớn hơn `max_size` (1 GiB), sẽ thất bại.
+- Kết nối lỗi, hoặc mã 429, 500, 502, 503, 504, được hỏi lại sau 1 giây rồi 3 giây (`retry_ms`), hoặc sau `Retry-After` của server, tối đa một phút.
 - Phát hành file thực thi trước, manifest sau cùng. Nhờ vậy app không bao giờ thấy một manifest mà file của nó chưa có. `myzig build --upload` làm đúng như vậy.
 
 <a id="from-zig"></a>

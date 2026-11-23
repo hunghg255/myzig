@@ -121,6 +121,14 @@ test "a refused upgrade fails the handshake" {
     try testing.expectError(error.UnsupportedUrlScheme, ws.Conn.connect(&f.client, testing.allocator, "ftp://127.0.0.1/", .{}));
 }
 
+test "a server that picks none of the offered subprotocols fails the handshake" {
+    var f: Fixture = .{};
+    try f.init();
+    defer f.deinit();
+    try testing.expectError(error.HandshakeInvalid, f.connect("/deaf", .{ .protocols = &.{"v1"} }));
+    try testing.expectError(error.InvalidProtocol, f.connect("/echo", .{ .protocols = &.{"chat room"} }));
+}
+
 test "shutdown stops a read blocked on a silent server" {
     var f: Fixture = .{};
     try f.init();

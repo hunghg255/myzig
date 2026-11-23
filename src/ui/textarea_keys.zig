@@ -178,7 +178,9 @@ pub fn apply(c: *Context, ta: *TextArea, g: Geo, cmd: Cmd, opts: ApplyOptions) b
     ta.time = c.time;
     switch (cmd) {
         .insert => |s| if (!ro) ta.insert(s),
-        .set_marked => |m| if (!ro) {
+        // An empty composition with nothing composed (macOS sends one, as
+        // a field takes the focus) leaves the selection be.
+        .set_marked => |m| if (!ro and (m.text.len > 0 or ta.marked != null)) {
             const range = ta.marked orelse .{ ta.sel.lo(), ta.sel.hi() };
             ta.replaceRange(range[0], range[1], m.text, .typing);
             const n = m.text.len;

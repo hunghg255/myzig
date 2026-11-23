@@ -55,7 +55,13 @@ pub const Sound = struct {
         defer d.deinit();
         var all: std.ArrayList(f32) = .empty;
         errdefer all.deinit(gpa);
-        if (d.frames) |n| try all.ensureTotalCapacity(gpa, @intCast(n * d.channels));
+        // The length a file's header claims, up to about six minutes at
+        // 48 kHz: past it the samples grow as they come, so a damaged or
+        // hostile header reserves no more than that.
+        if (d.frames) |n| {
+            const reserve: usize = @min(n, 1 << 24);
+            try all.ensureTotalCapacity(gpa, reserve * d.channels);
+        }
         var buf: [4096]f32 = undefined;
         const per = buf.len / d.channels * d.channels;
         while (true) {

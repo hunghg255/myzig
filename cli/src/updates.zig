@@ -87,6 +87,8 @@ pub fn validate(gpa: std.mem.Allocator, u: Updates) LoadError!void {
     if (u.url.len > 0) {
         const rest = if (std.mem.startsWith(u8, u.url, "https://")) u.url["https://".len..] else if (std.mem.startsWith(u8, u.url, "http://")) u.url["http://".len..] else "";
         if (rest.len == 0) return config.invalid(gpa, "updates.url \"{s}\" is not an http(s) URL", .{u.url});
+        // A directory's URL, to which the files' names are appended.
+        if (std.mem.indexOfAny(u8, u.url, "?#") != null) return config.invalid(gpa, "updates.url \"{s}\" has a query or fragment: it is the URL of a directory, to which the names of the update files are appended", .{u.url});
     }
     if (u.s3) |s| {
         if (u.url.len == 0) return config.invalid(gpa, "updates.s3 needs url, the HTTPS URL that serves the files of the bucket, in place of github", .{});

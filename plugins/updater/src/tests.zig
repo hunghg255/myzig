@@ -118,6 +118,21 @@ test "with the public key, only what its key signs installs" {
     try testing.expectError(error.BadSignature, u.download(a, (try u.check(a)).?, null));
 }
 
+test "a server that fails for a moment is asked again, then given up on" {
+    var f: Fixture = .{};
+    try f.init("2.0.0");
+    defer f.deinit();
+    var u = f.updaterFor("/flaky.json", "1.0.0");
+    u.retry_ms = &.{ 0, 0 };
+    f.server.flaky.store(2, .monotonic);
+    const update = (try u.check(f.arena.allocator())) orelse return error.NoUpdate;
+    try testing.expectEqualStrings("2.0.0", update.version);
+    f.server.flaky.store(3, .monotonic);
+    try testing.expectError(error.HttpStatus, u.check(f.arena.allocator()));
+    // A missing file is not asked again.
+    try testing.expectError(error.HttpStatus, f.updaterFor("/nope.json", "1.0.0").check(f.arena.allocator()));
+}
+
 test "a manifest that is missing fails the check" {
     var f: Fixture = .{};
     try f.init("2.0.0");

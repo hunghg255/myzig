@@ -79,7 +79,7 @@ Khi bật `streaming`, phần cuối văn bản hiển thị thứ mà cú pháp
 | `key` | null | key của box chứa view |
 | `images` | null | một `ui.MarkdownImageReader` để hiện ảnh ([bên dưới](#what-is-shown)) |
 
-`ui.MarkdownExtensions` có `tables`, `task_lists`, `strikethrough` và `autolinks`, mặc định bật hết (`.gfm`). `.commonmark` tắt hết, cho CommonMark chuẩn.
+`ui.MarkdownExtensions` có `tables`, `task_lists`, `strikethrough`, `autolinks` và `tagfilter`, mặc định bật hết (`.gfm`). `.commonmark` tắt hết, cho CommonMark chuẩn. `tagfilter` là của GitHub: khi xuất ra HTML, tài liệu escape các thẻ thô mà trình duyệt đọc tới tận thẻ đóng (`<script>`, `<style>`, `<textarea>`, `<iframe>`, ...).
 
 <a id="what-it-returns"></a>
 

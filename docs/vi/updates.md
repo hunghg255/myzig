@@ -36,7 +36,7 @@ Thêm public key vào `myzig.zon`, cùng nơi đăng các bản release:
 | Trường | |
 |---|---|
 | `github` | một repo công khai có các release chứa bản cập nhật, gắn tag `v1.2.0`, v.v. (`tag_prefix`); app đọc manifest của release mới nhất |
-| `url` | thay cho `github`, dùng với server riêng hoặc [bucket S3](#publishing-to-s3): URL của một thư mục |
+| `url` | thay cho `github`, dùng với server riêng hoặc [bucket S3](#publishing-to-s3): URL của một thư mục, không có query hay fragment |
 
 - `url` có thể là https, hoặc http trong mạng nội bộ. App tin vào chữ ký, không tin vào đường truyền.
 - Manifest ghi tên file thực thi theo đường dẫn tương đối với chính nó. Vì vậy `manifest_url` của app quyết định thư mục, bất kể `url` ghi gì. Bạn có thể dùng mỗi môi trường một thư mục.

@@ -22,8 +22,11 @@ const App = struct {
     built: usize = 0,
     grown: ?usize = null,
     wrapped: ?[]const u8 = null,
+    /// The list's id: its scroll offset's key.
+    id: u64 = 0,
 
     fn view(s: *App, c: *ui.Context) void {
+        s.id = c.peekId(null);
         var rows = ui.measuredList(c, &s.list, .{ .count = s.count, .estimate = s.estimate, .gap = s.gap, .padding = s.padding, .follow_end = s.follow });
         s.built = 0;
         while (rows.next()) |i| {
@@ -249,4 +252,35 @@ test "a measured list takes fewer rows, none, and a reset" {
     s.list.reset();
     t.frame();
     try testing.expectEqual(@as(f32, 0), try topOf(&t, 0));
+}
+
+test "a measured list glides by a mouse wheel's notches, following its end or not" {
+    for ([_]bool{ false, true, false, true }, 0..) |follow, n| {
+        var s: App = .{ .count = 400, .follow = follow };
+        // Rows of wrapped text too, measured as they are built.
+        if (n >= 2) s.wrapped = "Some words that wrap onto more lines in a narrow list, as a chat's answers do, and more words after them.";
+        defer s.deinit();
+        var t: ui.Tester = undefined;
+        try start(&t, &s);
+        defer t.deinit();
+        const id = s.id;
+        if (!follow) {
+            // Down from the top, a notch at a time.
+            t.wheel(200, 200, -40);
+            t.wheel(200, 200, -40);
+            t.wheel(200, 200, -40);
+            t.advance(1);
+            try testing.expectApproxEqAbs(@as(f32, 120), (t.ctx.scroll.get(id) orelse 0), 0.5);
+        } else {
+            // Up from its end: it leaves the end by the notches, and more as
+            // rows above, built now, turn out taller than guessed (the glide
+            // went on, rather than stopping as the list corrected its offset).
+            const end = (t.ctx.scroll.get(id) orelse 0);
+            t.wheel(200, 200, 40);
+            t.wheel(200, 200, 40);
+            t.wheel(200, 200, 40);
+            t.advance(1);
+            try testing.expect(end - (t.ctx.scroll.get(id) orelse 0) >= 119.5);
+        }
+    }
 }

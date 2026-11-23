@@ -192,6 +192,9 @@ pub const Rows = struct {
         // Following, layout takes it to the end, as a move of its own.
         if (!r.following and offset != (c.scroll.get(r.id) orelse 0)) {
             c.scroll.put(c.gpa, r.id, offset) catch {};
+            // A wheel's glide goes on from here: rows above measured taller
+            // or shorter moved the offset, not someone taking over from it.
+            if (c.wheel.getPtr(r.id)) |g| g.seen = offset;
             // Not the reader's move: layout must not stop following for it.
             // The reader's, it has yet to see.
             if (r.opts.follow_end and s.moved_at != c.frame) c.scroll_seen.put(c.gpa, r.id, offset) catch {};

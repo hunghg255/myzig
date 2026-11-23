@@ -127,11 +127,68 @@ const windows = struct {
 
     var hwnd: std.atomic.Value(?HWND) = .init(null);
 
+    // The work waits in a queue of its own: a thread's message queue holds
+    // at most 10,000 posted messages, and a thread posting faster than the
+    // main thread runs (an agent's history, line by line) found PostMessage
+    // failing, its work dropped. One WM_RUN wakes the main thread for all
+    // the work queued since; it runs some milliseconds of it at a time, so
+    // windows still paint and take input meanwhile, then wakes itself again.
+    const SRWLOCK = extern struct { ptr: ?*anyopaque = null };
+    extern "kernel32" fn AcquireSRWLockExclusive(l: *SRWLOCK) callconv(.winapi) void;
+    extern "kernel32" fn ReleaseSRWLockExclusive(l: *SRWLOCK) callconv(.winapi) void;
+    extern "kernel32" fn QueryPerformanceCounter(count: *i64) callconv(.winapi) i32;
+    extern "kernel32" fn QueryPerformanceFrequency(freq: *i64) callconv(.winapi) i32;
+
+    const Job = struct { func: Func, ctx: ?*anyopaque };
+    const gpa = std.heap.smp_allocator;
+    var lock: SRWLOCK = .{};
+    var queue: std.ArrayList(Job) = .empty;
+    /// The next job to run in `queue`.
+    var head: usize = 0;
+    /// A WM_RUN is on its way: posting more needs none.
+    var woken = false;
+    /// How long one WM_RUN runs work for, at most.
+    const budget_ms = 8;
+
     fn proc(h: HWND, msg: u32, wp: usize, lp: isize) callconv(.winapi) isize {
         if (msg != WM_RUN) return DefWindowProcW(h, msg, wp, lp);
-        const func: Func = @ptrFromInt(wp);
-        func(@ptrFromInt(@as(usize, @bitCast(lp))));
+        drain(h);
         return 0;
+    }
+
+    fn now() i64 {
+        var n: i64 = 0;
+        _ = QueryPerformanceCounter(&n);
+        return n;
+    }
+
+    /// Runs the work queued, in order, for up to `budget_ms`; wakes itself
+    /// again for the rest.
+    fn drain(h: HWND) void {
+        var freq: i64 = 1;
+        _ = QueryPerformanceFrequency(&freq);
+        const until = now() + @divTrunc(freq * budget_ms, 1000);
+        while (true) {
+            AcquireSRWLockExclusive(&lock);
+            if (head == queue.items.len) {
+                queue.clearRetainingCapacity();
+                head = 0;
+                woken = false;
+                ReleaseSRWLockExclusive(&lock);
+                return;
+            }
+            if (now() >= until) {
+                // Time to paint: the rest after the messages now waiting.
+                if (PostMessageW(h, WM_RUN, 0, 0) == 0) woken = false;
+                ReleaseSRWLockExclusive(&lock);
+                return;
+            }
+            const job = queue.items[head];
+            head += 1;
+            ReleaseSRWLockExclusive(&lock);
+            // Unlocked: the work may post more.
+            job.func(job.ctx);
+        }
     }
 
     fn init() !void {
@@ -145,7 +202,12 @@ const windows = struct {
 
     fn post(ctx: ?*anyopaque, func: Func) bool {
         const h = hwnd.load(.acquire) orelse return false;
-        return PostMessageW(h, WM_RUN, @intFromPtr(func), @bitCast(@intFromPtr(ctx))) != 0;
+        AcquireSRWLockExclusive(&lock);
+        defer ReleaseSRWLockExclusive(&lock);
+        queue.append(gpa, .{ .func = func, .ctx = ctx }) catch return false;
+        // Not woken: the job stays queued, and runs at the next wake.
+        if (!woken) woken = PostMessageW(h, WM_RUN, 0, 0) != 0;
+        return true;
     }
 
     fn runOnce() void {
@@ -190,4 +252,35 @@ test "work posted from other threads runs on the main thread, in order" {
     t.join();
     try std.testing.expect(s.on_main);
     try std.testing.expectEqualSlices(u32, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, s.seen.items);
+}
+
+const Many = struct {
+    main: std.Thread.Id,
+    next: u32 = 0,
+    on_main: bool = true,
+    done: std.atomic.Value(bool) = .init(false),
+    const count = 30_000;
+
+    fn run(ctx: ?*anyopaque) callconv(.c) void {
+        const m: *Many = @ptrCast(@alignCast(ctx));
+        if (std.Thread.getCurrentId() != m.main) m.on_main = false;
+        m.next += 1;
+        if (m.next == count) m.done.store(true, .release);
+    }
+
+    fn flood(m: *Many) void {
+        for (0..count) |_| std.debug.assert(post(m, run));
+    }
+};
+
+test "more work than a message queue holds, posted at once, all runs" {
+    // Windows' queue holds 10,000 posted messages: PostMessage failed past
+    // them, and the work was lost.
+    try init();
+    var m: Many = .{ .main = std.Thread.getCurrentId() };
+    const t = try std.Thread.spawn(.{}, Many.flood, .{&m});
+    t.join(); // all posted before the main thread runs any
+    runUntil(&m.done);
+    try std.testing.expect(m.on_main);
+    try std.testing.expectEqual(@as(u32, Many.count), m.next);
 }

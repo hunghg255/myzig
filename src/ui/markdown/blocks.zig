@@ -14,6 +14,12 @@ const Block = doc.Block;
 const Kind = doc.Kind;
 const none = doc.none;
 
+/// How deep block quotes and lists nest at most: a deeper `>` or list
+/// marker is text. Views draw nested blocks within each other, and some
+/// thousands of levels (a quoted quote quoted, or pasted output) ran out
+/// of stack; markdown-it stops at about as many.
+pub const max_nesting = 32;
+
 fn spaceOrTab(c: u8) bool {
     return c == ' ' or c == '\t';
 }
@@ -189,17 +195,29 @@ pub const Parser = struct {
         return .yes;
     }
 
+    /// How many block quotes, lists and items hold block `i`.
+    fn nesting(p: *Parser, i: u32) usize {
+        var n: usize = 0;
+        var at = i;
+        while (at != none and at != 0) : (at = p.b(at).parent) switch (p.b(at).kind) {
+            .quote, .list, .item => n += 1,
+            else => {},
+        };
+        return n;
+    }
+
     fn openNewBlocks(p: *Parser, container_in: u32, all_matched: bool) u32 {
         var container = container_in;
         var maybe_lazy = p.b(p.current).kind == .paragraph;
         while (true) {
             const ck = p.b(container).kind;
+            const deep = p.nesting(container) >= max_nesting;
             if (ck == .code_block or ck == .html_block) break;
             p.findFirstNonspace();
             const indented = p.indent >= 4;
             const fns = p.first_nonspace;
             const c = p.peek(fns);
-            if (!indented and c == '>') {
+            if (!indented and c == '>' and !deep) {
                 p.advance(fns + 1 - p.offset, false);
                 if (spaceOrTab(p.peek(p.offset))) p.advance(1, true);
                 container = p.addChild(container, .quote, fns);
@@ -239,7 +257,7 @@ pub const Parser = struct {
             } else if (!indented and !(ck == .paragraph and !all_matched) and bs.thematicBreak(p.line, fns)) {
                 container = p.addChild(container, .thematic_break, fns);
                 p.advance(p.line.len - p.offset, false);
-            } else if ((!indented or ck == .list) and p.indent < 4 and bs.listMarker(p.line, fns, ck == .paragraph) != null) {
+            } else if (!deep and (!indented or ck == .list) and p.indent < 4 and bs.listMarker(p.line, fns, ck == .paragraph) != null) {
                 const m = bs.listMarker(p.line, fns, ck == .paragraph).?;
                 container = p.listItem(container, m);
             } else if (indented and !maybe_lazy and !p.blank and ck != .table) {

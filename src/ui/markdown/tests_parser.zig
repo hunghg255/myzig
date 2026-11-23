@@ -307,3 +307,35 @@ test "GFM's tagfilter escapes the tags a browser reads to their end" {
     defer gpa.free(cm);
     try std.testing.expectEqualStrings("<script>x</script>\n", cm);
 }
+
+test "block quotes and lists nest at most so deep: deeper markers are text" {
+    const gpa = testing.allocator;
+    var src: std.ArrayList(u8) = .empty;
+    defer src.deinit(gpa);
+    for (0..5000) |_| try src.append(gpa, '>');
+    try src.appendSlice(gpa, " deep\n");
+    var d = Document.parse(gpa, src.items, .{});
+    defer d.deinit();
+    var quotes: usize = 0;
+    var paragraphs: usize = 0;
+    for (d.blocks.items) |b| switch (b.kind) {
+        .quote => quotes += 1,
+        .paragraph => paragraphs += 1,
+        else => {},
+    };
+    try testing.expectEqual(@as(usize, @import("blocks.zig").max_nesting), quotes);
+    try testing.expectEqual(@as(usize, 1), paragraphs);
+
+    src.clearRetainingCapacity();
+    for (0..3000) |i| {
+        for (0..i * 2) |_| try src.append(gpa, ' ');
+        try src.appendSlice(gpa, "- item\n");
+    }
+    var l = Document.parse(gpa, src.items, .{});
+    defer l.deinit();
+    var items: usize = 0;
+    for (l.blocks.items) |b| if (b.kind == .item) {
+        items += 1;
+    };
+    try testing.expect(items <= @import("blocks.zig").max_nesting);
+}

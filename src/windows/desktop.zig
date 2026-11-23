@@ -63,6 +63,24 @@ fn shellOpen(target: []const u8) bool {
     return @intFromPtr(r) > 32;
 }
 
+extern "shell32" fn SHParseDisplayName(name: [*:0]const u16, bc: ?*anyopaque, pidl: *?*anyopaque, sfgao_in: u32, sfgao_out: ?*u32) callconv(.winapi) i32;
+extern "shell32" fn SHOpenFolderAndSelectItems(folder: *anyopaque, count: u32, items: ?[*]const *anyopaque, flags: u32) callconv(.winapi) i32;
+extern "ole32" fn CoInitializeEx(reserved: ?*anyopaque, coinit: u32) callconv(.winapi) i32;
+extern "ole32" fn CoTaskMemFree(p: ?*anyopaque) callconv(.winapi) void;
+
+/// Explorer, `file` selected in its folder: false when the shell could not.
+fn selectInFolder(file: []const u8) bool {
+    // The shell's calls want COM; already started on this thread, it stays.
+    _ = CoInitializeEx(null, 2);
+    var buf: [4096]u16 = undefined;
+    var pidl: ?*anyopaque = null;
+    if (SHParseDisplayName(w.wide(&buf, file), null, &pidl, 0, null) < 0) return false;
+    const item = pidl orelse return false;
+    defer CoTaskMemFree(item);
+    // An item's own id list names its folder too: zero items selects it.
+    return SHOpenFolderAndSelectItems(item, 0, null, 0) >= 0;
+}
+
 pub const shell = struct {
     pub fn openUrl(url: []const u8) bool {
         return shellOpen(url);
@@ -72,7 +90,11 @@ pub const shell = struct {
         return shellOpen(file);
     }
 
+    /// Opens the folder holding `file` in File Explorer, `file` selected
+    /// there (as Explorer's own "Open file location"); the folder alone
+    /// when the shell can't select it.
     pub fn showInFolder(file: []const u8) void {
+        if (selectInFolder(file)) return;
         _ = shellOpen(std.fs.path.dirname(file) orelse file);
     }
 

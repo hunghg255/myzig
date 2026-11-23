@@ -8,6 +8,8 @@
 //!   GET /signed.json   the manifest signed, as `myzig build` signs it, by
 //!                      the key whose public half is `public_key`
 //!   GET /forged.json   the manifest with a signature of another file
+//!   GET /flaky.json    503 (Retry-After: 0) while `flaky` is above 0,
+//!                      counting it down, then the manifest
 const std = @import("std");
 const Io = std.Io;
 
@@ -31,6 +33,8 @@ pub const Server = struct {
     forged: []const u8 = "",
     /// The public key of the release's signing key, base64.
     public_key: [44]u8 = undefined,
+    /// How many requests of /flaky.json fail before it answers.
+    flaky: std.atomic.Value(u32) = .init(0),
 
     pub fn start(s: *Server, io: Io, version: []const u8, payload: []const u8) !void {
         const addr = try Io.net.IpAddress.parseIp4("127.0.0.1", 0);
@@ -84,6 +88,14 @@ pub const Server = struct {
         while (true) {
             var req = http.receiveHead() catch return;
             const t = req.head.target;
+            if (std.mem.eql(u8, t, "/flaky.json")) {
+                const left = s.flaky.load(.monotonic);
+                if (left > 0) {
+                    s.flaky.store(left - 1, .monotonic);
+                    req.respond("busy", .{ .status = .service_unavailable, .extra_headers = &.{.{ .name = "Retry-After", .value = "0" }} }) catch return;
+                } else req.respond(s.manifest, .{}) catch return;
+                continue;
+            }
             const body: ?[]const u8 = if (std.mem.eql(u8, t, "/latest.json")) s.manifest //
                 else if (std.mem.eql(u8, t, "/bad.json")) s.bad //
                 else if (std.mem.eql(u8, t, "/signed.json")) s.signed //

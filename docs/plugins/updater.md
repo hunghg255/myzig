@@ -36,6 +36,9 @@ over HTTPS, which `myzig build` writes.
 - An updater given the public key (`public_key`) refuses a manifest
   without a signature, and a download the key did not sign.
 - A download larger than `size`, or than `max_size` (1 GiB), fails.
+- A failed connection, or a 429, 500, 502, 503 or 504, is asked again
+  after 1 s and then 3 s (`retry_ms`), or after the server's
+  `Retry-After`, up to a minute.
 - Publish the executable first and the manifest last. An app then never
   sees a manifest whose file is not there yet. `myzig build --upload` does
   this.

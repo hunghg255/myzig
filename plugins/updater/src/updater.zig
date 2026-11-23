@@ -93,11 +93,16 @@ pub const Updater = struct {
     /// without a signature is refused. Without it the manifest's SHA-256
     /// is the trust, so serve it over HTTPS.
     public_key: ?[]const u8 = null,
+    /// How long to wait before asking again, in milliseconds, when the
+    /// connection fails or the server answers 429, 500, 502, 503 or 504:
+    /// a gateway in front of a release's store fails for a moment now and
+    /// then. A server's Retry-After (in seconds, up to a minute) waits longer.
+    retry_ms: []const u32 = &.{ 1000, 3000 },
 
     /// Reads the manifest: the update when its version is newer than the
     /// running one, else null. Allocates in `arena`.
     pub fn check(u: *const Updater, arena: std.mem.Allocator) !?Update {
-        const body = try get(u.client, arena, u.manifest_url, 1 << 20, null);
+        const body = try get(u.client, arena, u.manifest_url, 1 << 20, null, u.retry_ms);
         const m = std.json.parseFromSliceLeaky(Manifest, arena, body, .{ .ignore_unknown_fields = true }) catch return error.BadManifest;
         if (!(try isNewer(m.version, u.current))) return null;
         var sha: [32]u8 = undefined;
@@ -128,7 +133,7 @@ pub const Updater = struct {
         {
             defer file.close(u.io);
             var sink: FileSink = .{ .io = u.io, .file = file };
-            _ = try get(u.client, arena, update.url, u.max_size, .{ .sink = &sink, .progress = progress, .expected = update.size });
+            _ = try get(u.client, arena, update.url, u.max_size, .{ .sink = &sink, .progress = progress, .expected = update.size }, u.retry_ms);
             var digest: [32]u8 = undefined;
             sink.sha.final(&digest);
             if (!std.mem.eql(u8, &digest, &update.sha256)) return error.ChecksumMismatch;
@@ -248,14 +253,60 @@ const FileSink = struct {
 const Stream = struct { sink: *FileSink, progress: ?Progress, expected: ?u64 };
 
 /// GETs `url`: the body in memory (null `stream`), or written to a file.
-fn get(client: *std.http.Client, arena: std.mem.Allocator, url: []const u8, max: u64, stream: ?Stream) ![]const u8 {
+/// A failure a moment may mend, before the body, is tried again after
+/// each of `retry_ms`.
+fn get(client: *std.http.Client, arena: std.mem.Allocator, url: []const u8, max: u64, stream: ?Stream, retry_ms: []const u32) ![]const u8 {
     const uri = try std.Uri.parse(url);
-    var req = try client.request(.GET, uri, .{ .redirect_behavior = .init(10), .headers = .{ .user_agent = .{ .override = "myzig-updater" } } });
-    defer req.deinit();
-    try req.sendBodiless();
-    var redirect_buf: [8192]u8 = undefined;
-    var res = try req.receiveHead(&redirect_buf);
-    if (res.head.status != .ok) return error.HttpStatus;
+    var attempt: usize = 0;
+    while (true) : (attempt += 1) {
+        const wait: ?u64 = if (attempt < retry_ms.len) retry_ms[attempt] else null;
+        var req = client.request(.GET, uri, .{ .redirect_behavior = .init(10), .headers = .{ .user_agent = .{ .override = "myzig-updater" } } }) catch |err| {
+            if (wait == null or !transientError(err)) return err;
+            try pause(client.io, wait.?);
+            continue;
+        };
+        defer req.deinit();
+        var redirect_buf: [8192]u8 = undefined;
+        req.sendBodiless() catch |err| {
+            if (wait == null or !transientError(err)) return err;
+            try pause(client.io, wait.?);
+            continue;
+        };
+        var res = req.receiveHead(&redirect_buf) catch |err| {
+            if (wait == null or !transientError(err)) return err;
+            try pause(client.io, wait.?);
+            continue;
+        };
+        if (res.head.status != .ok) {
+            const status = @intFromEnum(res.head.status);
+            const transient = status == 429 or status == 500 or status == 502 or status == 503 or status == 504;
+            if (!transient or wait == null) return error.HttpStatus;
+            var later: u64 = 0;
+            var it = res.head.iterateHeaders();
+            while (it.next()) |h| if (std.ascii.eqlIgnoreCase(h.name, "retry-after")) {
+                const seconds: u64 = @min(60, std.fmt.parseInt(u64, std.mem.trim(u8, h.value, " "), 10) catch 0);
+                later = seconds * 1000;
+            };
+            try pause(client.io, @max(wait.?, later));
+            continue;
+        }
+        return readBody(&res, arena, max, stream);
+    }
+}
+
+fn pause(io: Io, ms: u64) !void {
+    if (ms > 0) try io.sleep(.fromMilliseconds(@intCast(ms)), .awake);
+}
+
+/// Whether a request's error is the network's, which may mend.
+fn transientError(err: anyerror) bool {
+    return switch (err) {
+        error.ConnectionRefused, error.ConnectionResetByPeer, error.ConnectionTimedOut, error.NetworkUnreachable, error.HostUnreachable, error.TemporaryNameServerFailure, error.NameServerFailure, error.ReadFailed, error.WriteFailed, error.EndOfStream, error.HttpConnectionClosing => true,
+        else => false,
+    };
+}
+
+fn readBody(res: *std.http.Client.Response, arena: std.mem.Allocator, max: u64, stream: ?Stream) ![]const u8 {
     const total = res.head.content_length;
     if (total) |t| if (t > max) return error.TooLarge;
     var transfer: [4096]u8 = undefined;

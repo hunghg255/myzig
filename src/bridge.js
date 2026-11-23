@@ -314,7 +314,7 @@
 
   Object.defineProperty(window, "__myzig", { value: Object.freeze({ receive, settle, find, stopFind }) });
   Object.defineProperty(window, "myzig", {
-    value: Object.freeze({ call, on, once, log, Channel, onChannel, window: win, platform, version: "0.1.20" }),
+    value: Object.freeze({ call, on, once, log, Channel, onChannel, window: win, platform, version: "0.1.21" }),
   });
 
   // WebKit runs the microtasks scripts queued once an event's listener

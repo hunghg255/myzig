@@ -37,8 +37,13 @@ plugins (#1105, #1235, #1236, #1345, #1347, #1458), the watch plugin's
 file grants (#1237), generated TypeScript names (#1294, #1341, #1421),
 wheel reversal (#1356), GFM's tagfilter (#2193), recovery copies that
 failed to open (#1125) and the CLI's checks of MIME types and update
-URLs (#1241, #1753); the commits it has not reviewed yet are pending
-there.
+URLs (#1241, #1753). Its second review, every commit through `a0eaaaaf`,
+adds the end of a press's drag on an edit (#1159), headings that keep
+their children for assistive technology (#1310), diff lines of empty texts
+and final newlines (#1534, #1631), URLs ending at non-ASCII text in the
+terminal (#1481), calls holding half a surrogate pair (#1941), the
+bridge's pagehide listener (#1957), empty compositions (#1859), bounded
+audio reservations (#1688) and the updater asking again (#1436).
 [`UPSTREAM.md`](UPSTREAM.md) lists each mygo commit since `976f17c` and
 what the port did with it.
 Its loading.dev shapes, path data and timing functions retain Jakub

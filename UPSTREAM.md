@@ -3,11 +3,8 @@
 myzig ports [mygo](https://github.com/egoist/mygo). This page records how far
 it follows it, so the next review starts where this one ended.
 
-**Listed through mygo `a0eaaaaf` (2026-11-23); reviewed in detail through
-`afff19d9` (2026-11-03).** Every mygo commit up to `a0eaaaaf` is listed below.
-The 692 after `afff19d9` were triaged for bug fixes: those ported, present
-or not applicable say so, and the rest are **pending**, for the next reviews
-to go through in order. New commits start from:
+**Reviewed through mygo `a0eaaaaf` (2026-11-23).** Every mygo commit up to
+it is listed below with what myzig did with it. New commits start from:
 
 ```sh
 cd ../mygo && git fetch && git log --reverse --oneline a0eaaaaf..origin/main
@@ -310,695 +307,695 @@ Commits before `976f17c9` are covered by the baseline in
 | `6850c8ab` | 2026-11-03 | lists: drag rows out with ListState.DragRows, for targets elsewhere to take (#1089) | todo-M | lists drag their rows out (ListState.DragRows); rows can use DragDrop.draggable today |
 | `62222a32` | 2026-11-03 | terminal, macOS: keep CJK punctuation in its cells by turning kerning off (#1084) | todo-S | terminal on macOS: kerning off unless features name kern (needs a Mac) |
 | `afff19d9` | 2026-11-03 | ui: draw large paths as tiles when the atlas has no room for their masks (#1090) | n/a | canvas paths render into the canvas's own image, not atlas masks |
-| `949829c9` | 2026-11-03 | linux: tell Wayland what OpenGL-composited windows repaint at scale 2 (#1092) | pending |  |
-| `b832db0b` | 2026-11-03 | macOS: keep a restored page's scroll position as its window shows (#1088) | pending |  |
-| `9b633407` | 2026-11-03 | terminal: Alt+click moves the shell prompt's cursor to the clicked cell (#1085) | pending |  |
-| `8cb5060d` | 2026-11-03 | ui: keep a tooltip's content out of the pointer's way (#1091) | pending |  |
+| `949829c9` | 2026-11-03 | linux: tell Wayland what OpenGL-composited windows repaint at scale 2 (#1092) | todo-S | Wayland scale>=2: add wl_surface.damage of the toplevel's draw clip (linux/surface.zig, GtkGLArea under GTK 3) |
+| `b832db0b` | 2026-11-03 | macOS: keep a restored page's scroll position as its window shows (#1088) | n/a | no PageOptions.sessionState / restored sessions in myzig |
+| `9b633407` | 2026-11-03 | terminal: Alt+click moves the shell prompt's cursor to the clicked cell (#1085) | todo-M | terminal: Alt+click moves the prompt's cursor (OSC 133 rows) in plugins/terminal view.zig/select.zig |
+| `8cb5060d` | 2026-11-03 | ui: keep a tooltip's content out of the pointer's way (#1091) | present | tip box is not interactive, only interactive boxes take hits (popover.zig tooltipBase, paint.zig) |
 | `7a3dd93f` | 2026-11-03 | website: add us3ui and repo-hopper to showcase (#1094) | skip |  |
-| `2e15cef4` | 2026-11-03 | ui: hide an element and what is inside it from assistive technology with AccessHidden (#1104) | pending |  |
+| `2e15cef4` | 2026-11-03 | ui: hide an element and what is inside it from assistive technology with AccessHidden (#1104) | todo-M | AccessHidden: keep a painted subtree out of the access tree (access.zig, access_tree.zig) |
 | `624b24b6` | 2026-11-03 | fix(fetch): honor aborts while preparing request bodies (#1105) | ported | fetch.js: an abort while the body is read sends nothing |
-| `18d54f7c` | 2026-11-03 | ui: blur and percents in motion, exits decided as they go, one at a time, Oklab colors (#1106) | pending |  |
-| `69b1f9dc` | 2026-11-03 | ui: headless menu and accordion bases, a mixed check box base, a settable focus ring (#1108) | pending |  |
-| `826384a5` | 2026-11-03 | windows: release the hidden web view of cookie calls once idle in apps showing no page (#1111) | pending |  |
-| `7fcffe15` | 2026-11-03 | ui: clip to insets and paths, gradient masks, balanced text, SVG path data (#1110) | pending |  |
-| `8c7d8224` | 2026-11-03 | ui: let go of large paths' masks as the atlas fills and they draw as tiles (#1113) | pending |  |
+| `18d54f7c` | 2026-11-03 | ui: blur and percents in motion, exits decided as they go, one at a time, Oklab colors (#1106) | todo-L | motion: blur in enter/exit, percent offsets, AfterExits, ChildExit, Oklab color animation (motion_transition.zig) |
+| `69b1f9dc` | 2026-11-03 | ui: headless menu and accordion bases, a mixed check box base, a settable focus ring (#1108) | todo-L | headless menu/accordion bases, mixed checkbox base, theme focus ring width/offset |
+| `826384a5` | 2026-11-03 | windows: release the hidden web view of cookie calls once idle in apps showing no page (#1111) | n/a | cookies go through each page's own web view (windows/page_extra.zig), no app-level hidden view |
+| `7fcffe15` | 2026-11-03 | ui: clip to insets and paths, gradient masks, balanced text, SVG path data (#1110) | todo-L | clip insets/paths, gradient masks, balanced text, SVG path data parser |
+| `8c7d8224` | 2026-11-03 | ui: let go of large paths' masks as the atlas fills and they draw as tiles (#1113) | n/a | canvas paths rasterize on the CPU into its bitmap, no per-path atlas masks or tiles |
 | `873a2237` | 2026-11-04 | docs(ui): clarify editing resets and key scopes (#1114) | skip |  |
-| `ce071b4c` | 2026-11-03 | automation: mygo-automation, a CLI for agents with short refs, settle diffs and an embedded SKILL.md (#1117) | pending |  |
-| `6842ad5e` | 2026-11-04 | fix(ui): validate named Tester click targets (#1116) | pending |  |
+| `ce071b4c` | 2026-11-03 | automation: mygo-automation, a CLI for agents with short refs, settle diffs and an embedded SKILL.md (#1117) | deferred | needs plugins/automation (fe62eb8c, todo-L) first |
+| `6842ad5e` | 2026-11-04 | fix(ui): validate named Tester click targets (#1116) | todo-S | Tester.clickText: refuse zero-area, off-window or covered targets (tester.zig) |
 | `03e6ccc1` | 2026-11-04 | fix(cli): read the PKGBUILD license from mygo.json (#1119) | n/a | no PKGBUILD yet (43e3a3e6 is todo-M) |
-| `da7e20c8` | 2026-11-03 | linux: App.SetDMABUFRenderer keeps WebKitGTK's DMA-BUF renderer on, everywhere or on safe hosts (#1124) | pending |  |
-| `f83d39d5` | 2026-11-03 | linux: follow the settings portal's dark style in GTK and pages (#1123) | pending |  |
-| `8871e2f4` | 2026-11-03 | linux: Theme.SetGTKCSS, an app's style sheet for GTK's own widgets (#1126) | pending |  |
+| `da7e20c8` | 2026-11-03 | linux: App.SetDMABUFRenderer keeps WebKitGTK's DMA-BUF renderer on, everywhere or on safe hosts (#1124) | n/a | myzig never sets WEBKIT_DISABLE_DMABUF_RENDERER |
+| `f83d39d5` | 2026-11-03 | linux: follow the settings portal's dark style in GTK and pages (#1123) | todo-S | Linux: isDark ignores the portal's color-scheme, GTK/WebKit not told (linux/desktop.zig, linux/app.zig) |
+| `8871e2f4` | 2026-11-03 | linux: Theme.SetGTKCSS, an app's style sheet for GTK's own widgets (#1126) | todo-S | Theme.setGtkCss: app-wide GtkCssProvider at USER priority (linux, as titlebar_overlay.zig loads CSS) |
 | `cf98bb30` | 2026-11-03 | documents: follow a renamed file from a look, not only from the watch (#1127) | present | checkDisk follows a rename (document.zig) |
 | `32d95f68` | 2026-11-04 | mygo: prevent document data loss during editing and recovery (#1125) | ported | recovery: release removes only the copies restored (document_recovery.zig); Equal races n/a (no threads) |
-| `ca538273` | 2026-11-04 | ui: an invisible child gives its box a baseline (#1133) | pending |  |
-| `312669df` | 2026-11-04 | ui: SelectBase passes over disabled options, as MenuBase does (#1135) | pending |  |
-| `98986489` | 2026-11-03 | markdown: Options.LinkMenu, a context menu for each link (#1136) | pending |  |
-| `442ab5b0` | 2026-11-04 | markdown: Options.LinkIcon, an icon at the start of a link's text (#1131) | pending |  |
-| `b8691960` | 2026-11-03 | ui: play Enter and Exit transitions of elements in the overlay layer (#1137) | pending |  |
+| `ca538273` | 2026-11-04 | ui: an invisible child gives its box a baseline (#1133) | present | baseline search skips no child but absolute ones (layout_baseline.zig find), no Invisible style |
+| `312669df` | 2026-11-04 | ui: SelectBase passes over disabled options, as MenuBase does (#1135) | n/a | select options are strings without a disabled flag, no SelectBase (select.zig) |
+| `98986489` | 2026-11-03 | markdown: Options.LinkMenu, a context menu for each link (#1136) | todo-M | markdown: link_menu option, a context menu per link (ui/markdown/view.zig) |
+| `442ab5b0` | 2026-11-04 | markdown: Options.LinkIcon, an icon at the start of a link's text (#1131) | todo-M | markdown: link_icon option, an inline icon before a link's text (ui/markdown/view.zig) |
+| `b8691960` | 2026-11-03 | ui: play Enter and Exit transitions of elements in the overlay layer (#1137) | present | overlays are the root's children, so enter/exit play there (context.zig openOverlay/linkOverlays) |
 | `85076ceb` | 2026-11-03 | mygo: read an app file that Windows reports missing while it is replaced (#1138) | todo-S | Windows: retry reading an app file reported missing while replaced (document_file.zig; needs Windows) |
 | `2bd03e09` | 2026-11-04 | ui: keep a no-break space ending a line (#1134) | present | only ASCII spaces hang at a line end (text_rows.zig) |
-| `d46cc761` | 2026-11-04 | ui: animate layout inside overlays, reattaching only their panels (#1140) | pending |  |
-| `5f601797` | 2026-11-04 | ui: draw another frame when the focus moves as a frame reads FocusWithin (#1142) | pending |  |
+| `d46cc761` | 2026-11-04 | ui: animate layout inside overlays, reattaching only their panels (#1140) | n/a | overlays are placed at build from the anchor's last rect (overlay_base.zig place), no relayout pass |
+| `5f601797` | 2026-11-04 | ui: draw another frame when the focus moves as a frame reads FocusWithin (#1142) | n/a | no FocusWithin; overlay_base.focusIn reads this frame's nodes |
 | `44ff79c5` | 2026-11-04 | website: add RcloneDrive, ApiGo, Silverwing, Nodra and NanoDoll to the showcase (#1144) | skip |  |
-| `91b71e07` | 2026-11-03 | terminal: read modifyOtherKeys through a key encoder, not the formatter (#1145) | pending |  |
-| `318147a3` | 2026-11-03 | ui: edit styles live in the inspector (#1146) | pending |  |
-| `4d10c377` | 2026-11-04 | cli: name the window class in the desktop entry (#1129) | pending |  |
-| `99cce99e` | 2026-11-04 | ui: TabsBase passes over disabled tabs; ComboboxBase shows a row of no matches (#1150) | pending |  |
-| `d94b66e3` | 2026-11-04 | ui: let a MenuBase item keep its menu open, and group items as one stop (#1154) | pending |  |
-| `0fdb586c` | 2026-11-04 | ui: Tab enters a radio group or a tab list at the one chosen (#1153) | pending |  |
-| `e1a6c019` | 2026-11-03 | feat(plugins): draw Apple's SF Symbols in native UI with plugins/sfsymbols (#1149) | pending |  |
-| `5053983d` | 2026-11-04 | ui: presses follow the primary button, and tell which button presses (#1156) | pending |  |
-| `380f2cb9` | 2026-11-04 | ui: a headless tree base (TreeBase), and rows of your own in an outline (Prefix) (#1155) | pending |  |
-| `00d6d2b8` | 2026-11-04 | ui: copy what the inspector's Styles tab changed as Go (#1147) | pending |  |
+| `91b71e07` | 2026-11-03 | terminal: read modifyOtherKeys through a key encoder, not the formatter (#1145) | n/a | terminal has no Mirror; keys already go through a key encoder synced from the terminal (encode.zig) |
+| `318147a3` | 2026-11-03 | ui: edit styles live in the inspector (#1146) | todo-L | inspector: edit styles live (inspector_panel.zig) |
+| `4d10c377` | 2026-11-04 | cli: name the window class in the desktop entry (#1129) | ported | StartupWMClass from the executable's basename (cli/src/linux.zig) |
+| `99cce99e` | 2026-11-04 | ui: TabsBase passes over disabled tabs; ComboboxBase shows a row of no matches (#1150) | todo-S | combobox: show a 'no matches' row (combobox.zig); tabs have no disabled tabs |
+| `d94b66e3` | 2026-11-04 | ui: let a MenuBase item keep its menu open, and group items as one stop (#1154) | todo-M | ui menu: items that keep the menu open, item groups as one stop (menu.zig) |
+| `0fdb586c` | 2026-11-04 | ui: Tab enters a radio group or a tab list at the one chosen (#1153) | present | radio groups and tabs are one focus stop on the chosen one (controls_choice.zig radioGroup, tabs.zig) |
+| `e1a6c019` | 2026-11-03 | feat(plugins): draw Apple's SF Symbols in native UI with plugins/sfsymbols (#1149) | todo-M | plugins/sfsymbols: SF Symbols through NSImage on macOS, null elsewhere |
+| `5053983d` | 2026-11-04 | ui: presses follow the primary button, and tell which button presses (#1156) | present | only the primary button calls pointerDown (linux/windows surface.zig, web/input.zig) |
+| `380f2cb9` | 2026-11-04 | ui: a headless tree base (TreeBase), and rows of your own in an outline (Prefix) (#1155) | todo-M | tree base with typeahead/Home/End and outline row prefix (tree.zig, outline.zig) |
+| `00d6d2b8` | 2026-11-04 | ui: copy what the inspector's Styles tab changed as Go (#1147) | deferred | copy inspector edits as code: needs style editing (318147a3) |
 | `f707e9f2` | 2026-11-04 | ui: keep calendar month navigation in the requested month (#1157) | present | Date.addMonths clamps the day (controls_date.zig) |
-| `6ec64b01` | 2026-11-04 | ui: end the drag of a press when the text is edited (#1159) | pending |  |
-| `e85e2f8f` | 2026-11-04 | ui: force an element's states from the inspector (#1148) | pending |  |
-| `acaeefa8` | 2026-11-04 | ui: aria-busy, a navigation landmark, aria-current and text-underline-offset (#1132 sections 4 and 5) (#1158) | pending |  |
-| `137c1576` | 2026-11-04 | ui: open the inspector's source link in the editor (#1160) | pending |  |
-| `d28fe883` | 2026-11-04 | ui: show flex and grid layouts over the content from the inspector (#1162) | pending |  |
-| `02f583c8` | 2026-11-04 | text: give the glyphs of right-to-left runs in visual order on Windows (#1165) | pending |  |
-| `499852ef` | 2026-11-04 | ui: give an element held back by AfterExits the focus once it shows (#1174) | pending |  |
-| `86ec3b30` | 2026-11-04 | ui: mix colors in Oklab with premultiplied alpha, as CSS does (#1171) | pending |  |
-| `73a6c18f` | 2026-11-04 | automation: check wait conditions while a window keeps drawing (#1175) | pending |  |
-| `f17c019d` | 2026-11-04 | glass: native panes over web views, merged groups, tint and accessibility (#1107) | pending |  |
-| `7d8b4144` | 2026-11-04 | ui: DimDisabled, and minimum and maximum sizes in DIPs and percentages together (#1176) | pending |  |
-| `0df3a82b` | 2026-11-04 | ui: snap scroll containers to the places their elements mark (#1187) | pending |  |
-| `0b468467` | 2026-11-04 | darwin: tell assistive technology an element is open only where it opens (#1188) | pending |  |
-| `f4764324` | 2026-11-04 | ui: let a SelectBase be opened and closed by its caller (#1173, section 1: SetOpen and a caller-owned open flag) (#1183) | pending |  |
-| `348771fd` | 2026-11-04 | ui: Up opens a menu button on its last item, as the APG Menu Button pattern says (#1186) | pending |  |
-| `e3e42542` | 2026-11-04 | linux: ask OnWillNavigate about main-frame navigations alone (#1189) (#1190) | pending |  |
-| `e3ada47e` | 2026-11-04 | ui: sticky positioning inside scroll containers (#1195) | pending |  |
-| `e27c9494` | 2026-11-04 | cli: replace web builds before cleaning up old assets (#1196) | pending |  |
-| `e0ce2ec6` | 2026-11-04 | ui: draw a translucent line of one segment without a mask (#1197) | pending |  |
-| `67ced267` | 2026-11-04 | ui: shortcuts tell their auto-repeat, and window shortcuts from anywhere in the tree (#1198) | pending |  |
-| `5aa8091b` | 2026-11-04 | ui: shadow transitions, exit timing, and the side AttachTo put a panel on (#1211) | pending |  |
-| `a6dc14a5` | 2026-11-04 | windows: Restore leaves a visible maximized window maximized (#1213) | pending |  |
-| `7d3d3903` | 2026-11-04 | linux: give the tray icon to the panel by its absolute path (#1216) | pending |  |
-| `6560593f` | 2026-11-04 | ui: read an element's role, name and states in a Tester (#1208) | pending |  |
-| `5ba865af` | 2026-11-04 | ui: FocusLeft, the focus leaving an element, and Context.FocusTakesText (#1202) | pending |  |
-| `d5b333dc` | 2026-11-04 | ui: object-position for images, and layers of masks with mask-composite (#1210) | pending |  |
-| `1868426d` | 2026-11-04 | access: give a range's value text beside its number (#1223) | pending |  |
-| `3461f8a7` | 2026-11-04 | ui: ZIndex orders an element's painting among its siblings (#1226) | pending |  |
-| `19f23b04` | 2026-11-04 | cli: ship dotfiles inside a resource directory (#1167) | pending |  |
+| `6ec64b01` | 2026-11-04 | ui: end the drag of a press when the text is edited (#1159) | ported | an edit ends the drag of a press (textfield.zig selecting, TextArea.replaceRange dragging) |
+| `e85e2f8f` | 2026-11-04 | ui: force an element's states from the inspector (#1148) | todo-M | inspector: force hover/focus/press states on a box |
+| `acaeefa8` | 2026-11-04 | ui: aria-busy, a navigation landmark, aria-current and text-underline-offset (#1132 sections 4 and 5) (#1158) | todo-M | access: busy, current, navigation landmark; underline offset (access.zig, bridges, text) |
+| `137c1576` | 2026-11-04 | ui: open the inspector's source link in the editor (#1160) | n/a | boxes carry no source location for the inspector to link to |
+| `d28fe883` | 2026-11-04 | ui: show flex and grid layouts over the content from the inspector (#1162) | todo-M | inspector: outline flex/grid layouts over the content |
+| `02f583c8` | 2026-11-04 | text: give the glyphs of right-to-left runs in visual order on Windows (#1165) | present | DirectWrite RTL runs emitted in visual order (text_dw.zig, g = n-1-v) |
+| `499852ef` | 2026-11-04 | ui: give an element held back by AfterExits the focus once it shows (#1174) | n/a | no AfterExits |
+| `86ec3b30` | 2026-11-04 | ui: mix colors in Oklab with premultiplied alpha, as CSS does (#1171) | n/a | no Oklab color mix; gradients already mix premultiplied (gradient.zig) |
+| `73a6c18f` | 2026-11-04 | automation: check wait conditions while a window keeps drawing (#1175) | deferred | automation CLI: needs plugins/automation (fe62eb8c) |
+| `f17c019d` | 2026-11-04 | glass: native panes over web views, merged groups, tint and accessibility (#1107) | todo-L | glass plugin: native glass panes over web views, merged groups, tint, a11y |
+| `7d8b4144` | 2026-11-04 | ui: DimDisabled, and minimum and maximum sizes in DIPs and percentages together (#1176) | todo-M | min/max sizes in points and percent together; DimDisabled (types.zig Style, layout.zig) |
+| `0df3a82b` | 2026-11-04 | ui: snap scroll containers to the places their elements mark (#1187) | todo-L | scroll snapping of scroll containers |
+| `0b468467` | 2026-11-04 | darwin: tell assistive technology an element is open only where it opens (#1188) | todo-S | macOS: isAccessibilityExpanded answered for every element (access_mac.zig); only where expandable |
+| `f4764324` | 2026-11-04 | ui: let a SelectBase be opened and closed by its caller (#1173, section 1: SetOpen and a caller-owned open flag) (#1183) | n/a | no SelectBase; select's state is the app's struct (select.zig SelectState) |
+| `348771fd` | 2026-11-04 | ui: Up opens a menu button on its last item, as the APG Menu Button pattern says (#1186) | todo-S | menuButton: Up opens on the last item (menu.zig buttonMenu, MenuPanel.end) |
+| `e3e42542` | 2026-11-04 | linux: ask OnWillNavigate about main-frame navigations alone (#1189) (#1190) | todo-S | Linux asks willNavigate for iframe navigations too (linux/page_events.zig decidePolicy); main frame only |
+| `e3ada47e` | 2026-11-04 | ui: sticky positioning inside scroll containers (#1195) | todo-L | sticky positioning in scroll containers |
+| `e27c9494` | 2026-11-04 | cli: replace web builds before cleaning up old assets (#1196) | n/a | cli empties the output before building (package.zig freshOut), no staged web dir |
+| `e0ce2ec6` | 2026-11-04 | ui: draw a translucent line of one segment without a mask (#1197) | n/a | no GPU polyline masks; canvas strokes on the CPU (path_stroke.zig) |
+| `67ced267` | 2026-11-04 | ui: shortcuts tell their auto-repeat, and window shortcuts from anywhere in the tree (#1198) | todo-M | shortcut auto-repeat flag in every backend, window shortcuts from anywhere (context.zig) |
+| `5aa8091b` | 2026-11-04 | ui: shadow transitions, exit timing, and the side AttachTo put a panel on (#1211) | todo-M | transitions: shadows, exit duration/ease, attach side and origin (motion_transition.zig, overlay_base.zig) |
+| `a6dc14a5` | 2026-11-04 | windows: Restore leaves a visible maximized window maximized (#1213) | n/a | no Window.restore (unminimize) in myzig |
+| `7d3d3903` | 2026-11-04 | linux: give the tray icon to the panel by its absolute path (#1216) | todo-S | Linux tray: give app_indicator the PNG's absolute path, not name + theme path (linux/tray.zig setIcon) |
+| `6560593f` | 2026-11-04 | ui: read an element's role, name and states in a Tester (#1208) | todo-M | Tester.access(name)/accessByRole: role, name, states of the last frame (tester.zig) |
+| `5ba865af` | 2026-11-04 | ui: FocusLeft, the focus leaving an element, and Context.FocusTakesText (#1202) | todo-M | focus-left events and Context.focusTakesText |
+| `d5b333dc` | 2026-11-04 | ui: object-position for images, and layers of masks with mask-composite (#1210) | todo-M | image object-position, layered masks with mask-composite (image.zig) |
+| `1868426d` | 2026-11-04 | access: give a range's value text beside its number (#1223) | todo-S | range value text: AXValueDescription (access_mac.zig), UIA Value (uia_patterns.zig), ATK text |
+| `3461f8a7` | 2026-11-04 | ui: ZIndex orders an element's painting among its siblings (#1226) | todo-M | zIndex ordering siblings' paint and hits (paint.zig) |
+| `19f23b04` | 2026-11-04 | cli: ship dotfiles inside a resource directory (#1167) | present | resource dirs copied whole, dotfiles included (cli package.zig resourcePaths, fsx copy) |
 | `6490835b` | 2026-11-04 | website: update NanoDoll showcase entry (#1230) | skip |  |
 | `bb1bce83` | 2026-11-04 | fix(watch): keep file grants from becoming directory grants (#1237) | ported | watch: a file root stays a file grant (Service.root_dirs) |
-| `7151bc32` | 2026-11-05 | linux: pace native UI's frames at the monitor's refresh rate, not 60 Hz (#1231) | pending |  |
-| `60d82a98` | 2026-11-05 | ui: KeyShortcuts tells assistive technology the keys that press an element (#1256) | pending |  |
-| `2009f566` | 2026-11-05 | audio: Player.SetPreservesPitch time-stretches instead of resampling (#1254) | pending |  |
-| `b0613c16` | 2026-11-05 | ui: spans take no letter spacing and pad their background (#1257) | pending |  |
-| `07b22bb1` | 2026-11-05 | ui: an element observes the input inside it (ObserveInput) (#1221) | pending |  |
-| `079be548` | 2026-11-05 | i18n: compact numbers and date ranges (#1218) | pending |  |
+| `7151bc32` | 2026-11-05 | linux: pace native UI's frames at the monitor's refresh rate, not 60 Hz (#1231) | todo-S | Linux: write the monitor's refresh interval into GdkFrameTimings (linux/surface.zig tick) |
+| `60d82a98` | 2026-11-05 | ui: KeyShortcuts tells assistive technology the keys that press an element (#1256) | todo-M | aria-keyshortcuts on access nodes, every bridge |
+| `2009f566` | 2026-11-05 | audio: Player.SetPreservesPitch time-stretches instead of resampling (#1254) | todo-M | audio: Player.setPreservesPitch, a WSOLA stretcher before the resampler (audio/mixer.zig) |
+| `b0613c16` | 2026-11-05 | ui: spans take no letter spacing and pad their background (#1257) | todo-M | spans: letter spacing reset and background padding (spans.zig, text engines) |
+| `07b22bb1` | 2026-11-05 | ui: an element observes the input inside it (ObserveInput) (#1221) | todo-M | observeInput: capture-phase input for containers (context.zig) |
+| `079be548` | 2026-11-05 | i18n: compact numbers and date ranges (#1218) | todo-L | i18n compact numbers and date ranges (fraction-digit default already right, number.zig) |
 | `be78bf91` | 2026-11-04 | fix(fetch): filter cookie headers before sending responses to pages (#1235) | ported | fetch: Set-Cookie2 filtered with Set-Cookie (http.zig) |
-| `93e43542` | 2026-11-04 | fix(cli): validate build platforms before project work (#1238) | pending |  |
-| `fdd89639` | 2026-11-04 | fix(tsgen): represent embedded JSON fallbacks as top-level members (#1252) | pending |  |
-| `8b0f4001` | 2026-11-04 | terminal: read sRGB to linear from a table for minimum contrast (#1249) | pending |  |
-| `fbcd4311` | 2026-11-04 | linux: call the GL functions of each batch without reflection (#1250) | pending |  |
-| `0bf5ba22` | 2026-11-05 | ui: close Local values that are io.Closers as their element goes (#1233) | pending |  |
+| `93e43542` | 2026-11-04 | fix(cli): validate build platforms before project work (#1238) | present | --platform parsed and checked before any project work (cli/src/main.zig) |
+| `fdd89639` | 2026-11-04 | fix(tsgen): represent embedded JSON fallbacks as top-level members (#1252) | n/a | Go json embed fallbacks; Zig structs have no embedding |
+| `8b0f4001` | 2026-11-04 | terminal: read sRGB to linear from a table for minimum contrast (#1249) | n/a | terminal has no minimum-contrast pass |
+| `fbcd4311` | 2026-11-04 | linux: call the GL functions of each batch without reflection (#1250) | n/a | Go reflection cost; Zig calls GL pointers directly (gl_api.zig) |
+| `0bf5ba22` | 2026-11-05 | ui: close Local values that are io.Closers as their element goes (#1233) | n/a | no Local values; widget state is the app's |
 | `c9438876` | 2026-11-04 | fix(tsgen): reject colliding method and event names (#1234) | n/a | Zig method names are unique (events named apart only by - and _ still share an onX: not checked) |
-| `bb4b0c0c` | 2026-11-05 | ui: animate a Transition's width or height alone (#1259) | pending |  |
-| `50967203` | 2026-11-05 | terminal: size columns with Font.CellWidth, keeping glyphs their size (#1229) | pending |  |
-| `b609844b` | 2026-11-04 | fix(tsgen): honor string tags on numeric pointers (#1243) | pending |  |
-| `fbd763ef` | 2026-11-05 | ui: NoShadow takes off the shadows an element has, as box-shadow: none (#1267) | pending |  |
-| `6a6fdf7f` | 2026-11-05 | ui: MaxLength limits how long a text input's value can be typed (#1269) | pending |  |
-| `ff62fdfa` | 2026-11-05 | ui: grid tracks with a minimum, Track.Min and Track.MinContent (#1255) | pending |  |
-| `6257eb88` | 2026-11-05 | ui: leave the text of inline children hidden from assistive technology out of a paragraph's name (#1268) | pending |  |
+| `bb4b0c0c` | 2026-11-05 | ui: animate a Transition's width or height alone (#1259) | todo-S | transition: width or height alone, split `size` (motion_transition.zig) |
+| `50967203` | 2026-11-05 | terminal: size columns with Font.CellWidth, keeping glyphs their size (#1229) | todo-S | terminal: font cell-width factor for columns (plugins/terminal view.zig/paint.zig) |
+| `b609844b` | 2026-11-04 | fix(tsgen): honor string tags on numeric pointers (#1243) | n/a | Go json string tags |
+| `fbd763ef` | 2026-11-05 | ui: NoShadow takes off the shadows an element has, as box-shadow: none (#1267) | n/a | Style.shadow is one optional value: null takes it off |
+| `6a6fdf7f` | 2026-11-05 | ui: MaxLength limits how long a text input's value can be typed (#1269) | todo-S | max_length on textField/textArea (textfield.zig apply, textarea keys) |
+| `ff62fdfa` | 2026-11-05 | ui: grid tracks with a minimum, Track.Min and Track.MinContent (#1255) | todo-M | grid tracks with a minimum / min-content (grid_layout.zig) |
+| `6257eb88` | 2026-11-05 | ui: leave the text of inline children hidden from assistive technology out of a paragraph's name (#1268) | deferred | follow-up of AccessHidden (2e15cef4) |
 | `c3f2804e` | 2026-11-04 | fix(websocket): validate subprotocol tokens before connecting (#1236) | ported | websocket.js: subprotocols must be HTTP tokens, refused before Zig sees them |
-| `bb14da26` | 2026-11-05 | ui: fade an inline Text's words with its Opacity, transparent color or Invisible (#1272) | pending |  |
-| `142fd6a1` | 2026-11-05 | ui: keep an Exit copy's z-index while it leaves (#1271) | pending |  |
-| `f0d918e1` | 2026-11-05 | ui: InViewMargin, InView with a root margin (#1274) | pending |  |
-| `42dd28c9` | 2026-11-05 | i18n: amounts of money (#1258) | pending |  |
-| `4fd021c0` | 2026-11-05 | ui: text stroke and tab size (#1182 items 1 and 2) (#1217) | pending |  |
-| `f2e5ad08` | 2026-11-05 | ui: a focused link takes Enter alone, not Space (#1278) | pending |  |
-| `080d2d24` | 2026-11-05 | ui: keep what is inside a column header in the accessibility tree (#1279) | pending |  |
-| `ee3d4bd9` | 2026-11-05 | ui: line ScrollIntoView up and glide there, as the web's options do (#1273) | pending |  |
-| `977ea57e` | 2026-11-05 | ui, mygo: a closed window keeps nothing it showed; ReleasePixels for NewBitmap (#1281) (#1282) | pending |  |
-| `5ed8bfad` | 2026-11-05 | terminal, Windows: send what AltGr types as text, not as Control sequences (#1270) | pending |  |
-| `f62a30d3` | 2026-11-05 | ui: CaretColor sets the color of a text input's caret (#1215) | pending |  |
-| `d76c7475` | 2026-11-05 | ui: PreserveSpaces keeps the spaces of a text (#1201) | pending |  |
-| `964f6a2c` | 2026-11-05 | terminal: ask for the frame that shows a synchronized update after a second (#1305) | pending |  |
+| `bb14da26` | 2026-11-05 | ui: fade an inline Text's words with its Opacity, transparent color or Invisible (#1272) | n/a | no inline elements; a Span's color is its own (spans.zig) |
+| `142fd6a1` | 2026-11-05 | ui: keep an Exit copy's z-index while it leaves (#1271) | deferred | follow-up of zIndex (3461f8a7) |
+| `f0d918e1` | 2026-11-05 | ui: InViewMargin, InView with a root margin (#1274) | todo-M | inView with a root margin (no inView yet) |
+| `42dd28c9` | 2026-11-05 | i18n: amounts of money (#1258) | todo-L | i18n currency formatting |
+| `4fd021c0` | 2026-11-05 | ui: text stroke and tab size (#1182 items 1 and 2) (#1217) | todo-M | text stroke and tab size in every text engine |
+| `f2e5ad08` | 2026-11-05 | ui: a focused link takes Enter alone, not Space (#1278) | present | link takes Enter only, not Space (controls_choice.zig link) |
+| `080d2d24` | 2026-11-05 | ui: keep what is inside a column header in the accessibility tree (#1279) | present | column_header is not a leaf (access.zig Role.leaf) |
+| `ee3d4bd9` | 2026-11-05 | ui: line ScrollIntoView up and glide there, as the web's options do (#1273) | todo-M | scrollIntoView with block/inline alignment and glide |
+| `977ea57e` | 2026-11-05 | ui, mygo: a closed window keeps nothing it showed; ReleasePixels for NewBitmap (#1281) (#1282) | present | a closed window destroys its surface and context (window.zig finish); ReleasePixels is c1b67c81 |
+| `5ed8bfad` | 2026-11-05 | terminal, Windows: send what AltGr types as text, not as Control sequences (#1270) | todo-S | Windows: AltGr (Ctrl+Alt) chars offered as shortcuts, terminal sends Ctrl seqs (windows/surface.zig keyDown) |
+| `f62a30d3` | 2026-11-05 | ui: CaretColor sets the color of a text input's caret (#1215) | todo-S | caret color option for textField/textArea |
+| `d76c7475` | 2026-11-05 | ui: PreserveSpaces keeps the spaces of a text (#1201) | todo-S | text option keeping trailing spaces at line ends (text_wrap.zig) |
+| `964f6a2c` | 2026-11-05 | terminal: ask for the frame that shows a synchronized update after a second (#1305) | n/a | terminal paint doesn't hold synchronized updates |
 | `2c1ea332` | 2026-11-05 | fix(tsgen): reserve the runtime Channel type name (#1294) | ported | tsgen: app types named Channel get another name (declName) |
-| `59a05371` | 2026-11-05 | ui: give the items of context menus an icon (#1297) | pending |  |
-| `3d0c5a5f` | 2026-11-05 | ui: keep heading children in the accessibility tree (#1310) | pending |  |
-| `accc4e86` | 2026-11-05 | ui, backends: tell a view the keys held in the window, whatever has the focus (#1177) | pending |  |
-| `31226824` | 2026-11-05 | ui: add RoleListBox and RoleOption, and read SelectBase's popup as a list box (#1179) | pending |  |
-| `f27b8948` | 2026-11-05 | ui: TabStop(false) keeps a focusable element out of Tab's order (#1314) | pending |  |
-| `3b9d6762` | 2026-11-05 | Add Theme.WindowButtons: the window controls the desktop's title bars have (#1320) | pending |  |
-| `01dfd8ed` | 2026-11-05 | text: wrap a resized text again without shaping it again on macOS (#1318) | pending |  |
-| `1fc1c20b` | 2026-11-05 | ui: NonMotion keeps a fade animating while the desktop asks for less motion (#1312) | pending |  |
-| `3a92ba0d` | 2026-11-05 | Give menu items a subtitle (#1299) | pending |  |
-| `234df8ec` | 2026-11-05 | ui: pointer type and pressure, more cursors, clipboard write result (#1204) | pending |  |
-| `b3efd4b6` | 2026-11-05 | ui: region, log, timer, alert, separator and row header roles (#1199) | pending |  |
-| `2fff1567` | 2026-11-05 | ui: LabelledBy ties a label the view draws to its control (#1319) | pending |  |
-| `00552881` | 2026-11-05 | editor: lay out fitted diffs without working through every line (#876) | pending |  |
-| `41df62e3` | 2026-11-05 | ui: Opacity fades an element and its children as one group, as CSS's (#1321) | pending |  |
-| `9b18043c` | 2026-11-05 | text: hold a family the app gives apart from the font's own (#1232) | pending |  |
-| `4125808f` | 2026-11-05 | ui: even-odd fills and clips, Path.Contains, and HitTest (#1315) | pending |  |
-| `033a156b` | 2026-11-05 | ui: InViewAmount, in view by a share of the element's area (#1324) | pending |  |
-| `3e1da8ca` | 2026-11-05 | ui: AlertDialog fits its buttons, or wraps them (#1329) | pending |  |
-| `afd7908d` | 2026-11-05 | ui, mygo: WindowHidden, and file filters by MIME type (#1325) | pending |  |
-| `5cfc0b7b` | 2026-11-05 | ui: aria-roledescription, aria-controls, aria-haspopup, aria-sort and selected cells (#1209) | pending |  |
+| `59a05371` | 2026-11-05 | ui: give the items of context menus an icon (#1297) | present | ui menu items take an icon (menu.zig ItemOptions.icon) |
+| `3d0c5a5f` | 2026-11-05 | ui: keep heading children in the accessibility tree (#1310) | ported | headings keep their children, named by their text (access.zig Role.leaf, namedByContent) |
+| `accc4e86` | 2026-11-05 | ui, backends: tell a view the keys held in the window, whatever has the focus (#1177) | todo-M | keys held in the window for any focus, released on focus loss in every backend |
+| `31226824` | 2026-11-05 | ui: add RoleListBox and RoleOption, and read SelectBase's popup as a list box (#1179) | present | select popup is a list of list_items with pos/size, active_descendant on trigger (ui/listbox.zig, select.zig) |
+| `f27b8948` | 2026-11-05 | ui: TabStop(false) keeps a focusable element out of Tab's order (#1314) | todo-S | no focusable-but-no-Tab-stop option: add one to Context.interact/focus_order (context.zig, focusgroup.zig) |
+| `3b9d6762` | 2026-11-05 | Add Theme.WindowButtons: the window controls the desktop's title bars have (#1320) | todo-S | Theme window buttons: read gtk-decoration-layout on Linux, none elsewhere (linux/window_events.zig, ui theme) |
+| `01dfd8ed` | 2026-11-05 | text: wrap a resized text again without shaping it again on macOS (#1318) | deferred | perf: keep CTTypesetter across widths in ui/text_mac.zig; port with hillclimb measurements |
+| `1fc1c20b` | 2026-11-05 | ui: NonMotion keeps a fade animating while the desktop asks for less motion (#1312) | todo-S | non_motion flag on Animation/keyframes/timeline to keep fades under reduced motion (ui/motion.zig, motion_keyframes.zig) |
+| `3a92ba0d` | 2026-11-05 | Give menu items a subtitle (#1299) | todo-M | MenuItem.subtitle in menu_types.zig and every backend; also check disk when document watch fails (document.zig watch) |
+| `234df8ec` | 2026-11-05 | ui: pointer type and pressure, more cursors, clipboard write result (#1204) | todo-L | pointer type/pressure, more cursors (ui Cursor has 5), clipboard write result |
+| `b3efd4b6` | 2026-11-05 | ui: region, log, timer, alert, separator and row header roles (#1199) | todo-L | region/log/timer/alert/separator/row header/search/article roles and live-region reading (ui/access*.zig) |
+| `2fff1567` | 2026-11-05 | ui: LabelledBy ties a label the view draws to its control (#1319) | todo-S | labelled-by helper: name a control by a drawn label, label click focuses/toggles (ui/controls_form.zig) |
+| `00552881` | 2026-11-05 | editor: lay out fitted diffs without working through every line (#876) | n/a | no editor-hosted fitted diff; DiffView is a virtualized list built only in view (ui/diffview.zig) |
+| `41df62e3` | 2026-11-05 | ui: Opacity fades an element and its children as one group, as CSS's (#1321) | todo-M | group opacity: paint.zig multiplies opacity per element, no layer for a faded group |
+| `9b18043c` | 2026-11-05 | text: hold a family the app gives apart from the font's own (#1232) | n/a | no app font registration under a family of its own (ui/fonts.zig, tt/fontdb.zig addFile) |
+| `4125808f` | 2026-11-05 | ui: even-odd fills and clips, Path.Contains, and HitTest (#1315) | todo-S | even-odd fills/clips present (path.zig Rule, canvas.zig fillRule/clip); add Path.contains and hitTest |
+| `033a156b` | 2026-11-05 | ui: InViewAmount, in view by a share of the element's area (#1324) | todo-M | no InView API at all; InView and share-of-area amount would be new (ui) |
+| `3e1da8ca` | 2026-11-05 | ui: AlertDialog fits its buttons, or wraps them (#1329) | todo-S | alertDialog panel fixed 320px, buttons row neither grows nor wraps (ui/dialog.zig alertDialog) |
+| `afd7908d` | 2026-11-05 | ui, mygo: WindowHidden, and file filters by MIME type (#1325) | todo-M | Context window-hidden state per backend and FileFilter MIME types (dialog_types.zig has extensions only) |
+| `5cfc0b7b` | 2026-11-05 | ui: aria-roledescription, aria-controls, aria-haspopup, aria-sort and selected cells (#1209) | todo-M | role description, controls, haspopup kinds, sort, selected cells in ui/access.zig Description and bridges |
 | `0cb26cc5` | 2026-11-05 | Cursor/showcase teebots b27b (#1332) | skip |  |
-| `3163e297` | 2026-11-05 | text: put numbers together and wrap Latin text from one shaped line on macOS (#1333) | pending |  |
+| `3163e297` | 2026-11-05 | text: put numbers together and wrap Latin text from one shaped line on macOS (#1333) | deferred | perf: numbers from cached glyphs and Latin wrap from one shaped line (text_mac.zig); needs hillclimb |
 | `1c7beef4` | 2026-11-06 | ci, e2e: let main's runs finish, and fail the test that leaves state behind (#1336) | skip |  |
-| `7941458e` | 2026-11-06 | ui: reset a split's size on a double click (#1313) | pending |  |
-| `d3288030` | 2026-11-06 | ui: every key reaches HandleInput, by position (InputEvent.Code) [breaking] (#1328) | pending |  |
-| `81ddcacc` | 2026-11-06 | editor: lex a long JSON line in one pass, and paint only what's in view of a deleted line (#1335) | pending |  |
+| `7941458e` | 2026-11-06 | ui: reset a split's size on a double click (#1313) | todo-S | double click on a split's divider resets its size (ui/split.zig) |
+| `d3288030` | 2026-11-06 | ui: every key reaches HandleInput, by position (InputEvent.Code) [breaking] (#1328) | present | physical key codes for key views (ui/keycode.zig, Input.key_down_code); lone modifiers/lock keys not sent |
+| `81ddcacc` | 2026-11-06 | editor: lex a long JSON line in one pass, and paint only what's in view of a deleted line (#1335) | present | JSON keys found by one lookahead per string (markdown/highlight.zig); DiffView builds rows in view only |
 | `62692965` | 2026-11-06 | test: wait for the recent documents in TestDocumentWatchStartFollowsRename (#1344) | skip |  |
-| `fe01d40b` | 2026-11-05 | i18ngen: keep escaped placeholder names distinct (#1337) | pending |  |
-| `85a2d476` | 2026-11-05 | cli: watch the app's Go workspace files (#1338) | pending |  |
+| `fe01d40b` | 2026-11-05 | i18ngen: keep escaped placeholder names distinct (#1337) | n/a | no i18n code generator: messages take args by name at runtime (src/i18n) |
+| `85a2d476` | 2026-11-05 | cli: watch the app's Go workspace files (#1338) | skip | Go workspace files in the CLI's watcher (Go-only) |
 | `90b21535` | 2026-11-05 | tsgen: report invalid service export names (#1341) | ported | tsgen: a service named Channel or myzig is a compile error; Zig names are identifiers already |
 | `dab96a7d` | 2026-11-05 | bridge: release channels when a call fails before sending (#1342) | ported | bridge.js: a call whose arguments JSON cannot hold leaves nothing pending (myzig channels have no ids to release) |
 | `57d46769` | 2026-11-05 | fetch: honor null options when inheriting a Request (#1345) | ported | fetch.js: a null signal or body in init and the Request's |
-| `6a231dec` | 2026-11-06 | ui: AutoComplete tells assistive technology what a field's suggestions complete (#1316) | pending |  |
-| `2c6e4701` | 2026-11-06 | ui: AccessDisabled tells assistive technology a control is unavailable, still focusable (aria-disabled) (#1322) | pending |  |
-| `56cf90f5` | 2026-11-06 | windows: open tray menus above the taskbar and give menus Windows 11's material, corners and shortcuts (#1178) | pending |  |
-| `c8465dd4` | 2026-11-06 | ui: pointer and hover in Preferences, and NewTesterWith (#1326) | pending |  |
-| `756ad24a` | 2026-11-05 | cli: reload web dev configuration for each build (#1343) | pending |  |
-| `a4bfe6b8` | 2026-11-06 | ui, text: TextShadow and Span.Shadow, and Pretty wrapping (#1327) | pending |  |
+| `6a231dec` | 2026-11-06 | ui: AutoComplete tells assistive technology what a field's suggestions complete (#1316) | todo-S | autocomplete kind for text/combobox fields in access Description and bridges (ui/access.zig, combobox.zig) |
+| `2c6e4701` | 2026-11-06 | ui: AccessDisabled tells assistive technology a control is unavailable, still focusable (aria-disabled) (#1322) | present | Description.disabled is independent of focus_order, so a disabled control can stay focusable (ui/access.zig) |
+| `56cf90f5` | 2026-11-06 | windows: open tray menus above the taskbar and give menus Windows 11's material, corners and shortcuts (#1178) | n/a | Windows menus are Win32's own (TrackPopupMenu, windows/menubar.zig), drawn and placed by the system |
+| `c8465dd4` | 2026-11-06 | ui: pointer and hover in Preferences, and NewTesterWith (#1326) | todo-M | Preferences pointer/hover (ui/preferences.zig has accent, motion, contrast, text scale) and Tester with preferences |
+| `756ad24a` | 2026-11-05 | cli: reload web dev configuration for each build (#1343) | n/a | no web dev server in the CLI (cli/src/web.zig only builds) |
+| `a4bfe6b8` | 2026-11-06 | ui, text: TextShadow and Span.Shadow, and Pretty wrapping (#1327) | todo-M | text shadows (TextStyle/Span) and pretty wrapping (ui/text_wrap.zig) |
 | `262dec59` | 2026-11-06 | ci: give go test 20 minutes a package on macOS (#1346) | skip |  |
-| `bc8a9944` | 2026-11-05 | update: restore file permissions after archive and delta extraction (#1340) | pending |  |
+| `bc8a9944` | 2026-11-05 | update: restore file permissions after archive and delta extraction (#1340) | n/a | updater downloads a single executable, no archives or deltas (plugins/updater) |
 | `41bd3098` | 2026-11-06 | website: compare MyGo with GPUI, GPUI Fast and egui on /benchmarks, move the tracking page to /measures (#1311) | skip |  |
 | `690dbf49` | 2026-11-06 | websocket: require requested subprotocols to be acknowledged (#1347) | ported | websocket: a server that picks none of the offered subprotocols fails the handshake (conn.zig) |
-| `dcd33c63` | 2026-11-06 | Let an app set when the code editor's hover shows (#433) | pending |  |
-| `4be31bac` | 2026-11-06 | i18n: format relative times with CLDR words and plural forms (#1348) | pending |  |
-| `45ce5ee7` | 2026-11-06 | Keep a number input's buttons within the width it is given (#1349) | pending |  |
-| `48f49145` | 2026-11-06 | Paint a frame whole when the frame before asked from outside a Draw callback (#1350) | pending |  |
-| `95af280a` | 2026-11-06 | Tell a drag's source it was let go over no target, and where, with DragMissed (#1351) | pending |  |
-| `51f66e5f` | 2026-11-06 | Tell a press inside an element without taking the pointer, PressedInside (#431) | pending |  |
-| `3292c8d4` | 2026-11-06 | Let an app build into a table's header cells with HeaderCell (#432) | pending |  |
-| `26602642` | 2026-11-06 | Create disk images on APFS where hdiutil fails on HFS+ (#1352) (#1353) | pending |  |
-| `f7d98564` | 2026-11-06 | Show what is behind a glass window that is not Transparent (#1355) | pending |  |
-| `42602ca8` | 2026-11-06 | ui: AttachEdgeMargin keeps an attached panel a chosen distance from the window's edges (#1285) | pending |  |
-| `0bdd54bc` | 2026-11-06 | i18n: NumberOptions.SignDisplay writes a plus, or hides a negative zero (#1287) | pending |  |
+| `dcd33c63` | 2026-11-06 | Let an app set when the code editor's hover shows (#433) | n/a | code editor has no hover (ui/editor) |
+| `4be31bac` | 2026-11-06 | i18n: format relative times with CLDR words and plural forms (#1348) | todo-L | relative-time formatting with CLDR words and plurals (src/i18n has none) |
+| `45ce5ee7` | 2026-11-06 | Keep a number input's buttons within the width it is given (#1349) | n/a | numberInput's width is the field's; the row is field plus buttons (ui/controls_range.zig) |
+| `48f49145` | 2026-11-06 | Paint a frame whole when the frame before asked from outside a Draw callback (#1350) | n/a | damage diffs instances (ui/damage.zig); no paint-in-parts path for Draw callbacks |
+| `95af280a` | 2026-11-06 | Tell a drag's source it was let go over no target, and where, with DragMissed (#1351) | present | drag Finished.canceled and not escaped, with screen point (ui/dragdrop.zig) |
+| `51f66e5f` | 2026-11-06 | Tell a press inside an element without taking the pointer, PressedInside (#431) | todo-S | pressed-inside for an ancestor (Interaction.pressed is own box only, context.zig interact) |
+| `3292c8d4` | 2026-11-06 | Let an app build into a table's header cells with HeaderCell (#432) | todo-S | let apps build into table header cells (ui/table_columns.zig header) |
+| `26602642` | 2026-11-06 | Create disk images on APFS where hdiutil fails on HFS+ (#1352) (#1353) | todo-S | hdiutil create -fs HFS+ only; retry on APFS without -fsargs (cli/src/macos.zig diskImage) |
+| `f7d98564` | 2026-11-06 | Show what is behind a glass window that is not Transparent (#1355) | n/a | no NSGlassEffectView window material; vibrancy is NSVisualEffectView (window_extras_mac.zig) |
+| `42602ca8` | 2026-11-06 | ui: AttachEdgeMargin keeps an attached panel a chosen distance from the window's edges (#1285) | todo-S | edge margin option for attached panels (ui/overlay_base.zig attach/place) |
+| `0bdd54bc` | 2026-11-06 | i18n: NumberOptions.SignDisplay writes a plus, or hides a negative zero (#1287) | todo-S | sign display option (plus, hide negative zero) in src/i18n/number.zig |
 | `218f76c2` | 2026-11-06 | docs: show SplitReset in the split preview (#1358) | skip |  |
-| `3f999b87` | 2026-11-06 | ui: draw every menu of a window in the window with SetMenuPresentation (#1359) | pending |  |
-| `42c1a43e` | 2026-11-06 | gl: return NewOffscreen's error instead of panicking as it undoes setup (#1360) | pending |  |
-| `8b0dd917` | 2026-11-06 | editor: insert snippets with linked fields and Tab stops (#1361) | pending |  |
+| `3f999b87` | 2026-11-06 | ui: draw every menu of a window in the window with SetMenuPresentation (#1359) | todo-L | draw every menu of a window inside it (menu presentation) |
+| `42c1a43e` | 2026-11-06 | gl: return NewOffscreen's error instead of panicking as it undoes setup (#1360) | n/a | Go named-result bug; gl_offscreen.zig undoes with errdefer |
+| `8b0dd917` | 2026-11-06 | editor: insert snippets with linked fields and Tab stops (#1361) | todo-L | editor snippets with linked fields and Tab stops (ui/editor) |
 | `acf2fdd3` | 2026-11-06 | fix(ui): wheel reversing at the end of content turns at once (#1356) | ported | wheel.zig: notches against the travel left turn at once |
-| `dc64b5d3` | 2026-11-06 | ui: TranslationZ and Translation3D move content along Z (#1364) | pending |  |
-| `bbda2ef8` | 2026-11-06 | ui: tell a cancelled pointer from a release (#1365) | pending |  |
-| `dae77b15` | 2026-11-06 | ui: grid and tree grid roles, row and column counts and indexes, and Multiselectable (#1181 a-c) (#1280) | pending |  |
-| `35f52345` | 2026-11-06 | ui: DescribedBy, Invalid, Orientation, deletion and insertion roles, and search fields (#1181) (#1366) | pending |  |
-| `6121009b` | 2026-11-06 | ui: always keep a toast's time running while the window is in the background (#1369) | pending |  |
+| `dc64b5d3` | 2026-11-06 | ui: TranslationZ and Translation3D move content along Z (#1364) | todo-L | TranslationZ/3D need perspective transforms, which myzig lacks |
+| `bbda2ef8` | 2026-11-06 | ui: tell a cancelled pointer from a release (#1365) | todo-M | pointer cancel distinct from release in Input and backends (surface/linux/windows/web) |
+| `dae77b15` | 2026-11-06 | ui: grid and tree grid roles, row and column counts and indexes, and Multiselectable (#1181 a-c) (#1280) | todo-M | grid/treegrid roles, row/col counts and indexes (multiselectable already in access.zig) |
+| `35f52345` | 2026-11-06 | ui: DescribedBy, Invalid, Orientation, deletion and insertion roles, and search fields (#1181) (#1366) | todo-M | described-by, deletion/insertion roles, search fields (invalid and vertical already in Description) |
+| `6121009b` | 2026-11-06 | ui: always keep a toast's time running while the window is in the background (#1369) | present | toast time runs on the wall clock, paused only by hover/keys (ui/toast.zig tick) |
 | `3ffebb93` | 2026-11-06 | website: add Screenpin to the showcase (#1370) | skip |  |
-| `dee64ce3` | 2026-11-06 | ui: give menu items a tooltip with MenuItem.Tooltip (#1367) | pending |  |
-| `b466c566` | 2026-11-06 | ui: tell an item's place in its set, and its selection without the look (#1181) (#1371) | pending |  |
-| `3ece477d` | 2026-11-06 | ui: show an active descendant's tooltip as the keys rest on it (#1368) | pending |  |
-| `7ddd2522` | 2026-11-06 | ui: paint nothing of a group faded out, rather than its layer whole (#1373) | pending |  |
-| `8ec59d3a` | 2026-11-06 | ui: size a group's, a blur's and a Cache's layer by what it paints (#1375) | pending |  |
-| `79c8b777` | 2026-11-06 | darwin: repeat a held key in an input without text for press and hold (#1374) | pending |  |
-| `3418a6a7` | 2026-11-06 | ui: hover what the pointer rests on in the frame the element it hovered goes (#1377) | pending |  |
-| `8a07344d` | 2026-11-06 | macOS: leave a drag region's window to the window server when it begins late (#1378) | pending |  |
-| `9092c954` | 2026-11-06 | terminal: link paths in Chinese prose, quoted paths, and (line,col) and #L places (#1302) | pending |  |
-| `2f93076a` | 2026-11-06 | ui: show an Enter's X and Y on a panel placed with AttachTo (#1192) | pending |  |
-| `4abb83d8` | 2026-11-06 | ui/markdown: tell when a Stream has revealed all of its text (#1381) | pending |  |
-| `78c6ab78` | 2026-11-07 | ui: CellsStyle paints chosen cells, their rows and stripes (#1379) | pending |  |
+| `dee64ce3` | 2026-11-06 | ui: give menu items a tooltip with MenuItem.Tooltip (#1367) | todo-S | tooltip for drawn menu items (ui/menu.zig ItemOptions) |
+| `b466c566` | 2026-11-06 | ui: tell an item's place in its set, and its selection without the look (#1181) (#1371) | present | pos_in_set/set_size and selected in Description (ui/access.zig, listbox.zig) |
+| `3ece477d` | 2026-11-06 | ui: show an active descendant's tooltip as the keys rest on it (#1368) | todo-S | show an active descendant's tooltip under the keys (ui/popover.zig tooltip, menu.zig) |
+| `7ddd2522` | 2026-11-06 | ui: paint nothing of a group faded out, rather than its layer whole (#1373) | n/a | no group layers; paintNode returns when opacity <= 0.001 (ui/paint.zig) |
+| `8ec59d3a` | 2026-11-06 | ui: size a group's, a blur's and a Cache's layer by what it paints (#1375) | todo-M | blur layer is box plus blur reach (effect.zig beginLayer): children's shadows beyond it are cut |
+| `79c8b777` | 2026-11-06 | darwin: repeat a held key in an input without text for press and hold (#1374) | present | only a focused text field goes through interpretKeyEvents; key views get repeats as chars (ui/surface.zig) |
+| `3418a6a7` | 2026-11-06 | ui: hover what the pointer rests on in the frame the element it hovered goes (#1377) | todo-S | hover stays on a closed overlay's box for a frame: re-hot from built boxes before paint (ui/frame.zig) |
+| `8a07344d` | 2026-11-06 | macOS: leave a drag region's window to the window server when it begins late (#1378) | n/a | macOS drags always go to performWindowDragWithEvent (ui/surface.zig, window_mac_events.zig) |
+| `9092c954` | 2026-11-06 | terminal: link paths in Chinese prose, quoted paths, and (line,col) and #L places (#1302) | todo-M | terminal links in CJK prose, quoted paths, (line,col) and #L (plugins/terminal/src/links.zig) |
+| `2f93076a` | 2026-11-06 | ui: show an Enter's X and Y on a panel placed with AttachTo (#1192) | n/a | attached panels fade in by opacity, placed by style.offset; no Enter X/Y on them (overlay_base.zig) |
+| `4abb83d8` | 2026-11-06 | ui/markdown: tell when a Stream has revealed all of its text (#1381) | n/a | markdown streaming has no paced reveal to report on (ui/markdown/view.zig) |
+| `78c6ab78` | 2026-11-07 | ui: CellsStyle paints chosen cells, their rows and stripes (#1379) | todo-M | cells style for chosen cells, rows, stripes in ui/table.zig |
 | `58580d72` | 2026-11-07 | docs(website): add Sotto to the showcase (#1382) | skip |  |
-| `3d46dbb2` | 2026-11-07 | fix(linux): keep first WebKit calls on the main thread (#1384) | pending |  |
+| `3d46dbb2` | 2026-11-07 | fix(linux): keep first WebKit calls on the main thread (#1384) | present | webkit.load only dlopens/dlsyms; first WebKit calls are in Page.init on the main thread (linux/webkit.zig) |
 | `3a3eb30f` | 2026-11-06 | Release 0.8.0 | skip |  |
 | `16bab2ae` | 2026-11-06 | fix(tsgen): avoid shadowing the runtime call function (#1388) | n/a | the generated client passes ...a, no named parameters |
-| `442d09c2` | 2026-11-07 | ui: read FollowEnd at each layout, add ListState.HoldPlace (#1390) | pending |  |
-| `f494a2c6` | 2026-11-07 | ui, mygo: place and open drawn menu buttons' menus; SVG menu icons, icon colors (#1392) | pending |  |
-| `487bc349` | 2026-11-07 | darwin: sweep idle textures after frames drawn once their drawable comes (#1393) | pending |  |
+| `442d09c2` | 2026-11-07 | ui: read FollowEnd at each layout, add ListState.HoldPlace (#1390) | present | list reads opts.follow_end every layout (ui/list.zig); no HoldPlace |
+| `f494a2c6` | 2026-11-07 | ui, mygo: place and open drawn menu buttons' menus; SVG menu icons, icon colors (#1392) | todo-M | drawn menu button placement and SVG menu icons/colors (ui/menu.zig) |
+| `487bc349` | 2026-11-07 | darwin: sweep idle textures after frames drawn once their drawable comes (#1393) | n/a | Metal pool swept every frame by idle age (metal_fx.zig Pool.sweep via endFrame) |
 | `44c946bf` | 2026-11-06 | Release 0.8.1 | skip |  |
-| `8f07b6f2` | 2026-11-07 | ui: danger, subtitle, trailing, content, ID, highlight and width for drawn menu items (#1391) | pending |  |
-| `01769a2b` | 2026-11-07 | windows: sweep once 120 frames went by since the last sweep (#1394) | pending |  |
-| `2a59272c` | 2026-11-07 | updater: remove the files that the new version no longer has (#1400) | pending |  |
-| `591b2c81` | 2026-11-07 | Add Page.GPUProcessID, the ID of the process that does a page's graphics and media (#1401) | pending |  |
-| `3674af80` | 2026-11-07 | darwin: send the key an input method passes on after it commits (#1404) | pending |  |
-| `018e4dbc` | 2026-11-07 | text: break Korean lines between words, as CSS's word-break: keep-all (#1405) | pending |  |
-| `f843d3ed` | 2026-11-07 | gpu, scene: keep idle clip masks' memory within the budget (#1408) | pending |  |
-| `2a9c3a6b` | 2026-11-07 | ui: keep a turn far from the window's origin in front of the viewer (#1409) | pending |  |
-| `13865c32` | 2026-11-07 | ui: don't page a scroll view with Space while the focus takes text (#1411) | pending |  |
-| `a45b899e` | 2026-11-07 | ui/editor: keep a split diff's hunk header to the old side (#1415) | pending |  |
-| `674814aa` | 2026-11-07 | ui: let Tester.RightClick reach a row's content menu (#1416) | pending |  |
-| `b332e259` | 2026-11-07 | gpu: cut clips reaching into an outer clip's rounded corners with its mask (#1420) | pending |  |
-| `d6d0df14` | 2026-11-07 | linux: let clicks through a window with SetIgnoreMouseEvents (#1419) | pending |  |
+| `8f07b6f2` | 2026-11-07 | ui: danger, subtitle, trailing, content, ID, highlight and width for drawn menu items (#1391) | todo-M | drawn menu items: danger, subtitle, trailing, content, id, highlight, width (ui/menu.zig ItemOptions) |
+| `01769a2b` | 2026-11-07 | windows: sweep once 120 frames went by since the last sweep (#1394) | n/a | D3D11 pool swept every frame by idle age (d3d11_fx.zig) |
+| `2a59272c` | 2026-11-07 | updater: remove the files that the new version no longer has (#1400) | n/a | updater replaces one executable; no file trees to prune |
+| `591b2c81` | 2026-11-07 | Add Page.GPUProcessID, the ID of the process that does a page's graphics and media (#1401) | todo-S | Page GPU process id beside processId (page.zig, windows/page.zig, linux/page.zig) |
+| `3674af80` | 2026-11-07 | darwin: send the key an input method passes on after it commits (#1404) | present | doCommandBySelector pushes insert_newline after insertText in one queue (ui/textinput.zig) |
+| `018e4dbc` | 2026-11-07 | text: break Korean lines between words, as CSS's word-break: keep-all (#1405) | todo-M | Korean keep-all line breaking (ui/text_wrap.zig and engines) |
+| `f843d3ed` | 2026-11-07 | gpu, scene: keep idle clip masks' memory within the budget (#1408) | n/a | no clip masks on GPU; rounded clips are in the shader (gpu.zig clip_round) |
+| `2a9c3a6b` | 2026-11-07 | ui: keep a turn far from the window's origin in front of the viewer (#1409) | n/a | no perspective transforms |
+| `13865c32` | 2026-11-07 | ui: don't page a scroll view with Space while the focus takes text (#1411) | n/a | scroll views take no Space/PageDown paging keys |
+| `a45b899e` | 2026-11-07 | ui/editor: keep a split diff's hunk header to the old side (#1415) | n/a | DiffView gap rows show a count, no hunk header text across split sides |
+| `674814aa` | 2026-11-07 | ui: let Tester.RightClick reach a row's content menu (#1416) | n/a | Tester.rightClick takes coordinates, no label target checks (ui/tester.zig) |
+| `b332e259` | 2026-11-07 | gpu: cut clips reaching into an outer clip's rounded corners with its mask (#1420) | present | roundClip rounds nested instances meeting the outer clip's corners (ui/paint.zig) |
+| `d6d0df14` | 2026-11-07 | linux: let clicks through a window with SetIgnoreMouseEvents (#1419) | todo-M | no ignore-mouse-events API in any backend; Linux: empty GDK input shape |
 | `9ea2a2ab` | 2026-11-06 | website: add TanGit to the showcase (#1424) | skip |  |
 | `c9a7ed56` | 2026-11-06 | fix(tsgen): reserve built-in Promise and Record type names (#1421) | ported | tsgen: app types named Promise or Record get another name (declName) |
-| `1dfa5a1f` | 2026-11-07 | feat(markdown): GitHub alerts, mentions and issue references (#1423) | pending |  |
+| `1dfa5a1f` | 2026-11-07 | feat(markdown): GitHub alerts, mentions and issue references (#1423) | todo-M | GitHub alerts, mentions, issue refs in ui/markdown |
 | `0657b3b2` | 2026-11-07 | Native modules: Go interfaces implemented in Swift (#1425) | n/a | Go-specific |
-| `6a9ae286` | 2026-11-07 | gpu: keep a growing clip's mask instead of allocating it every frame (#1428) | pending |  |
+| `6a9ae286` | 2026-11-07 | gpu: keep a growing clip's mask instead of allocating it every frame (#1428) | n/a | no clip mask textures |
 | `31245094` | 2026-11-07 | Release 0.8.2 | skip |  |
 | `c4d767e5` | 2026-11-07 | Revert "Native modules: Go interfaces implemented in Swift (#1425)" | n/a | Go-specific |
 | `5add3817` | 2026-11-07 | Release 0.8.3 | skip |  |
-| `62e74204` | 2026-11-07 | text: draw grayscale glyphs in grayscale where fontconfig asks for subpixels (#1429) | pending |  |
+| `62e74204` | 2026-11-07 | text: draw grayscale glyphs in grayscale where fontconfig asks for subpixels (#1429) | n/a | glyphs rasterized by FreeType directly, not cairo (ui/text_ft.zig) |
 | `e36f00fc` | 2026-11-07 | showcase: add CurlGo, a local-first API client (#1431) | skip |  |
-| `4219d257` | 2026-11-07 | Decode AAC, FLAC and Apple Lossless, in MP4 too (#1432) | pending |  |
-| `41b7d999` | 2026-11-07 | ui: Tester.AccessAll reads what assistive technology sees of every element (#1437) | pending |  |
-| `d443b369` | 2026-11-07 | update: ask again when a server or gateway fails for a moment (#1436) | pending |  |
-| `ba157a00` | 2026-11-07 | richtext: open attachment links across their full bounds (#1435) | pending |  |
-| `132e3f44` | 2026-11-07 | text: put numbers together and wrap Latin text from one shaped line on Windows (#1427) | pending |  |
-| `b87bf329` | 2026-11-07 | ui: tell assistive technology that menu buttons open a menu (#1438) | pending |  |
-| `435d9411` | 2026-11-07 | editor: keep the caret in place when another goroutine edits far ahead (#1440) | pending |  |
+| `4219d257` | 2026-11-07 | Decode AAC, FLAC and Apple Lossless, in MP4 too (#1432) | todo-L | AAC, FLAC, ALAC and MP4 decoding (src/audio/formats.zig has WAV, Vorbis, MP3) |
+| `41b7d999` | 2026-11-07 | ui: Tester.AccessAll reads what assistive technology sees of every element (#1437) | todo-S | Tester method reading the access tree of every element (ui/tester.zig) |
+| `d443b369` | 2026-11-07 | update: ask again when a server or gateway fails for a moment (#1436) | ported | updater get asks again on network errors and 429/5xx (retry_ms, Retry-After) |
+| `ba157a00` | 2026-11-07 | richtext: open attachment links across their full bounds (#1435) | n/a | rich text has no attachments (ui/richtext/model.zig) |
+| `132e3f44` | 2026-11-07 | text: put numbers together and wrap Latin text from one shaped line on Windows (#1427) | deferred | perf: DirectWrite numbers and wrap from one shaped line (ui/text_dw.zig); needs hillclimb |
+| `b87bf329` | 2026-11-07 | ui: tell assistive technology that menu buttons open a menu (#1438) | present | menu_button role sets has_popup (ui/access_tree.zig) |
+| `435d9411` | 2026-11-07 | editor: keep the caret in place when another goroutine edits far ahead (#1440) | n/a | editor is single-threaded; no concurrent edits |
 | `de13e8b4` | 2026-11-07 | ui: keep the caret of right-aligned inputs inside the box (#1442) | present | text field keeps 2 points for the caret (textfield.zig) |
-| `8065a78b` | 2026-11-07 | ui: let a List row's content know when the row is hovered or pressed (#1441) | pending |  |
+| `8065a78b` | 2026-11-07 | ui: let a List row's content know when the row is hovered or pressed (#1441) | todo-S | let a list row's content read the row's hovered/pressed (ui/list.zig) |
 | `64f1df18` | 2026-11-07 | fix(fetch): reject URLs containing credentials (#1458) | ported | fetch.js: URLs with credentials refused |
-| `94f22c38` | 2026-11-07 | text: draw Chinese text in one font on English Windows (#1459) | pending |  |
-| `1db4e93b` | 2026-11-07 | mygo dev: sign the development app with an Apple Development identity on macOS (#1460) | pending |  |
-| `7343aad4` | 2026-11-08 | ui: read out a status when its text changes (ARIA status) (#1462) | pending |  |
+| `94f22c38` | 2026-11-07 | text: draw Chinese text in one font on English Windows (#1459) | todo-S | DW text format uses the user locale for all text: en-US mixes Japanese/TC fonts for Han (ui/text_dw.zig) |
+| `1db4e93b` | 2026-11-07 | mygo dev: sign the development app with an Apple Development identity on macOS (#1460) | n/a | myzig dev runs the bare executable, no bundle or signing (cli/src/dev.zig) |
+| `7343aad4` | 2026-11-08 | ui: read out a status when its text changes (ARIA status) (#1462) | todo-S | announce a .status element's text when it changes (only toasts announce, ui/toast_view.zig) |
 | `0c281198` | 2026-11-08 | docs(ui): say when a list writes -1 into Selected (#1465) | skip |  |
-| `46089cb2` | 2026-11-08 | terminal: let an app take dropped files first (Options.OnDrop) (#1466) | pending |  |
+| `46089cb2` | 2026-11-08 | terminal: let an app take dropped files first (Options.OnDrop) (#1466) | n/a | terminal plugin takes no dropped files |
 | `19a64d15` | 2026-11-08 | 添加 GoRequest 到应用展示列表 (#1468) | skip |  |
-| `35611e7f` | 2026-11-08 | Add Window.SetInputRegion, for windows that take clicks only on parts of them (#1467) | pending |  |
-| `739ace3e` | 2026-11-08 | windows: ask where the cursor is at each clock tick for an input region (#1473) | pending |  |
-| `80013ac3` | 2026-11-08 | ui: keep a Split drag's overshoot past a pane's limit (#1475) | pending |  |
+| `35611e7f` | 2026-11-08 | Add Window.SetInputRegion, for windows that take clicks only on parts of them (#1467) | todo-L | Window input region (click-through parts) on every backend |
+| `739ace3e` | 2026-11-08 | windows: ask where the cursor is at each clock tick for an input region (#1473) | deferred | Windows follow-up of the input region (35611e7f) |
+| `80013ac3` | 2026-11-08 | ui: keep a Split drag's overshoot past a pane's limit (#1475) | present | split.zig drags to the absolute pointer minus the grab offset, so the overshoot is kept |
 | `c97fbd06` | 2026-11-08 | Add Ferry to showcase (#1477) | skip |  |
 | `dd14cc3a` | 2026-11-08 | website: describe Ferry in English, as the other showcase entries (#1478) | skip |  |
-| `27b3abf5` | 2026-11-08 | ui/video: native video with the system's media engines (#1469) | pending |  |
+| `27b3abf5` | 2026-11-08 | ui/video: native video with the system's media engines (#1469) | todo-L | native video (ui/video): system media engines, NV12 frames sampled by every renderer |
 | `659a325e` | 2026-11-07 | showcase: add MyVNC (#1480) | skip |  |
 | `46f8473c` | 2026-11-08 | examples/video: loop the trailer in TestTrailer so it can't end before the clicks (#1483) | skip |  |
-| `3dcfc626` | 2026-11-07 | terminal: end a URL printed as text at its first character that is not ASCII (#1481) | pending |  |
-| `de0966c4` | 2026-11-08 | text: take Han characters' language from the user's profile languages too (#1482) | pending |  |
-| `8cf1afe5` | 2026-11-08 | automation: build the frame a window out of sight waits for, so a press reaches its view (#1485) | pending |  |
-| `cc6f6e7a` | 2026-11-08 | ui: let named Tester clicks reach inline links with duplicate labels (#1488) | pending |  |
-| `92336637` | 2026-11-08 | gpu: evaluate reducible stationary clip chains without pixel masks (#1489) | pending |  |
-| `cef266af` | 2026-11-08 | editor: highlight Nix (#1484) | pending |  |
-| `9868d86b` | 2026-11-08 | Add Power.KeepRunning, which keeps App Nap off and lets the computer sleep (#1486) | pending |  |
-| `698082b1` | 2026-11-08 | ui: show frames of video in NV12 and I420 without converting them (Bitmap.UpdateYUV) (#1487) | pending |  |
-| `6f73a2a0` | 2026-11-08 | Read back the language SetLocale chose (App.ChosenLocale) (#1470) | pending |  |
-| `c8e911e3` | 2026-11-08 | Add ClipboardOptions.Concealed, for passwords and other secrets on the clipboard (#1476) | pending |  |
-| `c57f6660` | 2026-11-08 | ui: take a DragWindow handle's double click with WindowDoubleClicked (#1490) | pending |  |
-| `9795e066` | 2026-11-08 | ui: hide a button's tooltip while its menu or popover shows (#1491) | pending |  |
-| `b5db0b40` | 2026-11-08 | ui: report read-only and multi-line on text boxes MyGo doesn't edit (#1493) | pending |  |
-| `29c8444f` | 2026-11-08 | i18n: preserve __proto__ placeholders when binding messages (#1492) | pending |  |
-| `c44ef478` | 2026-11-08 | ui/editor: keep highlighting within its budget when lines are long (#1497) | pending |  |
-| `60580dcc` | 2026-11-09 | ui: skip Affine.Mul in Painter.add when the painter has no transform (#1500) | pending |  |
+| `3dcfc626` | 2026-11-07 | terminal: end a URL printed as text at its first character that is not ASCII (#1481) | ported | a URL printed as text ends at its first non-ASCII character (terminal links.zig url) |
+| `de0966c4` | 2026-11-08 | text: take Han characters' language from the user's profile languages too (#1482) | todo-M | with #1459 (94f22c38): Han language from UI then profile languages for DirectWrite (text_dw.zig) |
+| `8cf1afe5` | 2026-11-08 | automation: build the frame a window out of sight waits for, so a press reaches its view (#1485) | n/a | no automation plugin; --myzig-script drives frames directly |
+| `cc6f6e7a` | 2026-11-08 | ui: let named Tester clicks reach inline links with duplicate labels (#1488) | n/a | Tester.clickText has no covered-target check, so duplicate labels are not refused |
+| `92336637` | 2026-11-08 | gpu: evaluate reducible stationary clip chains without pixel masks (#1489) | n/a | clips are per-instance rounded rects (gpu.zig clip/clip_round), no pixel masks |
+| `cef266af` | 2026-11-08 | editor: highlight Nix (#1484) | present | Nix highlighted (markdown/highlight_langs.zig nix) |
+| `9868d86b` | 2026-11-08 | Add Power.KeepRunning, which keeps App Nap off and lets the computer sleep (#1486) | todo-S | system.keepRunning: NSProcessInfo beginActivity without idle-sleep block on macOS (system_mac.zig), no-op elsewhere |
+| `698082b1` | 2026-11-08 | ui: show frames of video in NV12 and I420 without converting them (Bitmap.UpdateYUV) (#1487) | todo-M | YUV (NV12/I420) images shown without conversion; follows native video (27b3abf5) |
+| `6f73a2a0` | 2026-11-08 | Read back the language SetLocale chose (App.ChosenLocale) (#1470) | n/a | no persisted SetLocale choice; i18n/shown.zig locale is what the app sets |
+| `c8e911e3` | 2026-11-08 | Add ClipboardOptions.Concealed, for passwords and other secrets on the clipboard (#1476) | todo-M | clipboard write option concealed: nspasteboard ConcealedType, Windows exclusion formats, KDE hint |
+| `c57f6660` | 2026-11-08 | ui: take a DragWindow handle's double click with WindowDoubleClicked (#1490) | n/a | no DragWindow handle element; only the hidden title bar strip moves the window (surface.zig) |
+| `9795e066` | 2026-11-08 | ui: hide a button's tooltip while its menu or popover shows (#1491) | todo-S | popover.zig tooltipBase: hide the tip while the anchor's menu or popover shows (keyboard-opened too) |
+| `b5db0b40` | 2026-11-08 | ui: report read-only and multi-line on text boxes MyGo doesn't edit (#1493) | present | read_only and multiline reported on text roles (atspi_proto.zig; UIA by set_value) |
+| `29c8444f` | 2026-11-08 | i18n: preserve __proto__ placeholders when binding messages (#1492) | n/a | no JavaScript i18n catalog runtime |
+| `c44ef478` | 2026-11-08 | ui/editor: keep highlighting within its budget when lines are long (#1497) | n/a | editor/syntax.zig has no time budget; lines capped at max_tokenized |
+| `60580dcc` | 2026-11-09 | ui: skip Affine.Mul in Painter.add when the painter has no transform (#1500) | n/a | canvas records transform ops; no per-op Affine multiply |
 | `2d2cbbe4` | 2026-11-09 | Native modules: Go interfaces implemented in Swift, Rust or Zig (#1430) | n/a | Go-specific |
-| `b9cbe08d` | 2026-11-09 | ui: report read-only on grid cells, sliders and the other roles ARIA allows it on (#1495) | pending |  |
-| `a3764f27` | 2026-11-09 | ui: a tab panel role (ARIA tabpanel) (#1456) | pending |  |
-| `905f3e56` | 2026-11-09 | ui/chart: add logarithmic and symmetric log scales (#1501) | pending |  |
-| `cbded0c2` | 2026-11-09 | windows: stream custom scheme responses to WebView2 (#1504) | pending |  |
-| `29acf0b6` | 2026-11-09 | ui: draw in memory after a frame the GPU did not finish in time (#1505) | pending |  |
-| `f33c6e71` | 2026-11-09 | ui: report a row's single click with RowClicked (#1513) | pending |  |
-| `58ebcf00` | 2026-11-09 | markdown: copy a shared view's text as its own Markdown (#1512) | pending |  |
-| `f30b4d38` | 2026-11-09 | ui: stop per-frame allocations in Outline rows and ContextMenu (#1514) | pending |  |
-| `2463ff82` | 2026-11-09 | ui: hover the row a scroll brings under the pointer in the frame that scrolls (#1508) (#1515) | pending |  |
-| `c4197b7f` | 2026-11-09 | gpu: cut panes in a continuous frame's corners in Metal's shader (#1516) | pending |  |
-| `f234638d` | 2026-11-09 | ui: main, banner, content info and complementary landmarks (#1519) | pending |  |
-| `2a3f59b6` | 2026-11-09 | terminal: send Tab, Enter and Esc for Ctrl+I, Ctrl+M and Ctrl+[ (#1523) | pending |  |
-| `7c453ff0` | 2026-11-09 | d3d11: share one device across the windows' renderers (#1520) | pending |  |
-| `a30c1da5` | 2026-11-08 | windows: reclaim the temporary icons of notifications on a timer (#1524) | pending |  |
-| `ba4fa533` | 2026-11-08 | darwin: keep what assistive technology writes to a password field unreadable (#1527) | pending |  |
-| `1b9e905e` | 2026-11-09 | ui/editor: don't panic on a pointer move before a reset diff is laid out (#1528) | pending |  |
-| `6a730f12` | 2026-11-09 | updater: install an update of an app at the root of a drive (#1531) | pending |  |
-| `55df1aee` | 2026-11-09 | audio: low-pass before downsampling, so 30 kHz no longer plays at 18 kHz (#1536) | pending |  |
-| `4a142351` | 2026-11-09 | ui: keep a layer's scaled and rotated descendants in their place (#1533) | pending |  |
-| `83030abc` | 2026-11-09 | ui/editor: show an empty side of a diff without line numbers (#1534) | pending |  |
-| `6dfdff6a` | 2026-11-09 | macOS: give a native popover the app's appearance, not its anchor's (#1530) | pending |  |
-| `a3b07219` | 2026-11-09 | ui: open the chosen row's context menu for the menu key in a list (#1539) | pending |  |
-| `9b283020` | 2026-11-09 | ui: let a transition's Exit wait its own delay (ElementTransition.ExitDelay) (#1540) | pending |  |
-| `9b28c28c` | 2026-11-09 | ui/editor: give a Language.Highlighter the lines a patch's hunks start at (#1544) | pending |  |
-| `2cb5152c` | 2026-11-09 | ui: cut a text's middle with TruncateMiddle, keeping its start and end (#1537) | pending |  |
-| `0823afe7` | 2026-11-09 | ui/editor: paint a unified diff's deleted lines from the first in view (#1549) | pending |  |
-| `41bc9954` | 2026-11-09 | macOS: count a minimized window as visible, as Windows and Linux do (#1542) (#1552) | pending |  |
-| `34c35478` | 2026-11-09 | ui: report a column moved or resized once the drag ends (#1553) | pending |  |
-| `2731fbc3` | 2026-11-09 | text: draw symbols presented as text in the text's color on Windows (#1551) | pending |  |
-| `d40dda45` | 2026-11-09 | Let App.Relaunch pass arguments to the new instance (#1556) | pending |  |
-| `7ac8b25e` | 2026-11-09 | Run the quit listeners when the OS ends the session (#1555) | pending |  |
-| `983c59a9` | 2026-11-08 | terminal: keep glyphs shrunk to fit a cell in the middle of the line (#1550) | pending |  |
-| `e82f6f7d` | 2026-11-09 | ui: share a segmented control's width equally with FillEqually (#1554) | pending |  |
-| `24f8dde1` | 2026-11-09 | ui: let Meter and Progress fill in colors of the app's own (#1558) | pending |  |
-| `d8fba9bb` | 2026-11-09 | Add App.ClearWindowStates, and say when window states are saved (#1557) | pending |  |
-| `b6a6200b` | 2026-11-09 | shell: preview items with Quick Look on macOS (#1561) | pending |  |
-| `dae2115c` | 2026-11-09 | ui: let a child's own Transition follow its parent's Size transition (#1562) | pending |  |
-| `799e754d` | 2026-11-09 | windows: preserve native opening transitions for ready windows (#1563) | pending |  |
-| `4ceb5883` | 2026-11-09 | ui/editor: forget a unified diff's deleted lines once frames stop showing them (#1559) | pending |  |
-| `45bcc6a4` | 2026-11-09 | clipboard: prefer UTF-8 targets over a bare text/plain (#1564) | pending |  |
+| `b9cbe08d` | 2026-11-09 | ui: report read-only on grid cells, sliders and the other roles ARIA allows it on (#1495) | todo-S | report read_only on grids, cells, sliders, combo boxes etc. (atspi_proto.zig states, uia, access_mac) |
+| `a3764f27` | 2026-11-09 | ui: a tab panel role (ARIA tabpanel) (#1456) | present | tab_panel role (access.zig, atspi_proto.zig panel, uia_api.zig pane) |
+| `905f3e56` | 2026-11-09 | ui/chart: add logarithmic and symmetric log scales (#1501) | todo-M | chart log and symlog scales (ui/chart/scale.zig) |
+| `cbded0c2` | 2026-11-09 | windows: stream custom scheme responses to WebView2 (#1504) | todo-L | stream custom scheme responses to WebView2 (windows/page_scheme.zig answers whole via SHCreateMemStream) |
+| `29acf0b6` | 2026-11-09 | ui: draw in memory after a frame the GPU did not finish in time (#1505) | todo-M | Metal command buffer timeout: draw that frame on the CPU and leave the GPU (metal.zig, surface.zig) |
+| `f33c6e71` | 2026-11-09 | ui: report a row's single click with RowClicked (#1513) | todo-S | rowClicked beside rowDoubleClicked (list_select.zig) |
+| `58ebcf00` | 2026-11-09 | markdown: copy a shared view's text as its own Markdown (#1512) | n/a | markdown has no shared selection or Copy as Markdown |
+| `f30b4d38` | 2026-11-09 | ui: stop per-frame allocations in Outline rows and ContextMenu (#1514) | n/a | Go closure allocations; no equivalent in myzig |
+| `2463ff82` | 2026-11-09 | ui: hover the row a scroll brings under the pointer in the frame that scrolls (#1508) (#1515) | todo-M | hover the row a scroll brings under the pointer before paint (frame.zig commitHits/updateHot after paint) |
+| `c4197b7f` | 2026-11-09 | gpu: cut panes in a continuous frame's corners in Metal's shader (#1516) | n/a | clips are per-instance rounded rects (continuous via clipContinuous), no masks |
+| `f234638d` | 2026-11-09 | ui: main, banner, content info and complementary landmarks (#1519) | todo-S | main/banner/contentinfo/complementary landmark roles (access.zig and the three platform maps) |
+| `2a3f59b6` | 2026-11-09 | terminal: send Tab, Enter and Esc for Ctrl+I, Ctrl+M and Ctrl+[ (#1523) | todo-S | terminal view.zig: send 0x09/0x0d/0x1b for Ctrl+I/M/[ when the encoder writes nothing |
+| `7c453ff0` | 2026-11-09 | d3d11: share one device across the windows' renderers (#1520) | todo-M | share one D3D11 device across windows' renderers (d3d11.zig init calls createDevice per renderer) |
+| `a30c1da5` | 2026-11-08 | windows: reclaim the temporary icons of notifications on a timer (#1524) | present | a balloon fallback reuses one temporary tray icon (windows/app.zig notify), no pile-up |
+| `ba4fa533` | 2026-11-08 | darwin: keep what assistive technology writes to a password field unreadable (#1527) | present | access_mac.zig setValue/setSelectedText never store on the element (no super call) |
+| `1b9e905e` | 2026-11-09 | ui/editor: don't panic on a pointer move before a reset diff is laid out (#1528) | n/a | diffview is a row model, not an editor pair with hiddenRows |
+| `6a730f12` | 2026-11-09 | updater: install an update of an app at the root of a drive (#1531) | n/a | updater replaces the executable; no unpack directory named after the folder |
+| `55df1aee` | 2026-11-09 | audio: low-pass before downsampling, so 30 kHz no longer plays at 18 kHz (#1536) | todo-M | audio mixer.zig: windowed-sinc low-pass when step > 1 (now 4-point interpolation) |
+| `4a142351` | 2026-11-09 | ui: keep a layer's scaled and rotated descendants in their place (#1533) | n/a | blur layers draw in place (effect.zig beginLayer); no subtree shift |
+| `83030abc` | 2026-11-09 | ui/editor: show an empty side of a diff without line numbers (#1534) | ported | an empty text has no lines (diff.zig splitLines) |
+| `6dfdff6a` | 2026-11-09 | macOS: give a native popover the app's appearance, not its anchor's (#1530) | todo-S | popover_mac.zig: set the NSPopover's appearance to the app's, again on theme change |
+| `a3b07219` | 2026-11-09 | ui: open the chosen row's context menu for the menu key in a list (#1539) | todo-S | menu.zig contextMenu: Shift+F10 in a focused list opens the chosen row's menu below the row |
+| `9b283020` | 2026-11-09 | ui: let a transition's Exit wait its own delay (ElementTransition.ExitDelay) (#1540) | todo-S | motion_transition.zig: exit timing of its own (exit delay; exit duration/ease also missing) |
+| `9b28c28c` | 2026-11-09 | ui/editor: give a Language.Highlighter the lines a patch's hunks start at (#1544) | n/a | no app Language.Highlighter or patch restarts |
+| `2cb5152c` | 2026-11-09 | ui: cut a text's middle with TruncateMiddle, keeping its start and end (#1537) | todo-M | middle truncation with an ellipsis (myzig has no text truncation at all yet) |
+| `0823afe7` | 2026-11-09 | ui/editor: paint a unified diff's deleted lines from the first in view (#1549) | n/a | diffview rows are built only in view; no deleted-run walk |
+| `41bc9954` | 2026-11-09 | macOS: count a minimized window as visible, as Windows and Linux do (#1542) (#1552) | todo-S | window.zig isVisible: count a miniaturized window visible unless hidden while minimized |
+| `34c35478` | 2026-11-09 | ui: report a column moved or resized once the drag ends (#1553) | todo-S | table_columns.zig: report columns changed once a move/resize drag ends |
+| `2731fbc3` | 2026-11-09 | text: draw symbols presented as text in the text's color on Windows (#1551) | todo-M | DirectWrite: text-presented symbols from color fonts drawn monochrome (text_dw_raster.zig) |
+| `d40dda45` | 2026-11-09 | Let App.Relaunch pass arguments to the new instance (#1556) | todo-S | App.relaunch(args) on every backend (relaunch.zig start; app.zig relaunch takes none) |
+| `7ac8b25e` | 2026-11-09 | Run the quit listeners when the OS ends the session (#1555) | todo-S | Windows: handle WM_ENDSESSION by running the quit teardown synchronously (windows/appwnd.zig, app.zig) |
+| `983c59a9` | 2026-11-08 | terminal: keep glyphs shrunk to fit a cell in the middle of the line (#1550) | n/a | terminal does not shrink wide glyphs to a cell |
+| `e82f6f7d` | 2026-11-09 | ui: share a segmented control's width equally with FillEqually (#1554) | todo-S | segmented fill_equally: full width, equal segments (widgets.zig segmented) |
+| `24f8dde1` | 2026-11-09 | ui: let Meter and Progress fill in colors of the app's own (#1558) | todo-S | meter/progress colors of the app's own (controls_range.zig meterColor, widgets.zig progress) |
+| `d8fba9bb` | 2026-11-09 | Add App.ClearWindowStates, and say when window states are saved (#1557) | todo-S | clearWindowStates: save an empty store and stop capturing (window_state.zig) |
+| `b6a6200b` | 2026-11-09 | shell: preview items with Quick Look on macOS (#1561) | todo-S | shell.previewItem via QLPreviewPanel on macOS, error.Unsupported elsewhere |
+| `dae2115c` | 2026-11-09 | ui: let a child's own Transition follow its parent's Size transition (#1562) | present | size transitions animate style sizes before layout, so children follow (motion_transition.zig) |
+| `799e754d` | 2026-11-09 | windows: preserve native opening transitions for ready windows (#1563) | n/a | no DWM cloaking of hidden windows in windows/window.zig |
+| `4ceb5883` | 2026-11-09 | ui/editor: forget a unified diff's deleted lines once frames stop showing them (#1559) | n/a | diffview has no old-text editor view to retire |
+| `45bcc6a4` | 2026-11-09 | clipboard: prefer UTF-8 targets over a bare text/plain (#1564) | present | Linux reads text with gtk_clipboard_wait_for_text, which prefers UTF-8 (linux/desktop.zig) |
 | `6e965739` | 2026-11-09 | ci: pin Bun, so setup-bun keeps it in the Actions cache (#1569) | skip |  |
-| `d58db724` | 2026-11-09 | richtext: let an app take keys, draw spans and build the menu of the editor (#1567) | pending |  |
+| `d58db724` | 2026-11-09 | richtext: let an app take keys, draw spans and build the menu of the editor (#1567) | todo-M | richtext options: app menu, on_key, spans (richtext/view.zig) |
 | `89f61a07` | 2026-11-09 | Let a read of an app file share its deletion, so it never blocks a save (#1573) | todo-S | Windows: share delete on app file reads (document_file.zig; needs Windows) |
-| `ccd885bd` | 2026-11-09 | fix(fetch): preserve response metadata when cloning (#1570) | pending |  |
+| `ccd885bd` | 2026-11-09 | fix(fetch): preserve response metadata when cloning (#1570) | todo-S | plugins/fetch/src/js/fetch.js: keep url, redirected, status on res.clone() |
 | `eadf1fce` | 2026-11-09 | ci: keep the SQLite native module in the Actions cache (#1574) | skip |  |
 | `1c232860` | 2026-11-09 | showcase: add Golder (#1580) | skip |  |
-| `24c44052` | 2026-11-09 | editor: fit wrapped rows to their shaped width, and keep closing punctuation off row starts (#1584) | pending |  |
-| `a364e922` | 2026-11-09 | updater: add OnInstalled, called once an update is installed (#1577) | pending |  |
-| `d0bfee2c` | 2026-11-09 | fix(ui): show edit items in the context menu of a HandleTextInput element (#1582) | pending |  |
-| `be46dcc0` | 2026-11-10 | ui/editor: find a script's language by its #! line (#1586) | pending |  |
-| `434ef095` | 2026-11-09 | ui: repaint for hover that only changes looks, and do less per element each frame (#1590) | pending |  |
+| `24c44052` | 2026-11-09 | editor: fit wrapped rows to their shaped width, and keep closing punctuation off row starts (#1584) | todo-M | editor wrap: CJK breaks and no closing punctuation at row start (text_wrap.zig; with 5a134b43) |
+| `a364e922` | 2026-11-09 | updater: add OnInstalled, called once an update is installed (#1577) | present | updater Service emits StateEvent ready once installed (plugins/updater/src/service.zig) |
+| `d0bfee2c` | 2026-11-09 | fix(ui): show edit items in the context menu of a HandleTextInput element (#1582) | n/a | no HandleTextInput elements; richtext has no context menu |
+| `be46dcc0` | 2026-11-10 | ui/editor: find a script's language by its #! line (#1586) | todo-S | editor/syntax.zig languageFor: fall back to the #! interpreter (and .rbs as ruby) |
+| `434ef095` | 2026-11-09 | ui: repaint for hover that only changes looks, and do less per element each frame (#1590) | n/a | Go per-element costs; myzig frames on hot change only (surface mouseMoved) |
 | `25891783` | 2026-11-09 | fix(showcase): clarify Golder interfaces and computer use (#1592) | skip |  |
-| `10edac95` | 2026-11-10 | ui/editor: highlight ERB and Jinja templates (#1585) | pending |  |
-| `46702473` | 2026-11-09 | ui: present frames without display pacing with MYGO_UNCAPPED=1 (#1498) | pending |  |
-| `ce8116e3` | 2026-11-10 | fix(richtext): move the caret and take the focus on a right-click (#1596) | pending |  |
-| `1cdf900d` | 2026-11-10 | fix: show a window whose first frame waits on the main thread (#1595) | pending |  |
-| `63603193` | 2026-11-09 | raster: convert Oklab mixes through a table of toSRGB, built on first use (#1589) | pending |  |
-| `48680f9c` | 2026-11-09 | ui: style scroll bars, as VS Code's editor (#1594) | pending |  |
-| `3355a2a7` | 2026-11-09 | claude: allow gh api calls that manage PRs and workflow runs | pending |  |
-| `c101dc94` | 2026-11-09 | ui/editor: highlight Svelte and HCL/Terraform files (#1597) | pending |  |
-| `5b5a25be` | 2026-11-10 | windows: keep a composed native UI window cloaked until DWM composed its first frame (#1591) (#1598) | pending |  |
-| `e6562e99` | 2026-11-10 | ui: add SplitButton, a button joined to a menu of related actions (#1600) | pending |  |
-| `5a2f9c65` | 2026-11-10 | ui: journal what frames write into built fields after the build (#1601) | pending |  |
-| `afb7d5f1` | 2026-11-10 | perf(ui): return early from computeBox for a box with no children (#1603) | pending |  |
-| `58f31630` | 2026-11-10 | perf(ui): give a row's stretched items its height without measuring them (#1604) | pending |  |
-| `9d363427` | 2026-11-10 | feat(richtext): add Document.CaretRect, where the editor shows the caret (#1607) | pending |  |
-| `f4892b10` | 2026-11-10 | Tell apps when a quit they started was canceled (#1606) | pending |  |
-| `255655c8` | 2026-11-09 | darwin: hear NSCurrentLocaleDidChangeNotification under the name Foundation posts it (#1611) | pending |  |
-| `34c3a8cd` | 2026-11-10 | feat(dev): add mygo dev -background, to keep the app from taking the focus (#1609) | pending |  |
-| `4d205d66` | 2026-11-10 | fix(ui): keep a text area from panicking when its text shrinks under a drag (#1614) | pending |  |
-| `6325e0a9` | 2026-11-10 | darwin, windows: draw a hidden or minimized window's frame at once (#1613) | pending |  |
-| `93f50772` | 2026-11-10 | fix(ui): keep a GridView from asking for keys of items the app took out (#1615) | pending |  |
-| `490715e2` | 2026-11-10 | feat(ui/editor): highlight a template's text in the language its name gives (#1619) | pending |  |
-| `819683b2` | 2026-11-10 | updater: offer a release that came out while the update window was open (#1618) | pending |  |
-| `ce52b009` | 2026-11-10 | feat(ui/editor): show a patch with its files (#1623) | pending |  |
-| `8146909a` | 2026-11-10 | feat(ui): replace an input's text as a step of undo of its own (#1622) | pending |  |
+| `10edac95` | 2026-11-10 | ui/editor: highlight ERB and Jinja templates (#1585) | todo-S | map erb and j2/jinja to a template language (markdown/highlight_langs.zig) |
+| `46702473` | 2026-11-09 | ui: present frames without display pacing with MYGO_UNCAPPED=1 (#1498) | todo-M | uncapped presentation env flag for benchmarks (metal/d3d11/gl present paths) |
+| `ce8116e3` | 2026-11-10 | fix(richtext): move the caret and take the focus on a right-click (#1596) | n/a | richtext has no context menu to place the caret for |
+| `1cdf900d` | 2026-11-10 | fix: show a window whose first frame waits on the main thread (#1595) | present | native windows order front at creation (window.zig), no deferred show |
+| `63603193` | 2026-11-09 | raster: convert Oklab mixes through a table of toSRGB, built on first use (#1589) | todo-S | gradient.zig fromOklab: toSrgb table (CPU); GPU twins must match the same pixels |
+| `48680f9c` | 2026-11-09 | ui: style scroll bars, as VS Code's editor (#1594) | todo-M | scroll bar style: track, widths, radius, colors per state (scrollbar.zig, theme) |
+| `3355a2a7` | 2026-11-09 | claude: allow gh api calls that manage PRs and workflow runs | skip | mygo .claude settings |
+| `c101dc94` | 2026-11-09 | ui/editor: highlight Svelte and HCL/Terraform files (#1597) | present | svelte and hcl/tf mapped (markdown/highlight_langs.zig) |
+| `5b5a25be` | 2026-11-10 | windows: keep a composed native UI window cloaked until DWM composed its first frame (#1591) (#1598) | n/a | no DirectComposition windows or cloaking |
+| `e6562e99` | 2026-11-10 | ui: add SplitButton, a button joined to a menu of related actions (#1600) | todo-M | SplitButton: button joined to a menu (menu.zig buttonMenu) |
+| `5a2f9c65` | 2026-11-10 | ui: journal what frames write into built fields after the build (#1601) | n/a | myzig builds every frame anew; no kept elements to journal |
+| `afb7d5f1` | 2026-11-10 | perf(ui): return early from computeBox for a box with no children (#1603) | present | layout.zig arrangeBox returns early for a box with no children |
+| `58f31630` | 2026-11-10 | perf(ui): give a row's stretched items its height without measuring them (#1604) | todo-S | layout.zig:278 skip re-measuring a stretched flexible child in a fixed-height row (perf) |
+| `9d363427` | 2026-11-10 | feat(richtext): add Document.CaretRect, where the editor shows the caret (#1607) | present | richtext caret rect in Context.focused_text.caret_rect (richtext/view.zig) |
+| `f4892b10` | 2026-11-10 | Tell apps when a quit they started was canceled (#1606) | n/a | no cancelable quit listeners |
+| `255655c8` | 2026-11-09 | darwin: hear NSCurrentLocaleDidChangeNotification under the name Foundation posts it (#1611) | n/a | no current-locale change observer on macOS |
+| `34c3a8cd` | 2026-11-10 | feat(dev): add mygo dev -background, to keep the app from taking the focus (#1609) | todo-S | cli dev --background: no activation on start/rebuild (cli/src/dev.zig, app.zig activate) |
+| `4d205d66` | 2026-11-10 | fix(ui): keep a text area from panicking when its text shrinks under a drag (#1614) | present | WrapCache falls back when its rows no longer match the lines (textlayout.zig wrapping) |
+| `6325e0a9` | 2026-11-10 | darwin, windows: draw a hidden or minimized window's frame at once (#1613) | n/a | no Context.WindowHidden; a hidden window's frame waits as nothing shows |
+| `93f50772` | 2026-11-10 | fix(ui): keep a GridView from asking for keys of items the app took out (#1615) | n/a | GridView chooses one item, no Shift pivot (gridview.zig) |
+| `490715e2` | 2026-11-10 | feat(ui/editor): highlight a template's text in the language its name gives (#1619) | todo-S | template text language from the name before .erb/.j2 (editor/syntax.zig languageFor) |
+| `819683b2` | 2026-11-10 | updater: offer a release that came out while the update window was open (#1618) | todo-S | updater window: check again before installing an update offered long ago (plugins/updater window.zig) |
+| `ce52b009` | 2026-11-10 | feat(ui/editor): show a patch with its files (#1623) | n/a | diffview takes two texts; no patch files |
+| `8146909a` | 2026-11-10 | feat(ui): replace an input's text as a step of undo of its own (#1622) | present | TextArea.setText is an undo step (textarea.zig); text fields have no undo |
 | `a4b6734f` | 2026-11-10 | showcase: add Vole (#1624) | skip |  |
-| `4354c827` | 2026-11-10 | feat(permissionflow): localise the Guide panel and permission names (#1579) | pending |  |
+| `4354c827` | 2026-11-10 | feat(permissionflow): localise the Guide panel and permission names (#1579) | n/a | no permissionflow plugin |
 | `9b265767` | 2026-11-10 | showcase: add MiguWave (#1625) | skip |  |
-| `5ae20dc8` | 2026-11-10 | linux: build RPM packages and accept per-format linux.depends (#1621) | pending |  |
-| `9d5423fa` | 2026-11-10 | fix: 修复 Windows 透明 WebView 背景与无阴影边框 (#1626) | pending |  |
-| `0e8b26eb` | 2026-11-10 | ui: scroll the element the app focuses into view (#1629) | pending |  |
-| `b04a273f` | 2026-11-10 | fix: preserve grayscale glyphs with Cairo 1.16 (#1627) | pending |  |
-| `c799cbc6` | 2026-11-10 | fix(ui): take a CRLF as one line break in ReplaceText (#1630) | pending |  |
-| `0b016ebb` | 2026-11-10 | feat(shell): add Shell.DefaultApp to query the default handler for a URL (#1565) | pending |  |
-| `28347149` | 2026-11-10 | fix(ui/editor): end a read-only diff at the final newline (#1631) | pending |  |
-| `3ea00a77` | 2026-11-10 | richtext: EditorOptions.Space leaves room above a paragraph (#1632) | pending |  |
-| `727b26da` | 2026-11-10 | feat(ui): add Theme.WithAccent and Theme.WithPreferences (#1633) | pending |  |
-| `a91f511e` | 2026-11-10 | fix(ui): keep the scroll when Focus follows a press (#1635) | pending |  |
-| `e98410d0` | 2026-11-10 | feat(ui): report where the window controls end (#1636) | pending |  |
-| `afffa9ef` | 2026-11-10 | feat(ui): let a menu button style its drawn menu's panel (#1637) | pending |  |
-| `96334a46` | 2026-11-10 | fix(editor): mark no newline at end of file in read-only diffs (#1638) | pending |  |
-| `9e85d643` | 2026-11-10 | fix(linux): find the default app of a folder and of a file without an extension (#1639) | pending |  |
-| `14f552b0` | 2026-11-10 | fix(linux): keep the app one program when a command of another name starts it (#1640) | pending |  |
-| `90a1f06e` | 2026-11-10 | feat(editor): add Inlay.Trailing so end-of-line text does not capture the caret (#1641) | pending |  |
+| `5ae20dc8` | 2026-11-10 | linux: build RPM packages and accept per-format linux.depends (#1621) | todo-M | cli: RPM package beside the .deb, per-format depends (cli/src/linux.zig) |
+| `9d5423fa` | 2026-11-10 | fix: 修复 Windows 透明 WebView 背景与无阴影边框 (#1626) | n/a | no transparent window option on Windows |
+| `0e8b26eb` | 2026-11-10 | ui: scroll the element the app focuses into view (#1629) | todo-M | scroll the focused element into view on Tab and app focus (no reveal in context_events.zig) |
+| `b04a273f` | 2026-11-10 | fix: preserve grayscale glyphs with Cairo 1.16 (#1627) | n/a | FreeType rasterizes on Linux (text_ft.zig); no Cairo |
+| `c799cbc6` | 2026-11-10 | fix(ui): take a CRLF as one line break in ReplaceText (#1630) | todo-S | TextArea.setText: CRLF/CR as one break (input.zig paste normalization), no step when unchanged |
+| `0b016ebb` | 2026-11-10 | feat(shell): add Shell.DefaultApp to query the default handler for a URL (#1565) | todo-M | shell defaultApp(url): handler's name/id/path per backend (desktop.zig and backends); myzig has no installed-apps API |
+| `28347149` | 2026-11-10 | fix(ui/editor): end a read-only diff at the final newline (#1631) | ported | no empty line after a final newline (diff.zig splitLines) |
+| `3ea00a77` | 2026-11-10 | richtext: EditorOptions.Space leaves room above a paragraph (#1632) | todo-S | richtext Options.space: extra room above a block, asked per block (richtext/layout.zig gapBefore) |
+| `727b26da` | 2026-11-10 | feat(ui): add Theme.WithAccent and Theme.WithPreferences (#1633) | present | withAccent and follow(Preferences) (ui/preferences.zig, themes.withAccent) |
+| `a91f511e` | 2026-11-10 | fix(ui): keep the scroll when Focus follows a press (#1635) | n/a | myzig's focus never scrolls into view (handle.zig, context_events.moveFocus) |
+| `e98410d0` | 2026-11-10 | feat(ui): report where the window controls end (#1636) | todo-S | TitleBarArea.bottom: traffic lights' bottom edge on macOS, title bar height elsewhere (window_mac_events.titleBar) |
+| `afffa9ef` | 2026-11-10 | feat(ui): let a menu button style its drawn menu's panel (#1637) | todo-S | MenuButtonOptions: style of the drawn menu's panel (ui/menu.zig menuButton) |
+| `96334a46` | 2026-11-10 | fix(editor): mark no newline at end of file in read-only diffs (#1638) | todo-M | diff viewer: compare lines with their line feeds, mark "No newline at end of file" (+l10n string) |
+| `9e85d643` | 2026-11-10 | fix(linux): find the default app of a folder and of a file without an extension (#1639) | todo-S | with 0b016ebb: Linux defaultApp of a folder (inode/directory) and of a file without extension |
+| `14f552b0` | 2026-11-10 | fix(linux): keep the app one program when a command of another name starts it (#1640) | todo-S | Linux: g_set_prgname(exe basename) before gtk_init_check, which gets null argv (linux/app.zig) |
+| `90a1f06e` | 2026-11-10 | feat(editor): add Inlay.Trailing so end-of-line text does not capture the caret (#1641) | present | end-of-line text is Decor.after, drawn outside the text, never takes the caret (textarea_decor.zig) |
 | `8c80db3a` | 2026-11-10 | website: use the new analytics script | skip |  |
 | `d4a6da45` | 2026-11-10 | test: set the clock for the sliding bar in TestProgressColor (#1643) | skip |  |
-| `daf6341a` | 2026-11-10 | feat(ui): add Element.OnUnmount (#1644) | pending |  |
+| `daf6341a` | 2026-11-10 | feat(ui): add Element.OnUnmount (#1644) | todo-M | onUnmount: run a function after the first frame that no longer builds an element |
 | `fececd37` | 2026-11-11 | docs(ui): say that a minimized window draws no frames on Windows and X11 (#1645) | skip |  |
-| `9cf55cc7` | 2026-11-11 | perf(ui): find a flex item's cross size once, in flexLayout's first walk (#1646) | pending |  |
-| `8c7d7ba9` | 2026-11-10 | richtext: EditorOptions.NoScrollbar draws no scroll bar of the editor's own (#1647) | pending |  |
-| `51f61264` | 2026-11-10 | richtext: VisibleParagraphs and CaretRect give the editor built last (#1648) | pending |  |
-| `bd590bb4` | 2026-11-11 | ui: allow hiding scrollbar indicators per axis (#1650) | pending |  |
-| `f5c3a6e1` | 2026-11-11 | mygo: choose the client certificate a server asks for (#1649) | pending |  |
-| `ec11ad71` | 2026-11-11 | richtext: paint only the paragraphs the clip shows, their starts counted on (#1653) | pending |  |
+| `9cf55cc7` | 2026-11-11 | perf(ui): find a flex item's cross size once, in flexLayout's first walk (#1646) | n/a | mygo flexLayout walks; myzig measures each box once per pass (layout.zig measure cache) |
+| `8c7d7ba9` | 2026-11-10 | richtext: EditorOptions.NoScrollbar draws no scroll bar of the editor's own (#1647) | todo-S | richtext Options.no_scrollbar: open its scroll box with .scrollbar = false (richtext/view.zig) |
+| `51f61264` | 2026-11-10 | richtext: VisibleParagraphs and CaretRect give the editor built last (#1648) | present | each view returns its first/last block and keeps rt.shown (richtext/view.zig Result) |
+| `bd590bb4` | 2026-11-11 | ui: allow hiding scrollbar indicators per axis (#1650) | present | a box scrolls one axis; Style.scrollbar = false hides its bar (types.zig) |
+| `f5c3a6e1` | 2026-11-11 | mygo: choose the client certificate a server asks for (#1649) | todo-L | page client certificate challenge handler (macOS, Linux, Windows); myzig has no auth handlers |
+| `ec11ad71` | 2026-11-11 | richtext: paint only the paragraphs the clip shows, their starts counted on (#1653) | present | richtext view builds only the blocks in view plus overscan (richtext/view.zig) |
 | `13336a06` | 2026-11-11 | docs(ui): show OnPaste inserting text of its own with ReplaceText (#1656) | skip |  |
-| `48bb0170` | 2026-11-11 | feat(ui): add ListState.Choose for the app to choose a row (#1657) | pending |  |
-| `038f0aca` | 2026-11-11 | ui: build again when what InView read changes after a scroll (#1661) | pending |  |
-| `d062d085` | 2026-11-11 | ui: let Focus keep the scroll with FocusOptions.PreventScroll (#1660) | pending |  |
-| `929aa537` | 2026-11-11 | fix(darwin): keep the main thread running when a window hides in its own frame (#1663) | pending |  |
-| `c75abdde` | 2026-11-11 | fix(ui): let a ListState move to another window (#1664) | pending |  |
-| `b4882ccc` | 2026-11-11 | fix(linux): show template tray icons white on a dark desktop (#1665) | pending |  |
+| `48bb0170` | 2026-11-11 | feat(ui): add ListState.Choose for the app to choose a row (#1657) | todo-S | Choice.choose(row): set selected and forget seen_row/seen_key so sync keeps the app's choice (selection_set.zig) |
+| `038f0aca` | 2026-11-11 | ui: build again when what InView read changes after a scroll (#1661) | n/a | myzig has no InView |
+| `d062d085` | 2026-11-11 | ui: let Focus keep the scroll with FocusOptions.PreventScroll (#1660) | n/a | focus never scrolls into view, nothing to prevent |
+| `929aa537` | 2026-11-11 | fix(darwin): keep the main thread running when a window hides in its own frame (#1663) | n/a | macOS frames come from the CADisplayLink or a dispatch_after timer, no drawSoon from the queue (ui/surface.zig) |
+| `c75abdde` | 2026-11-11 | fix(ui): let a ListState move to another window (#1664) | n/a | list state keeps no frame/pass number check |
+| `b4882ccc` | 2026-11-11 | fix(linux): show template tray icons white on a dark desktop (#1665) | todo-M | Linux tray: template icons white while the portal prefers dark; Tray.dark from the portal (linux/tray.zig) |
 | `4f6e464a` | 2026-11-11 | fix(ui): reject PNG sizes that overflow the frame buffer (#1668) | present | png_decode.zig refuses sizes past max_pixels |
-| `b5077f66` | 2026-11-11 | ui: let a Tester hear what live regions read out (UseScreenReader, Alerts) (#1667) | pending |  |
-| `9171337c` | 2026-11-11 | fix(darwin): draw a resize's frame at the link's tick after a pause, so it shows (#1669) | pending |  |
-| `1f15ace2` | 2026-11-11 | fix(terminal): wait for output on EAGAIN instead of ending the program (#1671) | pending |  |
-| `7cd44cbe` | 2026-11-11 | gpu/metal: keep older GPUs on the general pipeline (#1572) | pending |  |
-| `5847fa7b` | 2026-11-11 | editor: EditRemote edits a Buffer outside the undo history (#1654) | pending |  |
-| `6bd276dd` | 2026-11-11 | editor: show ranges of the text as something else (#1655) | pending |  |
-| `065300a7` | 2026-11-11 | fix(terminal): turn off a killed job's mouse and key reports (#1673) | pending |  |
-| `3f52033d` | 2026-11-11 | editor: hover and ellipsize trailing inlays (#1675) | pending |  |
-| `95768c87` | 2026-11-11 | markdown: Options.CodeLink makes code within text a link (#1678) | pending |  |
-| `24170c28` | 2026-11-11 | ui: allow themes to disable automatic disabled dimming (#1676) | pending |  |
-| `d9f76c99` | 2026-11-11 | ui: skip the layout's walks that have nothing to do (#1684) | pending |  |
-| `2801275c` | 2026-11-11 | ui: let a row coming into a list that was there come in (#1683) | pending |  |
-| `51d5a505` | 2026-11-11 | fix: round glyph positions on Linux as GTK does (#1685) | pending |  |
-| `f8daf210` | 2026-11-11 | i18n: cache Match for the lists it matched before (#1686) | pending |  |
+| `b5077f66` | 2026-11-11 | ui: let a Tester hear what live regions read out (UseScreenReader, Alerts) (#1667) | present | tests read tree.announcements (tests_access.zig); no assertive alerts in myzig |
+| `9171337c` | 2026-11-11 | fix(darwin): draw a resize's frame at the link's tick after a pause, so it shows (#1669) | n/a | no drawSoon path; frames are paced by the display link (ui/surface.zig) |
+| `1f15ace2` | 2026-11-11 | fix(terminal): wait for output on EAGAIN instead of ending the program (#1671) | n/a | terminal master is a blocking fd (pty_posix.zig posix_openpt without O_NONBLOCK) |
+| `7cd44cbe` | 2026-11-11 | gpu/metal: keep older GPUs on the general pipeline (#1572) | n/a | Metal renderer has one pipeline, nothing specialized or compiled in the background (ui/metal.zig) |
+| `5847fa7b` | 2026-11-11 | editor: EditRemote edits a Buffer outside the undo history (#1654) | todo-L | editor: remote edits outside the undo history, history mapped through them |
+| `6bd276dd` | 2026-11-11 | editor: show ranges of the text as something else (#1655) | todo-L | editor: show text ranges as something else (folds, replacements) |
+| `065300a7` | 2026-11-11 | fix(terminal): turn off a killed job's mouse and key reports (#1673) | todo-S | terminal: when the shell's pgrp takes the pty back, write mouse/focus/kitty-off modes (session.zig, pty_posix TIOCGPGRP) |
+| `3f52033d` | 2026-11-11 | editor: hover and ellipsize trailing inlays (#1675) | todo-S | editor: ellipsize Decor.after text at the view's edge, show it whole on hover (textarea_decor.zig) |
+| `95768c87` | 2026-11-11 | markdown: Options.CodeLink makes code within text a link (#1678) | todo-S | markdown Options.code_link: code spans as links (markdown/view.zig) |
+| `24170c28` | 2026-11-11 | ui: allow themes to disable automatic disabled dimming (#1676) | todo-M | Theme switch to turn off widgets' disabled dimming (opacity 0.45 hard-coded across widgets) |
+| `d9f76c99` | 2026-11-11 | ui: skip the layout's walks that have nothing to do (#1684) | n/a | mygo's layout walks; myzig layout is measure + arrange (layout.zig) |
+| `2801275c` | 2026-11-11 | ui: let a row coming into a list that was there come in (#1683) | todo-S | list with choice: row box is fresh, so Transitions inside never enter (list_select.row, motion_transition) |
+| `51d5a505` | 2026-11-11 | fix: round glyph positions on Linux as GTK does (#1685) | n/a | Pango rounding; myzig's own text places glyphs with subpixel atlas offsets (atlas_tt.zig) |
+| `f8daf210` | 2026-11-11 | i18n: cache Match for the lists it matched before (#1686) | present | catalog caches resolved fallbacks per locale (i18n/catalog.zig); match allocates nothing |
 | `a822f6bc` | 2026-11-11 | website: sponsors page at /sponsors, with the README's sponsors on the home page | skip |  |
-| `d331ca52` | 2026-11-11 | terminal: take scrolled rows from the last frame instead of making them again (#1687) | pending |  |
+| `d331ca52` | 2026-11-11 | terminal: take scrolled rows from the last frame instead of making them again (#1687) | todo-M | terminal view: reuse rows of the last frame after a scroll by content key (plugins/terminal view.zig) |
 | `4811a286` | 2026-11-11 | Release 0.9.0 | skip |  |
-| `49976a60` | 2026-11-11 | fix(audio): bound what ReadSound reserves from a decoder's length (#1688) | pending |  |
+| `49976a60` | 2026-11-11 | fix(audio): bound what ReadSound reserves from a decoder's length (#1688) | ported | Sound.decode reserves at most 1<<24 frames from a header (audio/source.zig) |
 | `e3ebaa5b` | 2026-11-11 | website: add Chinese localization and polish translated docs | skip |  |
 | `0f54da5b` | 2026-11-11 | website: redirect the old domain to mygo.run | skip |  |
 | `d40e0b7a` | 2026-11-11 | website: shorten the Chinese slogan and keep hero text clear of animation | skip |  |
 | `99f392a9` | 2026-11-11 | website: publish the docs of a tree that is there (#1694) | skip |  |
-| `66c09887` | 2026-11-11 | feat(richtext): scroll the editor from the app, keep the caret's line in place (#1692) | pending |  |
-| `892bb9ef` | 2026-11-11 | richtext: walk a Text's paragraphs and runs in one pass (#1695) | pending |  |
-| `f651b106` | 2026-11-11 | ui: copy an element, its styles and its values from the inspector (#1696) | pending |  |
+| `66c09887` | 2026-11-11 | feat(richtext): scroll the editor from the app, keep the caret's line in place (#1692) | todo-M | richtext: scroll from the app (scrollBy, scrollToBlock) and keep the caret's line when focused |
+| `892bb9ef` | 2026-11-11 | richtext: walk a Text's paragraphs and runs in one pass (#1695) | n/a | myzig richtext blocks are separate strings, no rope walk (richtext/model.zig) |
+| `f651b106` | 2026-11-11 | ui: copy an element, its styles and its values from the inspector (#1696) | todo-M | inspector: copy element, styles, computed, properties (inspector_panel.zig) |
 | `90d83768` | 2026-11-11 | docs: review Simplified Chinese translations and fix section links | skip |  |
 | `6548cd3e` | 2026-11-11 | showcase: add OpenBee (#1697) | skip |  |
 | `8f3f5718` | 2026-11-12 | ci: look up Ubuntu's mirrors over DNS over HTTPS when the runner can't resolve them (#1719) | skip |  |
-| `0d644f4a` | 2026-11-12 | ui: leave inert copies out of names from content (#1710) | pending |  |
-| `24350946` | 2026-11-12 | ui, internal/svg: draw var(), dark media queries, text and markers (#1698) | pending |  |
-| `4b37fded` | 2026-11-12 | fix(editor): put the caret after typed text that has CRLF line endings (#1701) | pending |  |
-| `50664e80` | 2026-11-12 | fix(editor): keep carets on characters after sorting lines, and a moved line's selection in the text (#1703) | pending |  |
-| `1244979e` | 2026-11-12 | fix(editor): convert the case of a word once when several carets are in it (#1704) | pending |  |
-| `a71c87eb` | 2026-11-12 | ui: a commit pass takes what a measuring pass resolved (#1705) | pending |  |
-| `fa858042` | 2026-11-12 | fix(richtext): take the CRLF of an input method's text as one line break (#1711) | pending |  |
-| `3e3c6534` | 2026-11-12 | feat(linux): tell the desktop what a global shortcut does, and the app its keys (#1715) | pending |  |
-| `807740bf` | 2026-11-12 | ui: PopoverMenuButtonOptions.Item styles the menu's rows (#1742) | pending |  |
-| `b91d67b2` | 2026-11-12 | ui: keep a drag going when the frame builds its source no more (#1736) | pending |  |
-| `dbda16a0` | 2026-11-12 | fix(editor): close the completions when the caret goes elsewhere than by typing (#1737) | pending |  |
-| `cb55021d` | 2026-11-12 | fix(dev): sign with the Apple Development identity of macos.signingIdentity's team (#1739) | pending |  |
-| `33e543b6` | 2026-11-12 | ui: give a Tester its own text system, so Testers run in parallel (#1730) | pending |  |
-| `72c98be3` | 2026-11-12 | feat(editor): show the word Cmd+click goes to the definition of as a link, with options to turn it off (#1729) | pending |  |
-| `d7da9418` | 2026-11-12 | fix(richtext): preserve quotation depth independently of list indentation (#1731) | pending |  |
-| `0d9ce43b` | 2026-11-12 | editor: draw lines in other fonts (#1702) | pending |  |
-| `7342ceb5` | 2026-11-12 | markdown: hand task check boxes to the app and resolve anchors to blocks (#1716) | pending |  |
-| `e147c899` | 2026-11-12 | ui: TokenField exposes the text being typed with Query (#1717) | pending |  |
-| `ac5ad4c7` | 2026-11-12 | Select all of a text input's text with Handle.SelectAll, as Tab into it does, even when it has the focus already (#825) | pending |  |
-| `440523d3` | 2026-11-12 | fix(editor): leave no room for the annotation of a collapsed line in a split diff (#1734) | pending |  |
-| `a968da17` | 2026-11-12 | chart: index append-only data for repeated min/max queries (#648) | pending |  |
-| `9e9d5d53` | 2026-11-12 | Keep a file too big for the recycle bin instead of deleting it on Windows (#629) | pending |  |
+| `0d644f4a` | 2026-11-12 | ui: leave inert copies out of names from content (#1710) | n/a | exit copies are painted instances, not boxes, so names from content never see them (motion_transition.zig) |
+| `24350946` | 2026-11-12 | ui, internal/svg: draw var(), dark media queries, text and markers (#1698) | todo-L | SVG: var(), prefers-color-scheme, text, markers (svg_draw.zig skips them) |
+| `4b37fded` | 2026-11-12 | fix(editor): put the caret after typed text that has CRLF line endings (#1701) | n/a | textarea keeps CRLF as given; the caret goes by the bytes inserted |
+| `50664e80` | 2026-11-12 | fix(editor): keep carets on characters after sorting lines, and a moved line's selection in the text (#1703) | n/a | editor has no sort lines or move line |
+| `1244979e` | 2026-11-12 | fix(editor): convert the case of a word once when several carets are in it (#1704) | n/a | editor has no case conversion |
+| `a71c87eb` | 2026-11-12 | ui: a commit pass takes what a measuring pass resolved (#1705) | n/a | mygo's measuring/commit passes; myzig caches measure per pass (layout.zig) |
+| `fa858042` | 2026-11-12 | fix(richtext): take the CRLF of an input method's text as one line break (#1711) | present | text with \n goes through pastePlain, which trims \r (richtext/editor.zig insert, clipboard.zig) |
+| `3e3c6534` | 2026-11-12 | feat(linux): tell the desktop what a global shortcut does, and the app its keys (#1715) | todo-M | Linux global shortcut: description option and on_keys from BindShortcuts/ShortcutsChanged (hotkey_portal.zig) |
+| `807740bf` | 2026-11-12 | ui: PopoverMenuButtonOptions.Item styles the menu's rows (#1742) | n/a | no popover menu button in myzig |
+| `b91d67b2` | 2026-11-12 | ui: keep a drag going when the frame builds its source no more (#1736) | present | drag state is the app's DragDrop; a source not built shows a plain box (dragdrop.zig preview) |
+| `dbda16a0` | 2026-11-12 | fix(editor): close the completions when the caret goes elsewhere than by typing (#1737) | n/a | editor has no completions |
+| `cb55021d` | 2026-11-12 | fix(dev): sign with the Apple Development identity of macos.signingIdentity's team (#1739) | n/a | myzig dev runs the bare executable, signs nothing |
+| `33e543b6` | 2026-11-12 | ui: give a Tester its own text system, so Testers run in parallel (#1730) | present | each Tester owns its TextSystem (tester.zig) |
+| `72c98be3` | 2026-11-12 | feat(editor): show the word Cmd+click goes to the definition of as a link, with options to turn it off (#1729) | n/a | editor has no go-to-definition |
+| `d7da9418` | 2026-11-12 | fix(richtext): preserve quotation depth independently of list indentation (#1731) | n/a | quote is a block kind, not stored in indent (richtext/model.zig) |
+| `0d9ce43b` | 2026-11-12 | editor: draw lines in other fonts (#1702) | todo-M | editor: lines drawn in other fonts |
+| `7342ceb5` | 2026-11-12 | markdown: hand task check boxes to the app and resolve anchors to blocks (#1716) | todo-M | markdown: task check boxes as controls (on_task) and anchors resolved to blocks |
+| `e147c899` | 2026-11-12 | ui: TokenField exposes the text being typed with Query (#1717) | present | Tokens keeps the typed text for the app (controls_fields.zig) |
+| `ac5ad4c7` | 2026-11-12 | Select all of a text input's text with Handle.SelectAll, as Tab into it does, even when it has the focus already (#825) | todo-S | Handle.selectAll for a text field, also when focused (handle.zig, textfield.zig) |
+| `440523d3` | 2026-11-12 | fix(editor): leave no room for the annotation of a collapsed line in a split diff (#1734) | n/a | diff viewer has no annotations |
+| `a968da17` | 2026-11-12 | chart: index append-only data for repeated min/max queries (#648) | todo-M | chart: index of append-only data for min/max queries (chart/xy.zig extent) |
+| `9e9d5d53` | 2026-11-12 | Keep a file too big for the recycle bin instead of deleting it on Windows (#629) | todo-S | Windows trash: refuse a file bigger than the volume's recycle bin (MaxCapacity or default) (windows/trash.zig) |
 | `f740842f` | 2026-11-12 | showcase: add Ferry Drive, Snapover, Xylring and Mojian (#1708) | skip |  |
-| `3bb9b092` | 2026-11-12 | ui: give a box with nothing in it its padding without measuring it (#1735) | pending |  |
-| `5333229d` | 2026-11-12 | Retry transient failures when fetching published updates (#836) | pending |  |
-| `fc16e09e` | 2026-11-12 | fix(markdown): reparse from the block above when editing a paragraph that ends in a table (#1727) | pending |  |
-| `ea3fc082` | 2026-11-12 | fix(video): never load an AVURLAsset's tracks on the main thread (#1743) (#1747) | pending |  |
-| `e1658dfa` | 2026-11-12 | windows: build tag mygo_nowebview leaves WebView2 out (#1748) | pending |  |
-| `16720376` | 2026-11-13 | linux: draw in memory when MYGO_GPU=1 finds no libepoxy (#786) | pending |  |
-| `91dd8912` | 2026-11-12 | fix(cli): give the dev build an icon on Linux (#725) | pending |  |
+| `3bb9b092` | 2026-11-12 | ui: give a box with nothing in it its padding without measuring it (#1735) | n/a | measure of an empty box is its padding at no cost (layout.zig compute) |
+| `5333229d` | 2026-11-12 | Retry transient failures when fetching published updates (#836) | n/a | cli publishes no delta updates, fetches no published manifest |
+| `fc16e09e` | 2026-11-12 | fix(markdown): reparse from the block above when editing a paragraph that ends in a table (#1727) | n/a | markdown Document has no incremental edit (set/append only) |
+| `ea3fc082` | 2026-11-12 | fix(video): never load an AVURLAsset's tracks on the main thread (#1743) (#1747) | n/a | no video |
+| `e1658dfa` | 2026-11-12 | windows: build tag mygo_nowebview leaves WebView2 out (#1748) | todo-M | Windows: native-UI-only apps still link WebView2 (runtime content switch in windows/window.zig) |
+| `16720376` | 2026-11-13 | linux: draw in memory when MYGO_GPU=1 finds no libepoxy (#786) | present | gl_api.zig falls back to libEGL/libGL; a failed renderer shows CPU frames (gl_gtk.zig) |
+| `91dd8912` | 2026-11-12 | fix(cli): give the dev build an icon on Linux (#725) | todo-S | myzig dev on Linux: write <exe>.desktop with the icon to XDG_DATA_HOME, remove on exit (cli/src/dev.zig) |
 | `bb86e69b` | 2026-11-12 | fix(cli): validate file association MIME types and escape their XML (#1241) | ported | cli: mime_type validated, escaped in the MIME package |
-| `87b82398` | 2026-11-12 | terminal: leave out the line about the program's end (Options.NoExitMessage) (#1738) | pending |  |
-| `1c40ba32` | 2026-11-12 | Make TrashItem fail when Windows deletes the item for good all the same (#1750) | pending |  |
-| `42785c80` | 2026-11-12 | Tell apps when the clipboard changes (Clipboard.OnChanged) (#342) | pending |  |
-| `9d5a91b0` | 2026-11-12 | Keep TestVibrancy and TestDiffFrameAllocs passing whatever the system's default font (#752) | pending |  |
-| `ebb6cb4f` | 2026-11-12 | shell: return resulting trash path on macOS via TrashItemResult (#1453) | pending |  |
+| `87b82398` | 2026-11-12 | terminal: leave out the line about the program's end (Options.NoExitMessage) (#1738) | todo-S | terminal option to leave out "[Process exited]" (session.zig readLoop) |
+| `1c40ba32` | 2026-11-12 | Make TrashItem fail when Windows deletes the item for good all the same (#1750) | todo-S | Windows trash: PostDeleteItem with no new item (not COPYENGINE_S_NOT_HANDLED) fails as deleted (windows/trash.zig) |
+| `42785c80` | 2026-11-12 | Tell apps when the clipboard changes (Clipboard.OnChanged) (#342) | todo-L | clipboard onChanged across backends |
+| `9d5a91b0` | 2026-11-12 | Keep TestVibrancy and TestDiffFrameAllocs passing whatever the system's default font (#752) | skip | mygo tests |
+| `ebb6cb4f` | 2026-11-12 | shell: return resulting trash path on macOS via TrashItemResult (#1453) | todo-S | macOS trash returns the resulting path (resultingItemURL) (desktop.zig trash) |
 | `648838f3` | 2026-11-12 | showcase: add MyGO Wallhaven and goFinder (#1751) | skip |  |
 | `ce627fe0` | 2026-11-12 | fix(cli): reject query strings and fragments in update base URLs (#1753) | ported | cli: updates.url without a query or fragment |
-| `ac5473d8` | 2026-11-12 | video: open a file by its path on Windows, so a non-ASCII path plays (#1754) | pending |  |
-| `8e3f70c9` | 2026-11-12 | ui: a frame built anew for input does not wait for a drawing's lower rate (#1755) | pending |  |
-| `19e58fc2` | 2026-11-13 | fix(cli): say what codesign waits for when it signs for long (#1757) | pending |  |
-| `5aaf41b5` | 2026-11-12 | fix(linux): keep the program name an app set before Run (#1761) | pending |  |
-| `c3ed3ca3` | 2026-11-13 | fix(dev): keep the signatures of code among the resources (#1765) | pending |  |
-| `69f0eea4` | 2026-11-13 | feat(window): let the mouse through a window from its creation, and ask whether it does (#1758) | pending |  |
-| `c58e609c` | 2026-11-13 | ui: List calls EndReached after layout as the user scrolls near the end (#1767) | pending |  |
-| `a2ebf54d` | 2026-11-13 | linux: keep dispatching after a post made while Init runs (#1771) | pending |  |
-| `b1fcd3b3` | 2026-11-13 | ui: read an element in fewer lines when laying it out (#1728) | pending |  |
-| `ebc1b06c` | 2026-11-13 | Play audio without allocating, and wake far less while it plays (#499) | pending |  |
-| `e5a505ed` | 2026-11-13 | fix(editor): fit the find bar in narrow editors, and draw a diff's bars above its separators (#1775) | pending |  |
-| `a2f9e0f4` | 2026-11-12 | richtext: follow an edit's replacements one by one to keep the view (#1774) | pending |  |
-| `6eaa7fb4` | 2026-11-13 | ui: avoid persistent path tiling after atlas growth (#1766) | pending |  |
-| `5e68fd3c` | 2026-11-13 | raster: sample aligned images directly from their pixels (#1779) | pending |  |
-| `9da1a8e0` | 2026-11-13 | raster: reuse canvas redraw buffers (#1778) | pending |  |
+| `ac5473d8` | 2026-11-12 | video: open a file by its path on Windows, so a non-ASCII path plays (#1754) | n/a | no video |
+| `8e3f70c9` | 2026-11-12 | ui: a frame built anew for input does not wait for a drawing's lower rate (#1755) | n/a | input frames are built at once; Painter frame rate not ported (174a1ca5) |
+| `19e58fc2` | 2026-11-13 | fix(cli): say what codesign waits for when it signs for long (#1757) | todo-S | cli: after 15 s of codesign with an identity, say it may wait for a keychain dialog (cli/src/macos.zig) |
+| `5aaf41b5` | 2026-11-12 | fix(linux): keep the program name an app set before Run (#1761) | todo-S | with 14f552b0: set the prgname only while g_get_prgname is null |
+| `c3ed3ca3` | 2026-11-13 | fix(dev): keep the signatures of code among the resources (#1765) | n/a | myzig dev signs nothing; build signs all (--deep) |
+| `69f0eea4` | 2026-11-13 | feat(window): let the mouse through a window from its creation, and ask whether it does (#1758) | todo-M | windows that let the mouse through (setter, option, getter); myzig has none |
+| `c58e609c` | 2026-11-13 | ui: List calls EndReached after layout as the user scrolls near the end (#1767) | todo-M | list end_reached: call after layout when user scrolling nears the end (list.zig) |
+| `a2ebf54d` | 2026-11-13 | linux: keep dispatching after a post made while Init runs (#1771) | n/a | each post is its own g_idle_add, no signaled flag (plugins/mainthread) |
+| `b1fcd3b3` | 2026-11-13 | ui: read an element in fewer lines when laying it out (#1728) | n/a | Go node layout; myzig nodes differ |
+| `ebc1b06c` | 2026-11-13 | Play audio without allocating, and wake far less while it plays (#499) | present | Audio Queue output waits on a semaphore, no allocation per buffer (audioqueue.zig) |
+| `e5a505ed` | 2026-11-13 | fix(editor): fit the find bar in narrow editors, and draw a diff's bars above its separators (#1775) | n/a | find bar is a full-width strip in the editor; diff viewer has no find bar |
+| `a2f9e0f4` | 2026-11-12 | richtext: follow an edit's replacements one by one to keep the view (#1774) | n/a | richtext scroll is an offset, no paragraph scroll anchoring |
+| `6eaa7fb4` | 2026-11-13 | ui: avoid persistent path tiling after atlas growth (#1766) | n/a | paths rasterized per draw, no path tiles in an atlas (path_raster.zig) |
+| `5e68fd3c` | 2026-11-13 | raster: sample aligned images directly from their pixels (#1779) | todo-S | raster: fast path for unscaled images on whole pixels, same pixels as picture() (raster.zig); hillclimb |
+| `9da1a8e0` | 2026-11-13 | raster: reuse canvas redraw buffers (#1778) | n/a | myzig canvases render with a per-render arena (canvas_render.zig); no offscreen element canvases |
 | `31ec0edd` | 2026-11-13 | docs: say that only the user's next scroll calls EndReached again (#1783) | skip |  |
-| `d69ca878` | 2026-11-13 | perf(ui): keep the flexible lengths of a flex item in the item (#1780) | pending |  |
-| `a676ee14` | 2026-11-13 | richtext: keep the tests' windows open while they read the document (#1788) | pending |  |
-| `614ea7a6` | 2026-11-13 | linux: keep a tray from crashing the app when the shell restarts (#1790) | pending |  |
+| `d69ca878` | 2026-11-13 | perf(ui): keep the flexible lengths of a flex item in the item (#1780) | n/a | flex lengths already live in flex.Item (layout_flex.zig) |
+| `a676ee14` | 2026-11-13 | richtext: keep the tests' windows open while they read the document (#1788) | skip | mygo tests (Go GC) |
+| `614ea7a6` | 2026-11-13 | linux: keep a tray from crashing the app when the shell restarts (#1790) | todo-M | Linux tray: follow the StatusNotifierWatcher owner, hold updates while gone, replay on return (linux/tray.zig) |
 | `a04e1c35` | 2026-11-13 | showcase: add 划词翻译 (#1789) | skip |  |
-| `9560d804` | 2026-11-13 | perf(raster): reuse solid bounds for rectangular clips (#1791) | pending |  |
-| `d5c76cf8` | 2026-11-13 | [ImgBot] Optimize images (#810) | pending |  |
-| `0ed4da70` | 2026-11-13 | perf(raster): parallelize dense fills on small targets (#1794) | pending |  |
-| `18705ffb` | 2026-11-13 | d3d11: start refusing with the resize's last frame in TestUncappedRefusedThroughSettle (#1797) | pending |  |
-| `e67040c2` | 2026-11-13 | richtext: move Up and Down past wide room between lines (#1799) | pending |  |
-| `090ac1b1` | 2026-11-13 | windows: keep the keyboard in the menu bar's loop while the page has it (#1802) | pending |  |
-| `e8bd4162` | 2026-11-13 | ui/editor: keep each line's own line ending (#1801) | pending |  |
-| `651e73d2` | 2026-11-13 | d3d11: let TestUncappedSwapChain's resize frame wait to present when DXGI refuses it (#1805) | pending |  |
-| `c4dcaca3` | 2026-11-13 | updater: end a request the network abandoned (#1803) | pending |  |
-| `129fb92b` | 2026-11-13 | fix(ui): use current surface size after a view resizes its host (#1806) | pending |  |
-| `3ccc6b13` | 2026-11-13 | fix(editor): keep a letter typed while another goroutine edits the buffer (#1807) | pending |  |
-| `523d7c1e` | 2026-11-13 | fix(darwin): serialize reentrant accessibility updates (#1808) | pending |  |
-| `a12959d2` | 2026-11-13 | richtext: leave Space's room above a block of code outside it (#1817) | pending |  |
-| `d60cccb7` | 2026-11-14 | ui: Tester withholds keys typed while an input method composes (#1820) | pending |  |
-| `f2df9192` | 2026-11-13 | richtext: move Left and Right through a padded span or a wrap (#1823) | pending |  |
-| `bdb49185` | 2026-11-13 | ui: draw the fonts an app registers in a Tester's window too (#1827) | pending |  |
-| `f31d37f4` | 2026-11-13 | richtext: keep a heading's room inside the quotation it starts (#1825) | pending |  |
-| `cb821412` | 2026-11-14 | richtext: start the placeholder where the first paragraph's text starts (#1828) | pending |  |
-| `b8a643c3` | 2026-11-14 | richtext: EditorOptions.OnCommand, asked about the menus' edit commands (#1831) | pending |  |
-| `4ab72ccb` | 2026-11-14 | ui/video: wake the window for AVFoundation's first picture (#1832) | pending |  |
-| `217fbc06` | 2026-11-14 | richtext: compare a paragraph's marks to check its Markdown, not print them (#1833) | pending |  |
-| `617ceed0` | 2026-11-14 | richtext: lay out only what the clip shows when a tall editor's look changes (#1834) | pending |  |
-| `c9230a51` | 2026-11-14 | ui: let an Outline keep its rows between frames (Generation) (#1818) | pending |  |
-| `7eeeec17` | 2026-11-14 | fix(editor): compare large diffs off the main thread (#1819) | pending |  |
-| `385ed06a` | 2026-11-14 | ui/editor: read every diff line as what it is, and lines on macOS (#1821) | pending |  |
-| `d862143d` | 2026-11-14 | linux: give the tray icon its TrayOptions.ID (#1836) | pending |  |
-| `b12b6dfd` | 2026-11-14 | editor: compare the long diff before TestDiffAccessLinesInView's window (#1837) | pending |  |
-| `ec96dbe0` | 2026-11-14 | ui: backspace takes a combining mark alone, and a click lands between graphemes (#1838) | pending |  |
-| `de4d0cfa` | 2026-11-14 | fix(terminal): open a link that wraps onto the next rows whole (#1677) | pending |  |
-| `16d30c5b` | 2026-11-14 | updater: give TestHTTPGetKeepsASlowBody room on slow runners (#1844) | pending |  |
-| `daf9c2e5` | 2026-11-14 | ui: rasterize text and Cache layers at the scale a transform shows them at (#1846) | pending |  |
-| `970eaac2` | 2026-11-14 | d3d11: give a slow runner's frames 500 ms in TestUncappedResizeWhileDWMStalls (#1850) | pending |  |
-| `111c8898` | 2026-11-14 | cli: get the archives of delta updates from updates.s3, and retry stalled downloads (#875) | pending |  |
-| `23497040` | 2026-11-14 | text: lay out a trailing empty line after U+2028 (#1845) | pending |  |
-| `6ac8c829` | 2026-11-14 | ui: Span.PaddingStart, room at the start of a span alone (#1829) | pending |  |
-| `46c97276` | 2026-11-14 | ui: draw on the CPU the paths the mask atlas has no room for (#1841) (#1847) | pending |  |
-| `832a4e64` | 2026-11-14 | markdown/parser: preserve closed MathBlock End in finalize (#1856) | pending |  |
-| `abd656bd` | 2026-11-14 | editor: auto-pair brackets and quotes around CJK characters and punctuation (#1854) | pending |  |
-| `203930fb` | 2026-11-14 | richtext: collapse selection in travel direction before vertical move (#1857) | pending |  |
-| `015f979a` | 2026-11-15 | fix(parser): end childless list items at their line end (#1855) | pending |  |
-| `966b2823` | 2026-11-15 | perf(ui): reuse polyline style and pixel transform across segments (#1839) | pending |  |
-| `39a034b7` | 2026-11-15 | fix(richtext): ignore idle empty SetMarkedText and preserve composition undo (#1859) | pending |  |
-| `267ebab4` | 2026-11-15 | richtext: measure full same-line ranges in BoundsForRange (#1858) | pending |  |
-| `3511b05c` | 2026-11-15 | macOS: show a popover flyout in a closed one's NSPopover (#1843) | pending |  |
-| `2dd01b4a` | 2026-11-14 | ui: cut a text's start with TruncateStart, keeping its end (#1869) | pending |  |
-| `3737de09` | 2026-11-15 | ui: give a Table rows of one height with ListState.RowHeight (#1870) | pending |  |
-| `7519c5aa` | 2026-11-15 | linux: bind global shortcuts through the portal under XWayland (#1865) (#1868) | pending |  |
-| `b615f295` | 2026-11-15 | linux: keep frameless always-on-top windows above others on Wayland (#1864) (#1867) | pending |  |
-| `7ff61616` | 2026-11-15 | editor: draw a split diff's divider over its separators (#1871) | pending |  |
-| `6fb5ce9c` | 2026-11-15 | window: CornerRadius, the radius the window's corners are rounded to on screen (#1849) | pending |  |
-| `d9072e0c` | 2026-11-15 | Add trailing badges to menu items, aligned on macOS (#738) | pending |  |
-| `ba3a3319` | 2026-11-15 | ui/shader: draw many quads in one call, each with data of its own (DrawInstances) (#1851) | pending |  |
-| `cb03c2d2` | 2026-11-15 | render: videos of native UI, drawn on the GPU (plugins/render) (#1873) | pending |  |
+| `9560d804` | 2026-11-13 | perf(raster): reuse solid bounds for rectangular clips (#1791) | n/a | raster draws instances with per-instance clip rects; no clip span cache to reuse |
+| `d5c76cf8` | 2026-11-13 | [ImgBot] Optimize images (#810) | skip |  |
+| `0ed4da70` | 2026-11-13 | perf(raster): parallelize dense fills on small targets (#1794) | present | raster.zig work() counts each instance's covered area (overdraw) before splitting bands |
+| `18705ffb` | 2026-11-13 | d3d11: start refusing with the resize's last frame in TestUncappedRefusedThroughSettle (#1797) | skip |  |
+| `e67040c2` | 2026-11-13 | richtext: move Up and Down past wide room between lines (#1799) | present | richtext Up/Down step by rows across blocks, not by a point a line away (richtext/keys.zig vertical) |
+| `090ac1b1` | 2026-11-13 | windows: keep the keyboard in the menu bar's loop while the page has it (#1802) | todo-S | windows: SetFocus to the window on WM_ENTERMENULOOP while WebView2 has it, give it back on exit (window.zig) |
+| `e8bd4162` | 2026-11-13 | ui/editor: keep each line's own line ending (#1801) | todo-S | text kept verbatim so endings round-trip; Enter should insert the line's own \r\n, lone \r breaks no line |
+| `651e73d2` | 2026-11-13 | d3d11: let TestUncappedSwapChain's resize frame wait to present when DXGI refuses it (#1805) | skip |  |
+| `c4dcaca3` | 2026-11-13 | updater: end a request the network abandoned (#1803) | todo-M | updater get(): header and body-stall timeouts on std.http requests (plugins/updater/src/updater.zig) |
+| `129fb92b` | 2026-11-13 | fix(ui): use current surface size after a view resizes its host (#1806) | todo-S | frame() lays out at self.size read before frame_mod.run; re-run at the new size if the view resized its window |
+| `3ccc6b13` | 2026-11-13 | fix(editor): keep a letter typed while another goroutine edits the buffer (#1807) | n/a | editor buffer is edited on the main thread only; no retry loop |
+| `523d7c1e` | 2026-11-13 | fix(darwin): serialize reentrant accessibility updates (#1808) | todo-S | guard access_mac.zig Access.update against reentry (queue a nested update until the outer one ends) |
+| `a12959d2` | 2026-11-13 | richtext: leave Space's room above a block of code outside it (#1817) | n/a | richtext has no Space option |
+| `d60cccb7` | 2026-11-14 | ui: Tester withholds keys typed while an input method composes (#1820) | todo-S | Tester.key: withhold keys without Ctrl/Super while the focused text has marked text (tester.zig) |
+| `f2df9192` | 2026-11-13 | richtext: move Left and Right through a padded span or a wrap (#1823) | n/a | richtext Left/Right move by offset (prevPos/nextPos); no span padding or caret affinity |
+| `bdb49185` | 2026-11-13 | ui: draw the fonts an app registers in a Tester's window too (#1827) | n/a | myzig has no app font registration (RegisterFont) |
+| `f31d37f4` | 2026-11-13 | richtext: keep a heading's room inside the quotation it starts (#1825) | n/a | a block is a heading or a quotation (one Kind), not both |
+| `cb821412` | 2026-11-14 | richtext: start the placeholder where the first paragraph's text starts (#1828) | present | placeholder offset by g.indentX of the first block (richtext/view.zig) |
+| `b8a643c3` | 2026-11-14 | richtext: EditorOptions.OnCommand, asked about the menus' edit commands (#1831) | n/a | richtext takes no OnKey/OnCommand hooks |
+| `4ab72ccb` | 2026-11-14 | ui/video: wake the window for AVFoundation's first picture (#1832) | n/a | no video in native UI (41ec785c todo-L) |
+| `217fbc06` | 2026-11-14 | richtext: compare a paragraph's marks to check its Markdown, not print them (#1833) | n/a | markdown_out checks no per-paragraph read-back |
+| `617ceed0` | 2026-11-14 | richtext: lay out only what the clip shows when a tall editor's look changes (#1834) | present | only blocks in view are laid out, others estimated from length (richtext/layout.zig) |
+| `c9230a51` | 2026-11-14 | ui: let an Outline keep its rows between frames (Generation) (#1818) | todo-S | OutlineState generation to keep flattened rows between frames (outline.zig flatten runs every frame) |
+| `7eeeec17` | 2026-11-14 | fix(editor): compare large diffs off the main thread (#1819) | n/a | DiffView.init compares once where the app calls it, not during the build |
+| `385ed06a` | 2026-11-14 | ui/editor: read every diff line as what it is, and lines on macOS (#1821) | todo-M | diffview: access nodes per line (inserted/deleted/old line N); macOS line ranges for text fields |
+| `d862143d` | 2026-11-14 | linux: give the tray icon its TrayOptions.ID (#1836) | todo-S | linux/tray.zig create: name the indicator <appId>-<opts.id>, numbered when another icon has it (now all appId) |
+| `b12b6dfd` | 2026-11-14 | editor: compare the long diff before TestDiffAccessLinesInView's window (#1837) | skip |  |
+| `ec96dbe0` | 2026-11-14 | ui: backspace takes a combining mark alone, and a click lands between graphemes (#1838) | present | Backspace deletes one code point (textarea.zig prevChar), so a combining mark goes alone |
+| `de4d0cfa` | 2026-11-14 | fix(terminal): open a link that wraps onto the next rows whole (#1677) | todo-M | terminal: find links across soft-wrapped rows (plugins/terminal/src/select.zig linkAt/linkSpanAt, rowText) |
+| `16d30c5b` | 2026-11-14 | updater: give TestHTTPGetKeepsASlowBody room on slow runners (#1844) | skip |  |
+| `daf9c2e5` | 2026-11-14 | ui: rasterize text and Cache layers at the scale a transform shows them at (#1846) | todo-L | rasterize glyphs at the transform's scale instead of stretching quads (paint_xf.zig similar mode, atlas) |
+| `970eaac2` | 2026-11-14 | d3d11: give a slow runner's frames 500 ms in TestUncappedResizeWhileDWMStalls (#1850) | skip |  |
+| `111c8898` | 2026-11-14 | cli: get the archives of delta updates from updates.s3, and retry stalled downloads (#875) | n/a | cli makes no delta updates |
+| `23497040` | 2026-11-14 | text: lay out a trailing empty line after U+2028 (#1845) | n/a | myzig text breaks lines at \n only, not U+2028 |
+| `6ac8c829` | 2026-11-14 | ui: Span.PaddingStart, room at the start of a span alone (#1829) | n/a | spans have no padding (PaddingX not ported) |
+| `46c97276` | 2026-11-14 | ui: draw on the CPU the paths the mask atlas has no room for (#1841) (#1847) | n/a | canvas paths render into the canvas's own image, not atlas masks |
+| `832a4e64` | 2026-11-14 | markdown/parser: preserve closed MathBlock End in finalize (#1856) | n/a | markdown has no math blocks |
+| `abd656bd` | 2026-11-14 | editor: auto-pair brackets and quotes around CJK characters and punctuation (#1854) | todo-S | editor/indent.zig autoPair: pair a bracket before CJK closing punctuation (next byte non-ASCII is refused now) |
+| `203930fb` | 2026-11-14 | richtext: collapse selection in travel direction before vertical move (#1857) | todo-S | richtext/keys.zig move: Up/Down with a selection start from sel.lo()/hi() and drop the goal x |
+| `015f979a` | 2026-11-15 | fix(parser): end childless list items at their line end (#1855) | present | finalize ends blocks at the line end passed (prev_end), not start+1 (markdown/blocks.zig) |
+| `966b2823` | 2026-11-15 | perf(ui): reuse polyline style and pixel transform across segments (#1839) | n/a | myzig strokes polylines as paths (path_stroke.zig), no per-segment fills |
+| `39a034b7` | 2026-11-15 | fix(richtext): ignore idle empty SetMarkedText and preserve composition undo (#1859) | ported | an empty composition with nothing composed leaves the selection (textarea_keys, textfield, richtext setMarked) |
+| `267ebab4` | 2026-11-15 | richtext: measure full same-line ranges in BoundsForRange (#1858) | n/a | IME gets only the caret rect; no BoundsForRange |
+| `3511b05c` | 2026-11-15 | macOS: show a popover flyout in a closed one's NSPopover (#1843) | todo-M | popover_mac.zig: keep closed NSPopovers spare and reuse them (macOS 26 leaks the backdrop per popover) |
+| `2dd01b4a` | 2026-11-14 | ui: cut a text's start with TruncateStart, keeping its end (#1869) | todo-L | text truncation with ellipsis (end, middle, start); myzig text has none |
+| `3737de09` | 2026-11-15 | ui: give a Table rows of one height with ListState.RowHeight (#1870) | present | Table rows are row_height tall (table.zig opts.row_height) |
+| `7519c5aa` | 2026-11-15 | linux: bind global shortcuts through the portal under XWayland (#1865) (#1868) | todo-S | linux: bind hotkeys through the portal when WAYLAND_DISPLAY is set even on an X11 GDK display (app_extras.zig) |
+| `b615f295` | 2026-11-15 | linux: keep frameless always-on-top windows above others on Wayland (#1864) (#1867) | todo-L | Wayland always-on-top frameless windows as gtk-layer-shell overlays |
+| `7ff61616` | 2026-11-15 | editor: draw a split diff's divider over its separators (#1871) | n/a | split diff divider is a 1px cell per row, not hovered or dragged (da4de8ae todo-M) |
+| `6fb5ce9c` | 2026-11-15 | window: CornerRadius, the radius the window's corners are rounded to on screen (#1849) | todo-S | Window.cornerRadius: macOS _cornerRadius, Windows 11 8, 0 elsewhere (window.zig and backends) |
+| `d9072e0c` | 2026-11-15 | Add trailing badges to menu items, aligned on macOS (#738) | todo-M | menu item badges (menu_types.zig, macOS tab column, others after the label) |
+| `ba3a3319` | 2026-11-15 | ui/shader: draw many quads in one call, each with data of its own (DrawInstances) (#1851) | todo-L | shader DrawInstances: many quads in one call with per-instance data (ui/shader) |
+| `cb03c2d2` | 2026-11-15 | render: videos of native UI, drawn on the GPU (plugins/render) (#1873) | todo-L | render plugin: videos of native UI on the GPU |
 | `13a0b3e7` | 2026-11-15 | Release 0.9.1 | skip |  |
-| `1fbf0c6e` | 2026-11-15 | fix(render): give every frame of a macOS video its exact duration (#1883) | pending |  |
-| `6a64c844` | 2026-11-15 | fix(tray): keep a macOS tray title's width as its letters change (#1882) | pending |  |
+| `1fbf0c6e` | 2026-11-15 | fix(render): give every frame of a macOS video its exact duration (#1883) | n/a | no render plugin (cb03c2d2 todo-L) |
+| `6a64c844` | 2026-11-15 | fix(tray): keep a macOS tray title's width as its letters change (#1882) | todo-S | tray Options.monospaced_title: monospacedSystemFont for the macOS title (tray.zig uses monospacedDigit) |
 | `3fa6d805` | 2026-11-15 | showcase: add Leafmark (#1886) | skip |  |
 | `8798f02a` | 2026-11-15 | website: read the showcase from egoist/mygo-showcase, through /api/showcase.json | skip |  |
-| `21bffed1` | 2026-11-15 | ui: every finger on a touchscreen, by an ID of its own (Element.Touches) (#1884) | pending |  |
+| `21bffed1` | 2026-11-15 | ui: every finger on a touchscreen, by an ID of its own (Element.Touches) (#1884) | todo-L | touches by finger ID (Element.Touches) from WM_POINTER, GDK sequences, pointer events |
 | `72dbdcb3` | 2026-11-16 | website: let browsers revalidate the showcase's list | skip |  |
-| `32f07ef7` | 2026-11-16 | Keep a menu open when choosing an item, on macOS (#741) | pending |  |
-| `ea02bc6b` | 2026-11-15 | fix(cli): staple the notarization ticket to the app inside the disk image (#1898) | pending |  |
-| `d6b9a0bd` | 2026-11-16 | windows: destroy the app's windows before the process exits (#1896) (#1897) | pending |  |
-| `31bf65e6` | 2026-11-16 | ui: PopoverMenu takes Panel and Item options, as PopoverMenuButton (#1889) | pending |  |
-| `61eaaa46` | 2026-11-16 | linux: keep a native menu open on the release that opened it under XWayland (#1890) (#1893) | pending |  |
-| `9b6e3eb7` | 2026-11-16 | linux: give apps that Shell opens the display's launch context (#1892) (#1895) | pending |  |
-| `690d5a7c` | 2026-11-16 | linux: show the global shortcuts dialog over the app's window (#1891) (#1894) | pending |  |
-| `54229b2c` | 2026-11-16 | cli: sync a development build's resources instead of replacing them (#1908) | pending |  |
-| `fbe85487` | 2026-11-16 | mygo: hold the single instance lock until the process exits (#1909) | pending |  |
-| `8eb67503` | 2026-11-16 | windows: serve custom schemes to iframes of other origins (#1914) | pending |  |
-| `9a1c3776` | 2026-11-16 | ui: the size of a finger's contact (Touch.Width, Height) (#1907) | pending |  |
-| `62c15032` | 2026-11-16 | ui: fade a translucent web view's page over what is behind the window (#1793) | pending |  |
-| `644caa51` | 2026-11-16 | ui: ListState.MoveAnimation glides rows as rows come, go or move around them (#1904) | pending |  |
-| `f4392689` | 2026-11-16 | mygo: let a page cancel a call with an AbortSignal (#1781) | pending |  |
-| `9db28d4e` | 2026-11-16 | Draw badge backgrounds with colors for KeepOpen items, on macOS (#1913) | pending |  |
-| `a0f85319` | 2026-11-16 | mygo: Now Playing lists each artist, and MPRIS raises the player (#1924) | pending |  |
+| `32f07ef7` | 2026-11-16 | Keep a menu open when choosing an item, on macOS (#741) | todo-L | macOS menu items that keep the menu open (custom item views) |
+| `ea02bc6b` | 2026-11-15 | fix(cli): staple the notarization ticket to the app inside the disk image (#1898) | n/a | cli does not notarize or staple |
+| `d6b9a0bd` | 2026-11-16 | windows: destroy the app's windows before the process exits (#1896) (#1897) | present | App.destroy closes every window, then the hidden window, before exit (windows/app.zig) |
+| `31bf65e6` | 2026-11-16 | ui: PopoverMenu takes Panel and Item options, as PopoverMenuButton (#1889) | n/a | drawn menus take no Panel/Item style options (menu.zig) |
+| `61eaaa46` | 2026-11-16 | linux: keep a native menu open on the release that opened it under XWayland (#1890) (#1893) | todo-S | linux/gtkmenu.zig: under XWayland ignore the first release within 500 ms of the press that opened the menu |
+| `9b6e3eb7` | 2026-11-16 | linux: give apps that Shell opens the display's launch context (#1892) (#1895) | todo-S | linux/desktop.zig xdgOpen: pass the display's launch context id (XDG_ACTIVATION_TOKEN/DESKTOP_STARTUP_ID) |
+| `690d5a7c` | 2026-11-16 | linux: show the global shortcuts dialog over the app's window (#1891) (#1894) | todo-S | hotkey_portal.zig bindAll: parent_window x11:XID of the focused or first shown window, not "" |
+| `54229b2c` | 2026-11-16 | cli: sync a development build's resources instead of replacing them (#1908) | n/a | myzig dev places no resources beside the build |
+| `fbe85487` | 2026-11-16 | mygo: hold the single instance lock until the process exits (#1909) | todo-M | instance_unix.zig: flock a lock file before the socket so racing launches and relaunches can't both listen |
+| `8eb67503` | 2026-11-16 | windows: serve custom schemes to iframes of other origins (#1914) | todo-S | windows/page_scheme.zig addFilter: ICoreWebView2_22 slot 123 with DOCUMENT source kind, fall back to 57 |
+| `9a1c3776` | 2026-11-16 | ui: the size of a finger's contact (Touch.Width, Height) (#1907) | n/a | no per-finger touches (21bffed1 todo-L) |
+| `62c15032` | 2026-11-16 | ui: fade a translucent web view's page over what is behind the window (#1793) | todo-M | fade a web view's page by the element's opacity (ui/webview.zig placement shows it whole above 0.001) |
+| `644caa51` | 2026-11-16 | ui: ListState.MoveAnimation glides rows as rows come, go or move around them (#1904) | todo-M | list move animation: rows glide as rows come, go or move (list.zig) |
+| `f4392689` | 2026-11-16 | mygo: let a page cancel a call with an AbortSignal (#1781) | todo-M | cancel a call with an AbortSignal: bridge.js with()/callWith, a cancel message in ipc.zig |
+| `9db28d4e` | 2026-11-16 | Draw badge backgrounds with colors for KeepOpen items, on macOS (#1913) | n/a | no menu badges or keep-open items (d9072e0c, 32f07ef7) |
+| `a0f85319` | 2026-11-16 | mygo: Now Playing lists each artist, and MPRIS raises the player (#1924) | n/a | no Now Playing (138c63bf todo-L) |
 | `25ce62f4` | 2026-11-16 | Release 0.9.2 | skip |  |
-| `f7ca0452` | 2026-11-17 | Windows: open local file URLs as native paths (#1917) | pending |  |
-| `d6326495` | 2026-11-17 | ui: take a lone \r as a line break in text inputs (#1918) | pending |  |
-| `8e7371ae` | 2026-11-17 | ui: keep a submenu open while the pointer heads for it (#1916) (#1919) | pending |  |
-| `ac48cf91` | 2026-11-17 | ui: capture paints again after another window moved the shared atlas (#1921) | pending |  |
-| `ed9df332` | 2026-11-17 | darwin: hover in panels and flyouts of native UI while another app is active (#1922) | pending |  |
-| `fb7e10ab` | 2026-11-17 | fix(windows): keep the pointers passed to Media Foundation calls valid (#1927) | pending |  |
-| `7f6965bf` | 2026-11-17 | ui: lay out a tree with fewer reads of its elements (#1928) | pending |  |
-| `06b69ea8` | 2026-11-17 | ui: draw glyphs off the baseline where shaping puts them (#1925) (#1929) | pending |  |
-| `f1da6e8b` | 2026-11-17 | fix(linux): name a tray icon of no ID after the program, not the process (#1934) | pending |  |
-| `8b07ce8c` | 2026-11-17 | markdown/parser: scale incremental edits with reparsed tail (#1936) | pending |  |
-| `6ef21918` | 2026-11-17 | richtext: compare paragraph marks without slice allocations (#1938) | pending |  |
-| `1604ffe6` | 2026-11-17 | markdown/parser: scale incremental edits with reparsed tail (#1936) | pending |  |
-| `0bbb025f` | 2026-11-17 | macOS: order a closing window out before its content goes (#1931) (#1932) | pending |  |
-| `0afabc00` | 2026-11-17 | Leave no room after a badge in a menu that stays open, on macOS (#1935) | pending |  |
-| `6fbc3c53` | 2026-11-16 | Fix calls and events that waited for good, a window that never showed, and a download's panic (#1941) | pending |  |
-| `12e8babd` | 2026-11-17 | feat(editor): let a diff scroll past its end, and focus its active side (#1971) | pending |  |
+| `f7ca0452` | 2026-11-17 | Windows: open local file URLs as native paths (#1917) | todo-S | windows/desktop.zig openUrl: give ShellExecute the native path of a file:// URL with a drive root |
+| `d6326495` | 2026-11-17 | ui: take a lone \r as a line break in text inputs (#1918) | present | pasteText turns a lone \r into \n, a space in one line (ui/input.zig) |
+| `8e7371ae` | 2026-11-17 | ui: keep a submenu open while the pointer heads for it (#1916) (#1919) | todo-M | menu.zig: keep a submenu open while the pointer heads for it (aim triangle) |
+| `ac48cf91` | 2026-11-17 | ui: capture paints again after another window moved the shared atlas (#1921) | n/a | each surface has its own text system and atlas |
+| `ed9df332` | 2026-11-17 | darwin: hover in panels and flyouts of native UI while another app is active (#1922) | present | tracking area always active (NSTrackingActiveAlways 0x80, ui/surface.zig) |
+| `fb7e10ab` | 2026-11-17 | fix(windows): keep the pointers passed to Media Foundation calls valid (#1927) | n/a | Go-specific (stack moves) |
+| `7f6965bf` | 2026-11-17 | ui: lay out a tree with fewer reads of its elements (#1928) | n/a | Go element cache-line layout perf |
+| `06b69ea8` | 2026-11-17 | ui: draw glyphs off the baseline where shaping puts them (#1925) (#1929) | present | glyphs placed at baseline - g.y (ui/paint.zig), HarfBuzz y_offset kept |
+| `f1da6e8b` | 2026-11-17 | fix(linux): name a tray icon of no ID after the program, not the process (#1934) | present | an icon of no ID is named after the app id, stable across launches (linux/tray.zig) |
+| `8b07ce8c` | 2026-11-17 | markdown/parser: scale incremental edits with reparsed tail (#1936) | n/a | markdown Document has set/append only, no mid-text edit |
+| `6ef21918` | 2026-11-17 | richtext: compare paragraph marks without slice allocations (#1938) | n/a | markdown_out checks no per-paragraph read-back |
+| `1604ffe6` | 2026-11-17 | markdown/parser: scale incremental edits with reparsed tail (#1936) | skip | empty duplicate of 8b07ce8c |
+| `0bbb025f` | 2026-11-17 | macOS: order a closing window out before its content goes (#1931) (#1932) | todo-S | macOS teardown (windowWillClose): clear the delegate and orderOut: before destroying page and surface (window.zig) |
+| `0afabc00` | 2026-11-17 | Leave no room after a badge in a menu that stays open, on macOS (#1935) | n/a | no menu badges (d9072e0c todo-M) |
+| `6fbc3c53` | 2026-11-16 | Fix calls and events that waited for good, a window that never showed, and a download's panic (#1941) | ported | IPC part: half a surrogate pair is U+FFFD (ipc.zig wellFormed); ready-to-show on a failed load and bfcache resync todo |
+| `12e8babd` | 2026-11-17 | feat(editor): let a diff scroll past its end, and focus its active side (#1971) | todo-S | diffview: a scroll-past-end option (diffview.zig Options) |
 | `6e712c6e` | 2026-11-17 | Run apps on iOS and Android (#940) | n/a | no mobile backend |
-| `0f955b38` | 2026-11-18 | feat(editor): make vertical scroll margin configurable (#1965) | pending |  |
-| `6fd33ee0` | 2026-11-18 | richtext: a heading's own line height, Space that takes room away, and quotation bars that join (#1966) | pending |  |
-| `d8286ea9` | 2026-11-18 | fix(ui): keep any attached popup within the room the window has (#1958) | pending |  |
-| `a875933d` | 2026-11-18 | ui: a triple click selects a paragraph, not the line it wrapped onto (#1943) | pending |  |
-| `85ef6db6` | 2026-11-18 | fix(bridge): answer an eval that ran as WebKit froze its page (#1957) | pending |  |
-| `158f8dcc` | 2026-11-18 | ui: read a child a container walks in four lines of the element (#1975) | pending |  |
-| `55b50cfa` | 2026-11-18 | windows: scroll, pinch and tap with a touchscreen in native UI (carries #1718) (#1911) | pending |  |
+| `0f955b38` | 2026-11-18 | feat(editor): make vertical scroll margin configurable (#1965) | todo-S | editor: a configurable vertical scroll margin in reveal (textarea_view.zig) |
+| `6fd33ee0` | 2026-11-18 | richtext: a heading's own line height, Space that takes room away, and quotation bars that join (#1966) | n/a | no heading line height or Space options; quotation bars are already square and joined (richtext/view.zig) |
+| `d8286ea9` | 2026-11-18 | fix(ui): keep any attached popup within the room the window has (#1958) | todo-S | cap every attached panel (overlay_base.zig place); the cap alone does not shrink a scroll inside a popover in myzig layout |
+| `a875933d` | 2026-11-18 | ui: a triple click selects a paragraph, not the line it wrapped onto (#1943) | present | triple click selects the logical line, to its newline (textarea_view.zig lineRange(doc.lineOf)) |
+| `85ef6db6` | 2026-11-18 | fix(bridge): answer an eval that ran as WebKit froze its page (#1957) | ported | bridge.js: a pagehide listener |
+| `158f8dcc` | 2026-11-18 | ui: read a child a container walks in four lines of the element (#1975) | n/a | Go element cache-line layout perf |
+| `55b50cfa` | 2026-11-18 | windows: scroll, pinch and tap with a touchscreen in native UI (carries #1718) (#1911) | todo-M | Windows touchscreen scroll, pinch and tap from WM_POINTER (windows/surface_gesture.zig) |
 | `ebde9399` | 2026-11-17 | Release 0.10.0 | skip |  |
-| `ea632323` | 2026-11-18 | darwin: drops reach the page of a web view in native UI (#1946) | pending |  |
-| `fc0ae412` | 2026-11-17 | fix(ui): keep a canvas's glyphs and masks for renderers that draw it later (#1977) | pending |  |
-| `5be633ac` | 2026-11-17 | Ask WebView2 once for a web view it is creating, and free what the Linux backend left behind (#1978) | pending |  |
-| `e88574c8` | 2026-11-18 | ui: Painter.RichText stops re-encoding the spans of an unchanged frame (#1979) | pending |  |
-| `76516b5f` | 2026-11-18 | ui: flicking again and again keeps touch content scrolling (#2005) | pending |  |
+| `ea632323` | 2026-11-18 | darwin: drops reach the page of a web view in native UI (#1946) | n/a | macOS web views are subviews above the surface (page_embed_mac.zig), so AppKit sends drags to them directly |
+| `fc0ae412` | 2026-11-17 | fix(ui): keep a canvas's glyphs and masks for renderers that draw it later (#1977) | n/a | canvases rasterize on the CPU into their own image (canvas_render.zig), not glyphs in shared atlases |
+| `5be633ac` | 2026-11-17 | Ask WebView2 once for a web view it is creating, and free what the Linux backend left behind (#1978) | present | windows/page.zig asks WebView2 once per page (waiting), no retry timer; Linux uses own D-Bus, no GVariant/accel groups |
+| `e88574c8` | 2026-11-18 | ui: Painter.RichText stops re-encoding the spans of an unchanged frame (#1979) | n/a | Painter has no RichText/text drawing (canvas.zig) |
+| `76516b5f` | 2026-11-18 | ui: flicking again and again keeps touch content scrolling (#2005) | n/a | no touch input/flings (mobile only in mygo) |
 | `6b66daee` | 2026-11-18 | mobile: pace frames by the display rather than wait for a drawable on the main thread (#2009) | n/a | no mobile backend |
 | `b528dac4` | 2026-11-18 | mobile: the iOS display link ticks at the frame rate the content asks for (#2008) | n/a | no mobile backend |
-| `a1f55783` | 2026-11-18 | fix(dev): keep rebuilt apps' windows where they were, and behind the editor under -background (#2010) | pending |  |
+| `a1f55783` | 2026-11-18 | fix(dev): keep rebuilt apps' windows where they were, and behind the editor under -background (#2010) | todo-M | dev: keep rebuilt apps' window frames across rebuilds (MYZIG_DEV_WINDOWS); background (cli dev.zig, window_state.zig) |
 | `aad9dbc4` | 2026-11-18 | cli: ios.extensions embeds and signs prebuilt app extensions (#2006) | n/a | no mobile backend |
 | `d8fc2b07` | 2026-11-18 | cli: android.extractNativeLibs extracts an app's native libraries on install (#2007) | n/a | no mobile backend |
-| `513885ed` | 2026-11-18 | render: draw frames on several cores at once (Options.Workers) (#2036) | pending |  |
+| `513885ed` | 2026-11-18 | render: draw frames on several cores at once (Options.Workers) (#2036) | n/a | no render plugin |
 | `e8aa66f0` | 2026-11-18 | docs: an Android executable shipped as a native library is linked for 16 KB pages (#2015) | skip |  |
 | `e1e4364c` | 2026-11-18 | fix(cli): sign simulator apps with their application identifier, which the keychain needs (#2014) | n/a | no mobile backend |
 | `ad4cba43` | 2026-11-18 | fix(android): register the fonts an app's main adds before App.Run (#2011) | n/a | no mobile backend |
 | `ffa1faf1` | 2026-11-18 | fix(android): keep every face registered under a family (#2012) | n/a | no mobile backend |
-| `992cb284` | 2026-11-18 | fix(ui): name the months of the date wheels in the app's language (#2013) | pending |  |
-| `24806022` | 2026-11-18 | ui/editor: a diff's find matches the lines it shows (#2001) | pending |  |
-| `91835a12` | 2026-11-18 | windows: folder dialogs no longer freeze on WSL shares (#2029) | pending |  |
-| `e75b3448` | 2026-11-18 | ui, text: keep parallel Testers' frame stats setting and inline objects apart (#2042) | pending |  |
-| `8d72678c` | 2026-11-18 | metal: give back the drawables of windows out of sight half a second after their last frame (#2040) (#2048) | pending |  |
-| `b3c62a5d` | 2026-11-18 | ui: clip Tester.AccessInfo.Bounds to visible rect (#1999) | pending |  |
-| `9665e789` | 2026-11-18 | ui: DottedUnderline draws dots, as text resolving its style and text morphing dropped them for a solid line (#2026) | pending |  |
-| `9eec79ae` | 2026-11-18 | editor: cut the last line whole, and comment a blank line (#2039) | pending |  |
-| `aa1d3a10` | 2026-11-18 | ui: report Element.Key after state reads, panicking in Tester (#1993) | pending |  |
-| `3aab9bbc` | 2026-11-18 | ui: keep what the layout reads of a child in the item it makes of it (#2020) | pending |  |
-| `c805346c` | 2026-11-18 | editor: the horizontal scroll follows lines that get narrower (#2047) | pending |  |
+| `992cb284` | 2026-11-18 | fix(ui): name the months of the date wheels in the app's language (#2013) | n/a | no mobile backend (DatePicker wheels) |
+| `24806022` | 2026-11-18 | ui/editor: a diff's find matches the lines it shows (#2001) | n/a | diff view has no find bar (diffview.zig) |
+| `91835a12` | 2026-11-18 | windows: folder dialogs no longer freeze on WSL shares (#2029) | todo-M | windows/filedialog.zig sets FOS_FORCEFILESYSTEM for folder pickers too (WSL freeze); drop it + OnFileOk sink |
+| `e75b3448` | 2026-11-18 | ui, text: keep parallel Testers' frame stats setting and inline objects apart (#2042) | n/a | no process-wide run delegates/inline objects/frame-stats globals in text engines |
+| `8d72678c` | 2026-11-18 | metal: give back the drawables of windows out of sight half a second after their last frame (#2040) (#2048) | todo-M | Metal: give back drawables of occluded windows ~0.5 s after last frame (metal.zig, surface.zig occlusionChanged) |
+| `b3c62a5d` | 2026-11-18 | ui: clip Tester.AccessInfo.Bounds to visible rect (#1999) | n/a | Tester has no AccessInfo |
+| `9665e789` | 2026-11-18 | ui: DottedUnderline draws dots, as text resolving its style and text morphing dropped them for a solid line (#2026) | n/a | no dotted underline style (Span has underline bool only) |
+| `9eec79ae` | 2026-11-18 | editor: cut the last line whole, and comment a blank line (#2039) | todo-S | editor/indent.zig toggleComment does nothing on a lone blank line; comment it. Caret-only cut of a line n/a |
+| `aa1d3a10` | 2026-11-18 | ui: report Element.Key after state reads, panicking in Tester (#1993) | n/a | no Element.Key after the fact; keys are set before the box (Context.keyed) |
+| `3aab9bbc` | 2026-11-18 | ui: keep what the layout reads of a child in the item it makes of it (#2020) | n/a | internal refactor of mygo's flex item struct; layout_flex.zig differs |
+| `c805346c` | 2026-11-18 | editor: the horizontal scroll follows lines that get narrower (#2047) | present | content_w is the widest line in view each frame, scroll_x clamped (textarea_view.zig) |
 | `23b3b8d5` | 2026-11-18 | fix(mobile): run a script of statements in Page.Eval on iOS and Android (#2023) | n/a | no mobile backend |
-| `df45c969` | 2026-11-18 | render: frames that hold still are neither drawn nor encoded again (#2052) | pending |  |
-| `f5b6e55f` | 2026-11-18 | render: a video without motion blur draws on one worker (#2058) | pending |  |
-| `400ba3b1` | 2026-11-18 | fix(darwin): draw a popover flyout's held frame as it shows again (#2054) | pending |  |
-| `c23e036c` | 2026-11-19 | text: browsers get a registered font's weights, widths and style, and lay out again once it loads (#2070) (#2071) | pending |  |
-| `e20d2031` | 2026-11-19 | fix(editor): move what Select Smaller and a drag return to with the text (#2072) | pending |  |
+| `df45c969` | 2026-11-18 | render: frames that hold still are neither drawn nor encoded again (#2052) | n/a | no render plugin |
+| `f5b6e55f` | 2026-11-18 | render: a video without motion blur draws on one worker (#2058) | n/a | no render plugin |
+| `400ba3b1` | 2026-11-18 | fix(darwin): draw a popover flyout's held frame as it shows again (#2054) | present | showPopover calls occlusionChanged and requestFrame (window_mac_events.zig) |
+| `c23e036c` | 2026-11-19 | text: browsers get a registered font's weights, widths and style, and lay out again once it loads (#2070) (#2071) | n/a | browsers draw with myzig's own TrueType reader; no app font registration/FontFace |
+| `e20d2031` | 2026-11-19 | fix(editor): move what Select Smaller and a drag return to with the text (#2072) | n/a | editor has no Select Larger/Smaller or Alt-drag carets |
 | `f168b778` | 2026-11-20 | fix(mobile): type a hardware keyboard's letters into native UI on iOS (#2074) | n/a | no mobile backend |
 | `3873650f` | 2026-11-19 | mobile/android: a hardware keyboard's letters type into native UI's text inputs (#2077) | n/a | no mobile backend |
 | `4ba6e647` | 2026-11-19 | fix(android): leave the text as it is when the keyboard reports a correction (#2079) | n/a | no mobile backend |
-| `d25ed916` | 2026-11-19 | ui: clip a text field's text to its rounded corners (#2069) | pending |  |
+| `d25ed916` | 2026-11-19 | ui: clip a text field's text to its rounded corners (#2069) | n/a | clips are rectangles (paint.zig); no rounded clips |
 | `0b66bc5b` | 2026-11-19 | mobile/android: ship gradlew.bat so Android builds run on Windows (#2063) (#2065) | n/a | no mobile backend |
 | `20d551d1` | 2026-11-19 | mobile/android: build with JDK 17 through 25 (#2064) (#2066) | n/a | no mobile backend |
 | `6ad8e710` | 2026-11-19 | mobile: Eval runs on Android in a page whose Content Security Policy forbids eval (#2035) | n/a | no mobile backend |
-| `119426eb` | 2026-11-19 | richtext: keep scrolled text inside the editor's box (#2031) | pending |  |
-| `6f1eab78` | 2026-11-19 | fix(build): keep delta work beside the stage, out of %TEMP% (#2046) | pending |  |
+| `119426eb` | 2026-11-19 | richtext: keep scrolled text inside the editor's box (#2031) | present | richtext blocks are elements in a clipping scroll box (richtext/view.zig) |
+| `6f1eab78` | 2026-11-19 | fix(build): keep delta work beside the stage, out of %TEMP% (#2046) | n/a | no delta updates |
 | `61ea5567` | 2026-11-20 | fix(ui): follow the Mac's keys on iOS, where Cmd is Command (#2076) | n/a | no mobile backend |
-| `49c8bc4c` | 2026-11-20 | Treat an unset badge alignment as the right default, on macOS (#2038) | pending |  |
+| `49c8bc4c` | 2026-11-20 | Treat an unset badge alignment as the right default, on macOS (#2038) | n/a | no badges or staying-open rows in native menus |
 | `1bf621c1` | 2026-11-20 | fix(android): ask for the next frame early, vote harder for 120 Hz, hold the splash until Go's frame shows (#2059) | n/a | no mobile backend |
-| `ecc89aef` | 2026-11-20 | fix(ui): let a Tester take the text system an ended Tester left (#2087) | pending |  |
+| `ecc89aef` | 2026-11-20 | fix(ui): let a Tester take the text system an ended Tester left (#2087) | todo-S | perf: Testers reuse an ended Tester's text system instead of init per Tester (tester.zig) |
 | `9af06548` | 2026-11-20 | fix(examples): take Enter from the focused input in the launcher and the flyout, and let the launcher quit (#2092) | skip |  |
-| `5da883c0` | 2026-11-20 | fix(windows): normalize Unicode clipboard and drag text line endings (#2021) | pending |  |
-| `e55cec57` | 2026-11-20 | fix(richtext): a <br> that ends a block adds no empty paragraph (#2095) (#2096) | pending |  |
-| `7d87cf65` | 2026-11-20 | windows: take a window full screen when its page goes full screen (#1872) | pending |  |
-| `ceb1b992` | 2026-11-20 | fix(darwin): let the Korean input method take Backspace back a jamo (#2100) | pending |  |
-| `9d250927` | 2026-11-20 | feat: PageOptions.ZoomControl, the user's zoom, off by default (#2097) | pending |  |
-| `a937351b` | 2026-11-20 | fix(ui): show an app-set NumberInput value on the next build (#2102) | pending |  |
-| `84c83bb7` | 2026-11-20 | Size a staying-open menu by its widest row, and give a boxed badge 12pt (#2049) | pending |  |
-| `641de152` | 2026-11-20 | Skip a menu relayout when an update changes only a check mark (#2050) | pending |  |
-| `f8a45e37` | 2026-11-20 | fix: write the panic that ends the app to crash.log, and show it on phones (#2116) | pending |  |
-| `9bfaa2c4` | 2026-11-20 | darwin: WasOpenedAtLogin tells a login item's launch (#2033) | pending |  |
-| `bab1ea50` | 2026-11-20 | windows: keep the alpha of images on the clipboard (#2032) | pending |  |
-| `5615dcaa` | 2026-11-20 | ui: accept FocusOptions in AutoFocus and Handle.FocusWith (#1995) | pending |  |
-| `993b4590` | 2026-11-20 | ui: show a disabled drawn menu item's tooltip, reaching it per platform (#1372) | pending |  |
+| `5da883c0` | 2026-11-20 | fix(windows): normalize Unicode clipboard and drag text line endings (#2021) | todo-S | Windows text: LF->CRLF on CF_UNICODETEXT write, CRLF->LF on read/drop (desktop.zig, oledrag.zig, transfer_win.zig) |
+| `e55cec57` | 2026-11-20 | fix(richtext): a <br> that ends a block adds no empty paragraph (#2095) (#2096) | n/a | richtext reads no HTML (only Markdown in markdown_in.zig) |
+| `7d87cf65` | 2026-11-20 | windows: take a window full screen when its page goes full screen (#1872) | todo-S | Windows: follow WebView2 ContainsFullScreenElementChanged into/out of window full screen (windows/page_events.zig) |
+| `ceb1b992` | 2026-11-20 | fix(darwin): let the Korean input method take Backspace back a jamo (#2100) | present | Backspace goes through interpretKeyEvents first (textinput.zig); note insertText ignores replacementRange |
+| `9d250927` | 2026-11-20 | feat: PageOptions.ZoomControl, the user's zoom, off by default (#2097) | todo-S | PageOptions.zoom_control (off): put IsZoomControlEnabled in windows/page.zig setUp; WebView2 default is on now |
+| `a937351b` | 2026-11-20 | fix(ui): show an app-set NumberInput value on the next build (#2102) | present | numberInput sets text from value before building the field when unfocused (controls_range.zig) |
+| `84c83bb7` | 2026-11-20 | Size a staying-open menu by its widest row, and give a boxed badge 12pt (#2049) | n/a | no badges or staying-open menus |
+| `641de152` | 2026-11-20 | Skip a menu relayout when an update changes only a check mark (#2050) | n/a | no staying-open menus to relayout |
+| `f8a45e37` | 2026-11-20 | fix: write the panic that ends the app to crash.log, and show it on phones (#2116) | todo-M | write the fatal panic to crash.log in the logs dir (a panic handler apps opt into); mobile parts n/a |
+| `9bfaa2c4` | 2026-11-20 | darwin: WasOpenedAtLogin tells a login item's launch (#2033) | todo-S | macOS wasOpenedAtLogin is always false (args only); read launch Apple Event in didFinishLaunching (app.zig) |
+| `bab1ea50` | 2026-11-20 | windows: keep the alpha of images on the clipboard (#2032) | todo-M | Windows clipboard images: write CF_DIBV5 with alpha + DIB/BITMAP on white, read DIBV5 first (windows/clipboard.zig) |
+| `5615dcaa` | 2026-11-20 | ui: accept FocusOptions in AutoFocus and Handle.FocusWith (#1995) | n/a | no FocusOptions; Handle.focus/focus moves scroll no containers (handle.zig) |
+| `993b4590` | 2026-11-20 | ui: show a disabled drawn menu item's tooltip, reaching it per platform (#1372) | n/a | drawn menu items have no tooltips (menu.zig) |
 | `bf9b5cbf` | 2026-11-20 | test(permissionflow): expect the name macOS 27 gives Accessibility (#2086) | skip |  |
-| `89e2d883` | 2026-11-20 | ui: leave a button its click in a row DragRows leaves out (#2062) | pending |  |
-| `98311208` | 2026-11-20 | feat(editor): show a panel below the caret, and expose the caret's Rect (#1972) | pending |  |
-| `75d4e155` | 2026-11-20 | markdown: Options.LinkColor colors a link's text by its destination (#2022) | pending |  |
-| `f8f8a8df` | 2026-11-19 | ui: keep moving text locked to its resting pixel phase (#2017) | pending |  |
-| `ee97486b` | 2026-11-20 | ui: add SplitGap for spaced or flush Split panes without a divider line (#1997) | pending |  |
-| `17c67272` | 2026-11-20 | ui.Table: column virtualization and frozen columns (#1973) | pending |  |
-| `f098a223` | 2026-11-19 | editor: show elements between lines (#1662) | pending |  |
-| `5778d86f` | 2026-11-20 | text: keep one copy of an app's font, not one an engine or registration (#1948) | pending |  |
-| `3a6ad8db` | 2026-11-20 | darwin: a panel takes the keyboard on Show while another app is active (#1284) | pending |  |
-| `4b1aa44e` | 2026-11-20 | ui,terminal: pass unhandled zoom and horizontal scroll to outer handlers (#2117) | pending |  |
-| `8edef676` | 2026-11-20 | windows: add a thumbnail toolbar under the taskbar preview (#2084) | pending |  |
-| `7ba76ed9` | 2026-11-20 | text: add each app font file to fontconfig once a process on Linux (#1947) | pending |  |
-| `024dd334` | 2026-11-20 | terminal: report a sideways wheel to a program that takes the mouse (#2118) | pending |  |
+| `89e2d883` | 2026-11-20 | ui: leave a button its click in a row DragRows leaves out (#2062) | n/a | no List DragRows; drags are explicit DragDrop.draggable boxes (dragdrop.zig) |
+| `98311208` | 2026-11-20 | feat(editor): show a panel below the caret, and expose the caret's Rect (#1972) | todo-M | editor: app panel below the caret (ShowPopup) and the caret's rect (editor/editor.zig) |
+| `75d4e155` | 2026-11-20 | markdown: Options.LinkColor colors a link's text by its destination (#2022) | todo-S | markdown Options.link_color(destination) for link text (markdown/view.zig, render.zig) |
+| `f8f8a8df` | 2026-11-19 | ui: keep moving text locked to its resting pixel phase (#2017) | todo-M | keep text moved by transitions on its resting pixel phase (motion_transition.zig, paint_xf.zig) |
+| `ee97486b` | 2026-11-20 | ui: add SplitGap for spaced or flush Split panes without a divider line (#1997) | todo-S | split.zig Options.gap: spaced or flush panes with no divider line |
+| `17c67272` | 2026-11-20 | ui.Table: column virtualization and frozen columns (#1973) | todo-M | frozen columns present (table.zig frozen); column virtualization (build only columns in view) missing |
+| `f098a223` | 2026-11-19 | editor: show elements between lines (#1662) | todo-L | editor replacements and elements between lines (folds/live preview); textarea-based editor lacks them |
+| `5778d86f` | 2026-11-20 | text: keep one copy of an app's font, not one an engine or registration (#1948) | n/a | no app font registration |
+| `3a6ad8db` | 2026-11-20 | darwin: a panel takes the keyboard on Show while another app is active (#1284) | n/a | no panel windows; flyout NSPanels take key via canBecomeKeyWindow (window_mac_events.zig) |
+| `4b1aa44e` | 2026-11-20 | ui,terminal: pass unhandled zoom and horizontal scroll to outer handlers (#2117) | present | gesture.zig deliver passes unhandled zoom/scroll to outer handlers; terminal reads only vertical wheel |
+| `8edef676` | 2026-11-20 | windows: add a thumbnail toolbar under the taskbar preview (#2084) | todo-M | Windows thumbnail toolbar under the taskbar preview (windows/taskbar.zig, new thumbbar) |
+| `7ba76ed9` | 2026-11-20 | text: add each app font file to fontconfig once a process on Linux (#1947) | n/a | no app font registration (no FcConfigAppFontAddFile) |
+| `024dd334` | 2026-11-20 | terminal: report a sideways wheel to a program that takes the mouse (#2118) | todo-S | terminal: report a sideways wheel (buttons 66/67) to a mouse-tracking program (terminal view.zig); surfaces pass dx |
 | `fd23e445` | 2026-11-20 | test(windows): find a trashed item in the recycle bin by its path, not by counting (#2119) | skip |  |
-| `71f6c08b` | 2026-11-20 | ui/editor: bring a fitted viewer's find and go to line into view (#2105) | pending |  |
+| `71f6c08b` | 2026-11-20 | ui/editor: bring a fitted viewer's find and go to line into view (#2105) | n/a | code editor and diff view have no fit-to-content mode |
 | `c3bc3a99` | 2026-11-20 | test(ui): find decorations drawn faint, as GTK draws them on Pango 1.50 (#2121) | skip |  |
 | `aa6875f0` | 2026-11-20 | test(d3d11): never settle the swap chain in TestUncappedHeldFrameGivenUp (#2122) | skip |  |
-| `96dcfd62` | 2026-11-20 | fix(page): an Eval pending in a page left returns an error (#1811) | pending |  |
-| `cf6e3605` | 2026-11-20 | fix(windows): a tray icon the notification area refuses stays unadded, and the log says so (#2125) | pending |  |
+| `96dcfd62` | 2026-11-20 | fix(page): an Eval pending in a page left returns an error (#1811) | present | page_core.zig navigated fails pending evals ("the page navigated") |
+| `cf6e3605` | 2026-11-20 | fix(windows): a tray icon the notification area refuses stays unadded, and the log says so (#2125) | todo-S | windows/tray.zig add: on failed NIM_ADD check with NIM_MODIFY, log a refusal once (re-add on TaskbarCreated present) |
 | `9976b9bc` | 2026-11-20 | fix(text): mirror brackets in right-to-left runs in browsers and on Android (#2129) | n/a | no mobile backend |
-| `a87592ba` | 2026-11-20 | fix(ui): ask for the next frame ahead when the view animates as it builds (#2135) | pending |  |
-| `c29d682e` | 2026-11-20 | metal: keep two drawables on displays of 60 Hz or less (#2132) | pending |  |
-| `044e6ca9` | 2026-11-20 | Revert "metal: keep two drawables on displays of 60 Hz or less (#2132)" | pending |  |
-| `1a89ba22` | 2026-11-20 | richtext: hit links only where their text is drawn (#2134) | pending |  |
+| `a87592ba` | 2026-11-20 | fix(ui): ask for the next frame ahead when the view animates as it builds (#2135) | n/a | frame-ahead pacing is Android's; no mobile backend |
+| `c29d682e` | 2026-11-20 | metal: keep two drawables on displays of 60 Hz or less (#2132) | n/a | reverted by 044e6ca9 |
+| `044e6ca9` | 2026-11-20 | Revert "metal: keep two drawables on displays of 60 Hz or less (#2132)" | n/a | revert of c29d682e |
+| `1a89ba22` | 2026-11-20 | richtext: hit links only where their text is drawn (#2134) | todo-S | richtext/view.zig opens a link at the nearest caret offset; hit links only over their drawn text |
 | `af21abe5` | 2026-11-21 | fix(android): toolbars follow the system's theme, and fit their title under the status bar (#2141) | n/a | no mobile backend |
-| `e04a7798` | 2026-11-21 | text: draw a variable font's weights between its named instances on Windows (#2142) | pending |  |
-| `2ca120e9` | 2026-11-21 | shell: report where the trash put an item on Windows and Linux (#2147) | pending |  |
-| `54bca49c` | 2026-11-21 | ui: Enter clicks a button inside a list's rows, and Tab reaches sortable headers (#2149) | pending |  |
-| `f7076071` | 2026-11-21 | fix(darwin): tray 的 flyout 开在图标下方，而不是点击落点 (#2136) | pending |  |
-| `66963e44` | 2026-11-21 | window: support WindowOptions.ConsumeActivationClick on Windows and macOS (#1888) (#2094) | pending |  |
-| `da283c39` | 2026-11-21 | fix: mark browser touch pointer events for UI gestures (#2133) | pending |  |
-| `8ab52a39` | 2026-11-21 | terminal: link a Windows path as a whole, from its drive (#2120) | pending |  |
-| `2d814ef1` | 2026-11-21 | ui/editor: show lines deleted after a final newline in a unified diff (#2124) | pending |  |
+| `e04a7798` | 2026-11-21 | text: draw a variable font's weights between its named instances on Windows (#2142) | todo-M | DirectWrite: weights between a variable font's named instances via axis values (text_dw.zig matchFace) |
+| `2ca120e9` | 2026-11-21 | shell: report where the trash put an item on Windows and Linux (#2147) | todo-M | trash returns bool everywhere (desktop.zig, windows/trash.zig); report where the item went |
+| `54bca49c` | 2026-11-21 | ui: Enter clicks a button inside a list's rows, and Tab reaches sortable headers (#2149) | present | Enter submits only while the list itself is focused (table.zig, list_select.zig); sortable headers focusable |
+| `f7076071` | 2026-11-21 | fix(darwin): tray 的 flyout 开在图标下方，而不是点击落点 (#2136) | present | tray flyouts anchor to the status item's button frame (window_mac_events.zig) |
+| `66963e44` | 2026-11-21 | window: support WindowOptions.ConsumeActivationClick on Windows and macOS (#1888) (#2094) | todo-S | WindowOptions.consume_activation_click: acceptsFirstMouse NO (ui/surface.zig, page.zig), MA_ACTIVATEANDEAT on Windows |
+| `da283c39` | 2026-11-21 | fix: mark browser touch pointer events for UI gestures (#2133) | n/a | no touch gestures in ui; pointercancel already releases (web/host.js) |
+| `8ab52a39` | 2026-11-21 | terminal: link a Windows path as a whole, from its drive (#2120) | present | drive paths and backslashes link whole (terminal links.zig drive) |
+| `2d814ef1` | 2026-11-21 | ui/editor: show lines deleted after a final newline in a unified diff (#2124) | present | diff rows come from ops and the empty line after a final newline is not hidden (diffview_model.zig) |
 | `2956c3cf` | 2026-11-21 | fix(examples): open the dialog the Text page's email field promises on that page (#2152) | skip |  |
-| `2ec1ac2d` | 2026-11-21 | linux: let a hidden title bar decorate itself on KDE Plasma (#2153) (#2154) | pending |  |
-| `3611b55b` | 2026-11-21 | fix(web): show ⌘D, not Ctrl+D, for Cmd+D in a browser on a Mac (#2155) | pending |  |
+| `2ec1ac2d` | 2026-11-21 | linux: let a hidden title bar decorate itself on KDE Plasma (#2153) (#2154) | present | hidden title bar always keeps GTK's client-side frame (linux/titlebar_overlay.zig) |
+| `3611b55b` | 2026-11-21 | fix(web): show ⌘D, not Ctrl+D, for Cmd+D in a browser on a Mac (#2155) | todo-S | web on a Mac: shortcut labels say Ctrl+ (keys.zig label is comptime); host.js knows isMac |
 | `7aaf69f5` | 2026-11-21 | fix(android): pause a web view that native UI doesn't show (#2156) | n/a | no mobile backend |
 | `00bd763d` | 2026-11-21 | docs: say in the native modules skill that Kotlin implements views too (#2157) | skip |  |
 | `1384cfab` | 2026-11-21 | fix(android): don't pause a ThrottlingOff page native UI doesn't show (#2158) | n/a | no mobile backend |
 | `352daf0d` | 2026-11-21 | fix(examples): keep the legend of Users by platform inside its card (#2159) | skip |  |
-| `11e3c673` | 2026-11-21 | fix(ui): preserve HoldModifiers across pointer events (#2160) | pending |  |
-| `84b3bd6d` | 2026-11-21 | feat(editor): split lines on multi-cursor paste (#2161) | pending |  |
-| `26a1657f` | 2026-11-21 | fix(web): only prevent default wheel when scroll is consumed (#2162) | pending |  |
+| `11e3c673` | 2026-11-21 | fix(ui): preserve HoldModifiers across pointer events (#2160) | n/a | Tester has no HoldModifiers |
+| `84b3bd6d` | 2026-11-21 | feat(editor): split lines on multi-cursor paste (#2161) | todo-S | multi-caret paste: one line per caret when counts match (textarea_multi.zig) |
+| `26a1657f` | 2026-11-21 | fix(web): only prevent default wheel when scroll is consumed (#2162) | present | host.js prevents a wheel's default only when ui took it; full-page windows still leave the rest to the browser |
 | `3f787aca` | 2026-11-21 | fix(ui,text): avoid ellipsis overflow at zero or narrow widths (#2164) | n/a | no ellipsis truncation in myzig text |
 | `a40c02ef` | 2026-11-21 | fix(android): serve Range requests of the app's schemes (video seeking) (#2166) | n/a | no mobile backend |
-| `b8249d84` | 2026-11-21 | fix(richtext): don't carry a Markdown mark closed at the end into the next list (#2167) | pending |  |
+| `b8249d84` | 2026-11-21 | fix(richtext): don't carry a Markdown mark closed at the end into the next list (#2167) | present | wrap sets typing to the marks without the format (richtext/shortcuts.zig) |
 | `f98751c6` | 2026-11-21 | fix(markdown): indent code blocks with tabs of 4 columns on every system (#2168) | todo-S | markdown code blocks with tabs of 4: needs a tab size in text styles (1217) |
-| `edf2ac39` | 2026-11-21 | fix(darwin,ui): accept text inserted while window is non-key (Character Viewer) (#2170) | pending |  |
+| `edf2ac39` | 2026-11-21 | fix(darwin,ui): accept text inserted while window is non-key (Character Viewer) (#2170) | present | resigning key does not blur the focused field; insertText reaches it (textinput.zig) |
 | `efb83d98` | 2026-11-21 | fix(android): lay a piece of a word out within the word, in its run's direction (#2173) | n/a | no mobile backend |
-| `8414e12d` | 2026-11-21 | fix(linux): give web pages a sane screen resolution when GDK has none (#2180) | pending |  |
-| `15c6cf6e` | 2026-11-21 | windows: round the corners of transparent Windows 10 windows (#2176) | pending |  |
+| `8414e12d` | 2026-11-21 | fix(linux): give web pages a sane screen resolution when GDK has none (#2180) | todo-S | Linux: set GdkScreen resolution to 96 when below 48 before the first WebKit context (linux/webkit.zig load) |
+| `15c6cf6e` | 2026-11-21 | windows: round the corners of transparent Windows 10 windows (#2176) | n/a | no transparent windows or window corner radius option |
 | `e6d1f440` | 2026-11-21 | fix(text): keep kashidas and ayah numbers in their words, ligatures on Android, and Core Text's widths of right-to-left lines (#2174) | n/a | no mobile backend |
-| `e1a96e8e` | 2026-11-21 | fix(protocol): handlers see the length of a request's body (#2181) | pending |  |
+| `e1a96e8e` | 2026-11-21 | fix(protocol): handlers see the length of a request's body (#2181) | n/a | Go http.Request ContentLength; SchemeRequest carries the body as a slice |
 | `93c5b897` | 2026-11-21 | test(updater): don't miss the download's progress in TestInstallAndRelaunch (#2182) | skip |  |
-| `abb4de88` | 2026-11-21 | fix(ipc): start and stop streaming calls with AbortSignal (#1960) | pending |  |
-| `6284bd92` | 2026-11-21 | fix(darwin): keep Dock.SetIcon's icon when the app turns regular (#2185) | pending |  |
+| `abb4de88` | 2026-11-21 | fix(ipc): start and stop streaming calls with AbortSignal (#1960) | n/a | bridge.js has no AbortSignal/cancelable calls |
+| `6284bd92` | 2026-11-21 | fix(darwin): keep Dock.SetIcon's icon when the app turns regular (#2185) | n/a | no Dock icon setter or runtime activation policy change |
 | `21b016d7` | 2026-11-21 | fix(examples): pad the Right-click me card on its start side, right to left too (#2187) | skip |  |
-| `3021dee3` | 2026-11-21 | d3d11: release textures of collected images when idle (#1926) | pending |  |
-| `628ce8c0` | 2026-11-22 | fix(linux): drop the hidden title bar's empty title, so the controls' room is the buttons (#2189) | pending |  |
-| `0802b26f` | 2026-11-22 | editor: highlight Astro files, their frontmatter as TypeScript (#2190) | pending |  |
+| `3021dee3` | 2026-11-21 | d3d11: release textures of collected images when idle (#1926) | n/a | D3D11 draws images from one atlas texture (d3d11.zig) |
+| `628ce8c0` | 2026-11-22 | fix(linux): drop the hidden title bar's empty title, so the controls' room is the buttons (#2189) | todo-S | linux/titlebar_overlay.zig header bar reserves a 5-char title; set an empty custom title |
+| `0802b26f` | 2026-11-22 | editor: highlight Astro files, their frontmatter as TypeScript (#2190) | todo-S | astro maps to markup; lex its --- frontmatter as TypeScript (highlight_markup.zig) |
 | `9b0ae9ef` | 2026-11-22 | markdown: escape the raw tags a browser reads to their end, as GitHub's tagfilter does (#2193) | ported | markdown HTML: GFM tagfilter (Extensions.tagfilter) |
-| `4628106e` | 2026-11-22 | platform: say what a backend cannot do, and still be ErrUnsupported (#2196) | pending |  |
-| `a665dd70` | 2026-11-22 | power: keep a Windows app at full speed while it runs out of sight (#2197) | pending |  |
-| `a7ffb51a` | 2026-11-22 | i18n: write the quarter of a date, not the letters of its pattern (#2200) | pending |  |
-| `827e680f` | 2026-11-22 | tray: say what an empty Bounds means (#2201) | pending |  |
-| `dc4a7ea9` | 2026-11-22 | fix(i18n): keep a quarter in words when a number of it is asked, as ICU does (#2202) | pending |  |
+| `4628106e` | 2026-11-22 | platform: say what a backend cannot do, and still be ErrUnsupported (#2196) | present | web backend returns error.Unsupported throughout (src/web) |
+| `a665dd70` | 2026-11-22 | power: keep a Windows app at full speed while it runs out of sight (#2197) | todo-S | Windows half of Power.KeepRunning (9868d86b, not in myzig): SetProcessInformation(ProcessPowerThrottling) |
+| `a7ffb51a` | 2026-11-22 | i18n: write the quarter of a date, not the letters of its pattern (#2200) | todo-M | i18n quarters (Q..QQQQ names, quarter skeletons) in generator and date.zig; skeleton list has none |
+| `827e680f` | 2026-11-22 | tray: say what an empty Bounds means (#2201) | n/a | docs only |
+| `dc4a7ea9` | 2026-11-22 | fix(i18n): keep a quarter in words when a number of it is asked, as ICU does (#2202) | todo-S | with a7ffb51a: yQ/yQQ keep the quarter in words, as ICU 78 |
 | `15d9bc0e` | 2026-11-22 | fix(ui): keep the caret of a text area inside its box at the right edge (#2203) | present | text area wraps 6 points inside its box (textarea_view.zig) |
-| `41f31d50` | 2026-11-22 | fix(ui): let a keyboard move a selection made with Shift and the arrows (#2204) | pending |  |
-| `8e5c8f9d` | 2026-11-22 | ui: forward Radius and Padding from inline Text elements to their spans (#2211) | pending |  |
-| `d5503941` | 2026-11-22 | fix(richtext): let an on-screen keyboard move the editor's selection (#2210) | pending |  |
+| `41f31d50` | 2026-11-22 | fix(ui): let a keyboard move a selection made with Shift and the arrows (#2204) | n/a | on-screen keyboards' selection moves; no mobile backend |
+| `8e5c8f9d` | 2026-11-22 | ui: forward Radius and Padding from inline Text elements to their spans (#2211) | n/a | no inline Text elements; spans have no radius or padding |
+| `d5503941` | 2026-11-22 | fix(richtext): let an on-screen keyboard move the editor's selection (#2210) | n/a | on-screen keyboards' selection moves; no mobile backend |
 | `67bf9295` | 2026-11-22 | fix(ui): Space holds a focused button down and clicks it as it goes up (#2212) | todo-M | Space presses a focused button and clicks on key up: needs key up for focused widgets (context.zig interact) |
-| `94fda721` | 2026-11-22 | fix(editor): let an on-screen keyboard move the editor's selection (#2214) | pending |  |
-| `13f2d99f` | 2026-11-22 | fix(darwin): a two-finger swipe between pages goes back and forward (#2218) | pending |  |
+| `94fda721` | 2026-11-22 | fix(editor): let an on-screen keyboard move the editor's selection (#2214) | n/a | on-screen keyboards' selection moves; no mobile backend |
+| `13f2d99f` | 2026-11-22 | fix(darwin): a two-finger swipe between pages goes back and forward (#2218) | todo-M | macOS: follow precise scroll gestures, send back/forward on a two-finger page swipe (surface_gesture.zig) |
 | `ef0b2517` | 2026-11-23 | mobile: draw again after an Android surface resizes, on a new EGL surface (#2221) | n/a | no mobile backend |
 | `a0eaaaaf` | 2026-11-23 | fix(cli): pass the inherited environment to process.execve (#2222) | n/a | npm launcher; the myzig CLI is a Zig binary |

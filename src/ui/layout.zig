@@ -113,6 +113,13 @@ inline fn compute(c: *Context, index: u32, avail_w: f32) types.Size {
             if (count > 1) {
                 if (st.direction == .row) content.w += st.gap * (count - 1) else content.h += st.gap * (count - 1);
             }
+            // A row too narrow for its children's widths: those of wrapping
+            // text shrink as `arrange` will shrink them, and are as tall as
+            // they are at that width, or the row is measured shorter than
+            // it is laid out and what follows it overlaps its last lines.
+            if (st.direction == .row and flexible and content.w > inner_w + 0.5) {
+                if (shrunk(c, index, inner_w, count)) |h| content.h = h;
+            }
         },
     }
 
@@ -138,6 +145,57 @@ inline fn compute(c: *Context, index: u32, avail_w: f32) types.Size {
     m.measured = size;
     m.flexible = flexible and st.width != .px;
     return size;
+}
+
+/// The height of row `index` with its `count` children shrunk to `inner_w`
+/// as `arrange` resolves them, its wrapping children measured again at
+/// their widths; null if none of them got narrower.
+fn shrunk(c: *Context, index: u32, inner_w: f32, count: f32) ?f32 {
+    const n = c.node(index);
+    const st = n.style;
+    const k_all: usize = @intFromFloat(count);
+    const items = c.alloc().alloc(flex.Item, k_all) catch return null;
+    var k: usize = 0;
+    var child = n.first_child;
+    while (child != none and k < items.len) : (child = c.node(child).next) {
+        if (c.node(child).style.absolute) continue;
+        items[k] = itemOf(c, .row, child);
+        k += 1;
+    }
+    flex.resolve(items, inner_w - st.gap * (count - 1));
+    const lines = baseline.lines(st);
+    var h: f32 = 0;
+    var ascent: f32 = 0;
+    var descent: f32 = 0;
+    var changed = false;
+    k = 0;
+    child = n.first_child;
+    while (child != none and k < items.len) : (child = c.node(child).next) {
+        const ch = c.node(child);
+        if (ch.style.absolute) continue;
+        const was = ch.measured;
+        const base = ch.base;
+        const narrower = ch.flexible and items[k].main < was.w - 0.5;
+        const s = if (narrower) measure(c, child, items[k].main) else was;
+        changed = changed or narrower;
+        h = @max(h, s.h);
+        if (lines) {
+            const b = baseline.of(c, child, st.baselines) orelse s.h;
+            ascent = @max(ascent, b);
+            descent = @max(descent, s.h - b);
+        }
+        if (narrower) {
+            // Only its height is taken: its base size stays the one the
+            // flex line resolves from, and `arrange` measures it again.
+            const m = c.node(child);
+            m.base = base;
+            m.measured = was;
+            m.pass = 0;
+        }
+        k += 1;
+    }
+    if (!changed) return null;
+    return if (lines) @max(h, ascent + descent) else h;
 }
 
 /// Places box `index` in `rect` and its children inside it; the root's

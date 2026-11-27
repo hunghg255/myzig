@@ -174,3 +174,49 @@ test "markdown without a state parses each frame" {
     defer t.deinit();
     try testing.expect(t.hasText("Hello world"));
 }
+
+// At every width, the paragraph after the list starts below the list's
+// last line. A row measured its wrapping children at the whole row's
+// width (fewer lines than they got), and wrapped lines were kept by the
+// whole point (629.2's lines given at 629.9).
+test "a nested list's last wrapped line is not overlapped by what follows" {
+    const src = "- **Cách kiểm chứng:**\n  1. Chạy lại đúng phép đo heap ban đầu nhưng tắt lớp bọc, bản build, 2 vòng × 20 lần:\n     - **Modal:** DOM node 2.930 → 2.930 → 2.930, listener 711 → 711 → 711. Heap tăng 1,2 MB ở vòng đầu (bộ nhớ đệm, JIT) rồi chỉ thêm khoảng 0,2 MB.\n     - **Drawer:** node và listener cũng giữ nguyên; heap tăng 0,8 MB ở vòng đầu rồi chỉ thêm khoảng 0,2 MB.\n\nKết luận: bm-ui hiện không có lỗi rò bộ nhớ khi mở/đóng Modal.";
+    var p = page(src);
+    defer p.state.deinit();
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&p, Page.view), .{ .width = 760, .height = 900 });
+    defer t.deinit();
+    var w: f32 = 500;
+    while (w < 900) : (w += 0.25) {
+        t.resize(w, 900);
+        t.frame();
+        const d = boxWith(&t, "Drawer").?;
+        const k = boxWith(&t, "Kết luận").?;
+        try testing.expect(k.y >= d.y + d.h - 0.5);
+    }
+}
+
+test "a table wider than the page scrolls sideways, and the wheel scrolls the page over it" {
+    var buf: std.ArrayList(u8) = .empty;
+    defer buf.deinit(testing.allocator);
+    try buf.appendSlice(testing.allocator, "| Scenario | bm-ui | antd | ratio |\n|---|---|---|---|\n");
+    for (0..30) |_| try buf.appendSlice(testing.allocator, "| Mount 200 Input / Button / Tag | 13,9 / 10,8 / 3,7 | 85,2 / 30,3 / 12,3 | 0,2-0,4x (faster) |\n");
+    var p = page(buf.items);
+    defer p.state.deinit();
+    var t: ui.Tester = undefined;
+    try t.init(testing.allocator, .init(&p, Page.view), .{ .width = 360, .height = 400 });
+    defer t.deinit();
+    // The last column is past the page's right edge: the table is not squeezed.
+    const ratio = t.findText("ratio").?;
+    try testing.expect(ratio.x > 360);
+    const page_id = t.ctx.nodes.items[1].id;
+    // The wheel over the table scrolls the page down, not the table.
+    t.scroll(100, 200, -120);
+    try testing.expect((t.ctx.scroll.get(page_id) orelse 0) > 0);
+    try testing.expectEqual(ratio.x, t.findText("ratio").?.x);
+    // With Shift, it scrolls the table sideways.
+    t.ctx.input.shift = true;
+    t.scroll(100, 200, -120);
+    t.ctx.input.shift = false;
+    try testing.expect(t.findText("ratio").?.x < ratio.x - 1);
+}

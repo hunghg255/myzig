@@ -208,6 +208,8 @@ pub const TextSystem = struct {
 
     pub fn beginFrame(self: *TextSystem) void {
         self.atlas.reset_during_frame = false;
+        // Between frames: text boxes laid out in this one hold their lines.
+        if (self.wraps.count() > 2048) self.clearWraps();
         if (self.run_fonts.items.len > max_run_fonts) self.dropFonts();
         freeLayouts(self.gpa, &self.previous);
         std.mem.swap(std.AutoHashMapUnmanaged(u64, Layout), &self.layouts, &self.previous);
@@ -528,14 +530,15 @@ pub const TextSystem = struct {
     /// characters) and at newlines into lines no wider than `max_width`.
     pub fn wrapAttributed(self: *TextSystem, s: []const u8, style: types.TextStyle, spans: []const types.Span, max_width: f32) []const Line {
         const styled = rich.styled(spans);
-        const k = key(s, style, (@as(u64, @intFromFloat(@max(0, @min(max_width, 1e6)))) + 2) ^ (if (styled) rich.spansHash(spans, 0, s.len) else 0));
+        // Keyed by the exact width: lines broken at 629.2 are not those at
+        // 629.9, where a word more may fit.
+        const k = key(s, style, (@as(u64, @as(u32, @bitCast(@as(f32, @max(0, @min(max_width, 1e6)))))) + 2) ^ (if (styled) rich.spansHash(spans, 0, s.len) else 0));
         if (self.wraps.get(k)) |lines| return lines;
         const lay = if (styled) rich.layout(self, s, style, spans, 0) else self.layout(s, style);
         var lines: std.ArrayList(Line) = .empty;
         defer lines.deinit(self.gpa);
         wrapping.breakLines(self.gpa, &lines, s, lay, @max(1, max_width)) catch {};
         if (lines.items.len == 0) lines.append(self.gpa, .{ .start = 0, .end = 0, .width = 0 }) catch {};
-        if (self.wraps.count() > 2048) self.clearWraps();
         const owned = lines.toOwnedSlice(self.gpa) catch return &.{};
         self.wraps.put(self.gpa, k, owned) catch {
             self.gpa.free(owned);

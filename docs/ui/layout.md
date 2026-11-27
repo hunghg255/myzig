@@ -156,6 +156,10 @@ strip of tabs. It takes the width it is given rather than its content's.
 The wheel moves it along. A thin bar shows along its bottom while its
 content overflows.
 
+With `wheel_with_shift = true`, the wheel moves it
+only while Shift is held; otherwise the wheel scrolls the box around it,
+as a wide table scrolls with its page.
+
 **From the app:**
 
 - Set `c.scroll` for its id to bring a child into view.

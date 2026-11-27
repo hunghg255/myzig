@@ -155,7 +155,9 @@ function, for a highlighter with state of its own.
 - Block quotes, ordered and bullet lists, nested, tight and loose, and task
   lists with their checkboxes.
 - Fenced and indented code blocks.
-- Tables, with their columns' alignment.
+- Tables, with their columns' alignment. A table wider than the page
+  scrolls sideways with Shift and the wheel, or its bar. The wheel alone
+  scrolls the page.
 - Thematic breaks. HTML blocks and inline HTML are shown as their text,
   so nothing hides in them.
 

@@ -132,7 +132,7 @@ for (s.messages) |m| messageRow(c, m);
 - Touchpad đi theo ngón tay. Khi bật giảm chuyển động, một nấc scroll ngay lập tức.
 - Nó nhận chỗ được cho, không phải chiều cao nội dung, như `min-height: 0` của CSS. Hãy cho nó kích thước hoặc để nó grow.
 
-**Scroll ngang.** Một hàng có `scroll = true` thì scroll ngang, như một dải tab. Nó nhận chiều rộng được cho thay vì chiều rộng nội dung. Con lăn chuột đẩy nó đi. Một thanh mảnh hiện dọc cạnh dưới khi nội dung tràn.
+**Scroll ngang.** Một hàng có `scroll = true` thì scroll ngang, như một dải tab. Nó nhận chiều rộng được cho thay vì chiều rộng nội dung. Con lăn chuột đẩy nó đi. Một thanh mảnh hiện dọc cạnh dưới khi nội dung tràn. Với `wheel_with_shift = true`, con lăn chỉ đẩy nó khi giữ Shift. Không giữ Shift thì con lăn scroll box bao quanh, như một bảng rộng scroll cùng trang.
 
 **Từ app:**
 

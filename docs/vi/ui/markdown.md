@@ -137,7 +137,7 @@ Bộ tô màu của riêng bạn là một hàm thêm các `ui.Span` cho một d
 - Link và ảnh theo đích hoặc theo tham chiếu, và autolink. Với `autolinks`, có thêm `www.` và URL trần như GitHub.
 - Trích dẫn, danh sách có thứ tự và gạch đầu dòng, lồng nhau, sát và thưa, và task list với checkbox.
 - Code block dạng fence và dạng thụt lề.
-- Bảng, với cách căn của các cột.
+- Bảng, với cách căn của các cột. Bảng rộng hơn trang thì scroll ngang bằng Shift và con lăn, hoặc bằng thanh scroll của nó. Chỉ dùng con lăn thì trang được scroll.
 - Đường kẻ ngang. HTML block và HTML inline hiện như chữ, nên không có gì bị giấu trong đó.
 
 **Ảnh** hiện phần mô tả (chữ thay thế), in nghiêng. Khi `images` của tùy chọn (một `ui.MarkdownImageReader`) đọc được ảnh:

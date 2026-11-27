@@ -10,6 +10,8 @@ pub const Hit = struct {
     /// In the window, or, with `inverse`, in the box's own coordinates.
     rect: types.Rect,
     scroll: bool,
+    /// The wheel scrolls it only with Shift held (`Style.wheel_with_shift`).
+    with_shift: bool = false,
     /// From the window to `rect`'s coordinates, for a box drawn transformed.
     inverse: ?types.Affine = null,
     /// What clips it in the window, around its transform.

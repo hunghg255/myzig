@@ -1,6 +1,8 @@
 //! Tables: a grid of cells whose columns are as wide as their widest
 //! text, up to `Options.max_column_width` (wider text wraps), aligned as
 //! the delimiter row says, the header row shaded and bold, rows striped.
+//! Wider than the page, it scrolls sideways (Shift and the wheel, or its
+//! bar); the wheel alone scrolls the page over it.
 const types = @import("../types.zig");
 const text_mod = @import("../text.zig");
 const view = @import("view.zig");
@@ -37,7 +39,12 @@ pub fn block(v: *view.V, i: u32) void {
     }
     const pad_x = v.em * 0.6;
     const pad_y = v.em * 0.35;
-    _ = c.open(.{ .border = v.pal.border, .radius = 6, .clip = true }, null);
+    var total: f32 = 0;
+    for (widths[0..columns]) |w| total += @min(w, v.opts.max_column_width) + 2 * pad_x;
+    _ = c.open(.{ .direction = .row, .width = .fill, .scroll = true, .wheel_with_shift = true }, null);
+    defer c.end();
+    // As wide as its columns, never squeezed to the page's width.
+    _ = c.open(.{ .width = .{ .px = total }, .border = v.pal.border, .radius = 6, .clip = true }, null);
     defer c.end();
     rows = d.children(i);
     var row_i: usize = 0;

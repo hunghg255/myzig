@@ -200,6 +200,10 @@ pub const Style = struct {
     /// Children are clipped to the box and scroll along it: a column
     /// vertically, a row sideways (the wheel scrolls it too).
     scroll: bool = false,
+    /// A scrolling row the wheel scrolls only while Shift is held: else
+    /// the wheel passes it to the box around it, as a wide table in a page
+    /// that scrolls down lets the page scroll over it.
+    wheel_with_shift: bool = false,
     /// A scrolling box shows its scroll bar; false scrolls it without one
     /// (a carousel, a box the app draws its own bar for).
     scrollbar: bool = true,

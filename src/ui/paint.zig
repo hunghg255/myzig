@@ -149,7 +149,9 @@ fn paintNode(p: *Painter, index: u32, clip_in: types.Rect, opacity_in: f32, sele
     if (st.clip) child_clip = visible;
     if (st.scroll) {
         child_clip = visible;
-        c.next_hits.append(c.gpa, xf.hit(&p.sp, n.id, index, visible, true)) catch {};
+        var h = xf.hit(&p.sp, n.id, index, visible, true);
+        h.with_shift = st.wheel_with_shift;
+        c.next_hits.append(c.gpa, h) catch {};
     }
     const first = out.items.len;
     // What paints from here on is over a web view's page (`webview.zig`).

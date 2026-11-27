@@ -56,6 +56,7 @@ pub fn applyWheel(c: *Context, dy: f32) bool {
         i -= 1;
         const h = c.hits.items[i];
         if (!h.scroll or !h.contains(c.input.mouse) or !events.inLayer(c, h, layer)) continue;
+        if (h.with_shift and !c.input.shift) continue;
         under = true;
         const g = c.wheel.getPtr(h.id);
         const ahead: f64 = if (g) |x| x.ahead() else 0;
@@ -97,6 +98,7 @@ fn scrollAtOnce(c: *Context, dy: f32) bool {
         i -= 1;
         const h = c.hits.items[i];
         if (!h.scroll or !h.contains(c.input.mouse) or !events.inLayer(c, h, layer)) continue;
+        if (h.with_shift and !c.input.shift) continue;
         under = true;
         const limit = limitOf(c, h.id);
         const gop = c.scroll.getOrPut(c.gpa, h.id) catch return true;

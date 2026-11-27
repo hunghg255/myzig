@@ -92,7 +92,7 @@ pub fn applyScroll(c: *Context, dy: f32) bool {
     while (i > 0) {
         i -= 1;
         const h = c.hits.items[i];
-        if (h.scroll and h.contains(c.input.mouse) and inLayer(c, h, layer)) {
+        if (h.scroll and h.contains(c.input.mouse) and inLayer(c, h, layer) and !(h.with_shift and !c.input.shift)) {
             const gop = c.scroll.getOrPut(c.gpa, h.id) catch return false;
             if (!gop.found_existing) gop.value_ptr.* = 0;
             gop.value_ptr.* = @max(0, gop.value_ptr.* - dy);
